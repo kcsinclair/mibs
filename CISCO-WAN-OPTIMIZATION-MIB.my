@@ -1,0 +1,1094 @@
+-- *****************************************************************
+-- CISCO-WAN-OPTIMIZATION-MIB.my : A MIB for WAN Optimization
+-- Features
+--   
+-- October 2010, Chetan K Patel, Pooja Subramanya.
+--   
+-- Copyright (c) 2010-2011 by cisco Systems Inc.
+-- All rights reserved.
+--   
+-- *****************************************************************
+
+CISCO-WAN-OPTIMIZATION-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY,
+    OBJECT-TYPE,
+    Counter32,
+    NOTIFICATION-TYPE,
+    Counter64,
+    Unsigned32,
+    Gauge32
+        FROM SNMPv2-SMI
+    MODULE-COMPLIANCE,
+    NOTIFICATION-GROUP,
+    OBJECT-GROUP
+        FROM SNMPv2-CONF
+    TEXTUAL-CONVENTION,
+    TruthValue,
+    TimeInterval,
+    DateAndTime
+        FROM SNMPv2-TC
+    CounterBasedGauge64
+        FROM HCNUM-TC
+    Unsigned64,
+    CiscoMilliSeconds,
+    TimeIntervalSec
+        FROM CISCO-TC
+    cpmCPUTotalMonIntervalValue
+        FROM CISCO-PROCESS-MIB
+    ciscoMgmt
+        FROM CISCO-SMI;
+
+
+ciscoWanOptimizationMIB MODULE-IDENTITY
+    LAST-UPDATED    "201104190000Z"
+    ORGANIZATION    "Cisco Systems, Inc."
+    CONTACT-INFO
+            "Cisco Systems
+            Customer Service
+            Postal: 170 W Tasman Drive
+            San Jose, CA  95134
+            USA
+
+            Tel: +1 800 553-NETS
+            E-mail: cs-waas@cisco.com, cs-waas-express@cisco.com"
+    DESCRIPTION
+        "This MIB is for managing Wide Area Network (WAN) Optimization
+        systems. The objective of WAN optimization system is to reduce
+        as much traffic as possible on WAN link and improve the
+        application response time for various applications, which gets
+        affected due to bandwidth, packet loss, congestion and latency
+        limitations of WAN link. WAN optimization system is generally
+        peer based system. They are located at both end of WAN link and
+        peer with each other to perform optimization. This MIB provides
+        instrumentation for monitoring statistics for various features
+        implemented for WAN optimization. WAN optimization features
+        includes TCP protocol optimizations and various Application
+        Optimizers (AOs). AOs include SMB AO, HTTP AO, CIFS AO, NFS AO,
+        MAPI AO, VIDEO AO, SSL AO and EPM AO.
+
+        Acronyms and Terminology used in this MIB are:
+        AO         : Application Optimizer
+        TFO        : Traffic Flow Optimization
+        SMB        : Server Message Block
+        CIFS       : Common Internet File System
+        HTTP       : Hyper Text Transfer Protocol
+        NFS        : Network File System
+        SSL        : Secure Socket Layer
+        MAPI       : Messaging Application Programming Interface
+        EPM        : End Point Mapper
+        RA         : Read Ahead
+        MD         : Meta Data
+        PT         : Pass Through
+        AD         : Auto Discovery
+        RTT        : Round Trip Time
+        Conn       : Connections
+        File Server: SMB/CIFS file server
+        peer       : It refers to peer WAN optimization system located 
+                     on other end of WAN and registered with this device
+                     to optimize the traffic."
+    REVISION        "201104190000Z"
+    DESCRIPTION
+        "New License Notification Group has been added."
+    REVISION        "201010260000Z"
+    DESCRIPTION
+        "Initial version of this MIB."
+    ::= { ciscoMgmt 762 }
+
+
+
+CwoAoName ::= TEXTUAL-CONVENTION
+    STATUS          current
+    DESCRIPTION
+        "Represents the name of an Application Optimizer supported by
+        this system."
+    SYNTAX          OCTET STRING (SIZE (1..96))
+
+CwoAoOperationalState ::= TEXTUAL-CONVENTION
+    STATUS          current
+    DESCRIPTION
+        "Represents Various operational states of an Application
+        Optimizer.
+
+        shutdown       : This state indicates that an AO is in shutdown
+                         state.
+
+        initializing   : This state indicates that an AO is getting    
+                         Initialized.
+
+        normalRunning  : This state indicates that an AO is running    
+                         normally.
+
+        normalDisabled : This state indicates that an AO is in normal 
+                         disabled.
+
+        licenseExpired : This state indicates that license for an AO is
+                         expired.
+
+        cleaningup     : This state indicates that an AO is in cleaning
+                         up state.
+
+        error          : This state indicates that some error has  
+                         happened in AO operation."
+    SYNTAX          INTEGER  {
+                        shutdown(1),
+                        initializing(2),
+                        normalRunning(3),
+                        normalDisabled(4),
+                        licenseExpired(5),
+                        cleaningup(6),
+                        error(7)
+                    }
+-- Textual Conventions definition will be defined before this line
+
+ciscoWanOptimizationMIBNotifs  OBJECT IDENTIFIER
+    ::= { ciscoWanOptimizationMIB 0 }
+
+ciscoWanOptimizationMIBObjects  OBJECT IDENTIFIER
+    ::= { ciscoWanOptimizationMIB 1 }
+
+-- Conformance Information
+
+ciscoWanOptimizationMIBConform  OBJECT IDENTIFIER
+    ::= { ciscoWanOptimizationMIB 3 }
+
+ciscoWanOptimizationMIBCompliances  OBJECT IDENTIFIER
+    ::= { ciscoWanOptimizationMIBConform 1 }
+
+-- General WAN Optimization Group. It contains general statistics
+-- related to WAN Optimization system.
+
+cwoGeneral  OBJECT IDENTIFIER
+    ::= { ciscoWanOptimizationMIBObjects 1 }
+
+-- Traffic Flow Optimization Group.
+
+cwoTfo  OBJECT IDENTIFIER
+    ::= { ciscoWanOptimizationMIBObjects 2 }
+
+-- Statistics for AOs.
+
+cwoAo  OBJECT IDENTIFIER
+    ::= { ciscoWanOptimizationMIBObjects 3 }
+
+
+cwoGeneralActivePeers OBJECT-TYPE
+    SYNTAX          Gauge32
+    UNITS           "number of peers"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of active peers connected
+        with this device for WAN optimization." 
+    ::= { cwoGeneral 1 }
+
+cwoGeneralMaxActivePeers OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains maximum number of peers that this device
+        can peer with for WAN optimization." 
+    ::= { cwoGeneral 2 }
+
+cwoGeneralCpuThrottleHigh OBJECT-TYPE
+    SYNTAX          Unsigned32 (1..100)
+    UNITS           "percent"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION
+        "This object contains high threshold (percentage) value of CPU
+        usage of system when WAN optimization feature is running. The
+        current CPU utilization, stored in cpmCPUTotalMonIntervalValue,
+        is compared against this value. A cwoCpuThrottlingOn
+        notification is generated whenever cpmCPUTotalMonIntervalValue
+        exceeds cwoGeneralCpuThrottleHigh for
+        cwoGeneralCpuThrottlPeriod." 
+    ::= { cwoGeneral 3 }
+
+cwoGeneralCpuThrottleLow OBJECT-TYPE
+    SYNTAX          Unsigned32 (1..100)
+    UNITS           "percent"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION
+        "This object contains low threshold (percentage) value of CPU
+        usage of system when WAN optimization feature is running. The 
+        current CPU utilization, stored in cpmCPUTotalMonIntervalValue,
+        is
+        compared against this value. A cwoCpuThrottlingOff notification
+        is generated if a prior cwoCpuThrottlingOn notification was 
+        generated, and the current value of cpmCPUTotalMonIntervalValue
+        is below cwoGeneralCpuThrottleLow for
+        cwoGeneralCpuThrottlPeriod.
+
+        Note that the value of cwoGeneralCpuThrottleLow must be less
+        than
+        or equal to cwoGeneralCpuThrottleHigh." 
+    ::= { cwoGeneral 4 }
+
+cwoGeneralCpuThrottlPeriod OBJECT-TYPE
+    SYNTAX          TimeInterval
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION
+        "This Object indicates CPU throttling observation period. The
+        value of the CPU utilization for this period is stored in 
+        cpmCPUTotalMonIntervalValue. If the value of 
+        cpmCPUTotalMonIntervalValue object is above  
+        cwoGeneralCPUThrottleHigh, a cwoCPUThrottlingOn notification 
+        is sent. If it is below cwoGeneralCPUThrottleLow, a 
+        cwoCPUThrottlingOff notification is sent to the NMS." 
+    ::= { cwoGeneral 5 }
+-- Statistics of TFO
+
+cwoTfoStats  OBJECT IDENTIFIER
+    ::= { cwoTfo 1 }
+
+
+cwoTfoStatsTotalOptConn OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of TCP connections optimized
+        since TFO was started or its statistics were last reset." 
+    ::= { cwoTfoStats 1 }
+
+cwoTfoStatsActiveOptConn OBJECT-TYPE
+    SYNTAX          CounterBasedGauge64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains number of currently active TCP connections
+        getting optimized." 
+    ::= { cwoTfoStats 2 }
+
+cwoTfoStatsMaxActiveConn OBJECT-TYPE
+    SYNTAX          Unsigned64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains maximum number of active TCP connections
+        that this device can optimize." 
+    ::= { cwoTfoStats 3 }
+
+cwoTfoStatsActiveOptTCPPlusConn OBJECT-TYPE
+    SYNTAX          CounterBasedGauge64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains number of active TCP connections going
+        through TCP plus other optimization." 
+    ::= { cwoTfoStats 4 }
+
+cwoTfoStatsActiveOptTCPOnlyConn OBJECT-TYPE
+    SYNTAX          CounterBasedGauge64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains number of active connections going through
+        only TCP optimization." 
+    ::= { cwoTfoStats 5 }
+
+cwoTfoStatsActiveOptTCPPrepConn OBJECT-TYPE
+    SYNTAX          CounterBasedGauge64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains number of current active TCP connections
+        that were originated by an accelerator to acquire data in
+        anticipation of its future use." 
+    ::= { cwoTfoStats 6 }
+
+cwoTfoStatsActiveADConn OBJECT-TYPE
+    SYNTAX          CounterBasedGauge64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains number of current active TCP connections
+        in the auto-discovery state." 
+    ::= { cwoTfoStats 7 }
+
+cwoTfoStatsReservedConn OBJECT-TYPE
+    SYNTAX          Unsigned64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains number of TCP connections reserved for the
+        MAPI accelerator." 
+    ::= { cwoTfoStats 8 }
+
+cwoTfoStatsPendingConn OBJECT-TYPE
+    SYNTAX          CounterBasedGauge64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains number of TCP connections, which are
+        pending in queue of connections to be optimized." 
+    ::= { cwoTfoStats 9 }
+
+cwoTfoStatsActivePTConn OBJECT-TYPE
+    SYNTAX          CounterBasedGauge64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains number of active Pass Through TCP
+        connections. Connections which are not selected for optimization
+        are called Pass Through." 
+    ::= { cwoTfoStats 10 }
+
+cwoTfoStatsTotalNormalClosedConn OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of optimized TCP connections
+        which were closed normally since TFO was started or its
+        statistics were last reset." 
+    ::= { cwoTfoStats 11 }
+
+cwoTfoStatsResetConn OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of optimized TCP connections,
+        which are reset since TFO was started or its statistics were
+        last reset." 
+    ::= { cwoTfoStats 12 }
+-- Statistics table of AO
+
+cwoAoStatsTable OBJECT-TYPE
+    SYNTAX          SEQUENCE OF CwoAoStatsEntry 
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "This table gives statistics of Application Optimizers."
+    ::= { cwoAo 1 }
+
+cwoAoStatsEntry OBJECT-TYPE
+    SYNTAX          CwoAoStatsEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "An entry containing statistics for particular Application
+        optimizer. An entry will be created during system startup and
+        will include AOs, which are supported by this system."
+    INDEX           { cwoAoStatsName } 
+    ::= { cwoAoStatsTable 1 }
+
+CwoAoStatsEntry ::= SEQUENCE {
+        cwoAoStatsName                CwoAoName,
+        cwoAoStatsIsConfigured        TruthValue,
+        cwoAoStatsIsLicensed          TruthValue,
+        cwoAoStatsOperationalState    CwoAoOperationalState,
+        cwoAoStatsStartUpTime         DateAndTime,
+        cwoAoStatsLastResetTime       DateAndTime,
+        cwoAoStatsTotalHandledConns   Counter32,
+        cwoAoStatsTotalOptConns       Counter32,
+        cwoAoStatsTotalHandedOffConns Counter32,
+        cwoAoStatsTotalDroppedConns   Counter32,
+        cwoAoStatsActiveOptConns      Gauge32,
+        cwoAoStatsPendingConns        Gauge32,
+        cwoAoStatsMaxActiveOptConns   Unsigned32
+}
+
+cwoAoStatsName OBJECT-TYPE
+    SYNTAX          CwoAoName
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "This object represents name of the AO." 
+    ::= { cwoAoStatsEntry 1 }
+
+cwoAoStatsIsConfigured OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object indicates whether the AO is configured or not. If
+        AO is not configured then then the operational state
+        (cwoAoStatsOperationalState) of AO would be 'shutdown'." 
+    ::= { cwoAoStatsEntry 2 }
+
+cwoAoStatsIsLicensed OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object indicates whether license for the AO is valid or
+        not. If License for AO is not valid then operational state
+        (cwoAoStatsOperationalState) of AO would be 'shutdown'." 
+    ::= { cwoAoStatsEntry 3 }
+
+cwoAoStatsOperationalState OBJECT-TYPE
+    SYNTAX          CwoAoOperationalState
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object indicates operational state of the AO. If AO is not
+        configured or license is not valid for this AO then operational
+        state of AO would be 'shutdown'." 
+    ::= { cwoAoStatsEntry 4 }
+
+cwoAoStatsStartUpTime OBJECT-TYPE
+    SYNTAX          DateAndTime
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains date and time when AO was started. This
+        object will hold NULL value when AO is in shutdown state." 
+    ::= { cwoAoStatsEntry 5 }
+
+cwoAoStatsLastResetTime OBJECT-TYPE
+    SYNTAX          DateAndTime
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains date and time when statistics of AO were
+        set to reset last time. When statistics of AO set to reset then
+        all statistics counters will also set to reset. This object will
+        hold NULL value when AO is in shutdown state." 
+    ::= { cwoAoStatsEntry 6 }
+
+cwoAoStatsTotalHandledConns OBJECT-TYPE
+    SYNTAX          Counter32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of connections handled by AO
+        since it was started or its statistics were last reset." 
+    ::= { cwoAoStatsEntry 7 }
+
+cwoAoStatsTotalOptConns OBJECT-TYPE
+    SYNTAX          Counter32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of connections optimized by
+        AO since it was started or its statistics were last reset." 
+    ::= { cwoAoStatsEntry 8 }
+
+cwoAoStatsTotalHandedOffConns OBJECT-TYPE
+    SYNTAX          Counter32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of connections handed off to
+        Generic optimization by AO since it was started or its
+        statistics last reset." 
+    ::= { cwoAoStatsEntry 9 }
+
+cwoAoStatsTotalDroppedConns OBJECT-TYPE
+    SYNTAX          Counter32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of connections dropped by AO
+        since it was started or its statistics were last reset." 
+    ::= { cwoAoStatsEntry 10 }
+
+cwoAoStatsActiveOptConns OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains number of active connections which are
+        getting optimized by AO." 
+    ::= { cwoAoStatsEntry 11 }
+
+cwoAoStatsPendingConns OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains number of connections currently pending in
+        queue of connections to be optimized by AO." 
+    ::= { cwoAoStatsEntry 12 }
+
+cwoAoStatsMaxActiveOptConns OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains maximum number of active TCP connections
+        that AO can optimize." 
+    ::= { cwoAoStatsEntry 13 }
+ 
+
+-- Extended statistics for SMB AO
+
+cwoAoSmbxStats  OBJECT IDENTIFIER
+    ::= { cwoAo 2 }
+
+
+cwoAoSmbxStatsBytesReadCache OBJECT-TYPE
+    SYNTAX          Counter64
+    UNITS           "bytes"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of bytes read from SMB
+        Application Optimizer cache (Read-ahead and Metadata cache)
+        since it was started or its statistics were last reset." 
+    ::= { cwoAoSmbxStats 1 }
+
+cwoAoSmbxStatsBytesWriteCache OBJECT-TYPE
+    SYNTAX          Counter64
+    UNITS           "bytes"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of bytes written to SMB
+        Application Optimizer cache (Read-ahead and Metadata) since it
+        was started or its statistics were last reset." 
+    ::= { cwoAoSmbxStats 2 }
+
+cwoAoSmbxStatsBytesReadServer OBJECT-TYPE
+    SYNTAX          Counter64
+    UNITS           "bytes"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of bytes read from file
+        servers by SMB Application Optimizer since it was started or its
+        statistics were last reset." 
+    ::= { cwoAoSmbxStats 3 }
+
+cwoAoSmbxStatsBytesWriteServer OBJECT-TYPE
+    SYNTAX          Counter64
+    UNITS           "bytes"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of bytes written to file
+        servers by SMB Application Optimizer since it was started or its
+        statistics were last reset." 
+    ::= { cwoAoSmbxStats 4 }
+
+cwoAoSmbxStatsBytesReadClient OBJECT-TYPE
+    SYNTAX          Counter64
+    UNITS           "bytes"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of bytes read by SMB
+        Application Optimizer clients since it was started or its
+        statistics were last reset." 
+    ::= { cwoAoSmbxStats 5 }
+
+cwoAoSmbxStatsBytesWriteClient OBJECT-TYPE
+    SYNTAX          Counter64
+    UNITS           "bytes"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of bytes written by SMB
+        Application optimizer clients since it was started or its
+        statistics were last reset." 
+    ::= { cwoAoSmbxStats 6 }
+
+cwoAoSmbxStatsProcessedReqs OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of requests processed by SMB
+        Application Optimizer since it was started or its statistics
+        were last reset." 
+    ::= { cwoAoSmbxStats 7 }
+
+cwoAoSmbxStatsActiveReqs OBJECT-TYPE
+    SYNTAX          CounterBasedGauge64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of active requests getting
+        processed by SMB Application Optimizer." 
+    ::= { cwoAoSmbxStats 8 }
+
+cwoAoSmbxStatsTotalTimedOutReqs OBJECT-TYPE
+    SYNTAX          Unsigned64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of requests timed out in SMB
+        Application Optimizer since it was started or its statistics
+        were last reset." 
+    ::= { cwoAoSmbxStats 9 }
+
+cwoAoSmbxStatsTotalRemoteReqs OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of SMB requests sent to
+        remote file server since SMB AO was started or its statistics
+        were last reset." 
+    ::= { cwoAoSmbxStats 10 }
+
+cwoAoSmbxStatsTotalLocalReqs OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of SMB requests served
+        locally by SMB Application Optimizer since it was started or its
+        statistics were last reset." 
+    ::= { cwoAoSmbxStats 11 }
+
+cwoAoSmbxStatsRemoteAvgTime OBJECT-TYPE
+    SYNTAX          CiscoMilliSeconds
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains average duration of time taken by SMB
+        Application Optimizer to process all remote requests since it
+        was started or its statistics were last reset." 
+    ::= { cwoAoSmbxStats 12 }
+
+cwoAoSmbxStatsLocalAvgTime OBJECT-TYPE
+    SYNTAX          CiscoMilliSeconds
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains average duration of time taken by SMB
+        Application Optimizer to process all local requests since it
+        was started or its statistics were last reset." 
+    ::= { cwoAoSmbxStats 13 }
+
+cwoAoSmbxStatsRACacheHitCount OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains SMB Application Optimizer Read Ahead Cache
+        hit count since SMB AO was started or its statistics were last
+        reset." 
+    ::= { cwoAoSmbxStats 14 }
+
+cwoAoSmbxStatsMDCacheHitCount OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains SMB Application Optimizer Metadata cache
+        hit count since SMB AO was started or its statistics were last
+        reset." 
+    ::= { cwoAoSmbxStats 15 }
+
+cwoAoSmbxStatsRACacheHitRate OBJECT-TYPE
+    SYNTAX          Gauge32 (0..100)
+    UNITS           "percent"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains SMB Application Optimizer Read Ahead cache
+        hit rate since it was started or its statistics were last
+        reset." 
+    ::= { cwoAoSmbxStats 16 }
+
+cwoAoSmbxStatsMDCacheHitRate OBJECT-TYPE
+    SYNTAX          Gauge32 (0..100)
+    UNITS           "percent"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains SMB Application Optimizer Metadata cache
+        hit rate since it was started or its statistics were last
+        reset." 
+    ::= { cwoAoSmbxStats 17 }
+
+cwoAoSmbxStatsMaxRACacheSize OBJECT-TYPE
+    SYNTAX          Unsigned64
+    UNITS           "bytes"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains Maximum disk space that can be allocated
+        for Read Ahead data in SMB Application Optimizer cache." 
+    ::= { cwoAoSmbxStats 18 }
+
+cwoAoSmbxStatsMaxMDCacheSize OBJECT-TYPE
+    SYNTAX          Unsigned64
+    UNITS           "bytes"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains maximum disk space that can be allocated
+        for Metadata in SMB Application Optimizer cache." 
+    ::= { cwoAoSmbxStats 19 }
+
+cwoAoSmbxStatsMDCacheSize OBJECT-TYPE
+    SYNTAX          CounterBasedGauge64
+    UNITS           "bytes"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains current size of Metadata cache in SMB
+        Application Optimizer." 
+    ::= { cwoAoSmbxStats 20 }
+
+cwoAoSmbxStatsRAEvictedAge OBJECT-TYPE
+    SYNTAX          CiscoMilliSeconds
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains amount of time spent in the SMB
+        Application Optimizer Read Ahead cache by the resource that was
+        last evicted since last update. If this amount is too short or
+        too long, it is recommended to modify the size of the cache." 
+    ::= { cwoAoSmbxStats 21 }
+
+cwoAoSmbxStatsRTT OBJECT-TYPE
+    SYNTAX          TimeIntervalSec
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total round trip time for all SMB
+        connections since it was started or its statistics were last
+        reset." 
+    ::= { cwoAoSmbxStats 22 }
+
+cwoAoSmbxStatsTotalRespTimeSaving OBJECT-TYPE
+    SYNTAX          TimeIntervalSec
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total response time saved due to SMB AO
+        optimizations since it was started or its statistics were last
+        reset." 
+    ::= { cwoAoSmbxStats 23 }
+
+cwoAoSmbxStatsOpenFiles OBJECT-TYPE
+    SYNTAX          Gauge32
+    UNITS           "number of files"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains number of files currently opened by SMB
+        Application Optimizer." 
+    ::= { cwoAoSmbxStats 24 }
+
+cwoAoSmbxStatsTotalFilesInRACache OBJECT-TYPE
+    SYNTAX          Gauge32
+    UNITS           "number of files"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "This object contains total number of files in SMB Application
+        optimizer Read Ahead cache." 
+    ::= { cwoAoSmbxStats 25 }
+
+-- Notifications
+
+cwoTfoConnectionOverload NOTIFICATION-TYPE
+    OBJECTS         { cwoTfoStatsMaxActiveConn }
+    STATUS          current
+    DESCRIPTION
+        "This notification indicates that the device has reached its
+        limit of number of connections it can optimize. No new
+        connections will be picked-up for optimization, while the device
+        is in this state."
+   ::= { ciscoWanOptimizationMIBNotifs 1 }
+
+cwoPeerOverload NOTIFICATION-TYPE
+    OBJECTS         { cwoGeneralMaxActivePeers }
+    STATUS          current
+    DESCRIPTION
+        "This notification indicates the device has reached its limit of
+        number of peer devices with which it can optimize connections.
+        While the device is in this state, connections from new peer
+        device will not be picked-up for optimization."
+   ::= { ciscoWanOptimizationMIBNotifs 2 }
+
+cwoCpuThrottlingOn NOTIFICATION-TYPE
+    OBJECTS         {
+                        cwoGeneralCpuThrottleHigh,
+                        cwoGeneralCpuThrottlPeriod,
+                        cpmCPUTotalMonIntervalValue
+                    }
+    STATUS          current
+    DESCRIPTION
+        "This notification indicates that the device has detected that
+        the current CPU utilization (stored in
+        cpmCPUTotalMonIntervalValue) is higher than the
+        cwoGeneralCpuThrottleHigh. As a result the device has entered
+        into a throttling mode due to which connections under
+        optimization may experience slowdown. This notification is
+        generated the moment it occurs after a time lapse of 30 minutes
+        since the previous notification."
+   ::= { ciscoWanOptimizationMIBNotifs 3 }
+
+cwoCpuThrottlingOff NOTIFICATION-TYPE
+    OBJECTS         {
+                        cwoGeneralCpuThrottleLow,
+                        cwoGeneralCpuThrottlPeriod,
+                        cpmCPUTotalMonIntervalValue
+                    }
+    STATUS          current
+    DESCRIPTION
+        "This notification indicates that device has detected that the
+        CPU utilization of device (stored in
+        cpmCPUTotalMonIntervalValue) has fallen below the
+        cwoGeneralCpuThrottleLow from cwoGeneralCpuThrottleHigh. As a
+        result the device has come out of the throttling mode and there
+        should not be any negative impact of CPU usage on connection
+        under optimization. This notification is generated the moment it
+        occurs after a time lapse of 30 minutes since the previous
+        notification."
+   ::= { ciscoWanOptimizationMIBNotifs 4 }
+
+cwoLicenseExpired NOTIFICATION-TYPE
+    STATUS          current
+    DESCRIPTION
+        "This notification is generated when the license on the system
+        expires after the period for which it was installed."
+   ::= { ciscoWanOptimizationMIBNotifs 5 }
+
+cwoLicenseRevoked NOTIFICATION-TYPE
+    STATUS          current
+    DESCRIPTION
+        "This notification is generated when a requested revoke ticket
+        is obtained. This ticket could have been requested in order to
+        move the license to a different system."
+   ::= { ciscoWanOptimizationMIBNotifs 6 }
+
+cwoLicenseDeleted NOTIFICATION-TYPE
+    STATUS          current
+    DESCRIPTION
+        "This notification is generated when the license on the system
+        is cleared."
+   ::= { ciscoWanOptimizationMIBNotifs 7 }
+
+-- compliance statements
+
+ciscoWanOptimizationMIBCompliance MODULE-COMPLIANCE
+    STATUS          deprecated
+    DESCRIPTION
+        "This is a default module-compliance
+        containing default object groups."
+    MODULE          -- this module
+    MANDATORY-GROUPS {
+                        cwoTfoBaseGroup,
+                        cwoOverloadNotificationGroup
+                    }
+
+    GROUP           cwoGeneralGroup
+    DESCRIPTION
+        "This group is optional and indicates general statistics for WAN
+        optimization system/sub-system."
+
+    GROUP           cwoTfoExtGroup
+    DESCRIPTION
+        "This group is optional and includes more specific stats for TFO."
+
+    GROUP           cwoAoStatsGroup
+    DESCRIPTION
+        "This group includes common statistics for AO. It is optional for
+        systems which does not support any AO."
+
+    GROUP           cwoCpuNotificationGroup
+    DESCRIPTION
+        "This group is optional to implement, but mandatory for systems
+        which run WAN optimization as a service."
+
+    GROUP           cwoAoSmbExtendedStatsGroup
+    DESCRIPTION
+        "This group is optional for WAN optimization systems who does not
+        support SMB AO."
+    ::= { ciscoWanOptimizationMIBCompliances 1 }
+
+ciscoWanOptimizationMIBCompliance1 MODULE-COMPLIANCE
+    STATUS          current
+    DESCRIPTION
+        "This is a default module-compliance
+        containing default object groups."
+    MODULE          -- this module
+    MANDATORY-GROUPS {
+                        cwoTfoBaseGroup,
+                        cwoOverloadNotificationGroup
+                    }
+
+    GROUP           cwoGeneralGroup
+    DESCRIPTION
+        "This group is optional and indicates general statistics for WAN
+        optimization system/sub-system."
+
+    GROUP           cwoTfoExtGroup
+    DESCRIPTION
+        "This group is optional and includes more specific stats for TFO."
+
+    GROUP           cwoAoStatsGroup
+    DESCRIPTION
+        "This group includes common statistics for AO. It is optional for
+        systems which does not support any AO."
+
+    GROUP           cwoCpuNotificationGroup
+    DESCRIPTION
+        "This group is optional to implement, but mandatory for systems
+        which run WAN optimization as a service."
+
+    GROUP           cwoAoSmbExtendedStatsGroup
+    DESCRIPTION
+        "This group is optional for WAN optimization systems who does
+        not
+        support SMB AO."
+
+    GROUP           cwoLicenseNotificationGroup
+    DESCRIPTION
+        "This group is optional for systems that have wan optimization."
+    ::= { ciscoWanOptimizationMIBCompliances 2 }
+ciscoWanOptimizationMIBGroups  OBJECT IDENTIFIER
+    ::= { ciscoWanOptimizationMIBConform 2 }
+
+
+cwoGeneralGroup OBJECT-GROUP
+    OBJECTS         {
+                        cwoGeneralActivePeers,
+                        cwoGeneralMaxActivePeers,
+                        cwoGeneralCpuThrottleHigh,
+                        cwoGeneralCpuThrottleLow,
+                        cwoGeneralCpuThrottlPeriod
+                    }
+    STATUS          current
+    DESCRIPTION
+        "This collection of objects represent the General statistics WAN
+        optimization system/sub-system."
+    ::= { ciscoWanOptimizationMIBGroups 1 }
+
+cwoTfoBaseGroup OBJECT-GROUP
+    OBJECTS         {
+                        cwoTfoStatsTotalOptConn,
+                        cwoTfoStatsActiveOptConn,
+                        cwoTfoStatsMaxActiveConn,
+                        cwoTfoStatsTotalNormalClosedConn,
+                        cwoTfoStatsResetConn
+                    }
+    STATUS          current
+    DESCRIPTION
+        "This collection of objects represent the common statistics for
+        TFO."
+    ::= { ciscoWanOptimizationMIBGroups 2 }
+
+cwoTfoExtGroup OBJECT-GROUP
+    OBJECTS         {
+                        cwoTfoStatsActiveOptTCPPlusConn,
+                        cwoTfoStatsActiveOptTCPOnlyConn,
+                        cwoTfoStatsActiveOptTCPPrepConn,
+                        cwoTfoStatsActiveADConn,
+                        cwoTfoStatsReservedConn,
+                        cwoTfoStatsPendingConn,
+                        cwoTfoStatsActivePTConn
+                    }
+    STATUS          current
+    DESCRIPTION
+        "This collection of objects represent the statistics for
+        TFO, which are optional."
+    ::= { ciscoWanOptimizationMIBGroups 3 }
+
+cwoAoStatsGroup OBJECT-GROUP
+    OBJECTS         {
+                        cwoAoStatsIsConfigured,
+                        cwoAoStatsIsLicensed,
+                        cwoAoStatsOperationalState,
+                        cwoAoStatsStartUpTime,
+                        cwoAoStatsTotalHandledConns,
+                        cwoAoStatsTotalOptConns,
+                        cwoAoStatsTotalHandedOffConns,
+                        cwoAoStatsTotalDroppedConns,
+                        cwoAoStatsActiveOptConns,
+                        cwoAoStatsPendingConns,
+                        cwoAoStatsMaxActiveOptConns,
+                        cwoAoStatsLastResetTime
+                    }
+    STATUS          current
+    DESCRIPTION
+        "This group includes statistics for AO. Which are common for all
+        AOs."
+    ::= { ciscoWanOptimizationMIBGroups 4 }
+
+cwoOverloadNotificationGroup NOTIFICATION-GROUP
+   NOTIFICATIONS    {
+                        cwoTfoConnectionOverload,
+                        cwoPeerOverload
+                    }
+    STATUS          current
+    DESCRIPTION
+        "This group contains notifications event for various overload
+        condition on wan optimization system."
+    ::= { ciscoWanOptimizationMIBGroups 5 }
+
+cwoCpuNotificationGroup NOTIFICATION-GROUP
+   NOTIFICATIONS    {
+                        cwoCpuThrottlingOn,
+                        cwoCpuThrottlingOff
+                    }
+    STATUS          current
+    DESCRIPTION
+        "This group contains notifications event for wan optimization
+        system, which are specific to some WAN optimization systems."
+    ::= { ciscoWanOptimizationMIBGroups 6 }
+
+cwoAoSmbExtendedStatsGroup OBJECT-GROUP
+    OBJECTS         {
+                        cwoAoSmbxStatsBytesReadCache,
+                        cwoAoSmbxStatsBytesWriteCache,
+                        cwoAoSmbxStatsBytesReadServer,
+                        cwoAoSmbxStatsBytesWriteServer,
+                        cwoAoSmbxStatsBytesReadClient,
+                        cwoAoSmbxStatsBytesWriteClient,
+                        cwoAoSmbxStatsProcessedReqs,
+                        cwoAoSmbxStatsActiveReqs,
+                        cwoAoSmbxStatsTotalTimedOutReqs,
+                        cwoAoSmbxStatsTotalRemoteReqs,
+                        cwoAoSmbxStatsTotalLocalReqs,
+                        cwoAoSmbxStatsRemoteAvgTime,
+                        cwoAoSmbxStatsLocalAvgTime,
+                        cwoAoSmbxStatsRACacheHitCount,
+                        cwoAoSmbxStatsMDCacheHitCount,
+                        cwoAoSmbxStatsRACacheHitRate,
+                        cwoAoSmbxStatsMDCacheHitRate,
+                        cwoAoSmbxStatsMaxRACacheSize,
+                        cwoAoSmbxStatsMaxMDCacheSize,
+                        cwoAoSmbxStatsMDCacheSize,
+                        cwoAoSmbxStatsRAEvictedAge,
+                        cwoAoSmbxStatsRTT,
+                        cwoAoSmbxStatsTotalRespTimeSaving,
+                        cwoAoSmbxStatsOpenFiles,
+                        cwoAoSmbxStatsTotalFilesInRACache
+                    }
+    STATUS          current
+    DESCRIPTION
+        "This Group contains statistics which are specific to SMB AO."
+    ::= { ciscoWanOptimizationMIBGroups 7 }
+
+cwoLicenseNotificationGroup NOTIFICATION-GROUP
+   NOTIFICATIONS    {
+                        cwoLicenseExpired,
+                        cwoLicenseRevoked,
+                        cwoLicenseDeleted
+                    }
+    STATUS          current
+    DESCRIPTION
+        "This group contains notifications event for actions on
+        licensing on wan optimization systems."
+    ::= { ciscoWanOptimizationMIBGroups 8 }
+
+END
+
+
+
+
+
+
+
+
+
+
+
+
+
+
