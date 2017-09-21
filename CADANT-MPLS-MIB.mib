@@ -1,0 +1,203 @@
+CADANT-MPLS-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY,
+    OBJECT-TYPE,
+    Unsigned32,
+    Integer32, 
+    Counter32               FROM SNMPv2-SMI
+
+    TEXTUAL-CONVENTION,
+    DisplayString,
+    RowStatus,
+    TruthValue,
+    MacAddress              FROM SNMPv2-TC
+
+    MODULE-COMPLIANCE,
+    OBJECT-GROUP            FROM SNMPv2-CONF
+
+    InetAddressType,
+    InetAddress             FROM INET-ADDRESS-MIB
+    
+    cadMpls                 FROM CADANT-PRODUCTS-MIB;
+
+
+cadMplsMIB MODULE-IDENTITY
+    LAST-UPDATED  "201401240000Z"  -- Jan 24, 2014
+    ORGANIZATION  "Arris International, Inc."
+    CONTACT-INFO
+        "Arris Technical Support
+         Postal: ARRIS
+         E-Mail: support@arrisi.com"
+    DESCRIPTION
+        "This is the management MIB contains 
+         Cadant proprietary MPLS MIB information.
+         Copyright 2013 Arris International, Inc.
+         All rights reserved."
+
+    REVISION "201401240000Z"  -- Jan 24, 2014
+    DESCRIPTION
+        "Add cadMplsLdpVcDescription"
+    REVISION "201312040000Z"  -- Dec 4, 2013
+    DESCRIPTION
+        "Changed min value for cadMplsLdpHelloHoldTimer and
+         cadMplsLdpTargetedHelloHoldTimer from 0 to 1"
+    REVISION "201311040000Z"  -- Nov 4, 2013
+    DESCRIPTION
+        "initial version"  
+    ::= { cadMpls 1 }
+    
+--------------------------------------------------------------
+--
+-- Textual Conventions
+--
+
+
+
+
+---------------------------------------------------------------
+
+-- Placeholder for notifications
+--
+-- cadMplsMIBNotifications OBJECT IDENTIFIER ::= { cadMplsMIB 0 }
+
+--  None defined
+
+--
+-- MPLS MIB Objects
+--
+
+cadMplsMIBObjects OBJECT IDENTIFIER ::= { cadMplsMIB 1 }
+----------------------------------------------------------------------
+-- MPLS Global MIB Objects
+--
+cadMplsParams  OBJECT IDENTIFIER ::= { cadMplsMIBObjects 1 }
+
+
+cadMplsLdpHelloHoldTimer OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..65535)
+    UNITS       "second"
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "The 16-bit integer value which is the configured link
+         Hello hold timer for the local LDP router in seconds.
+         A value of 65535 means infinite"
+    DEFVAL { 15 }
+    ::= { cadMplsParams 1 }
+
+cadMplsLdpTargetedHelloHoldTimer OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..65535)
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "The 16-bit integer value which is the configured targeted
+         Hello hold timer for the local LDP router in seconds.
+         A value of 65535 means infinite"
+    DEFVAL { 45 }
+    ::= { cadMplsParams 2 }
+
+cadMplsLdpKeepAliveHoldTimer OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..65535)
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "The 16-bit integer value which is the configured Keep
+         Alive hold timer for the local LDP router in seconds."
+    DEFVAL { 60 }
+    ::= { cadMplsParams 3 }
+
+cadMplsLdpVcDescription OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (0..64))
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "This is the 64 byte string configured as an LDP Interface
+         Parameter PW Description."
+    DEFVAL { "" }
+    ::= { cadMplsParams 4 }
+
+----------------------------------------------------------------
+--
+-- MPLS LDP Neighbor table
+--
+cadMplsLdpNeighborTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadMplsLdpNeighborEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+            "MPLS LDP neighbor table."
+    ::= { cadMplsMIBObjects 2 }
+
+cadMplsLdpNeighborEntry OBJECT-TYPE
+    SYNTAX      CadMplsLdpNeighborEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+            ""
+    INDEX { cadMplsLdpNeighborAddressType, cadMplsLdpNeighborIpAddress  }
+    ::= { cadMplsLdpNeighborTable 1 }
+
+CadMplsLdpNeighborEntry ::= SEQUENCE
+    {
+        cadMplsLdpNeighborAddressType    InetAddressType,
+        cadMplsLdpNeighborIpAddress      InetAddress,
+        cadMplsLdpNeighborPassword       OCTET STRING,
+        cadMplsLdpNeighborTargetedPeer   TruthValue,
+        cadMplsLdpNeighborRowStatus      RowStatus
+    }
+
+cadMplsLdpNeighborAddressType OBJECT-TYPE
+    SYNTAX      InetAddressType
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+            "This is the MPLS Peer Address Type. Only ipv4(1) or 
+             ipv6(2) will be supported."
+    ::= { cadMplsLdpNeighborEntry 1 }
+
+cadMplsLdpNeighborIpAddress OBJECT-TYPE
+    SYNTAX      InetAddress
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+            "This is the IP address of the LDP neighbor.
+             IPv4 and IPv6 addresses are supported."
+    ::= { cadMplsLdpNeighborEntry 2 }
+
+cadMplsLdpNeighborPassword OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE (0..32))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION 
+            "This is the MD5 password used for TCP
+             authentication for this LDP neighbor."
+    ::= { cadMplsLdpNeighborEntry 3 }
+
+
+cadMplsLdpNeighborTargetedPeer OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION 
+            "If this value is set to true, then this neighbor is a CLI
+             configured Targeted LDP peer. The CMTS will consider
+             this peer eligible so will accept discovery messages from
+             it and will actively try to establish a T-LDP session with
+             the peer. If this value is set to false then this neighbor 
+             is a regular link LDP neighbor and a row in this table 
+             will be used for storing the password only."
+    DEFVAL { false }
+    ::= { cadMplsLdpNeighborEntry 4 }
+
+cadMplsLdpNeighborRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION 
+            "Row Status for this table entry."
+    ::= { cadMplsLdpNeighborEntry 5 }
+
+
+
+END

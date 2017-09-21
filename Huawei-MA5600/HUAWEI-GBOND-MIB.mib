@@ -1,0 +1,1555 @@
+-- ============================================================================
+-- Copyright (C) 2011 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description:  This MIB is used for defining Huawei's GBOND management MIB objects,
+--               which is defined base on ITU-T G.998.1, G.998.2 and G.998.3.
+-- Reference:  
+-- Version: V1.10
+-- ============================================================================
+HUAWEI-GBOND-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+   	huaweiUtility			
+   		FROM HUAWEI-MIB			
+   	Integer32, Gauge32, Unsigned32, Counter32, OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE			
+   		FROM SNMPv2-SMI			
+        TEXTUAL-CONVENTION, TruthValue, DateAndTime, PhysAddress, RowStatus			
+   		FROM SNMPv2-TC
+        InterfaceIndex, ifIndex
+                FROM IF-MIB
+        hwFrameIndex, hwSlotIndex, hwPortIndex, hwConfigChangeIP
+                FROM HUAWEI-DEVICE-MIB;     
+
+--    hwGBond 1.3.6.1.4.1.2011.6.137
+    hwGBond MODULE-IDENTITY 
+        LAST-UPDATED "201207200000Z"
+        ORGANIZATION
+            "Fix-Net Dept, Huawei Technologies Co.,Ltd."
+        CONTACT-INFO                                      
+                     "Huawei Industrial Base              
+                      Bantian, Longgang                   
+                      Shenzhen 518129                     
+                      People's Republic of China          
+                      Website: http://www.huawei.com      
+                      Email: support@huawei.com           
+                     "                                    
+        DESCRIPTION "This MIB is used for defining Huawei's GBOND management MIB objects, 
+                     which is defined base on ITU-T G.998.1, G.998.2 and G.998.3.
+                    "
+   		
+        --  Revision history
+        REVISION    "201207200000Z"
+        DESCRIPTION "V1.10, delete unnecessary en dashes.
+                    "
+        REVISION    "201110150000Z"
+        DESCRIPTION "V1.09, Add add leaf node hwGBondGroupProfBondCpeIncorrectAlarmSwitch for bonding group profile.
+                    "
+        REVISION    "201105310000Z"
+        DESCRIPTION "V1.08, changes in this revision:
+                     Add the definition of the table: hwGBondEthPortPerfCurrTable, hwGBondGroupProfTable,
+                     hwGBondAlarmTraps, hwGBondTrapsVbOids.
+                     Modify the name of the table hwGBondPerStatTable to hwGBondPortStatusTable.
+                     Add the definition of the nodes: hwGBondOperScheme, hwGBondOperLastUpTime, hwGBondOperStatus, 
+                     hwGBondOperLastDownTime and hwGBondOperReInits in hwGBondPortStatusTable 
+                     for obtaining the port status of the bond group.
+                     Add the definition of the trap nodes: hwGBondLowUpRateCrossingAlarmTrap, 
+                     hwGBondLowDownRateCrossingAlarmTrap and hwGBondInvalidCpeAlarmTrap.
+                     Add the definition of the trap node: hwGBondBondStateChangeTrap.
+                     Add hwGBondGroupCfgProf in hwGBondConfTable for bonding group profile.
+                     Add the definition of the nodes:hwGBondProfileID and hwGBondGroupID in table hwGBondTrapsVbOids.
+                     Modify the description of the nodes: hwGBondUpDataRate, hwGBondDownDataRate, hwGBondRowStatus.
+                     Modify the status of the nodes to deprecated:hwGBondTargetUpDataRate, hwGBondTargetDownDataRate, 
+                     hwGBondThreshLowUpRate, hwGBondThreshLowDownRate, hwGBondLowRateCrossingEnable, hwGBondEthInErrors, 
+                     hwGBondEthInSmallFragments, hwGBondEthInLargeFragments, hwGBondEthInBadFragments,
+                     hwGBondEthInLostFragments, hwGBondEthInLostStarts, hwGBondEthInLostEnds and hwGBondEthInOverflows.
+                    "
+                     
+        REVISION    "201104140000Z"
+        DESCRIPTION "V1.07, changes in this revision:
+                     Modified the description of the nodes: hwGBondPrimaryStatus, hwGBondSecondaryStatus.
+                    "                    
+        REVISION    "201009070000Z"
+        DESCRIPTION "V1.06, changes in this revision:
+                     Modify the Description of the MIB file for MIB standardization.
+                    "                    
+
+        REVISION    "201005190000Z"
+        DESCRIPTION "V1.05, changes in this revision:
+                     Add hwGBondPrimaryStatus in hwGBondConfTable for obtaining the primary status of the Board.
+                     Add hwGBondSecondaryStatus in hwGBondConfTable for obtaining the secondary status of the Board.
+                    "
+                    
+        REVISION    "201001260000Z"
+        DESCRIPTION "V1.04, changes in this revision:
+                     Add the definition of the trap node hwGBondBondStateChangeTrap.
+                    "
+        
+        REVISION    "201001120000Z"
+        DESCRIPTION "V1.03, changes in this revision:
+                     Modify the errors of the MIB file for MIB standardization.
+                    "
+        
+        REVISION    "200906040000Z"                                                 
+        DESCRIPTION "V1.02, changes in this revision: 
+                     Modify leaf nodes hwGBondPeerAdminScheme and hwGBondAdminScheme.
+                    "                                 
+                                                                                      
+        REVISION    "200901130000Z"                                                 
+        DESCRIPTION "V1.00, Initial version"    
+        
+        ::= { huaweiUtility 137 }
+   	
+--           Textual Conventions       
+
+    GBondScheme ::= TEXTUAL-CONVENTION
+        STATUS current
+        DESCRIPTION
+            "This textual convention defines ITU-T G.998 bonding scheme values. 
+             Options:
+             1. unknown(0) - undefined or unknown
+             2. g9981(1)   - G.998.1 (G.Bond/ATM)
+             3. g9982(2)   - G.998.2 (G.Bond/Ethernt)
+             4. g9983(3)   - G.998.3 (G.Bond/TDIM)
+            "
+        SYNTAX INTEGER 
+            {
+            unknown(0),
+            g9981(1),
+            g9982(2),
+            g9983(3)
+            }
+            
+    GBondSymbolProtection ::= TEXTUAL-CONVENTION
+        STATUS current
+        DESCRIPTION
+            "This type specifies the minimum impulse noise protection for the bearer channel
+             if it is transported over DMT symbols with a subcarrier spacing of 4.3125 kHz.
+             The possible values are:
+             'noProtection' (i.e., INP not required), 'halfSymbol' (i.e., INP
+             length is 1/2 symbol), and 1-16 symbols in steps of 1 symbol.
+            "
+        SYNTAX INTEGER
+            {
+            noProtection (1),
+            halfSymbol (2),
+            singleSymbol (3),
+            twoSymbols (4),
+            threeSymbols (5),
+            fourSymbols (6),
+            fiveSymbols (7),
+            sixSymbols (8),
+            sevenSymbols (9),
+            eightSymbols (10),
+            nineSymbols (11),
+            tenSymbols (12),
+            elevenSymbols (13),
+            twelveSymbols (14),
+            thirteeSymbols (15),
+            fourteenSymbols (16),
+            fifteenSymbols (17),
+            sixteenSymbols (18)
+            }
+     	
+--         hwGBondConfTable         
+    hwGBondConfTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF HwGBondConfEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "Group bonding configuration table.
+             This table is used to describe the configuration, parameters, and running status of the bonding group.      
+             The index of this table is hwGBondPriPort.
+            "
+        ::= { hwGBond 1 }
+   
+   
+    hwGBondConfEntry OBJECT-TYPE
+        SYNTAX HwGBondConfEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "Group bonding configuration table.
+             This table is used to describe the configuration, parameters, and running status of the bonding group.      
+             The index of this entry is hwGBondPriPort.
+            "
+        INDEX { hwGBondPriPort }
+        ::= { hwGBondConfTable 1 }
+   
+   
+    HwGBondConfEntry ::=
+        SEQUENCE 
+            { 
+            hwGBondPriPort                InterfaceIndex,
+            hwGBondAdminScheme            GBondScheme,
+            hwGBondPeerAdminScheme        GBondScheme,
+            hwGBondDiscoveryCode          PhysAddress,
+            hwGBondTargetUpDataRate       Unsigned32,      -- deprecated
+            hwGBondTargetDownDataRate     Unsigned32,      -- deprecated
+            hwGBondThreshLowUpRate        Unsigned32,      -- deprecated
+            hwGBondThreshLowDownRate      Unsigned32,      -- deprecated
+            hwGBondLowRateCrossingEnable  INTEGER,         -- deprecated
+            hwGBondDesc                   OCTET STRING,
+            hwGBondAdminStatus            INTEGER,
+            hwGBondRowStatus              RowStatus,
+            hwGBondPrimaryStatus          INTEGER,
+            hwGBondSecondaryStatus        BITS,
+            hwGBondGroupCfgProf           OCTET STRING
+            }
+   
+   
+    hwGBondPriPort OBJECT-TYPE
+        SYNTAX InterfaceIndex
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "Index of the bonding group, which should be equal to the ifindex of the primary port."
+        ::= { hwGBondConfEntry 1 }
+   
+   
+    hwGBondAdminScheme OBJECT-TYPE
+        SYNTAX GBondScheme
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "A desired bonding scheme for a bonding group.
+             The port to use corresponding bonding scheme if supported.
+             Options:
+             1. g9981(1) - Instructs the port to use G.998.1 bonding
+             2. g9982(2) - Instructs the port to use G.998.2 bonding
+             3. g9983(3) - Instructs the port to use G.998.3 bonding
+             The hwGBondAdminScheme changes must be performed when the admin status of the
+             bonding group is deactivated.
+            "
+        REFERENCE    "[TR-159] 5.5.1.6"
+        ::= { hwGBondConfEntry 2 }
+   
+    hwGBondPeerAdminScheme OBJECT-TYPE
+        SYNTAX GBondScheme
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "A desired bonding peer scheme for a bonding group.
+             The port to use corresponding bonding scheme if supported.
+             Options:
+             1. g9981(1) - Instructs the port to use G.998.1 bonding
+             2. g9982(2) - Instructs the port to use G.998.2 bonding
+             3. g9983(3) - Instructs the port to use G.998.3 bonding
+             The hwGBondPeerAdminScheme changes must be performed when the admin status of the
+             bonding group is deactivated.
+            "
+        REFERENCE    "[TR-159] 5.5.1.7"
+        ::= { hwGBondConfEntry 3 }  
+   	
+    hwGBondDiscoveryCode OBJECT-TYPE
+        SYNTAX PhysAddress
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "A discovery Code of the G.Bond port (GBS).
+             A unique 6 octet long code used by the discovery function.
+             This object must be instantiated for the -O subtype GBS before
+             writing operations on the gBondBceRemoteDiscoveryCode
+             (Set_if_Clear and Clear_if_Same) are performed by BCEs
+             associated with the GBS.
+             The initial value of this object for -R subtype ports after
+             reset is all zero. For -R subtype ports, the value of this
+             object cannot be changed directly. This value may be changed
+             as a result of writing operation on the
+             gBondBceRemoteDiscoveryCode object of remote BCE of -O
+             subtype, connected to one of the local BCEs associated with
+             the GBS.
+             
+             Discovery must be performed when the link is down.
+             Attempts to change this object must be rejected (in case of
+             SNMP with the error inconsistent value), if the link is Up or
+             Initializing.
+             
+             This object maps to the TR-159 attribute aGroupDiscoveryCode.
+            "
+        REFERENCE   "[TR-159] 5.5.1.20; [802.3] 61.2.2.8.3, 61.2.2.8.4,
+                     45.2.6.6.1, 45.2.6.8, 61A.2"
+        ::= { hwGBondConfEntry 4 } 	
+   	 
+    hwGBondTargetUpDataRate OBJECT-TYPE
+        SYNTAX Unsigned32(1..1000000|9999999)
+        MAX-ACCESS read-write
+        STATUS deprecated
+        DESCRIPTION
+            "A desired bonding group data rate in the upstream direction, in Kbps, 
+             to be achieved during initialization, under restrictions placed upon 
+             the member ports by their respective configuration settings.
+             
+             This object is deprecated in favour of hwGBondGroupProfTargetDataRateUs.
+            "
+        ::= { hwGBondConfEntry 5 }
+   
+   
+    hwGBondTargetDownDataRate OBJECT-TYPE
+        SYNTAX Unsigned32(1..1000000|9999999)
+        MAX-ACCESS read-write
+        STATUS deprecated
+        DESCRIPTION
+            "A desired bonding group data rate in the downstream direction, in Kbps, 
+             to be achieved during initialization, under restrictions placed upon 
+             the member ports by their respective configuration settings.
+             
+             This object is deprecated in favour of hwGBondGroupProfTargetDataRateDs.
+            "
+        ::= { hwGBondConfEntry 6 }
+   
+   
+    hwGBondThreshLowUpRate OBJECT-TYPE
+        SYNTAX Unsigned32(1..1000000)
+        MAX-ACCESS read-write
+        STATUS deprecated
+        DESCRIPTION
+            "This object configures the bonding group low upstream rate crossing alarm threshold.
+            
+            This object is deprecated in favour of hwGBondGroupProfThreshLowDataRateUs.
+            "
+        ::= { hwGBondConfEntry 7 }
+   
+   
+    hwGBondThreshLowDownRate OBJECT-TYPE
+        SYNTAX Unsigned32(1..1000000)
+        MAX-ACCESS read-write
+        STATUS deprecated
+        DESCRIPTION
+            "This object configures the bonding group low downstream rate crossing alarm threshold.
+            
+            This object is deprecated in favour of hwGBondGroupProfThreshLowDataRateDs.
+            "
+        ::= { hwGBondConfEntry 8 }
+   	
+   	
+    hwGBondLowRateCrossingEnable OBJECT-TYPE
+        SYNTAX INTEGER 
+            {
+            disable(1),
+            enable(2)
+            }
+        MAX-ACCESS read-write
+        STATUS deprecated
+        DESCRIPTION
+            "Indicates whether gBondLowUpRateCrossing and
+             gBondLowDownRateCrossing notifications should be generated
+             for this interface. 
+             Options:
+             1. disable(1) - Indicates that the notifications are disabled
+             2. enable(2)  - Indicates that the notifications are enabled              
+             This object is read-write for the -O subtype G.Bond ports
+             and irrelevant for the -R subtypes.
+             This object must be maintained in a persistent manner.
+             This object maps to the TR-159 attribute aGroupLowRateCrossingEnable.
+             
+             This object is deprecated in favour of hwGBondGroupProfLowRateCrossingEnable.
+            "
+        ::= { hwGBondConfEntry 9 }   
+   	
+   	 	   	
+    hwGBondDesc OBJECT-TYPE
+        SYNTAX OCTET STRING (SIZE (0..32))
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "The description of the bonding group."
+        ::= { hwGBondConfEntry 10 }
+   
+   
+    hwGBondAdminStatus OBJECT-TYPE
+        SYNTAX INTEGER
+            {   		
+            deactivate(1),
+            activate(2)
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "The admin status of the bonding group, when the admin-status is down, no service
+             should be allowed.
+             Options:
+             1. deactivate(1) - Deactivate status
+             2. activate(2)   - Activate status
+            "
+        ::= { hwGBondConfEntry 11 }
+   	
+  
+    hwGBondRowStatus OBJECT-TYPE
+        SYNTAX RowStatus
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "This object is used to create a new row or delete an existing row in 
+             this table.
+             The bonding group can not be deleted when service configured on this group.
+            "
+        ::= { hwGBondConfEntry 12 }
+   	
+    hwGBondPrimaryStatus OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+            is-nr(1),
+            is-anr(2),
+            is-rst(3),
+            is-anrst(4),
+            oos-au(5),
+            oos-ma(6),
+            oos-auma(7),
+            oos-aurst(8),
+            oos-maanr(9)
+            }
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "The primary status of the bonding group. This parameter indicates the current overall
+             service condition of an entity, i.e., whether it is in-service or out-of-service.
+             Options:
+             1. is-nr(1)     - In service, normal
+             2. is-anr(2)    - In service, abnormal
+             3. is-rst(3)    - In service, restricted
+             4. is-anrst(4)  - In service, abnormal & restricted
+             5. oos-au(5)    - Out of service, autonomous
+             6. oos-ma(6)    - Out of service, management
+             7. oos-auma(7)  - Out of service, autonomous & management
+             8. oos-aurst(8) - Out of service, autonomous & restricted
+             9. oos-maanr(9) - Out of service, management & abnormal
+            "
+        ::= { hwGBondConfEntry 13 }
+   	
+    hwGBondSecondaryStatus OBJECT-TYPE
+        SYNTAX BITS
+            {
+            sst-ains(0),
+            sst-faf(1),
+            sst-flt(2),
+            sst-lpbk(3),
+            sst-mea(4),
+            sst-sgeo(5),
+            sst-stbyh(6),
+            sst-ts(7),
+            sst-uas(8),
+            sst-ueq(9),
+            sst-wrk(10),
+            sst-pwr(11)
+            }
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "This parameter indicates the secondary status of the bonding group. The parameter provides additional
+             information pertaining to PST and PSTQ. For example, it may indicate the type and reason of
+             the external command, the event that occurred in the Network Element, etc. Multiple values may
+             apply to an entity at a given moment. The highest bit of SST value indicates the sst-ains(0) status;
+             the second highest bit of SST value indicates the sst-faf(1) status, and the rest can be deduced by analogy.
+             This BITS structure can report the following status:
+             1.  sst-ains(0)  - This bit position positively reports that the status of the board is automatic in-service
+             2.  sst-faf(1)   - Facility failure
+             3.  sst-flt(2)   - Fault
+             4.  sst-lpbk(3)  - Loopback
+             5.  sst-mea(4)   - Mismatch of equipment and attributes
+             6.  sst-sgeo(5)  - Supporting entity outage
+             7.  sst-stbyh(6) - Standby-hot
+             8.  sst-ts(7)    - Test
+             9.  sst-uas(8)   - Unassigned
+             10. sst-ueq(9)   - Unequipped
+             11. sst-wrk(10)  - Working
+             12. sst-pwr(11)  - Power
+            "
+        ::= { hwGBondConfEntry 14 }
+        
+    hwGBondGroupCfgProf OBJECT-TYPE
+        SYNTAX OCTET STRING (SIZE (0..32))
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "This object configures the bonding group profile name.
+            "
+        ::= { hwGBondConfEntry 15 }
+   
+--       hwGBondPortStatusTable         
+    hwGBondPortStatusTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF HwGBondPortStatusEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "This table provides overall status information of G.Bond ports, complementing the 
+             generic status information from the ifTable of IF-MIB. Additional status information 
+             about connected BCEs is available from the relevant line MIBs.
+             This table contains live data from the equipment. As such, it is not persistent.
+             The index of this table is hwGBondPriPort.
+            "
+        ::= { hwGBond 2 }
+   
+   
+    hwGBondPortStatusEntry OBJECT-TYPE
+        SYNTAX HwGBondPortStatusEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "This table provides overall status information of G.Bond ports, complementing the 
+             generic status information from the ifTable of IF-MIB. Additional status information 
+             about connected BCEs is available from the relevant line MIBs.
+             This table contains live data from the equipment. As such, it is not persistent.
+             The index of this entry is hwGBondPriPort.
+            "
+        INDEX { hwGBondPriPort }
+        ::= { hwGBondPortStatusTable 1 }
+   
+    HwGBondPortStatusEntry ::=
+        SEQUENCE 
+            { 
+            hwGBondUpDataRate          Integer32,
+            hwGBondDownDataRate        Integer32,
+            hwGBondNumBCEs             Unsigned32,
+            hwGBondEthInErrors         Gauge32,         -- deprecated
+            hwGBondEthInSmallFragments Gauge32,         -- deprecated
+            hwGBondEthInLargeFragments Gauge32,         -- deprecated
+            hwGBondEthInBadFragments   Gauge32,         -- deprecated
+            hwGBondEthInLostFragments  Gauge32,         -- deprecated
+            hwGBondEthInLostStarts     Gauge32,         -- deprecated
+            hwGBondEthInLostEnds       Gauge32,         -- deprecated
+            hwGBondEthInOverflows      Gauge32,         -- deprecated
+            hwGBondOperScheme          GBondScheme,
+            hwGBondOperLastUpTime      DateAndTime,
+            hwGBondOperLastDownTime    DateAndTime,
+            hwGBondOperReInits         Unsigned32,
+            hwGBondOperStatus          INTEGER
+            }
+   
+   
+    hwGBondUpDataRate OBJECT-TYPE
+        SYNTAX      Integer32
+        UNITS       "bps"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "A current G.Bond port operational data rate in the upstream direction, in bps.
+             This object represents an estimation of the sum of individual
+             BCE upstream data rates, modified to compensate for fragmentation and
+             encapsulation overhead(e.g., for an ethernet service, the target data 
+             rate of 10Mbps shall allow lossless transmission of full-duplex 10Mbps
+             ethernet frame stream with minimal inter-frame gap).
+            "
+        REFERENCE   "[TR-159] 5.5.1.15"
+        ::= { hwGBondPortStatusEntry 1 }
+   
+   
+    hwGBondDownDataRate OBJECT-TYPE
+        SYNTAX      Integer32
+        UNITS       "bps"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "A current G.Bond port operational data rate in the downstream direction, in bps.
+             This object represents an estimation of the sum of individual
+             BCE downstream data rates, modified to compensate for fragmentation and 
+             encapsulation overhead (e.g., for an ethernet service, the target data 
+             rate of 10Mbps shall allow lossless transmission of full-duplex 10Mbps 
+             ethernet frame stream with minimal inter-frame gap)."
+        REFERENCE   "[TR-159] 5.5.1.16"
+        ::= { hwGBondPortStatusEntry 2 }
+   	
+   	
+    hwGBondNumBCEs OBJECT-TYPE
+        SYNTAX Unsigned32 (0..32)
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "The Number of BCEs that is currently aggregated by the local GBS
+             (assigned to the G.Bond port using ifStackTable).
+             This number is never greater than gBondCapacity.
+             
+             This object shall be automatically incremented or decremented
+             when a BCE is added or deleted to/from the G.Bond port using
+             ifStackTable.
+             
+             This object maps to the TR-159 attribute aGroupNumChannels.
+            "
+        REFERENCE    "[TR-159] 5.5.1.14"
+        ::= { hwGBondPortStatusEntry 3 }   
+        
+        
+    hwGBondEthInErrors OBJECT-TYPE                          
+        SYNTAX Gauge32                              
+        MAX-ACCESS read-only                           
+        STATUS deprecated                                 
+        DESCRIPTION                                    
+            "The number of error fragments, that have been received across 
+             the gamma interface.
+             
+             This object is deprecated in favour of hwGBondEthPortPerfRxErrors.
+            "
+        ::= { hwGBondPortStatusEntry 4 }   
+   	
+  
+    hwGBondEthInSmallFragments OBJECT-TYPE
+        SYNTAX Gauge32
+        MAX-ACCESS read-only
+        STATUS deprecated
+        DESCRIPTION
+            "The number of fragments smaller than minFragmentSize(64 Bytes), that have been received across 
+             the gamma interface and discarded.
+             
+             This object is deprecated in favour of hwGBondEthPortPerfRxSmallFragments.
+            "
+        ::= { hwGBondPortStatusEntry 5 }
+   
+   
+    hwGBondEthInLargeFragments OBJECT-TYPE
+        SYNTAX Gauge32
+        MAX-ACCESS read-only
+        STATUS deprecated
+        DESCRIPTION
+            "The number of fragments larger than minFragmentSize(512 Bytes), that have been received across 
+             the gamma interface and discarded.
+             
+             This object is deprecated in favour of hwGBondEthPortPerfRxLargeFragments.
+            "
+        ::= { hwGBondPortStatusEntry 6 }
+   
+   
+    hwGBondEthInBadFragments OBJECT-TYPE
+        SYNTAX Gauge32
+        MAX-ACCESS read-only
+        STATUS deprecated
+        DESCRIPTION
+            "The number of fragments which do not fit into the sequence expected by the frame assembly 
+             function, that have been received across the gamma interface and discarded (the frame buffer 
+             is flushed to the next valid frame start).
+             
+             This object is deprecated in favour of hwGBondEthPortPerfRxBadFragments.
+            "
+        ::= { hwGBondPortStatusEntry 7 }
+   
+   
+    hwGBondEthInLostFragments OBJECT-TYPE
+        SYNTAX Gauge32
+        MAX-ACCESS read-only
+        STATUS deprecated
+        DESCRIPTION
+            "The number of gaps in the sequence of fragments, which have been received across the gamma 
+             interface (the frame buffer is flushed to the next valid frame start, when fragment/fragments 
+             expected by the frame assembly function is/are not received).
+             
+             This object is deprecated in favour of hwGBondEthPortPerfRxLostFragments.
+            "
+        ::= { hwGBondPortStatusEntry 8 }
+   
+   
+    hwGBondEthInLostStarts OBJECT-TYPE
+        SYNTAX Gauge32
+        MAX-ACCESS read-only
+        STATUS deprecated
+        DESCRIPTION
+            "The number of missing StartOfPacket indicators expected by the frame assembly function.
+            
+             This object is deprecated in favour of hwGBondEthPortPerfRxLostStarts.
+            "
+        ::= { hwGBondPortStatusEntry 9 }
+   
+   
+    hwGBondEthInLostEnds OBJECT-TYPE
+        SYNTAX Gauge32
+        MAX-ACCESS read-only
+        STATUS deprecated
+        DESCRIPTION
+            "The number of missing EndOfPacket indicators expected by the frame assembly function.
+            
+             This object is deprecated in favour of hwGBondEthPortPerfRxLostEnds.
+            "
+        ::= { hwGBondPortStatusEntry 10 }
+   
+   
+    hwGBondEthInOverflows OBJECT-TYPE
+        SYNTAX Gauge32
+        MAX-ACCESS read-only
+        STATUS deprecated
+        DESCRIPTION
+            "The number of fragments, received across the gamma interface and discarded, which would 
+             have caused the frame assembly buffer to overflow.
+             
+             This object is deprecated in favour of hwGBondEthPortPerfRxOverflows.
+            "
+        ::= { hwGBondPortStatusEntry 11 }
+ 
+ 
+    hwGBondOperScheme OBJECT-TYPE
+        SYNTAX GBondScheme
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "Current operating bonding scheme of a G.Bond port.
+             Options:
+             1. g9981(1) - Instructs the port to use G.998.1 bonding
+             2. g9982(2) - Instructs the port to use G.998.2 bonding
+             3. g9983(3) - Instructs the port to use G.998.3 bonding
+             "
+        REFERENCE
+             "[TR-159] 5.5.1.4"
+        ::= { hwGBondPortStatusEntry 12 }
+        
+        
+    hwGBondOperLastUpTime OBJECT-TYPE
+        SYNTAX DateAndTime
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "Bonding group last up time."
+        ::= { hwGBondPortStatusEntry 13 }
+        
+        
+    hwGBondOperLastDownTime OBJECT-TYPE
+        SYNTAX DateAndTime
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "Bonding group last down time."
+        ::= { hwGBondPortStatusEntry 14 } 
+        
+
+    hwGBondOperReInits OBJECT-TYPE
+        SYNTAX Unsigned32
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "Bonding group re-initial counters."
+        ::= { hwGBondPortStatusEntry 15 } 
+        
+    hwGBondOperStatus  OBJECT-TYPE      
+        SYNTAX INTEGER
+            {   		
+            activated(1),
+            activating(2),
+            deactivated(3)
+            }
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "The current operational state of the xdsl bonding-group.
+             Options:
+             1. activated(1)      - The value of activated(1) indicates that the 
+                                    operational packets can be passed.
+             2. activating(2)     - The value of activating(2) should be a transient condition before 
+                                    changing to activated, and the operational packets cannot be passed.  
+             3. deactivated(3)    - The value of deactivated(3) indicates that the 
+                                    operational packets cannot be passed. 
+             "
+        ::= { hwGBondPortStatusEntry 16 }                
+
+--bond trap 
+    hwGBondTraps             OBJECT IDENTIFIER ::= { hwGBond 3 }
+    hwGBondTrapsVbOids       OBJECT IDENTIFIER ::= { hwGBond 4 }
+    hwGBondCommonTraps       OBJECT IDENTIFIER ::= { hwGBondTraps 1 }
+    hwGBondCommonTrapsPrefix OBJECT IDENTIFIER ::= { hwGBondCommonTraps 0 }
+    hwGBondAlarmTraps        OBJECT IDENTIFIER ::= { hwGBondTraps 2 }
+    hwGBondAlarmTrapsPrefix  OBJECT IDENTIFIER ::= { hwGBondAlarmTraps 0 }
+    
+    hwGBondBondStateChangeTrap NOTIFICATION-TYPE                 
+        OBJECTS 
+            {                                                  
+            hwGBondPriPort,
+            hwGBondAdminStatus,
+            hwGBondPrimaryStatus,
+            hwGBondSecondaryStatus             
+            }                                                          
+        STATUS current                                             
+        DESCRIPTION                                                
+            "Bond status change trap.
+             This notification indicates trap when bond status changes.
+            "                      
+        ::= { hwGBondCommonTraps   0 1 }
+        
+    hwGBondBondProfileChangeTrap NOTIFICATION-TYPE                 
+        OBJECTS 
+            {                                                  
+            hwConfigChangeIP,
+            hwGBondPriPort,
+            hwGBondProfileID,
+            hwGBondGroupProfName          
+            }                                                          
+        STATUS current                                             
+        DESCRIPTION                                                
+            "Bonding group profile ID change trap.
+             This notification indicates trap when bonding group profile ID changes.
+            "                      
+        ::= { hwGBondCommonTraps   0 2 }   
+   
+    hwGBondLowUpRateCrossingAlarmTrap NOTIFICATION-TYPE                 
+        OBJECTS 
+            {                                                  
+            hwGBondGroupID,
+            hwFrameIndex,
+            hwSlotIndex,
+            hwPortIndex,
+            hwGBondUpDataRate,
+            hwGBondGroupProfThreshLowDataRateUs             
+            }                                                          
+        STATUS current                                             
+        DESCRIPTION                                                
+            "This notification indicates that the G.Bond port upstream
+             data rate has reached/dropped below or exceeded the low
+             upstream rate threshold.
+            "                     
+        REFERENCE   "[TR-159] 5.5.1.24" 
+        ::= { hwGBondAlarmTraps   0 1 }   
+        
+    hwGBondLowDownRateCrossingAlarmTrap NOTIFICATION-TYPE                 
+        OBJECTS 
+            {
+            hwGBondGroupID,
+            hwFrameIndex,
+            hwSlotIndex,
+            hwPortIndex,
+            hwGBondDownDataRate,
+            hwGBondGroupProfThreshLowDataRateDs             
+            }                                                          
+        STATUS current                                             
+        DESCRIPTION                                                
+            "This notification indicates that the G.Bond port downstream
+             data rate has reached/dropped below or exceeded the low 
+             downstream rate threshold.
+            "            
+        REFERENCE   "[TR-159] 5.5.1.25"          
+        ::= { hwGBondAlarmTraps   0 2 }
+                
+    hwGBondInvalidCpeAlarmTrap NOTIFICATION-TYPE                 
+        OBJECTS 
+            {
+            hwGBondGroupID,
+            hwFrameIndex,
+            hwSlotIndex,
+            hwPortIndex
+            }                                                          
+        STATUS current                                             
+        DESCRIPTION                                                
+            "This notification indicates that the G.Bond port connects with a
+             invalid CPE.
+            "                      
+        ::= { hwGBondAlarmTraps   0 3 }   
+        
+    hwGBondProfileID OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                "The bonding group profile ID."
+            ::= { hwGBondTrapsVbOids 1 }        
+   	   	
+   hwGBondGroupID OBJECT-TYPE
+        SYNTAX Integer32
+        MAX-ACCESS accessible-for-notify
+        STATUS current
+        DESCRIPTION
+            "The bonding group ID."
+        ::= { hwGBondTrapsVbOids 2 }	   	
+        
+        
+   hwGBondEthPM             OBJECT IDENTIFIER ::= { hwGBond 5 }  
+   	
+--       hwGBondEthPortPerfCurrTable        
+   hwGBondEthPortPerfCurrTable OBJECT-TYPE
+   	SYNTAX SEQUENCE OF HwGBondEthPortPerfCurrEntry
+   	MAX-ACCESS not-accessible
+   	STATUS current
+   	DESCRIPTION
+   	    "This table contains current performance monitoring information
+             for a G.Bond/Eth port. This table contains live data from the
+             equipment and as such is not persistent.
+   	     The index of this table is hwGBondPriPort."
+   	::= { hwGBondEthPM 1 }
+   
+   hwGBondEthPortPerfCurrEntry OBJECT-TYPE
+   	SYNTAX HwGBondEthPortPerfCurrEntry
+   	MAX-ACCESS not-accessible
+   	STATUS current
+   	DESCRIPTION
+   	    "This table contains current performance monitoring information
+             for a G.Bond/Eth port. This table contains live data from the
+             equipment and as such is not persistent.
+   	     The index of this entry is hwGBondPriPort."
+   	INDEX { hwGBondPriPort }
+   	::= { hwGBondEthPortPerfCurrTable 1 }
+   
+   HwGBondEthPortPerfCurrEntry ::=
+   	SEQUENCE 
+   	{ 
+   		hwGBondEthPortPerfCurr15MinStartTime                   DateAndTime,
+		hwGBondEthPortPerf15MinValidIntervals                  Gauge32,
+		hwGBondEthPortPerf15MinInvalidIntervals                Gauge32,
+		hwGBondEthPortPerfCurr15MinTimeElapsed                 Gauge32,
+		hwGBondEthPortPerfCurr15MinRxErrors                    Gauge32,
+		hwGBondEthPortPerfCurr15MinRxSmallFragments            Gauge32,
+		hwGBondEthPortPerfCurr15MinRxLargeFragments            Gauge32,
+		hwGBondEthPortPerfCurr15MinRxBadFragments              Gauge32,
+		hwGBondEthPortPerfCurr15MinRxLostFragments             Gauge32,
+		hwGBondEthPortPerfCurr15MinRxLostStarts                Gauge32,
+		hwGBondEthPortPerfCurr15MinRxLostEnds                  Gauge32,
+		hwGBondEthPortPerfCurr15MinRxOverflows                 Gauge32,
+		hwGBondEthPortPerfCurr1DayStartTime                    DateAndTime,
+		hwGBondEthPortPerf1DayValidIntervals                   Gauge32,
+		hwGBondEthPortPerf1DayInvalidIntervals                 Gauge32,
+		hwGBondEthPortPerfCurr1DayTimeElapsed                  Gauge32,
+		hwGBondEthPortPerfCurr1DayRxErrors                     Gauge32,
+		hwGBondEthPortPerfCurr1DayRxSmallFragments             Gauge32,
+		hwGBondEthPortPerfCurr1DayRxLargeFragments             Gauge32,
+		hwGBondEthPortPerfCurr1DayRxBadFragments               Gauge32,
+		hwGBondEthPortPerfCurr1DayRxLostFragments              Gauge32,
+		hwGBondEthPortPerfCurr1DayRxLostStarts                 Gauge32,
+		hwGBondEthPortPerfCurr1DayRxLostEnds                   Gauge32,
+		hwGBondEthPortPerfCurr1DayRxOverflows                  Gauge32,
+		hwGBondEthPortPerfRxErrors                             Gauge32,
+		hwGBondEthPortPerfRxSmallFragments                     Gauge32,
+		hwGBondEthPortPerfRxLargeFragments                     Gauge32,
+		hwGBondEthPortPerfRxBadFragments                       Gauge32,
+		hwGBondEthPortPerfRxLostFragments                      Gauge32,
+		hwGBondEthPortPerfRxLostStarts                         Gauge32,
+		hwGBondEthPortPerfRxLostEnds                           Gauge32,
+		hwGBondEthPortPerfRxOverflows                          Gauge32
+
+   	 }
+   
+   
+   hwGBondEthPortPerfCurr15MinStartTime OBJECT-TYPE
+   	SYNTAX DateAndTime
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "Start time of the current 15-minute statistics performance."
+   	::= { hwGBondEthPortPerfCurrEntry 1 }
+   
+   hwGBondEthPortPerf15MinValidIntervals OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only number of 15-minute intervals for which the
+             performance data was collected. The value of this object will
+             be 96 or the maximum number of 15-minute history intervals
+             collected by the implementation unless the measurement was
+             (re-)started recently, in which case the value will be the
+             number of complete 15 minutes intervals for which there are at
+             least some data."
+        REFERENCE   "[TR-159] 5.5.1.32"
+   	::= { hwGBondEthPortPerfCurrEntry 2 }
+   	
+   hwGBondEthPortPerf15MinInvalidIntervals OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only number of 15-minute intervals for which the
+             performance data was not always available. The value will
+             typically be zero except in cases where the data for some
+             intervals are not available."
+        REFERENCE   "[TR-159] 5.5.1.33"
+        ::= { hwGBondEthPortPerfCurrEntry 3 }   
+ 
+   hwGBondEthPortPerfCurr15MinTimeElapsed OBJECT-TYPE                          
+   	SYNTAX Gauge32                              
+   	MAX-ACCESS read-only                           
+   	STATUS current                                 
+   	DESCRIPTION                                    
+   	    "A read-only count of seconds that have elapsed since the
+             beginning of the current 15-minute performance interval."
+        REFERENCE    "[TR-159] 5.5.1.34"
+   	::= { hwGBondEthPortPerfCurrEntry 4 }   
+  
+   hwGBondEthPortPerfCurr15MinRxErrors OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only count of errored fragments received and discarded
+             by a G.Bond/Eth port, during the current 15-minute performance
+             interval."
+        REFERENCE   "[TR-159] 5.5.3.7"
+   	::= { hwGBondEthPortPerfCurrEntry 5 }
+   
+   hwGBondEthPortPerfCurr15MinRxSmallFragments OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	     "A read-only count of fragments smaller than minFragmentSize
+             (64 Bytes), that have been received and discarded by a
+             G.Bond/Eth port, during the current 15-minute performance interval."
+        REFERENCE    "[TR-159] 5.5.3.8"
+   	::= { hwGBondEthPortPerfCurrEntry 6 }
+   
+   hwGBondEthPortPerfCurr15MinRxLargeFragments OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only count of fragments larger than maxFragmentSize
+             (512 Bytes), that have been received and discarded by a
+             G.Bond/Eth port, during the current 15-minute performance interval."
+        REFERENCE    "[TR-159] 5.5.3.9"
+   	::= { hwGBondEthPortPerfCurrEntry 7 }
+   
+   hwGBondEthPortPerfCurr15MinRxBadFragments OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only count of fragments which do not fit into the
+             sequence expected by the frame assembly function, that have been
+             received and discarded by a G.Bond/Eth port, during the current
+             15-minute performance interval."
+        REFERENCE    "[TR-159] 5.5.3.10"
+   	::= { hwGBondEthPortPerfCurrEntry 8 }
+   
+   hwGBondEthPortPerfCurr15MinRxLostFragments OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only count of gaps in the sequence of fragments,
+             expected by the frame assembly function of a G.Bond/Eth port,
+             during the current 15-minute performance interval."
+        REFERENCE    "[TR-159] 5.5.3.11"
+   	::= { hwGBondEthPortPerfCurrEntry 9 }
+   
+   hwGBondEthPortPerfCurr15MinRxLostStarts OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only count of missing StartOfPacket indicators expected
+             by the frame assembly function of a G.Bond/Eth port, during the
+             current 15-minute performance interval."
+        REFERENCE    "[TR-159] 5.5.3.12"
+   	::= { hwGBondEthPortPerfCurrEntry 10 }
+   
+   hwGBondEthPortPerfCurr15MinRxLostEnds OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only count of missing EndOfPacket indicators expected
+             by the frame assembly function of a G.Bond/Eth port, during the
+             current 15-minute performance interval."  
+        REFERENCE     "[TR-159] 5.5.3.13" 
+   	::= { hwGBondEthPortPerfCurrEntry 11 } 
+   
+   hwGBondEthPortPerfCurr15MinRxOverflows OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only count of fragments that have been received and
+             discarded by a G.Bond/Eth port, which would have caused the
+             frame assembly buffer to overflow, during the current 15-minute
+             performance interval."   
+        REFERENCE    "[TR-159] 5.5.3.14"
+   	::= { hwGBondEthPortPerfCurrEntry 12 }
+   
+   hwGBondEthPortPerfCurr1DayStartTime OBJECT-TYPE
+   	SYNTAX DateAndTime
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "Start time of the current 1-day statistics performance."   
+   	::= { hwGBondEthPortPerfCurrEntry 13 }
+   
+   hwGBondEthPortPerf1DayValidIntervals OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only number of 1-day intervals for which data was
+             collected. The value of this object will be 7 or the maximum
+             number of 1-day history intervals collected by the
+             implementation unless the measurement was (re-)started recently,
+             in which case the value will be the number of complete 1-day
+             intervals for which there are at least some data.
+             In certain cases it is possible that some intervals are
+             unavailable. In this case, this object reports the maximum
+             interval number for which data is available."   
+        REFERENCE    "[TR-159] 5.5.1.45"
+   	::= { hwGBondEthPortPerfCurrEntry 14 }
+   
+   hwGBondEthPortPerf1DayInvalidIntervals OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only number of 1-day intervals for which data was
+             not always available. The value will typically be zero except in
+             cases where the data for some intervals are not available."  
+        REFERENCE     "[TR-159] 5.5.1.46" 
+   	::= { hwGBondEthPortPerfCurrEntry 15 }
+   
+   hwGBondEthPortPerfCurr1DayTimeElapsed OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only count of seconds that have elapsed since the
+             beginning of the current 1-day performance interval."   
+        REFERENCE    "[TR-159] 5.5.1.47"
+   	::= { hwGBondEthPortPerfCurrEntry 16 }
+   
+   hwGBondEthPortPerfCurr1DayRxErrors OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only count of errored fragments received and discarded
+             by a G.Bond/Eth port, during the current 1-day performance interval"  
+        REFERENCE     "[TR-159] 5.5.3.7" 
+   	::= { hwGBondEthPortPerfCurrEntry 17 }  
+   
+   hwGBondEthPortPerfCurr1DayRxSmallFragments OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only count of fragments smaller than minFragmentSize
+             (64 Bytes), that have been received and discarded by a
+             G.Bond/Eth port, during the current 1-day performance interval."  
+        REFERENCE    "[TR-159] 5.5.3.8" 
+   	::= { hwGBondEthPortPerfCurrEntry 18 }  
+   
+   hwGBondEthPortPerfCurr1DayRxLargeFragments OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only count of fragments larger than maxFragmentSize
+             (512 Bytes), that have been received and discarded by a
+             G.Bond/Eth port, during the current 1-day performance interval."   
+        REFERENCE    "[TR-159] 5.5.3.9"
+   	::= { hwGBondEthPortPerfCurrEntry 19 }  
+   
+   hwGBondEthPortPerfCurr1DayRxBadFragments OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only count of fragments which do not fit into the
+             sequence expected by the frame assembly function, that have been
+             received and discarded by a G.Bond/Eth port, during the current
+             1-day performance interval."   
+        REFERENCE     "[TR-159] 5.5.3.10"
+   	::= { hwGBondEthPortPerfCurrEntry 20 }  
+   
+   hwGBondEthPortPerfCurr1DayRxLostFragments OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only count of gaps in the sequence of fragments,
+             expected by the frame assembly function of a G.Bond/Eth port,
+             during the current 1-day performance interval."  
+        REFERENCE     "[TR-159] 5.5.3.11" 
+   	::= { hwGBondEthPortPerfCurrEntry 21 }  
+   
+   hwGBondEthPortPerfCurr1DayRxLostStarts OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only count of missing StartOfPacket indicators expected
+             by the frame assembly function of a G.Bond/Eth port, during the
+             current 1-day performance interval."   
+        REFERENCE    "[TR-159] 5.5.3.12"
+   	::= { hwGBondEthPortPerfCurrEntry 22 }  
+   
+   hwGBondEthPortPerfCurr1DayRxLostEnds OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only count of missing EndOfPacket indicators expected
+             by the frame assembly function of a G.Bond/Eth port, during the
+             current 1-day performance interval."   
+        REFERENCE     "[TR-159] 5.5.3.13"
+   	::= { hwGBondEthPortPerfCurrEntry 23 }  
+   
+   hwGBondEthPortPerfCurr1DayRxOverflows OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A read-only count of fragments that have been received and
+             discarded by a G.Bond/Eth port, which would have caused the
+             frame assembly buffer to overflow, during the current 1-day
+             performance interval."   
+        REFERENCE    "[TR-159] 5.5.3.14"
+   	::= { hwGBondEthPortPerfCurrEntry 24 } 
+   	
+   hwGBondEthPortPerfRxErrors OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A number of fragments that have been received across the
+             gamma interface and discarded."  
+        REFERENCE     "[TR-159] 5.5.3.7"
+   	::= { hwGBondEthPortPerfCurrEntry 25 }  
+   
+   hwGBondEthPortPerfRxSmallFragments OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A number of fragments smaller than minFragmentSize
+             (64 Bytes), that have been received across the gamma
+             interface and discarded."  
+        REFERENCE     "[TR-159] 5.5.3.8"
+   	::= { hwGBondEthPortPerfCurrEntry 26 }  
+   
+   hwGBondEthPortPerfRxLargeFragments OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A number of fragments larger than maxFragmentSize
+             (512 Bytes), which have been received across the gamma
+             interface and discarded."   
+        REFERENCE     "[TR-159] 5.5.3.9"
+   	::= { hwGBondEthPortPerfCurrEntry 27 }  
+   
+   hwGBondEthPortPerfRxBadFragments OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A number of fragments which do not fit into the sequence
+             expected by the frame assembly function, that have been
+             received across the gamma interface and discarded (the
+             frame buffer is flushed to the next valid frame start)"   
+        REFERENCE     "[TR-159] 5.5.3.10"
+   	::= { hwGBondEthPortPerfCurrEntry 28 }  
+   
+   hwGBondEthPortPerfRxLostFragments OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A number of gaps in the sequence of fragments, which have
+             been received across the gamma interface (the frame buffer is
+             flushed to the next valid frame start, when fragment/fragments
+             expected by the frame assembly function is/are not received)."  
+        REFERENCE     "[TR-159] 5.5.3.11"
+   	::= { hwGBondEthPortPerfCurrEntry 29 }  
+   
+   hwGBondEthPortPerfRxLostStarts OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A number of missing StartOfPacket indicators expected by the
+             frame assembly function." 
+        REFERENCE     "[TR-159] 5.5.3.12"  
+   	::= { hwGBondEthPortPerfCurrEntry 30 }  
+   
+   hwGBondEthPortPerfRxLostEnds OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A number of missing EndOfPacket indicators expected by the
+             frame assembly function."   
+        REFERENCE     "[TR-159] 5.5.3.13"
+   	::= { hwGBondEthPortPerfCurrEntry 31 }  
+   
+   hwGBondEthPortPerfRxOverflows OBJECT-TYPE
+   	SYNTAX Gauge32
+   	MAX-ACCESS read-only
+   	STATUS current
+   	DESCRIPTION
+   	    "A number of fragments, received across the gamma interface
+             and discarded, which would have caused the frame assembly
+             buffer to overflow."   
+        REFERENCE     "[TR-159] 5.5.3.14"
+   	::= { hwGBondEthPortPerfCurrEntry 32 }   	 
+  	
+--       hwGBondGroupProfTable           
+    hwGBondGroupProfTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF HwGBondGroupProfEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "The table hwGBondGroupProfTable contains the bonding group profile
+ 	     configuration.  
+ 	     A default profile with an index of 'DEFVAL' will always exist and 
+ 	     its parameters will be set to vendor-specific values, unless otherwise 
+ 	     specified in this document.
+ 	     The index of this table is hwGBondGroupProfName."
+        ::= { hwGBond 6 }
+   
+    hwGBondGroupProfEntry OBJECT-TYPE
+        SYNTAX HwGBondGroupProfEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+             "The table hwGBondGroupProfTable contains the bonding group profile
+ 	      configuration. 
+ 	      A default profile with an index of 'DEFVAL' will always exist and 
+ 	      its parameters will be set to vendor-specific values, unless otherwise 
+ 	      specified in this document.
+ 	      The index of this entry is hwGBondGroupProfName."
+        INDEX { IMPLIED hwGBondGroupProfName }
+        ::= { hwGBondGroupProfTable 1 }
+   
+    HwGBondGroupProfEntry ::=
+        SEQUENCE 
+            { 
+                hwGBondGroupProfName                      OCTET STRING,
+                hwGBondGroupProfMaxDelayUs                Gauge32,
+                hwGBondGroupProfMaxDelayDs                Gauge32,
+                hwGBondGroupProfMinProtectionUs           GBondSymbolProtection,
+                hwGBondGroupProfMinProtectionDs           GBondSymbolProtection,
+                hwGBondGroupProfMinDataRateUs             Gauge32,
+                hwGBondGroupProfMinDataRateDs             Gauge32,
+                hwGBondGroupProfMaxDataRateUs             Gauge32,
+                hwGBondGroupProfMaxDataRateDs             Gauge32,
+                hwGBondGroupProfTargetDataRateUs          Gauge32,
+                hwGBondGroupProfTargetDataRateDs          Gauge32,
+                hwGBondGroupProfThreshLowDataRateUs       Gauge32,
+                hwGBondGroupProfThreshLowDataRateDs       Gauge32,
+                hwGBondGroupProfLowRateCrossingEnable     INTEGER,
+                hwGBondGroupProfRowStatus                 RowStatus,
+                hwGBondGroupProfBondCpeIncorrectAlarmSwitch  INTEGER   
+            }
+   
+    hwGBondGroupProfName OBJECT-TYPE
+        SYNTAX      OCTET STRING (SIZE(1..32))
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This object identifies a row in this table."
+        ::= { hwGBondGroupProfEntry 1 }	
+        
+    hwGBondGroupProfMaxDelayUs OBJECT-TYPE
+        SYNTAX      Gauge32 (1..63)
+        UNITS       "milliseconds"
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "This parameter is the maximum one-way interleaving delay introduced 
+             by the PMS-TC on upstream direction."
+        DEFVAL       { 16 }
+        ::= { hwGBondGroupProfEntry 2 }	
+        
+    hwGBondGroupProfMaxDelayDs OBJECT-TYPE
+        SYNTAX      Gauge32 (1..63)
+        UNITS       "milliseconds"
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "This parameter is the maximum one-way interleaving delay introduced
+             by the PMS-TC on downstream direction."
+        DEFVAL       { 16 }
+        ::= { hwGBondGroupProfEntry 3 }	
+        
+    hwGBondGroupProfMinProtectionUs OBJECT-TYPE
+        SYNTAX      GBondSymbolProtection
+        UNITS       "symbols"
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "This parameter is minimum impulse noise protection for the bearer channel
+             in the upstream direction, expressed in symbols. The parameter can take the 
+             following values: noProtection (i.e., INP not required), halfSymbol(i.e., INP
+             length is 1/2 symbol) and 1-16 symbols in steps of 1 symbol."
+        DEFVAL       { halfSymbol }
+        ::= { hwGBondGroupProfEntry 4 }	
+        
+    hwGBondGroupProfMinProtectionDs OBJECT-TYPE
+        SYNTAX GBondSymbolProtection
+        UNITS       "symbols"
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "This parameter is minimum impulse noise protection for the bearer channel
+             in the downstream direction, expressed in symbols. The parameter can take the 
+             following values: noProtection (i.e., INP not required), halfSymbol(i.e., INP
+             length is 1/2 symbol) and 1-16 symbols in steps of 1 symbol."
+        DEFVAL       { halfSymbol }
+        ::= { hwGBondGroupProfEntry 5 }	
+        
+    hwGBondGroupProfMinDataRateUs OBJECT-TYPE
+        SYNTAX      Gauge32 (0 | 64..200000)
+        UNITS       "Kbps"
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "This parameter specifics minimum data rate for the bearer channel 
+             in the upstream direction. The value of 0 means that the minimum 
+             upstream data rate is not fixed."
+        DEFVAL       { 0 }
+        ::= { hwGBondGroupProfEntry 6 }	
+        
+    hwGBondGroupProfMinDataRateDs OBJECT-TYPE
+        SYNTAX      Gauge32 (0 | 64..200000)
+        UNITS       "Kbps"
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "This parameter specifics minimum data rate for the bearer channel 
+             in the downstream direction. The value of 0 means that the minimum 
+             downstream data rate is not fixed."
+        DEFVAL       { 0 }
+        ::= { hwGBondGroupProfEntry 7 }	
+        
+    hwGBondGroupProfMaxDataRateUs OBJECT-TYPE
+        SYNTAX      Gauge32 (0 | 64..200000)
+        UNITS       "Kbps"
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "This parameter specifics maximum data rate for the bearer channel
+             in the upstream direction. The value of 0 means that the maximum 
+             upstream data rate is not fixed."
+        DEFVAL       { 0 }
+        ::= { hwGBondGroupProfEntry 8 }	
+        
+    hwGBondGroupProfMaxDataRateDs OBJECT-TYPE
+        SYNTAX      Gauge32 (0 | 64..200000)
+        UNITS       "Kbps"
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "This parameter specifics maximum data rate for the bearer channel
+             in the downstream direction. The value of 0 means that the maximum 
+             downstream data rate is not fixed."
+        DEFVAL       { 0 }
+        ::= { hwGBondGroupProfEntry 9 }	
+        
+    hwGBondGroupProfTargetDataRateUs OBJECT-TYPE
+        SYNTAX      Gauge32 (0 | 64..200000)
+        UNITS       "Kbps"
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "A desired G.Bond port data rate in the upstream direction,
+             in Kbps, to be achieved during initialization, under
+             restrictions placed upon the member BCEs by their respective
+             configuration settings. This object represents a sum of individual
+             BCE upstream data rates, modified to compensate for fragmentation 
+             and encapsulation overhead (e.g., for an Ethernet service, the
+             target data rate of 10Mbps shall allow lossless transmission
+             of full-duplex 10Mbps Ethernet frame stream with minimal inter-frame gap).
+             
+             The value between 64 and 200000 indicates that the total
+             upstream data rate of the G.Bond port after initialization
+             SHALL be equal to the target data rate or less, if the target
+             upstream data rate cannot be achieved under the restrictions
+             configured for BCEs. In case the copper environment allows to
+             achieve higher upstream data rate than that specified by this
+             object, the excess capability shall be either converted to
+             additional SNR margin or reclaimed by minimizing transmit power.
+             
+             The value of 0 means that the target data rate is not
+             fixed and SHALL be set to the maximum attainable rate during
+             initialization (Best Effort), under specified spectral
+             restrictions and with desired SNR Margin per BCE."
+        REFERENCE    "[TR-159] 5.5.1.17"
+        DEFVAL       { 0 }
+        ::= { hwGBondGroupProfEntry 10 }	
+        
+    hwGBondGroupProfTargetDataRateDs OBJECT-TYPE
+        SYNTAX      Gauge32 (0 | 64..200000)
+        UNITS       "Kbps"
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "A desired G.Bond port data rate in the downstream direction,
+             in Kbps, to be achieved during initialization, under
+             restrictions placed upon the member BCEs by their respective
+             configuration settings. This object represents a sum of individual
+             BCE downstream data rates, modified to compensate for fragmentation
+             and encapsulation overhead (e.g., for an Ethernet service, the
+             target data rate of 10Mbps shall allow lossless transmission
+             of full-duplex 10Mbps Ethernet frame stream with minimal inter-frame gap).
+
+             The value between 64 and 200000 indicates that the total
+             downstream data rate of the G.Bond port after initialization
+             SHALL be equal to the target data rate or less, if the target
+             downstream data rate cannot be achieved under the restrictions
+             configured for BCEs. In case the copper environment allows to
+             achieve higher downstream data rate than that specified by
+             this object, the excess capability shall be either converted
+             to additional SNR margin or reclaimed by minimizing transmit power.
+
+             The value of 0 means that the target data rate is not
+             fixed and SHALL be set to the maximum attainable rate during
+             initialization (Best Effort), under specified spectral
+             restrictions and with desired SNR Margin per BCE."
+        REFERENCE    "[TR-159] 5.5.1.18"
+        DEFVAL       { 0 }
+        ::= { hwGBondGroupProfEntry 11 }	
+        
+    hwGBondGroupProfThreshLowDataRateUs OBJECT-TYPE
+        SYNTAX      Gauge32 (0 | 64..200000)
+        UNITS       "Kbps"
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "This object configures the G.Bond port low upstream rate
+             crossing alarm threshold. The value of 0 means that the 
+             low upstream data rate is not fixed."
+        REFERENCE    "[TR-159] 5.5.1.21"
+        DEFVAL       { 0 }
+        ::= { hwGBondGroupProfEntry 12 }	
+        
+    hwGBondGroupProfThreshLowDataRateDs OBJECT-TYPE
+        SYNTAX      Gauge32 (0 | 64..200000)
+        UNITS       "Kbps"
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "This object configures the G.Bond port low downstream rate
+             crossing alarm threshold. The value of 0 means that the 
+             low downstream data rate is not fixed."
+        REFERENCE    "[TR-159] 5.5.1.22"
+        DEFVAL       { 0 }
+        ::= { hwGBondGroupProfEntry 13 }	
+        
+    hwGBondGroupProfLowRateCrossingEnable OBJECT-TYPE
+        SYNTAX INTEGER 
+        {
+            enable(1),
+            disable(2)
+        }
+        MAX-ACCESS read-create
+        STATUS     current
+        DESCRIPTION
+            "Indicates whether hwGBondLowUpRateCrossingAlarmTrap and hwGBondLowDownRateCrossingAlarmTrap 
+             notifications should be generated for this interface.
+             Options:
+             1. enable(1)        - Indicates that the notifications are enabled
+             2. disable(2)       - Indicates that the notifications are disabled
+             "
+        REFERENCE    "[TR-159] 5.5.1.23"
+        DEFVAL       { disable }
+        ::= { hwGBondGroupProfEntry 14 }	
+        
+    hwGBondGroupProfRowStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "This object is used to create a new row or delete an existing row 
+             in this table. Before a profile can be deleted, it must be not 
+             referenced from all associated bonding group."
+        ::= { hwGBondGroupProfEntry 15 }	
+
+    hwGBondGroupProfBondCpeIncorrectAlarmSwitch OBJECT-TYPE
+        SYNTAX INTEGER {
+                           enable (1),
+                           disable (2)
+                       }
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+                   "This object enable/disable the bonding CPE incorrect alarm switch. 
+                    Options:
+                    1. enable(1)  - The bonding CPE incorrect alarm switch is enabled
+                    2. disable(2) - The bonding CPE incorrect alarm switch is disabled
+                   "         
+        DEFVAL       { enable }
+        ::= { hwGBondGroupProfEntry 16 }
+        
+   END

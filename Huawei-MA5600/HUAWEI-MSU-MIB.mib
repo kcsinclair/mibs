@@ -1,0 +1,1504 @@
+-- =================================================================
+-- Copyright (C) 2010 by HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description: The mib is used for defining huawei's MSU SDH ports 
+--              management MIB objects.
+-- Reference:   
+-- Version: V1.13
+-- =================================================================
+
+    HUAWEI-MSU-MIB DEFINITIONS ::= BEGIN
+        IMPORTS
+            MODULE-IDENTITY, OBJECT-TYPE, Unsigned32, Counter64, Integer32, 
+            IpAddress, NOTIFICATION-TYPE
+                FROM SNMPv2-SMI
+            MacAddress,TEXTUAL-CONVENTION
+                FROM SNMPv2-TC       
+            ifIndex
+                FROM IF-MIB             
+            hwFrameIndex, hwSlotIndex, hwPortIndex 
+                FROM HUAWEI-DEVICE-MIB            
+            huaweiUtility
+                FROM HUAWEI-MIB;
+                
+  hwSdh MODULE-IDENTITY
+        LAST-UPDATED "201210190000Z"
+        ORGANIZATION "Huawei Technologies co.,Ltd."
+        CONTACT-INFO                                    
+               "Huawei Industrial Base            
+                Bantian, Longgang                 
+                Shenzhen 518129                   
+                People's Republic of China        
+                Website: http://www.huawei.com    
+                Email: support@huawei.com         
+               "                                  
+        DESCRIPTION  "The mib is used for defining huawei's MSU SDH ports 
+                      management MIB objects."
+
+--  Revision history
+        REVISION     "201210190000Z"       
+        DESCRIPTION  "V1.13, changes in this revision: 
+                     added leaf node hwSdhGroupOvhdRecvJ0CheckSwitch to indicate the check switch of SDH overhead command J0. 
+                     added leaf node hwSdhGroupOvhdRecvJ1CheckSwitch to indicate the check switch of SDH overhead command J1.
+                     added leaf node hwSdhTriOvhdRecvJ2CheckSwitch to indicate the check switch of SDH overhead command J2.
+                     "
+                   
+        REVISION     "201011090900Z"     
+        DESCRIPTION  "V1.12, modified the description of MIB. "
+      
+        REVISION     "201010140900Z"  
+        DESCRIPTION  "V1.11, add enumeration invalid(-1) for leaf hwSdhTrivc12RTPSwitch. 
+                     " 
+                     
+        REVISION     "201008230900Z"  
+        DESCRIPTION  "V1.10, modified the description of mib. 
+                     " 
+                     
+        REVISION     "201004010900Z"  
+        DESCRIPTION  "V1.09, changes in this revision:    
+                      Modified the syntax error.
+                     " 
+                         
+        REVISION     "201001120900Z"
+        DESCRIPTION  "V1.08, changes in this revision:    
+                      Added the definition of the trap node, including:
+                            hwSdhSignalDegradeAlarmTrap                
+                            hwSdhRemoteDefectTributaryAlarmTrap        
+                            hwSdhAISAbnormalAlarmTrap                  
+                            hwSdhRemoteDefectSignalAlarmTrap           
+                            hwSDHLayerFrameLostAlarmTrap               
+                            hwSDHPortFailReceiveSignalAlarmTrap        
+                            hwSDHAISTributaryLayerAbnormalAlarmTrap    
+                            hwSDHFaultOccurrAlarmTrap                  
+                            hwSDHConnectionFaultAlarmTrap              
+                            hwSDHSignalDegradeRecoverAlarmTrap         
+                            hwSDHRecoverTributaryLayerAlarmTrap        
+                            hwSDHAISLineRecoversAlarmTrap              
+                            hwSDHLineRecoversSignalLineAlarmTrap       
+                            hwSDHFrameLossRecoverAlarmTrap             
+                            hwSDHSignalReceiveFailureRecoverAlarmTrap  
+                            hwSDHAISTributaryRecoverAlarmTrap          
+                            hwSDHAISRecoverFromAbnormalAlarmTrap       
+                            hwSDHRDIRecoverFromAbnormalAlarmTrap 
+                       "
+        REVISION     "201001070900Z"  
+        DESCRIPTION  "V1.07, changes in this revision:    
+                      Added leaf node hwSdhTrivc12RTPSwitch in table hwSdhTributaryTable for the MSU SDH tributary management.
+                     " 
+  
+        REVISION     "200903060900Z"  
+        DESCRIPTION  "V1.05, changes in this revision:    
+                      Imported type MacAddress and TEXTUAL-CONVENTION from SNMPv2-TC file.
+                      Modified the name of leaf node hwAlarmLevelTable to hwAlarmLevel.
+                      Added leaf nodes hwSdhTrivc12AlarmState, hwSdhTrivc12JitterBuffer.
+                      Anded hwSdhTrivc12ClockMode in table hwSdhTributaryTable for the MSU SDH tributary management.
+                      Added leaf nodes hwSdhInterfaceIP and hwSdhInterfaceMac in table
+                      hwSdhGroupTable for the MSU SDH group management.
+                     "
+        
+        REVISION     "200810310900Z"  
+        DESCRIPTION  "V1.03, changes in this revision:     
+                      Imported new types Integer32 and Counter64 from SNMPv2-SMI file.
+                      Modified the name of object hwMsuMibObjects to hMibObjects. 
+                      Modified the OID of hwSdhMibObjects to 1.3.6.1.4.1.2011.6.38.1. 
+                      Added table hwSdhTributaryPerformCountTable for the vc12 tributaryperformance information management.
+                      Added table hwSdhGroupPerformCountTable for the STM-1 port performance information management.
+                      Modified the name of table hwMsuAlarmLevelTable to hwAlarmLevelTable. 
+                      Modified the OID of table hwAlarmLevelTable to 1.3.6.1.4.1.2011.6.38.1.2.  
+                      Modified the name of table hwMsuSdhTributaryTable to hwSdhTributaryTable.
+                      Modified the OID of table hwSdhTributaryTable to 1.3.6.1.4.1.2011.6.38.1.1.  
+                      Added leaf nodes hwSdhTrivc12channlesstate and hwSdhTriPerfAdminStatus in table
+                      hwSdhTributaryTable for the MSU SDH tributary management.
+                      Modified the name of table hwMsuSdhGroupTable to hwSdhGroupTable.
+                      Modified the OID of table hwSdhGroupTable to hwAlarmLevelTable to 1.3.6.1.4.1.2011.6.38.1.0.
+                      Added leaf nodes hwSdhOpticPowerSDThreshold and hwSdhGroupPerfAdminStatus in table hwSdhGroupTable
+                      for the MSU SDH group management.    
+                     "
+        
+        REVISION     "200805290900Z"  
+        DESCRIPTION  "V1.01, changes in this revision:  
+                      Modified the description of all leaf nodes.
+                     "
+         
+        REVISION     "200209020900Z"  
+        DESCRIPTION  "V1.00, initial version." 
+        ::= { huaweiUtility 38 }
+
+   hwSdhMibObjects     OBJECT IDENTIFIER   ::= { hwSdh  1 }    
+
+   hwSdhGroupTable OBJECT-TYPE
+       SYNTAX      SEQUENCE OF HwSdhGroupEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+         "This table is used for the MSU SDH group management,
+          such as physical status of the MSU optical port.
+          The index of this table is ifIndex.
+         "
+       ::= { hwSdhMibObjects 0 }
+
+   hwSdhGroupEntry OBJECT-TYPE
+       SYNTAX      HwSdhGroupEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+         "This table is used for the MSU SDH group management,
+          such as physical status of the MSU optical port.
+          The index of this entry is ifIndex.
+         "
+       INDEX
+           { 
+               ifIndex
+           }
+       ::= { hwSdhGroupTable 1 }
+
+   HwSdhGroupEntry ::=
+       SEQUENCE
+       {
+       hwSdhInterfaceState
+         INTEGER,
+       hwSdhInterfaceLineState
+         INTEGER,
+       hwSdhInterfaceFiberType
+         INTEGER,
+       hwSdhInterfacePhyType
+         INTEGER,  
+       hwSdhInterfaceLineType
+         INTEGER,
+       hwSdhInterfaceSpeed
+         INTEGER,
+       hwSdhInterfaceTxClock
+         INTEGER,
+       hwSdhGroupLoopType
+         INTEGER,
+       hwSdhTriNumberMode
+         INTEGER,
+       hwSdhGroupOvhdSendJ0Type
+         INTEGER,
+       hwSdhGroupOvhdSendJ0String
+         OCTET STRING(SIZE(0..15)),
+       hwSdhGroupOvhdRecvJ0Type
+         INTEGER,
+       hwSdhGroupOvhdRecvJ0String
+         OCTET STRING(SIZE(0..15)),
+       hwSdhGroupOvhdSendJ1Type
+         INTEGER,
+       hwSdhGroupOvhdSendJ1String
+         OCTET STRING(SIZE(0..62)),
+       hwSdhGroupOvhdRecvJ1Type
+         INTEGER,
+       hwSdhGroupOvhdRecvJ1String
+         OCTET STRING(SIZE(0..62)),
+       hwSdhGroupOvhdSendS1Value
+         Integer32,
+       hwSdhGroupOvhdSendC2Value
+         Integer32,
+       hwSdhGroupOvhdRecvedJ0Type
+         INTEGER,
+       hwSdhGroupOvhdRecvedJ0String
+         OCTET STRING(SIZE(0..15)),
+       hwSdhGroupOvhdRecvedJ1Type
+         INTEGER,
+       hwSdhGroupOvhdRecvedJ1String
+         OCTET STRING(SIZE(0..62)),
+       hwSdhGroupOvhdRecvedS1
+         Integer32,
+       hwSdhGroupOvhdRecvedC2
+         Integer32,
+       hwSdhGroupAlarmState
+         Integer32,
+       hwSdhOpticPowerSDThreshold
+         INTEGER,
+       hwSdhGroupPerfAdminStatus
+         INTEGER,
+       hwSdhInterfaceIP
+         IpAddress,  
+       hwSdhInterfaceMac
+         MacAddress,
+       hwSdhGroupOvhdRecvJ0CheckSwitch
+         INTEGER,
+       hwSdhGroupOvhdRecvJ1CheckSwitch
+         INTEGER        
+       }
+
+   hwSdhInterfaceState OBJECT-TYPE
+       SYNTAX      INTEGER
+       {
+       normal(1),
+       fault(2)
+       }
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Physical status of the MSU optical port.
+            Options:
+            1. normal(1)  -physical status of the MSU optical port is normal
+            2. fault(2)   -physical status of the MSU optical port is fault
+           "
+       ::= { hwSdhGroupEntry  1 }
+
+   hwSdhInterfaceLineState OBJECT-TYPE
+       SYNTAX      INTEGER
+       {
+       signal(1),
+       noSignal(2)
+       }
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Working status of the line of the MSU optical port.
+            Options:
+            1. signal(1)   -working status of the line of the MSU optical port is signal   
+            2. noSignal(2) -working status of the line of the MSU optical port is noSignal             
+           "
+       ::= { hwSdhGroupEntry  2 }
+       
+   hwSdhInterfaceFiberType OBJECT-TYPE
+       SYNTAX      INTEGER
+       {
+       singleMode(1),
+       multipleMode(2),
+       invalid(-1)
+       }
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Type of the fiber connected to the MSU optical port.
+            Options:
+            1. singleMode(1)     -single-mode
+            2. multipleMode(2)   -multi-mode
+            3. invalid(-1)       -invalid value
+           "
+       ::= { hwSdhGroupEntry  3 }   
+               
+   hwSdhInterfacePhyType OBJECT-TYPE
+       SYNTAX      INTEGER
+       {
+       optical(1),
+       electric(2)
+       }
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Physical type of the MSU port.
+            Options:
+            1. optical(1)    -physical type of the MSU port is optical 
+            2. electric(2)   -physical type of the MSU port is electric           
+           "
+       ::= { hwSdhGroupEntry  4 }            
+       
+   hwSdhInterfaceLineType OBJECT-TYPE
+       SYNTAX      INTEGER
+       {
+       stm1(1),
+       stm4(2)
+       }
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Line type of the MSU optical port.
+            Options:
+            1. stm1(1)  -line type of the MSU optical port is stm1
+            2. stm4(2)  -line type of the MSU optical port is stm4
+           "
+       ::= { hwSdhGroupEntry  5 }            
+       
+   hwSdhInterfaceSpeed OBJECT-TYPE
+       SYNTAX      INTEGER
+       {
+       speed155(1),
+       speed622(2),
+       invalid(-1)
+       }
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Rate of the MSU optical port.
+            Options:
+            1. speed155(1)  -rate of the MSU optical port is 155 Mbps
+            2. speed622(2)  -rate of the MSU optical port is 622 Mbps
+            3. invalid(-1)  -invalid value
+           "
+       ::= { hwSdhGroupEntry  6 }            
+       
+   hwSdhInterfaceTxClock OBJECT-TYPE
+       SYNTAX      INTEGER
+       {
+       system(1),
+       sdh(2),
+       line0(3),
+       line1(4),
+       invalid(-1)
+       }
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+           "Tx clock of the MSU optical port.
+            Options:
+            1. system(1)    -tx clock of the MSU optical port is system
+            2. sdh(2)       -tx clock of the MSU optical port is sdh
+            3. line0(3)     -tx clock of the MSU optical port is line0
+            4. line1(4)     -tx clock of the MSU optical port is line1
+            5. invalid(-1)  -invalid value
+           "
+       ::= { hwSdhGroupEntry  7 }
+       
+   hwSdhGroupLoopType OBJECT-TYPE
+       SYNTAX      INTEGER
+       {
+       noLoop(1),    
+       localLoop(2), 
+       remoteLoop(3)
+       }      
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+           "Type of the loopback test on the MSU optical port.
+            Options:
+            1. noLoop(1)      -no loopback
+            2. localLoop(2)   -local loopback
+            3. remoteLoop(3)  -remote loopback              
+           "
+       ::= { hwSdhGroupEntry 8 }
+       
+   hwSdhTriNumberMode OBJECT-TYPE
+       SYNTAX      INTEGER
+       {
+       huawei(1),
+       lucent(2)
+       }
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+           "SDH tributary numbering mode of the MSU optical port.
+            Options:
+            1. huawei(1)  -SDH tributary numbering mode of the MSU optical port is huawei
+            2. lucent(2)  -SDH tributary numbering mode of the MSU optical port is lucent
+           "
+       ::= { hwSdhGroupEntry  9 }
+       
+   hwSdhGroupOvhdSendJ0Type OBJECT-TYPE
+       SYNTAX      INTEGER
+       {
+       short(1),
+       long(2),
+       invalid(-1)
+       }
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+           "The type of the sended MSU SDH overhead command J0.
+            Options:
+            1. short(1)     -type of the MSU SDH overhead command J0 is short 
+            2. long(2)      -type of the MSU SDH overhead command J0 is long
+            3. invalid(-1)  -invalid value
+           "
+       ::= { hwSdhGroupEntry  10 }
+       
+   hwSdhGroupOvhdSendJ0String OBJECT-TYPE
+       SYNTAX      OCTET STRING(SIZE(0..15))
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+           "Send character string of the SDH overhead command J0.
+           "
+       ::= { hwSdhGroupEntry  11 }
+       
+   hwSdhGroupOvhdRecvJ0Type OBJECT-TYPE
+       SYNTAX      INTEGER
+       {
+       short(1),
+       long(2),
+       invalid(-1)
+       }
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+           "The type of the received MSU SDH overhead command J0.
+            Options:
+            1. short(1)     -type of the MSU SDH overhead command J0 is short
+            2. long(2)      -type of the MSU SDH overhead command J0 is long
+            3. invalid(-1)  -invalid value
+           "
+       ::= { hwSdhGroupEntry  12 }
+       
+   hwSdhGroupOvhdRecvJ0String OBJECT-TYPE
+       SYNTAX      OCTET STRING(SIZE(0..15))
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+           "Receive character string of the SDH overhead command J0.
+           "
+       ::= { hwSdhGroupEntry  13 }
+       
+   hwSdhGroupOvhdSendJ1Type OBJECT-TYPE
+       SYNTAX      INTEGER
+       {
+       short(1),
+       long(2),
+       invalid(-1)
+       }
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+           "The type of the sended MSU SDH overhead command word J1.
+            Options:
+            1. short(1)     -type of the MSU SDH overhead command word J1 is short
+            2. long(2)      -type of the MSU SDH overhead command word J1 is long
+            3. invalid(-1)  -invalid value
+           "
+       ::= { hwSdhGroupEntry  14 }
+       
+   hwSdhGroupOvhdSendJ1String OBJECT-TYPE
+       SYNTAX      OCTET STRING(SIZE(0..62))
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+           "Send character string of the SDH overhead command J1.
+           "
+       ::= { hwSdhGroupEntry  15 }
+       
+   hwSdhGroupOvhdRecvJ1Type OBJECT-TYPE
+       SYNTAX      INTEGER
+       {
+       short(1),
+       long(2),
+       invalid(-1)
+       }
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+           "The type of the received MSU SDH overhead command word J1.
+            Options:
+            1. short(1)    -type of the MSU SDH overhead command word J1 is short
+            2. long(2)     -type of the MSU SDH overhead command word J1 is long
+            3. invalid(-1) -invalid value
+           "
+       ::= { hwSdhGroupEntry  16 }
+       
+   hwSdhGroupOvhdRecvJ1String OBJECT-TYPE
+       SYNTAX      OCTET STRING(SIZE(0..62))
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+           "Receive character string of the SDH overhead command J1.
+           "
+       ::= { hwSdhGroupEntry  17 }
+       
+   hwSdhGroupOvhdSendS1Value OBJECT-TYPE
+       SYNTAX      Integer32(0..255 | -1)                
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+           "Send value of SDH overhead command word S1.
+           "
+       ::= { hwSdhGroupEntry  18 }
+       
+   hwSdhGroupOvhdSendC2Value OBJECT-TYPE
+       SYNTAX      Integer32(0..255 | -1)     
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+           "Send value of the SDH overhead command word C2.
+           "
+       ::= { hwSdhGroupEntry  19 }
+       
+   hwSdhGroupOvhdRecvedJ0Type OBJECT-TYPE
+       SYNTAX      INTEGER
+       {
+       short(1),
+       long(2),
+       invalid(-1)
+       }
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "The type of the received MSU SDH overhead command word J0.
+            Options:
+            1. short(1)     -type of the MSU SDH overhead command word J0 is short
+            2. long(2)      -type of the MSU SDH overhead command word J0 is long
+            3. invalid(-1)  -invalid value
+           "
+       ::= { hwSdhGroupEntry  20 }
+       
+   hwSdhGroupOvhdRecvedJ0String OBJECT-TYPE
+       SYNTAX      OCTET STRING(SIZE(0..15))
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Receive character string of the SDH overhead command J0.
+           "
+       ::= { hwSdhGroupEntry  21 }
+       
+   hwSdhGroupOvhdRecvedJ1Type OBJECT-TYPE
+       SYNTAX      INTEGER
+       {
+       short(1),
+       long(2),
+       invalid(-1)
+       }
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "The type of the received MSU SDH overhead command word J1.
+            Options:
+            1. short(1)    -type of the MSU SDH overhead command word J1 is short  
+            2. long(2)     -type of the MSU SDH overhead command word J1 is long
+            3. invalid(-1) -invalid value
+           "
+       ::= { hwSdhGroupEntry  22 }
+       
+   hwSdhGroupOvhdRecvedJ1String OBJECT-TYPE
+       SYNTAX      OCTET STRING(SIZE(0..62))
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Receive character string of the SDH overhead command J1.
+           "
+       ::= { hwSdhGroupEntry  23 }
+       
+   hwSdhGroupOvhdRecvedS1 OBJECT-TYPE
+       SYNTAX      Integer32(0..255 | -1)
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Receive value of the SDH overhead command word S1.
+           "
+       ::= { hwSdhGroupEntry  24 }
+       
+   hwSdhGroupOvhdRecvedC2 OBJECT-TYPE
+       SYNTAX      Integer32(0..255 | -1)
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+          "Receive value of the SDH overhead command word C2.
+          "
+       ::= { hwSdhGroupEntry  25 }
+       
+   hwSdhGroupAlarmState OBJECT-TYPE
+       SYNTAX      Integer32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+          "the SDH group alarm state, per bit indicates one kind of alarm, 1 means exist 0 means not exist.
+           0xFFFFFFFF,means invalid value 
+           bit0 =RLOS     receive loss of signal alarm exist                            
+           bit1 =ROOF     receive overlap of frame alarm exist                          
+           bit2 =RLOF     receiver loss of frame alarm exist                            
+           bit3 =B1-OVER  Errored Code over Threshold in Regenerator Section alarm      
+           bit4 =MS-AIS   Alarm Indication Signal in Multiplex Section                  
+           bit5 =MS-RDI   Remote Defect Indication in Multiplex Section                 
+           bit6 =B2-OVER  Errored Code over Threshold in Multiplex Section              
+           bit7 =B2-SD    Signal Degrade in Multiplex Section                           
+           bit8 =MS-REI   Remote Error Indication in Multiplex Section                  
+           bit9 =J0MM     Trace Identifier Mismatch in Regenerator Section              
+           bit10=B1-SD    Signal Degrade in Regenerator Section alarm                   
+           bit11=B1-BOVER Errored Code Block over Threshold in Regenerator Section alarm
+           bit12=TLOS     send loss of signal alarm exist                               
+           bit13=AULOP    Loss of Pointer in Administrative Unit                        
+           bit14=B3-SD    Signal Degrade in Higher order Path                           
+           bit15=B3-OVER  Errored Code over Threshold in Higher order Path              
+           bit16=HP-TIM   Trace Identifier Mismatch in Higher order Path                
+           bit17=HP-SLM   PayLoad Mismatch in Higher order Path                         
+           bit18=HP-RDI   Remote Defect Indication in Higher order Path                 
+           bit19=AU-AIS   Alarm Indication Signal in Administrative Unit                
+           bit20=LOM      Loss of Multiframe                                            
+           bit21=HP-UNEQ  Higher order Path UnEquipped                                  
+           bit22=HP-REI   Higher order Path Remote Error Indication                     
+           others, no used, reserve to 0
+          "
+       ::= { hwSdhGroupEntry  26 }   
+       
+   hwSdhOpticPowerSDThreshold OBJECT-TYPE
+       SYNTAX      INTEGER 
+       {
+       eminus5(5),
+       eminus6(6),
+       eminus7(7),
+       eminus8(8),
+       eminus9(9)
+       }
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+           "The level of threshold for sd of optic port.
+            Options:
+            1. eminus5(5)   -1.0e-5(5)
+            2. eminus6(6)   -1.0e-6(6)
+            3. eminus7(7)   -1.0e-7(7)
+            4. eminus8(8)   -1.0e-8(8)
+            5. eminus9(9)   -1.0e-9(9)
+           "
+       ::= { hwSdhGroupEntry  27 }   
+   
+   hwSdhGroupPerfAdminStatus OBJECT-TYPE
+       SYNTAX      INTEGER  
+       {
+       reset(1),
+       invalid(-1)
+       }
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+           "The operation of the performance on the port.
+            Options:
+            1. reset(1)    -the operation of the performance on the port is reset
+            2. invalid(-1) -invalid value
+           "
+       ::= { hwSdhGroupEntry  28 }  
+       
+   hwSdhInterfaceIP   OBJECT-TYPE
+      SYNTAX       IpAddress 
+      MAX-ACCESS   read-write 
+      STATUS       current
+      DESCRIPTION
+           "The IP address of STM-1 port.
+           "
+      ::= { hwSdhGroupEntry  29 }
+      
+   hwSdhInterfaceMac  OBJECT-TYPE              
+      SYNTAX       MacAddress              
+      MAX-ACCESS   read-write
+      STATUS       current              
+      DESCRIPTION              
+           "The Mac address of STM-1 port.         
+           "               
+       ::= { hwSdhGroupEntry  30 }    
+       
+   hwSdhGroupOvhdRecvJ0CheckSwitch OBJECT-TYPE
+	SYNTAX INTEGER
+		{
+		enable(1),
+		disable(2)
+		}
+	MAX-ACCESS read-write
+	STATUS current
+	DESCRIPTION
+           "Indicates the check switch of SDH overhead command J0. 
+            Options:
+            1. enable(1)    -indicates that SDH overhead command J0 to be checked.
+            2. disable(2)   -indicates that SDH overhead command J0 not to be checked.
+            Default: enable(1)
+           "
+	DEFVAL { enable }
+	::= { hwSdhGroupEntry 31 }
+	
+   hwSdhGroupOvhdRecvJ1CheckSwitch OBJECT-TYPE
+	SYNTAX INTEGER
+		{
+		enable(1),
+		disable(2)
+		}
+	MAX-ACCESS read-write
+	STATUS current
+	DESCRIPTION
+           "Indicates the check switch of SDH overhead command J1. 
+            Options:
+            1. enable(1)    -indicates that SDH overhead command J1 to be checked.
+            2. disable(2)   -indicates that SDH overhead command J1 not to be checked.
+            Default: enable(1)
+           "
+	DEFVAL { enable }
+	::= { hwSdhGroupEntry 32 }                              
+                           
+   hwSdhTributaryTable OBJECT-TYPE
+      SYNTAX      SEQUENCE OF HwSdhTributaryEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+        "This table is used for the MSU SDH tributary management,
+         such as type of the loopback test on the MSU SDH tributary.
+         The index of this table is ifIndex.
+        "
+      ::= { hwSdhMibObjects 1 }
+
+   hwSdhTributaryEntry OBJECT-TYPE
+      SYNTAX      HwSdhTributaryEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+        "This table is used for the MSU SDH tributary management,
+         such as type of the loopback test on the MSU SDH tributary.
+         The index of this entry is ifIndex.
+        "
+      INDEX
+          {
+              ifIndex
+          }
+      ::= { hwSdhTributaryTable 1 }
+
+   HwSdhTributaryEntry ::=
+      SEQUENCE
+      {
+      hwSdhTriLoopType
+        INTEGER,
+      hwSdhTriOvhdSendJ2String
+        OCTET STRING(SIZE(0..15)),
+      hwSdhTriOvhdRecvJ2String
+        OCTET STRING(SIZE(0..15)),
+      hwSdhTriOvhdSendV5Value
+        Integer32,
+      hwSdhTriOvhdRecvedJ2
+        OCTET STRING(SIZE(0..15)),
+      hwSdhTriOvhdRecvedV5
+        Integer32,
+      hwSdhTriAlarmState
+        Integer32,      
+      hwSdhTrivc12channlesstate
+        INTEGER,
+      hwSdhTriPerfAdminStatus
+        INTEGER,  
+      hwSdhTrivc12AlarmState
+        Integer32,
+      hwSdhTrivc12JitterBuffer
+        Integer32,
+      hwSdhTrivc12ClockMode
+        INTEGER,
+      hwSdhTrivc12RTPSwitch
+        INTEGER,
+      hwSdhTriOvhdRecvJ2CheckSwitch
+        INTEGER   
+      }
+
+   hwSdhTriLoopType OBJECT-TYPE
+      SYNTAX      INTEGER
+      {
+      noLoop(1),    
+      localLoop(2), 
+      remoteLoop(3)
+      }      
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION
+          "Type of the loopback test on the MSU SDH tributary.
+           Options:
+           1. noLoop(1)      -no loopback
+           2. localLoop(2)   -local loopback
+           3. remoteLoop(3)  -remote loopback                
+          "
+      ::= { hwSdhTributaryEntry  1 }
+       
+   hwSdhTriOvhdSendJ2String OBJECT-TYPE
+      SYNTAX      OCTET STRING(SIZE(0..15))
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION
+          "Send character string of the SDH overhead command J2.
+          "
+      ::= { hwSdhTributaryEntry  2 }
+       
+   hwSdhTriOvhdRecvJ2String OBJECT-TYPE
+      SYNTAX      OCTET STRING(SIZE(0..15))
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION
+          "Receive character string of the SDH overhead command J2.
+          "
+      ::= { hwSdhTributaryEntry  3 }
+       
+   hwSdhTriOvhdSendV5Value OBJECT-TYPE
+      SYNTAX      Integer32(0..255 | -1)     
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION
+          "Send value of SDH overhead command word V5.
+          "
+      ::= { hwSdhTributaryEntry  4 }
+       
+   hwSdhTriOvhdRecvedJ2 OBJECT-TYPE
+      SYNTAX      OCTET STRING(SIZE(0..15))
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+          "Receive character string of the SDH overhead command J2.
+          "
+      ::= { hwSdhTributaryEntry  5 }
+       
+   hwSdhTriOvhdRecvedV5 OBJECT-TYPE
+      SYNTAX      Integer32(0..255 | -1)
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+          "Receive value of the SDH overhead command word V5.
+          "
+      ::= { hwSdhTributaryEntry  6 }
+       
+   hwSdhTriAlarmState OBJECT-TYPE
+      SYNTAX      Integer32                
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+          "The SDH tributary unit alarm state, per bit indicates one kind of alarm, 
+           1 means exist; 0 means not exist.
+           0xFFFFFFFF,means invalid value 
+           bit0 = TU-AIS  Alarm Indication Signal in Tributary Unit
+           bit1 = TU-LOP  Loss of pointer in tributary unit
+           bit2 = LP-UNEQ Lower order Path UnEquipped
+           bit3 = LP-SLM  PayLoad Mismatch in Lower order Path
+           bit4 = LP-TIM  Trace Identifier Mismatch in Lower order Path
+           bit5 = LP-RFI  Remote Failure Indication in Lower order Path
+           bit6 = LP-RDI  Remote Defect Indication in Lower order Path
+           bit7 = SIZZEERR Pointer Size Error in Lower order Path
+           others, no used, reserve to 0
+          "
+      ::= { hwSdhTributaryEntry  7 }  
+      
+   hwSdhTrivc12channlesstate OBJECT-TYPE
+      SYNTAX      INTEGER
+      {
+      distributed(1),
+      nondistributive(2),
+      invalid(-1)
+      }
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+          "The SDH tributary unit path state.
+           Options:
+           1. distributed(1)      -the SDH tributary unit path state is distributed
+           2. nondistributive(2)  -the SDH tributary unit path state is nondistributive
+           3. invalid(-1)         -invalid value
+          "
+      ::= { hwSdhTributaryEntry  8 }
+       
+                                         
+   hwSdhTriPerfAdminStatus OBJECT-TYPE
+      SYNTAX      INTEGER  
+      {
+      reset(1),
+      invalid(-1)
+      }
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION
+          "The operation of the performance on the port.
+           Options:
+           1. reset(1)     -the operation of the performance on the port is reset 
+           2. invalid(-1)  -invalid value 
+          "
+      ::= { hwSdhTributaryEntry  9 } 
+   hwSdhTrivc12AlarmState  OBJECT-TYPE
+      SYNTAX       Integer32 
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+           "The SDH tributary unit alarm state, per bit indicates one kind of alarm, 1 means exist 0 means not exist. 
+            0xFFFFFFFF,means invalid value  
+            bit0 = AIS             Remote Alarm Indication Signal in Tributary Unit
+            bit1 = RDI             Remote Defect Indication in tributary unit                
+            others, no used, reserve to 0
+           "
+       ::= { hwSdhTributaryEntry 10}
+   
+   hwSdhTrivc12JitterBuffer   OBJECT-TYPE 
+      SYNTAX       Integer32 (500..8000 | -1)
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION
+           "Value of JitterBuffer, must be multiple of 125.
+            Unit: us
+           "
+       ::= { hwSdhTributaryEntry 11}  
+       
+   hwSdhTrivc12ClockMode   OBJECT-TYPE 
+      SYNTAX       INTEGER
+      {
+      system(1),
+      line(2),
+      recovery(3),
+      invalid(-1) 
+      }
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION
+           "Type of clock mode.
+            Options:
+            1. system(1)     -system clock
+            2. line(2)       -line clock
+            3. recovery(3)   -recovery clock
+            4. invalid(-1)   -invalid value               
+           "
+       ::= { hwSdhTributaryEntry 12}    
+       
+   hwSdhTrivc12RTPSwitch   OBJECT-TYPE 
+      SYNTAX       INTEGER
+      {
+      enable(1),
+      disable(2),
+      invalid(-1)
+      }
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION
+           "Status of RTP switch.
+            Options:
+            1. enable(1)       -status of RTP switch is enable
+            2. disable(2)      -status of RTP switch is disable
+            3. invalid(-1)     -invalid value
+            Default: enable(1)           
+           " 
+           DEFVAL {enable}
+       ::= { hwSdhTributaryEntry 13}    
+       
+   hwSdhTriOvhdRecvJ2CheckSwitch OBJECT-TYPE
+	SYNTAX INTEGER
+		{
+		enable(1),
+		disable(2)
+		}
+	MAX-ACCESS read-write
+	STATUS current
+	DESCRIPTION
+           "Indicates the check switch of SDH overhead command J2. 
+            Options:
+            1. enable(1)    -indicates that SDH overhead command J2 to be checked.
+            2. disable(2)   -indicates that SDH overhead command J2 not to be checked.
+            Default: enable(1)
+           "
+	DEFVAL { enable }
+	::= { hwSdhTributaryEntry 14 }                     
+   
+   hwAlarmLevelTable OBJECT-TYPE
+       SYNTAX      SEQUENCE OF HwAlarmLevelEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+         "This table is used for the MSU alarm level management,
+          such as the alarm level of MSU. 
+          The indexes of this table are hwFrameIndex, hwSlotIndex.
+         "
+       ::= { hwSdhMibObjects 2 }
+ 
+   hwAlarmLevelEntry OBJECT-TYPE
+       SYNTAX      HwAlarmLevelEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+         "This table is used for the MSU alarm level management,
+          such as the alarm level of MSU. 
+          The indexes of this entry are hwFrameIndex, hwSlotIndex.
+         "
+       INDEX
+       {
+           hwFrameIndex, hwSlotIndex
+       }
+       ::= { hwAlarmLevelTable 1 }
+
+   HwAlarmLevelEntry ::=
+       SEQUENCE
+       {
+       hwSdhAlarmLevel
+         INTEGER
+       }
+
+   hwSdhAlarmLevel OBJECT-TYPE
+       SYNTAX      INTEGER
+       {
+       critical(1),    
+       major(2), 
+       minor(3),
+       warning(4),
+       disable(5)
+       }      
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+           "The alarm level of MSU.
+            Options:                
+            1. critical(1)   -critical alarm can be reported
+            2. major(2)      -major or critical alarm can be reported
+            3. minor(3)      -minor or major or critical alarm can be reported
+            4. warning(4)    -all alarm can be reported
+            5. disable(5)    -all alarm disable be reported
+           "
+       ::= { hwAlarmLevelEntry  1 }                   
+           
+   hwSdhGroupPerformCountTable OBJECT-TYPE
+       SYNTAX      SEQUENCE OF HwSdhGroupPerformCountEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+         "This table is used for the STM-1 port performance information management. 
+          The index of this table is ifIndex.
+         "
+       ::= { hwSdhMibObjects 3 }
+
+   hwSdhGroupPerformCountEntry OBJECT-TYPE
+       SYNTAX      HwSdhGroupPerformCountEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+         "This table is used for the STM-1 port performance information management. 
+          The index of this entry is ifIndex.
+         "
+       INDEX
+           {
+               ifIndex
+           }
+       ::= { hwSdhGroupPerformCountTable 1 }
+
+   HwSdhGroupPerformCountEntry ::=
+       SEQUENCE
+       {
+       hwSdhGroupPerfOOFCount
+         Counter64,
+       hwSdhGroupPerfB1CNTCount
+         Counter64,
+       hwSdhGroupPerfB1BCNTCount
+         Counter64,
+       hwSdhGroupPerfB2CNTCount
+         Counter64,
+       hwSdhGroupPerfLFEBECount
+         Counter64,
+       hwSdhGroupPerfPPJECount
+         Counter64,
+       hwSdhGroupPerfNPJECount
+         Counter64,
+       hwSdhGroupPerfNDFCount
+         Counter64,
+       hwSdhGroupPerfRSESCount
+         Counter64,
+       hwSdhGroupPerfMSESCount
+         Counter64,
+       hwSdhGroupPerfMSFEESCount
+         Counter64,
+       hwSdhGroupPerfHPESCount
+         Counter64,
+       hwSdhGroupPerfHPFEESCount
+         Counter64,
+         hwSdhGroupPerfB3CNTCount
+         Counter64,
+       hwSdhGroupPerfPFEBECount
+         Counter64
+       }
+
+   hwSdhGroupPerfOOFCount OBJECT-TYPE
+       SYNTAX      Counter64  
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Number of out of frame.
+           "
+       ::= { hwSdhGroupPerformCountEntry  1 }
+       
+   hwSdhGroupPerfB1CNTCount OBJECT-TYPE
+       SYNTAX      Counter64  
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Bit Error number of B1.
+           "
+       ::= { hwSdhGroupPerformCountEntry  2 }
+       
+   hwSdhGroupPerfB1BCNTCount OBJECT-TYPE
+       SYNTAX      Counter64  
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Block Error number of B1.     
+           "
+       ::= { hwSdhGroupPerformCountEntry  3 }
+       
+   hwSdhGroupPerfB2CNTCount OBJECT-TYPE
+       SYNTAX      Counter64  
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION   
+           "Bit Error number of B2.
+           "
+       ::= { hwSdhGroupPerformCountEntry  4 }
+       
+   hwSdhGroupPerfLFEBECount OBJECT-TYPE
+       SYNTAX      Counter64  
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Multiplex Section Far-end Bit Errorred number.
+           "
+       ::= { hwSdhGroupPerformCountEntry  5 }
+       
+   hwSdhGroupPerfPPJECount OBJECT-TYPE
+       SYNTAX      Counter64  
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Positive justification event of AU pointer.
+           "
+       ::= { hwSdhGroupPerformCountEntry  6 }
+       
+   hwSdhGroupPerfNPJECount OBJECT-TYPE
+       SYNTAX      Counter64  
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Negative justification event of AU pointer.
+           "
+       ::= { hwSdhGroupPerformCountEntry  7 }
+       
+   hwSdhGroupPerfNDFCount OBJECT-TYPE
+       SYNTAX      Counter64  
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "New data flag of AU pointer.
+           "
+       ::= { hwSdhGroupPerformCountEntry  8 }
+       
+   hwSdhGroupPerfRSESCount OBJECT-TYPE
+       SYNTAX      Counter64  
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Regenerator Section Errorred Second.
+           "
+       ::= { hwSdhGroupPerformCountEntry  9 }
+       
+   hwSdhGroupPerfMSESCount OBJECT-TYPE
+       SYNTAX      Counter64  
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Multiplex Section Errorred Second.
+           "
+       ::= { hwSdhGroupPerformCountEntry  10 }
+       
+   hwSdhGroupPerfMSFEESCount OBJECT-TYPE
+       SYNTAX      Counter64  
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Multiplex Section Far-end Errorred Second.
+           "
+       ::= { hwSdhGroupPerformCountEntry  11 }
+       
+   hwSdhGroupPerfHPESCount OBJECT-TYPE
+       SYNTAX      Counter64  
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Higher Path Errorred Second.
+           "
+       ::= { hwSdhGroupPerformCountEntry  12 }
+       
+   hwSdhGroupPerfHPFEESCount OBJECT-TYPE
+       SYNTAX      Counter64  
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Higher Path Far-End Errorred Second.
+           "
+       ::= { hwSdhGroupPerformCountEntry  13 }    
+     
+   hwSdhGroupPerfB3CNTCount OBJECT-TYPE
+       SYNTAX      Counter64  
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Bit Error number of B3.
+           "
+       ::= { hwSdhGroupPerformCountEntry  14 }
+       
+   hwSdhGroupPerfPFEBECount OBJECT-TYPE
+       SYNTAX      Counter64  
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Path Far-end bit error number.
+           "
+       ::= { hwSdhGroupPerformCountEntry  15 }     
+       
+   hwSdhTributaryPerformCountTable OBJECT-TYPE
+       SYNTAX      SEQUENCE OF HwSdhTributaryPerformCountEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+         "This table is used for the vc12 tributary performance information management.
+          The index of this table is ifIndex.
+         "
+       ::= { hwSdhMibObjects 4 }
+
+   hwSdhTributaryPerformCountEntry OBJECT-TYPE
+       SYNTAX      HwSdhTributaryPerformCountEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+         "This table is used for the vc12 tributary performance information management.
+          The index of this entry is ifIndex.
+         "
+       INDEX
+           {
+               ifIndex
+           }
+       ::= { hwSdhTributaryPerformCountTable 1 }
+
+   HwSdhTributaryPerformCountEntry ::=
+       SEQUENCE
+       {
+       hwSdhTriPerfLPESCount
+         Counter64,
+       hwSdhTriPerfLPFEESCount
+         Counter64
+       }
+   
+   hwSdhTriPerfLPESCount OBJECT-TYPE
+       SYNTAX      Counter64  
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Low Path Errored Second.
+           "
+       ::= { hwSdhTributaryPerformCountEntry  1 }
+       
+   hwSdhTriPerfLPFEESCount OBJECT-TYPE
+       SYNTAX      Counter64  
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Low Path Far-end Errored Second.
+           "
+       ::= { hwSdhTributaryPerformCountEntry  2 } 
+                                       
+   hwSdhTrapsVbOids  OBJECT IDENTIFIER ::= { hwSdh 2 }
+   hwSdhTraps        OBJECT IDENTIFIER ::= { hwSdh 3 }       
+   hwSdhCommonTraps  OBJECT IDENTIFIER ::= { hwSdhTraps 1 }
+   hwSdhAlarmTraps   OBJECT IDENTIFIER ::= { hwSdhTraps 2}
+   hwSdhAlarmTrapsPrefix   OBJECT IDENTIFIER ::= { hwSdhAlarmTraps 0}
+
+   hwSdhTributaryID OBJECT-TYPE
+          SYNTAX      Integer32  
+          MAX-ACCESS  accessible-for-notify
+          STATUS      current
+          DESCRIPTION
+              "Tributary ID.
+              "
+          ::= { hwSdhTrapsVbOids  1 }
+    
+   hwSdhSignalDegradeAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the signal degrades on the line connected to the STM port.
+            "
+     ::= { hwSdhAlarmTraps 0 1 }
+     
+   hwSdhRemoteDefectTributaryAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex,
+             hwSdhTributaryID
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the port receives the remote defect indication signal of 
+             the tributary layer of the peer end.
+            "
+     ::= { hwSdhAlarmTraps 0 2 }
+     
+   hwSdhAISAbnormalAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the AIS is abnormal on the line connected to the STM port.
+            "
+     ::= { hwSdhAlarmTraps 0 3 }
+   
+   hwSdhRemoteDefectSignalAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the port receives the remote defect indication signal 
+             of the line of the peer end.
+            "
+     ::= { hwSdhAlarmTraps 0 4 }
+   
+   hwSDHLayerFrameLostAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the SDH layer frames of the port are lost.
+            "
+     ::= { hwSdhAlarmTraps 0 5 }
+   
+   hwSDHPortFailReceiveSignalAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the port fails to receive signals.
+            "
+     ::= { hwSdhAlarmTraps 0 6 }
+   
+   hwSDHAISTributaryLayerAbnormalAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex,
+             hwSdhTributaryID
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the AIS of the tributary layer is abnormal.
+            "
+     ::= { hwSdhAlarmTraps 0 7 }
+   
+   hwSDHFaultOccurrAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex,
+             hwSdhTributaryID
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the a fault occurs between the peer end and its connected equipment.
+            "
+     ::= { hwSdhAlarmTraps 0 8 }
+     
+   hwSDHConnectionFaultAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex,
+             hwSdhTributaryID
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the connection fault occurs between the local device 
+             and the peer end.
+            "
+     ::= { hwSdhAlarmTraps 0 9 }
+     
+   hwSDHSignalDegradeRecoverAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the signal degradation recovers.
+            "
+     ::= { hwSdhAlarmTraps 0 10 }
+   
+   hwSDHRecoverTributaryLayerAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex,
+             hwSdhTributaryID
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the remote defect indication signal of the tributary 
+             layer recovers from the abnormal state.
+            "
+     ::= { hwSdhAlarmTraps 0 11 }
+     
+   hwSDHAISLineRecoversAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the AIS of the line recovers from the abnormal state.
+            "
+     ::= { hwSdhAlarmTraps 0 12 }
+   
+   hwSDHLineRecoversSignalLineAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the remote defect indication signal of the line recovers 
+             from the abnormal state.
+            "
+     ::= { hwSdhAlarmTraps 0 13 }
+   
+   hwSDHFrameLossRecoverAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the frame loss recovers.
+            "
+     ::= { hwSdhAlarmTraps 0 14 }
+   
+   hwSDHSignalReceiveFailureRecoverAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the port recovers from signal receiving failure.
+            "
+     ::= { hwSdhAlarmTraps 0 15 }
+   
+   hwSDHAISTributaryRecoverAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex,
+             hwSdhTributaryID
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the AIS of the tributary layer recovers from the abnormal state.
+            "
+     ::= { hwSdhAlarmTraps 0 16 }
+   
+   hwSDHAISRecoverFromAbnormalAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex,
+             hwSdhTributaryID
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the remote AIS recovers from the abnormal state.
+            "
+     ::= { hwSdhAlarmTraps 0 17 }
+   
+   hwSDHRDIRecoverFromAbnormalAlarmTrap NOTIFICATION-TYPE
+     OBJECTS {
+             hwFrameIndex,
+             hwSlotIndex,
+             hwPortIndex,
+             hwSdhTributaryID
+             } 
+     STATUS current
+     DESCRIPTION
+            "This trap will send when the remote RDI recovers from the abnormal state.
+            "
+     ::= { hwSdhAlarmTraps 0 18 }
+                                                                                
+END

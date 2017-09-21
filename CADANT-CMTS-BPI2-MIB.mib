@@ -1,0 +1,134 @@
+CADANT-CMTS-BPI2-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, Integer32
+	    FROM SNMPv2-SMI
+    TruthValue
+        FROM SNMPv2-TC
+    ifIndex
+	    FROM IF-MIB
+    cadSystem
+        FROM CADANT-PRODUCTS-MIB;
+
+cadBpi2Mib MODULE-IDENTITY
+	LAST-UPDATED "201407300000Z"  -- July 30, 2014
+	ORGANIZATION "Cadant Inc"
+	CONTACT-INFO "Cadant Technical Support"
+	DESCRIPTION "Cadant Bpi+ mib derived from the DOCS-BPI2-MIB"
+
+    REVISION     "201407300000Z"  -- July 30, 2014
+    DESCRIPTION
+        "Add cadBpi2CmtsAES128Enable." 
+    REVISION     "200612180000Z"
+    DESCRIPTION
+        "Add default value to cadBpi2CmtsDefaultAuthLifetime = 604800
+                              cadBpi2CmtsDefaultTEKLifetime  = 43200
+                              cadBpi2CmtsDefaultSelfSignedManufCertTrust = untrusted
+                              cadBpi2CmtsCheckCertValidityPeriods = false"    		
+	::= { cadSystem 5 }
+
+--
+--  The BPI+ CMTS base table, indexed by ifindex
+--
+
+cadBpi2CmtsBaseTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadBpi2CmtsBaseEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            ""
+    ::= { cadBpi2Mib 1 }
+
+cadBpi2CmtsBaseEntry OBJECT-TYPE
+    SYNTAX     CadBpi2CmtsBaseEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            ""
+    INDEX      { ifIndex }
+    ::= { cadBpi2CmtsBaseTable 1 }
+
+CadBpi2CmtsBaseEntry ::= SEQUENCE {
+    cadBpi2CmtsDefaultAuthLifetime        Integer32,
+    cadBpi2CmtsDefaultTEKLifetime         Integer32,
+    cadBpi2CmtsDefaultSelfSignedManufCertTrust         INTEGER,
+    cadBpi2CmtsCheckCertValidityPeriods   TruthValue
+}
+
+cadBpi2CmtsDefaultAuthLifetime    OBJECT-TYPE
+     SYNTAX         Integer32 (1..6048000)
+     UNITS          "seconds"
+     MAX-ACCESS     read-write
+     STATUS         current
+     DESCRIPTION
+          "The value of this object is the default lifetime, in
+     seconds, the CMTS assigns to a new authorization key."
+     REFERENCE
+          "DOCSIS Baseline Privacy Plus Interface Specification,
+     Appendix A.2."
+     DEFVAL {604800}
+     ::= { cadBpi2CmtsBaseEntry 1 }
+
+cadBpi2CmtsDefaultTEKLifetime     OBJECT-TYPE
+     SYNTAX         Integer32 (1..604800)
+     UNITS          "seconds"
+     MAX-ACCESS     read-write
+     STATUS         current
+     DESCRIPTION
+          "The value of this object is the default lifetime, in
+     seconds, the CMTS assigns to a new Traffic Encryption Key
+     (TEK)."
+     REFERENCE
+          "DOCSIS Baseline Privacy Plus Interface Specification,
+     Appendix A.2."
+     DEFVAL {43200}
+     ::= { cadBpi2CmtsBaseEntry 2 }
+
+cadBpi2CmtsDefaultSelfSignedManufCertTrust  OBJECT-TYPE
+     SYNTAX    INTEGER {
+               trusted (1),
+               untrusted (2)
+               }
+     MAX-ACCESS     read-write
+     STATUS         current
+     DESCRIPTION
+          "This object determines the default trust of all (new)
+     self-signed manufacturer certificates obtained after setting
+     the object."
+     REFERENCE
+          "DOCSIS Baseline Privacy Plus Interface Specification,
+     Section 9.4.1"
+     DEFVAL {untrusted}
+     ::= { cadBpi2CmtsBaseEntry 3 }
+
+cadBpi2CmtsCheckCertValidityPeriods    OBJECT-TYPE
+     SYNTAX         TruthValue
+     MAX-ACCESS     read-write
+     STATUS         current
+     DESCRIPTION
+          "Setting this object to TRUE causes all certificates
+     obtained thereafter to have their validity periods (and their
+     chain's validity periods) checked against the current time of
+     day.  A FALSE setting will cause all certificates obtained
+     thereafter to not have their validity periods (nor their
+     chain's validity periods) checked against the current time of
+     day."
+     REFERENCE
+          "DOCSIS Baseline Privacy Plus Interface Specification,
+     Section 9.4.2"
+     DEFVAL {false}
+     ::= { cadBpi2CmtsBaseEntry 4 }
+
+cadBpi2CmtsConfig  OBJECT IDENTIFIER ::= { cadBpi2Mib 2 }
+
+cadBpi2CmtsAES128Enable OBJECT-TYPE
+    SYNTAX  TruthValue
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "Enables AES-128 Cryptography Suite for BPI+ when true."
+    DEFVAL { false }
+    ::= { cadBpi2CmtsConfig  1}
+
+
+END

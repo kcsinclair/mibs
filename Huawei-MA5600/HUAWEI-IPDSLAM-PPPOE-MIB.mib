@@ -1,0 +1,866 @@
+--  ===================================================================
+-- Copyright (C) 2011 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description: The mib is used for defining the MIB objects of the
+--              pppoe single-mac, pppoe simulation and pppoe client.
+-- Reference:      
+-- Version: V1.15
+-- ====================================================================
+
+    HUAWEI-IPDSLAM-PPPOE-MIB DEFINITIONS ::= BEGIN
+ 
+        IMPORTS            
+            huaweiUtility            
+                FROM HUAWEI-MIB
+            InterfaceIndex, ifIndex
+                FROM IF-MIB       -- [RFC2863]
+            IpAddress, Integer32, Gauge32, Unsigned32, OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE            
+                FROM SNMPv2-SMI            
+            TruthValue, RowStatus, DateAndTime            
+                FROM SNMPv2-TC;
+      
+        hwIpDslamPPPoE MODULE-IDENTITY 
+            LAST-UPDATED "201108110000Z"
+            ORGANIZATION "Huawei Technologies Co.,Ltd."
+            CONTACT-INFO 
+                "Huawei Industrial Base
+                 Bantian, Longgang
+                 Shenzhen 518129
+                 People's Republic of China
+                 Website: http://www.huawei.com
+                 Email: support@huawei.com
+                "
+            DESCRIPTION 
+                "The mib is used for defining the MIB objects of the
+                 pppoe single-mac, pppoe simulation and pppoe client.
+                "   
+            
+            --  Revision history 
+            REVISION     "201109220000Z"
+            DESCRIPTION  "V1.15, modified the version from V1.13 to V1.15."
+                       
+            REVISION     "201108110000Z"
+            DESCRIPTION  "V1.14, modified copyright year from 2010 to 2011."
+            
+            REVISION     "201104030000Z"
+            DESCRIPTION  "V1.13, modified description of some leaves."
+            
+            REVISION     "201011090000Z"
+            DESCRIPTION  "V1.12, modified description of some leaves."
+
+            REVISION     "201007160000Z"
+            DESCRIPTION  "V1.11, modified the description of leaf hwIpDslamPPPoESerialNo, hwPPPoESmacUserIndex, 
+                          hwPPPoESmacUserFlowId, hwPPPoESmacUserSessionId, hwPPPoESmacSessionUserMac, hwPPPoESmacVlanID, 
+                          hwIpDslamPPPoESmltTrap, hwPPPoEClientSessionDiagnostic.
+                          Modify the description of this MIB module."
+            
+            REVISION     "201005290000Z"
+            DESCRIPTION  "V1.10, modified range of leaf hwPPPoESmltResult and hwPPPoEClientSessionDiagnostic."
+            
+            REVISION     "201004260000Z"
+            DESCRIPTION  "V1.09, modified description of some leaves."
+            
+            REVISION     "201004030000Z"
+            DESCRIPTION  "V1.08, modified description of leaves."
+            
+            REVISION     "201003030000Z"
+            DESCRIPTION  "V1.07, modified multi-mac to multiMac, and modified single-mac to singleMac."
+                          
+            REVISION     "201002070000Z"
+            DESCRIPTION  "V1.06, added hwPPPoESmacCurrentUserTable for querying the pppoe single-mac user information."
+            
+            REVISION     "201001070000Z"
+            DESCRIPTION  "V1.05, checked all description and modify these description according to rules ,
+                          add hwIpDslamPPPoETrapsVbOids for hwIpDslamPPPoETraps,and hwIpDslamPPPoETraps 
+                          for Trap function .modify data type,eg.INTEGER to Integer32."
+                           
+            REVISION     "201001050000Z"
+            DESCRIPTION  "V1.04, deleted useless symbol ',',m aking auto-test tools running successsful."
+                              
+            REVISION     "200604270000Z"
+            DESCRIPTION  "V1.00, Initial version."
+               
+            ::= { huaweiUtility 107 }
+
+        hwIpDslamPPPoEMacMode OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                multiMac(1),
+                singleMac(2)
+                }
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Used for setting and querying the MAC address mode of a PPPoE user.
+                 Options:
+                 1. multiMac(1)  -indicates the multiple MAC address mode of the PPPoE user
+                 2. singleMac(2) -indicates the single MAC address mode of the PPPoE user
+                 Default: multiMac(1)
+                "
+            ::= { hwIpDslamPPPoE 1 }
+
+        hwPPPoESmltAdminTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwPPPoESmltAdminEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Used for starting or stopping the PPPoE dialup simulation service, and for 
+                 querying the result of the simulated PPPoE dialup.
+                 The index of this table is hwPPPoESmltObjIndex.
+                "
+            ::= { hwIpDslamPPPoE 2 }
+        
+        hwPPPoESmltAdminEntry OBJECT-TYPE
+            SYNTAX HwPPPoESmltAdminEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Used for starting or stopping the PPPoE dialup simulation service, and for 
+                 querying the result of the simulated PPPoE dialup.
+                 The index of this entry is hwPPPoESmltObjIndex.
+                "
+            INDEX { hwPPPoESmltObjIndex }
+            ::= { hwPPPoESmltAdminTable 1 }
+                    
+        HwPPPoESmltAdminEntry ::=
+            SEQUENCE 
+                { 
+                hwPPPoESmltObjIndex
+                    Integer32,
+                hwPPPoESmltSrvFlowIndex
+                    Integer32,
+                hwPPPoESmltUserName
+                    OCTET STRING,
+                hwPPPoESmltUserPassword
+                    OCTET STRING,
+                hwPPPoESmltAuthMode
+                    INTEGER,
+                hwPPPoESmltOverTime
+                    Integer32,
+                hwPPPoESmltCurrentPhase
+                    INTEGER,
+                hwPPPoESmltResult
+                    INTEGER,
+                hwPPPoESmltStartTime
+                    DateAndTime,
+                hwPPPoESmltEndTime
+                    DateAndTime,
+                hwPPPoESmltUserSessionId
+                    Gauge32,
+                hwPPPoESmltUserIp
+                    IpAddress,
+                hwPPPoESmltGatewayIp
+                    IpAddress,
+                hwPPPoESmltRowStatus
+                    RowStatus
+                }
+
+        hwPPPoESmltObjIndex OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Indicates the index of hwPPPoESmltAdminTable. 
+                 This leaf means the dialup ID. Currently, only 
+                 one user is supported. The maximum value of the 
+                 index is 1.
+                 If you specify it to 4294967295, the system will 
+                 automatically allocates an idle index.
+                "
+            ::= { hwPPPoESmltAdminEntry 1 }
+        
+        hwPPPoESmltSrvFlowIndex OBJECT-TYPE
+            SYNTAX Integer32 (1..2147483647)
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Indicates the service port ID. Here, it refers to the ID of a service port 
+                 that is already created on the current device. The service port ID on the 
+                 NMS is larger than the service port ID on the host by 1.
+                "
+            ::= { hwPPPoESmltAdminEntry 2 }
+        
+        hwPPPoESmltUserName OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (1..65))
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Indicates the user name.
+                "
+            ::= { hwPPPoESmltAdminEntry 3 }
+        
+        hwPPPoESmltUserPassword OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..16))
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Indicates the user password for authentication. 
+                "
+            DEFVAL { ''b }
+            ::= { hwPPPoESmltAdminEntry 4 }
+        
+        hwPPPoESmltAuthMode OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                chap(1),
+                pap(2)
+                }
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Indicates the user authentication mode. Currently, the device supports two modes, 
+                 Options:
+                 1. chap(1) -Challenge-Handshake Authentication Protocol mode
+                 2. pap(2)  -Password Authentication Protocol mode
+                "
+            DEFVAL { 1 }
+            ::= { hwPPPoESmltAdminEntry 5 }
+        
+        hwPPPoESmltOverTime OBJECT-TYPE
+            SYNTAX Integer32 (5..60)
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Indicates the test timeout time. It is an optional parameter.
+                 Unit: second
+                 Range: 5-60
+                 Default: 5
+                "
+            ::= { hwPPPoESmltAdminEntry 6 }
+        
+        hwPPPoESmltCurrentPhase OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                discovery(1),
+                lcp(2),
+                authentication(3),
+                ncp(4),
+                online(5),
+                stop(6)
+                }
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Indicates the current stage of the simulation.
+                 Options:
+                 1. discovery(1)      -indicates the discovery stage of PPPoE dialup
+                 2. lcp(2)            -indicates the LCP negotiation stage. In this stage, 
+                                       the parameters required for creating, maintaining, and 
+                                       terminating the PPP networking are negotiated.
+                 3. authentication(3) -indicates the authentication stage. In this stage, 
+                                       the user is authenticated after the PPPoE connection is 
+                                       set up.
+                 4. ncp(4)            -indicates the NCP negotiation stage. In this stage, the 
+                                       network-layer compression protocol and IP address are 
+                                       negotiated.
+                 5. online(5)         -indicates the data transmission stage
+                 6. stop(6)           -indicates that PPPoE dialup is not performed
+                "
+            ::= { hwPPPoESmltAdminEntry 7 }
+        
+        hwPPPoESmltResult OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                success(0),
+                otherError(1),
+                timeout(2),
+                paramNegoFail(3),
+                authenticationFail(4),
+                peerDownRequest(5),
+                waitPADOTimeout(6),
+                waitPADSTimeout(7),
+                waitPPPTimeout(8),
+                linkAbnormal(9)
+                }
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Indicates the simulation result.
+                 Options:
+                 1. success(0)            -indicates the PPPoE simulation is success
+                 2. otherError(1)         -indicates other errors
+                 3. timeout(2)            -indicates the PPPoE simulation timeout
+                 4. paramNegoFail(3)      -indicates parameter negotiation failure
+                 5. authenticationFail(4) -indicates the simulation authentication is failed
+                 6. peerDownRequest(5)    -indicates that the dialup request is denied by the peer end
+                 7. waitPADOTimeout(6)    -indicates that sending PADI and waiting for PADO time out
+                 8. waitPADSTimeout(7)    -indicates that sending PADR and waiting for PADS time out
+                 9. waitPPPTimeout(8)     -indicates waiting for PPP times out, such as an LCP timeout 
+                                           or an NCP timeout.
+                 10. linkAbnormal(9)      -indicates the link of the PPPoE simulation is abnormal
+                "
+            ::= { hwPPPoESmltAdminEntry 8 }
+        
+        hwPPPoESmltStartTime OBJECT-TYPE
+            SYNTAX DateAndTime
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Indicates the simulation start time.
+                 Data type: DateAndTime.
+                 For example, 2010-2-6,1:38:50.0,+8:0.
+                "
+            ::= { hwPPPoESmltAdminEntry 9 }
+        
+        hwPPPoESmltEndTime OBJECT-TYPE
+            SYNTAX DateAndTime
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Indicates the simulation end time.
+                 Data type: DateAndTime.
+                 For example, 2010-2-6,1:38:50.0,+8:0.
+                "
+            ::= { hwPPPoESmltAdminEntry 10 }
+        
+        hwPPPoESmltUserSessionId OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Indicates the obtained session ID of the user.
+                 Range: 1-4294967295
+                "
+            ::= { hwPPPoESmltAdminEntry 11 }
+        
+        hwPPPoESmltUserIp OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Indicates the obtained IP address of the user.
+                 Data type: IpAddress.
+                "
+            ::= { hwPPPoESmltAdminEntry 12 }
+        
+        hwPPPoESmltGatewayIp OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Indicates the obtained gateway IP address.
+                 Data type: IpAddress.
+                "
+            ::= { hwPPPoESmltAdminEntry 13 }
+        
+        hwPPPoESmltRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the row status. It is used for starting or stopping the 
+                 PPPoE dialup simulation service. Only options active(1), createAndGo(4), 
+                 and destroy(6) are supported.
+                 To start the PPPoE dialup simulation service, you must input 
+                 hwPPPoESmltObjIndex, hwPPPoESmltSrvFlowIndex, hwPPPoESmltUserName, 
+                 and hwPPPoESmltUserPassword, and set the value of the row status to 
+                 createAndGo(4).
+                 To stop the PPPoE dialup simulation service, you must input hwPPPoESmltObjIndex, 
+                 and set the value of the row status to destroy(6).
+                 In the query about the PPPoE dialup simulation service, the value of 
+                 the row status is active(1).
+                 Options:
+                 1. active(1)      -indicates the query operation 
+                 2. createAndGo(4) -indicates starting the PPPoE dialup simulation service 
+                 3. destroy(6)     -indicates stopping the PPPoE dialup simulation service
+                "
+            ::= { hwPPPoESmltAdminEntry 14 }
+
+        -- 1.3.6.1.4.1.2011.6.107.3
+        hwPPPoEClientConfigTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwPPPoEClientConfigEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Used for setting and querying the configuration information about a PPPoE client. 
+                 The index of this table is hwPPPoEClientConfigName.
+                "
+            ::= { hwIpDslamPPPoE 3 }
+        
+        -- 1.3.6.1.4.1.2011.6.107.3.1
+        hwPPPoEClientConfigEntry OBJECT-TYPE
+            SYNTAX HwPPPoEClientConfigEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Used for setting and querying the configuration information about a PPPoE client. 
+                 The index of this entry is hwPPPoEClientConfigName.
+                "
+            INDEX { hwPPPoEClientConfigName }
+            ::= { hwPPPoEClientConfigTable 1 }
+        
+        HwPPPoEClientConfigEntry ::=
+            SEQUENCE { 
+                hwPPPoEClientConfigName
+                    OCTET STRING,
+                hwPPPoEClientConfigUserName
+                    OCTET STRING,
+                hwPPPoEClientConfigUserPassword
+                    OCTET STRING,
+                hwPPPoEClientConfigAuthMode
+                    INTEGER,
+                hwPPPoEClientConfigVlanID
+                    Integer32,
+                hwPPPoEClientConfigEnableFlag
+                    INTEGER,     
+                hwPPPoEClientConfigIntervalTime
+                    Integer32,
+                hwPPPoEClientConfigRetransmitTimes
+                    Integer32,
+                hwPPPoEClientConfigRowStatus
+                    RowStatus
+             }
+
+        -- 1.3.6.1.4.1.2011.6.107.3.1.1
+        hwPPPoEClientConfigName OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (1..32))
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Indicates the identification of a PPPoE client.Range: 1-32 characters.
+                 The PPPoE client identification must be presented in the ASCII codes of 
+                 the corresponding characters. For example, if the PPPoE client identification 
+                 is aa, it must be presented as 2.97.97. 2 indicates the length of the characters, 
+                 and 97 indicates the ASCII code corresponding to character a. 2 and 97s are 
+                 separated by the '.' sign.
+                "
+            ::= { hwPPPoEClientConfigEntry 1 }    
+
+        -- 1.3.6.1.4.1.2011.6.107.3.1.2
+        hwPPPoEClientConfigUserName OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (1..65))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Used for setting or querying the user name of PPPoE dialup.
+                 Range: 1-65 characters.
+                "
+            DEFVAL { "" }
+            ::= { hwPPPoEClientConfigEntry 2 }
+        
+        -- 1.3.6.1.4.1.2011.6.107.3.1.3
+        hwPPPoEClientConfigUserPassword OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..16))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Used for setting or querying the user password of PPPoE dialup.
+                 Range: 0-16 characters.
+                "
+            DEFVAL { ''b }
+            ::= { hwPPPoEClientConfigEntry 3 }
+        
+        -- 1.3.6.1.4.1.2011.6.107.3.1.4
+        hwPPPoEClientConfigAuthMode OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                chap(1),
+                pap(2)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Used for setting or querying the authentication mode of a PPPoE client.
+                 Options:
+                 1. chap(1) -Challenge-Handshake Authentication Protocol mode
+                 2. pap(2)  -Password Authentication Protocol mode
+                 Default: chap(1)
+                "
+            DEFVAL { 1 }
+            ::= { hwPPPoEClientConfigEntry 4 }        
+            
+        -- 1.3.6.1.4.1.2011.6.107.3.1.5
+        hwPPPoEClientConfigVlanID OBJECT-TYPE
+            SYNTAX Integer32 (1..4093)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Used for setting or querying the VLAN for the dialup of a PPPoE client.
+                 Range: 1-4093
+                 Default: 1
+                "
+            DEFVAL { 1 }
+            ::= { hwPPPoEClientConfigEntry 5 }    
+            
+        -- 1.3.6.1.4.1.2011.6.107.3.1.6
+        hwPPPoEClientConfigEnableFlag OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                enable(1),
+                disable(2)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Used for setting (enabling/disabling) or querying the status of the PPPoE dialup function. 
+                 Options:
+                 1. enable(1) -indicates the PPPoE dialup function is enabled
+                 2. disable(2) -indicates the PPPoE dialup function is disabled
+                 Default: disable(2)
+                "
+            DEFVAL { 2 }
+            ::= { hwPPPoEClientConfigEntry 6 }        
+            
+        -- 1.3.6.1.4.1.2011.6.107.3.1.7
+        hwPPPoEClientConfigIntervalTime OBJECT-TYPE
+            SYNTAX Integer32 (1..65535)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Used for setting or querying the interval for sending the Echo-Request packet.
+                 Range: 1-65535
+                 Unit: second
+                 Default: 20s
+                "
+            DEFVAL { 20 }
+            ::= { hwPPPoEClientConfigEntry 7 } 
+
+        -- 1.3.6.1.4.1.2011.6.107.3.1.8
+        hwPPPoEClientConfigRetransmitTimes OBJECT-TYPE
+            SYNTAX Integer32 (1..10)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the count of retransmitting the Echo-Request packet at timeout.
+                 Range: 1-10
+                 Default: 3
+                "
+            DEFVAL { 3 }
+            ::= { hwPPPoEClientConfigEntry 8 } 
+                    
+        -- 1.3.6.1.4.1.2011.6.107.3.1.9
+        hwPPPoEClientConfigRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the row status. It is used for setting, modifying, or deleting the 
+                 identification of a PPPoE client. Options active(1), createAndGo(4), and destroy(6) are supported.
+                 To set the identification of a PPPoE client, set the value of hwPPPoEClientConfigRowStatus to createAndGo(4).
+                 To delete the configuration of a specified PPPoE client, set the value of hwPPPoEClientConfigRowStatus to destroy(6).
+                 During the query operation, the value of this leaf is always active(1).
+                 Options:
+                 1. active(1)      -indicates the query operation
+                 2. createAndGo(4) -indicates setting the identification of a PPPoE client 
+                 3. destroy(6)     -indicates deleting the configuration of a specified PPPoE client 
+                "
+            ::= { hwPPPoEClientConfigEntry 9 }         
+
+        -- 1.3.6.1.4.1.2011.6.107.4
+        hwPPPoEClientSessionTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwPPPoEClientSessionEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Used for setting and querying the information about the session of a PPPoE client. 
+                 The index of this table is hwPPPoEClientConfigName. 
+                 To serve as an index, the value of hwPPPoEClientConfigName must be already configured 
+                 in hwPPPoEClientConfigTable.
+                "
+            ::= { hwIpDslamPPPoE 4 }
+        
+        -- 1.3.6.1.4.1.2011.6.107.4.1
+        hwPPPoEClientSessionEntry OBJECT-TYPE
+            SYNTAX HwPPPoEClientSessionEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Used for setting and querying the information about the session of a PPPoE client. 
+                 The index of this entry is hwPPPoEClientConfigName. 
+                 To serve as an index, the value of hwPPPoEClientConfigName must be already configured 
+                 in hwPPPoEClientConfigTable.
+                "
+            INDEX { hwPPPoEClientConfigName }
+            ::= { hwPPPoEClientSessionTable 1 }
+        
+        HwPPPoEClientSessionEntry ::=
+            SEQUENCE 
+                { 
+                hwPPPoEClientSessionCurrentPhase
+                    INTEGER,
+                hwPPPoEClientSessionId
+                    Gauge32,
+                hwPPPoEClientSessionUserIp
+                    IpAddress,
+                hwPPPoEClientSessionUserMac
+                    OCTET STRING,
+                hwPPPoEClientSessionGatewayIp
+                    IpAddress,
+                hwPPPoEClientSessionGatewayMac
+                    OCTET STRING,   
+                hwPPPoEClientSessionStartTime
+                    Gauge32,
+                hwPPPoEClientSessionEndTime
+                    Gauge32,     
+                hwPPPoEClientSessionDiagnostic
+                    INTEGER
+                }
+
+        -- 1.3.6.1.4.1.2011.6.107.4.1.1
+        hwPPPoEClientSessionCurrentPhase OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                discovery(1),
+                lcp(2), 
+                authentication(3),
+                ncp(4),
+                online(5),
+                disable(6)
+                }
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Used for querying the current stage of a PPPoE session. 
+                 Options:
+                 1. discovery(1)      -indicates the discovery stage of PPPoE dialup
+                 2. lcp(2)            -indicates the LCP negotiation stage. In this stage, 
+                                       the parameters required for creating, maintaining, and 
+                                       terminating the PPP networking are negotiated.
+                 3. authentication(3) -indicates the authentication stage. In this stage, 
+                                       the user is authenticated after the PPPoE connection is 
+                                       set up.
+                 4. ncp(4)            -indicates the NCP negotiation stage. In this stage, the 
+                                       network-layer compression protocol and IP address are 
+                                       negotiated.
+                 5. online(5)         -indicates the data transmission stage
+                 6. disable(6)        -indicates that PPPoE dialup is not performed
+                "
+            ::= { hwPPPoEClientSessionEntry 1 }    
+                 
+        -- 1.3.6.1.4.1.2011.6.107.4.1.2
+        hwPPPoEClientSessionId OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Used for querying the session ID obtained by a PPPoE client. When PPPoE dialup 
+                 is not performed or the dialup fails, the session ID is an invalid value 4294967295.
+                "
+            ::= { hwPPPoEClientSessionEntry 2 }
+
+        -- 1.3.6.1.4.1.2011.6.107.4.1.3
+        hwPPPoEClientSessionUserIp OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Used for querying the IP address of a PPPoE client.
+                "
+            ::= { hwPPPoEClientSessionEntry 3 }
+ 
+         -- 1.3.6.1.4.1.2011.6.107.4.1.4
+        hwPPPoEClientSessionUserMac OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (17))
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Used for querying the MAC address of a PPPoE client.
+                "
+            ::= { hwPPPoEClientSessionEntry 4 }
+
+        -- 1.3.6.1.4.1.2011.6.107.4.1.5
+        hwPPPoEClientSessionGatewayIp OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Used for querying the IP address of the gateway to which a PPPoE client is connected.
+                "
+            ::= { hwPPPoEClientSessionEntry 5 }
+ 
+         -- 1.3.6.1.4.1.2011.6.107.4.1.6
+        hwPPPoEClientSessionGatewayMac OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (17))
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Used for querying the MAC address of the gateway to which a PPPoE client is connected.
+                "
+            ::= { hwPPPoEClientSessionEntry 6 }
+
+         -- 1.3.6.1.4.1.2011.6.107.4.1.7
+        hwPPPoEClientSessionStartTime OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Used for querying the dialup start time of a PPPoE client, in the unit of second. 
+                 The time value indicates the seconds lapsed from the Greenwich time 1970-01-01 00:00:00 
+                 to the dialup starting.
+                "
+            ::= { hwPPPoEClientSessionEntry 7 }        
+            
+         -- 1.3.6.1.4.1.2011.6.107.4.1.8
+        hwPPPoEClientSessionEndTime OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Used for querying the dialup end time of a PPPoE client, in the unit of second. 
+                 The time value indicates the seconds lapsed from the Greenwich time 1970-01-01 00:00:00 
+                 to the dialup ending.
+                "
+            ::= { hwPPPoEClientSessionEntry 8 }
+    
+           -- 1.3.6.1.4.1.2011.6.107.4.1.9
+        hwPPPoEClientSessionDiagnostic OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                success(1),
+                otherError(2),
+                timeout(3),   
+                waitPADOTimeout(4),
+                waitPADSTimeout(5),
+                waitPPPTimeout(6),
+                paramNegoFail(7),
+                authenticationFail(8),
+                peerDownRequest(9),
+                linkAbnormal(10)
+                }
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Used for querying the information about a PPPoE dialup result.
+                 Options:
+                 1. success(1)            -indicates successful PPPoE dialup
+                 2. otherError(2)         -indicates other errors
+                 3. timeout(3)            -indicates dialup timeout
+                 4. waitPADOTimeout(4)    -indicates that sending PADI and waiting for PADO time out
+                 5. waitPADSTimeout(5)    -indicates that sending PADR and waiting for PADS time out
+                 6. waitPPPTimeout(6)     -indicates waiting for PPP times out, such as an LCP timeout 
+                                          or an NCP timeout.
+                 7. paramNegoFail(7)      -indicates parameter negotiation failure
+                 8. authenticationFail(8) -indicates authentication failure
+                 9. peerDownRequest(9)    -indicates that the dialup request is denied by the peer end
+                 10.linkAbnormal(10)      -indicates that the link is unnormal
+                "
+            ::= { hwPPPoEClientSessionEntry 9 }  
+
+        hwIpDslamPPPoETrapsVbOids   OBJECT IDENTIFIER ::= { hwIpDslamPPPoE 5 }   
+        hwIpDslamPPPoESerialNo OBJECT-TYPE
+            SYNTAX      Integer32(1..65535)                                     
+            MAX-ACCESS  accessible-for-notify
+            STATUS      current
+            DESCRIPTION
+                 "It indicates Serial Id which is allocated by server.
+                 "
+           ::= { hwIpDslamPPPoETrapsVbOids  1}    
+                                
+        hwIpDslamPPPoETraps OBJECT IDENTIFIER ::= { hwIpDslamPPPoE 6 } 
+
+        hwIpDslamPPPoECommonTraps OBJECT IDENTIFIER ::= { hwIpDslamPPPoETraps 1 }   
+        
+        hwIpDslamPPPoECommonTrapssPrefix OBJECT IDENTIFIER ::= { hwIpDslamPPPoECommonTraps 0 }  
+       
+        hwIpDslamPPPoESmltTrap NOTIFICATION-TYPE
+            OBJECTS 
+                { 
+                hwIpDslamPPPoESerialNo,
+                hwPPPoESmltObjIndex,
+                hwPPPoESmltSrvFlowIndex,                      
+                hwPPPoESmltUserName,
+                hwPPPoESmltCurrentPhase,
+                hwPPPoESmltResult,
+                hwPPPoESmltStartTime,
+                hwPPPoESmltEndTime, 
+                hwPPPoESmltUserSessionId,
+                hwPPPoESmltUserIp,
+                hwPPPoESmltGatewayIp                      
+                }
+            STATUS current
+            DESCRIPTION
+                "The trap is generated when PPPoE simulation start . 
+                 The hwIpDslamPPPoESerialNo indicates Serial Id which is allocated by server,
+                 defined in hwIpDslamPPPoETrapsVbOids.
+                "  
+            ::= { hwIpDslamPPPoECommonTraps 0 1 }  
+        -- 1.3.6.1.4.1.2011.6.107.7
+        hwPPPoESmacCurrentUserTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwPPPoESmacCurrentUserEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                "Used for querying the information about a PPPoE single-MAC user. 
+                 The indexes of this table are ifIndex and hwPPPoESmacUserIndex.
+                "
+            ::= { hwIpDslamPPPoE 7 }
+            
+        -- 1.3.6.1.4.1.2011.6.107.7.1     
+        hwPPPoESmacCurrentUserEntry OBJECT-TYPE
+            SYNTAX     HwPPPoESmacCurrentUserEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                "Used for querying the information about a PPPoE single-MAC user. 
+                 The indexes of this entry are ifIndex and hwPPPoESmacUserIndex.
+                "
+            INDEX { 
+                  ifIndex,
+                  hwPPPoESmacUserIndex
+                  }
+            ::= { hwPPPoESmacCurrentUserTable 1 }
+        HwPPPoESmacCurrentUserEntry ::= 
+            SEQUENCE {
+                hwPPPoESmacUserIndex
+                    Integer32,                     
+                hwPPPoESmacUserFlowId
+                    Integer32,
+                hwPPPoESmacUserSessionId
+                    Gauge32,
+                hwPPPoESmacSessionUserMac
+                    OCTET STRING,
+                hwPPPoESmacVlanID
+                    Integer32                
+                    }
+        -- 1.3.6.1.4.1.2011.6.107.7.1.1
+        hwPPPoESmacUserIndex OBJECT-TYPE
+            SYNTAX Integer32 (1..4095)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "PPPoE SMAC user index.
+                "
+            ::= { hwPPPoESmacCurrentUserEntry 1 }             
+         
+        -- 1.3.6.1.4.1.2011.6.107.7.1.2
+        hwPPPoESmacUserFlowId OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "PPPoE user flow ID.
+                "
+            ::= { hwPPPoESmacCurrentUserEntry 2 }     
+                        
+        -- 1.3.6.1.4.1.2011.6.107.7.1.3
+        hwPPPoESmacUserSessionId OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "PPPoE session ID.
+                "
+            ::= { hwPPPoESmacCurrentUserEntry 3 }                    
+        
+        -- 1.3.6.1.4.1.2011.6.107.7.1.4
+        hwPPPoESmacSessionUserMac OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (6))
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "PPPoE SMAC user MAC address.
+                "
+            ::= { hwPPPoESmacCurrentUserEntry 4 }
+            
+            
+        -- 1.3.6.1.4.1.2011.6.107.7.1.5
+        hwPPPoESmacVlanID OBJECT-TYPE
+            SYNTAX Integer32 (1..4093)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "PPPoE SMAC user VLAN.
+                "
+            ::= { hwPPPoESmacCurrentUserEntry 5 }   
+                
+    END
+

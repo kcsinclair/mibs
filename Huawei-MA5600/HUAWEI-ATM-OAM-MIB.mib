@@ -1,0 +1,804 @@
+-- ============================================================================
+-- Copyright (C) 2010 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description: The MIB module defining objects for the management of a pair of ATM modems 
+--              at each end of the ATM line.  
+-- Reference:  
+-- Version: V3.07
+-- ============================================================================
+  HUAWEI-ATM-OAM-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS 
+      AtmVpIdentifier, AtmVcIdentifier      
+        FROM ATM-TC-MIB     
+      huaweiUtility     
+        FROM HUAWEI-MIB     
+      ifIndex     
+        FROM IF-MIB     
+      OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE,Integer32
+        FROM SNMPv2-SMI     
+      DateAndTime, RowStatus      
+        FROM SNMPv2-TC;
+  
+    hwAtmOam MODULE-IDENTITY
+      LAST-UPDATED "201011090000Z"
+      ORGANIZATION "Huawei Technologies Co.,Ltd."
+      CONTACT-INFO 
+        "Huawei Industrial Base
+         Bantian, Longgang
+         Shenzhen 518129
+         People's Republic of China
+         Website: http://www.huawei.com
+         Email: support@huawei.com
+        "
+      DESCRIPTION 
+        "The MIB module defining objects for the management of a pair of ATM modems 
+         at each end of the ATM line. 
+        "     
+        
+--  Revision history
+      REVISION     "201011090000Z"        
+      DESCRIPTION  "V3.07, modified the description of MIB."
+      
+      REVISION     "201007290000Z"        
+      DESCRIPTION  "V3.06, modified the description of MIB."
+            
+      REVISION     "201002080000Z"        
+      DESCRIPTION  "V3.05, added the definition of the trap node."
+     
+      REVISION     "201001100000Z"        
+      DESCRIPTION  "V3.04, added the definition of the trap node."
+            
+      REVISION     "200812240000Z"        
+      DESCRIPTION  "V3.03, changed the hwAtmOamLbNumber value range from 1-10 to 1-65535."
+            
+      REVISION     "200805310000Z"        
+      DESCRIPTION  "V3.02, deleted chinese character."
+            
+      REVISION     "200304280000Z"
+      DESCRIPTION  "V3.00, added file head and modified MODULE-IDENTITY. "
+                                                                            
+      REVISION "200209260000Z"
+      DESCRIPTION
+            "V1.00, initial version."
+      ::= { huaweiUtility 11 }  
+  
+    hwAtmOamMibObjects OBJECT IDENTIFIER ::= { hwAtmOam 1 }
+    
+    hwAtmOamPointTable OBJECT-TYPE
+      SYNTAX SEQUENCE OF HwAtmOamPointEntry
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "Table of OAM point.
+         The indexes of this table are ifIndex,hwAtmOamPointVPI and hwAtmOamPointVCI.
+        "
+      ::= { hwAtmOamMibObjects 1 }
+    
+    hwAtmOamPointEntry OBJECT-TYPE
+      SYNTAX HwAtmOamPointEntry
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "Table of OAM point.
+         The indexes of this entry are ifIndex,hwAtmOamPointVPI and hwAtmOamPointVCI.
+        "
+      INDEX { ifIndex,hwAtmOamPointVPI, hwAtmOamPointVCI }
+      ::= { hwAtmOamPointTable 1 }
+    
+    HwAtmOamPointEntry ::=
+      SEQUENCE { 
+        hwAtmOamPointVPI
+          AtmVpIdentifier,
+        hwAtmOamPointVCI
+          AtmVcIdentifier,
+        hwAtmOamPointType
+          INTEGER,
+        hwAtmOamPointAdminStatus
+          INTEGER,
+        hwAtmOamAlarmType
+          INTEGER,
+        hwAtmOamCfgFlag
+          INTEGER,
+        hwAtmOamFmStatus
+          INTEGER,
+        hwAtmOamFmStatusDateTime
+          DateAndTime,
+        hwAtmOamPointRowStatus
+          RowStatus
+       }
+
+    hwAtmOamPointVPI OBJECT-TYPE
+      SYNTAX AtmVpIdentifier
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "vpi."
+      ::= { hwAtmOamPointEntry 1 }
+    
+    hwAtmOamPointVCI OBJECT-TYPE
+      SYNTAX AtmVcIdentifier
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "vci. 
+        If vci = 0, it means that this is a F4 point"
+      ::= { hwAtmOamPointEntry 2 }
+    
+    hwAtmOamPointType OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        e2e(1),
+        segment(2),
+        e2eInter(3),
+        segmentInter(4)
+        }
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+        "OAM point type. 
+         Options: 
+         1. e2e(1)              -e-t-e end point
+         2. segment(2)          -segment end point
+         3. e2eInter(3)         -connection point within two e-t-e points
+         4. segmentInter(4)     -connection point within two segment points
+        "
+      DEFVAL { segment }
+      ::= { hwAtmOamPointEntry 3 }
+    
+    hwAtmOamPointAdminStatus OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        up(1),
+        down(2)
+        }
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+        "up(1) means enable; down(2) means disable.
+         Options: 
+         1. up(1)            -enable
+         2. down(2)          -disable
+        "
+      DEFVAL { up }
+      ::= { hwAtmOamPointEntry 4 }
+    
+    hwAtmOamAlarmType OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        noAlarm(0),
+        receiveAisCell(1),
+        receiveRdiCell(2),
+        loc(4),
+        f4Ais(8),
+        portAlarm(16)
+        }
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+        "OAM point alarm type.
+         Options: 
+         1. noAlarm(0)             -no alarm
+         2. receiveAisCell(1)      -received AIS cell
+         3. receiveRdiCell(2)      -received RDI cell
+         4.loc(4)                  -lost of continuity (CC failed)
+         5.f4Ais(8)                -F4 layer AIS alarm. only for F5 point
+         6.portAlarm(16)           -F1~F3 layer alarm
+         All Alarms can happen at same time which displayed as the relate bit.
+        "
+      ::= { hwAtmOamPointEntry 5 }
+    
+    hwAtmOamCfgFlag OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        running(1),
+        recovering(2)
+        }
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+        "OAM point configure recovering flag.
+         Options: 
+         1.running(1)      -OAM point in running stage
+         2.recovering(2)   -OAM point in recovering stage
+        "
+      ::= { hwAtmOamPointEntry 6 }
+    
+    hwAtmOamFmStatus OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        normal(1),
+        ais(2),
+        rdi(3)
+        }
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+        "OAM point FM status.
+         Options: 
+         1. normal(1)           -FM status is normal
+         2. ais(2)              -FM status is ais   
+         3. rdi(3)              -FM status is rdi 
+         "
+      ::= { hwAtmOamPointEntry 7 }
+    
+    hwAtmOamFmStatusDateTime OBJECT-TYPE
+      SYNTAX DateAndTime
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+        "The time when the OAM point entered this FM status."
+      ::= { hwAtmOamPointEntry 8 }
+    
+    hwAtmOamPointRowStatus OBJECT-TYPE
+      SYNTAX RowStatus
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+        "OAM point table row status."
+      ::= { hwAtmOamPointEntry 9 }
+    
+    hwAtmOamCcTable OBJECT-TYPE
+      SYNTAX SEQUENCE OF HwAtmOamCcEntry
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "Table of CC end point.
+         Refer to the definition of the OAM point table.
+         The indexes of this table are ifIndex,hwAtmOamCcVPI and hwAtmOamCcVCI.
+        "
+      ::= { hwAtmOamMibObjects 2 }
+    
+    hwAtmOamCcEntry OBJECT-TYPE
+      SYNTAX HwAtmOamCcEntry
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "Table of CC end point.
+         Refer to the definition of the OAM point table.
+         The indexes of this entry are ifIndex,hwAtmOamCcVPI and hwAtmOamCcVCI.
+        "
+      INDEX { ifIndex,hwAtmOamCcVPI, hwAtmOamCcVCI }
+      ::= { hwAtmOamCcTable 1 }
+    
+    HwAtmOamCcEntry ::=
+      SEQUENCE { 
+        hwAtmOamCcVPI
+          AtmVpIdentifier,
+        hwAtmOamCcVCI
+          AtmVcIdentifier,
+        hwAtmOamCcDirection
+          INTEGER,
+        hwAtmOamConfType
+          INTEGER,
+        hwAtmOamCcAdminStatus
+          INTEGER,
+        hwAtmOamCcRowStatus
+          RowStatus
+       }
+
+    hwAtmOamCcVPI OBJECT-TYPE
+      SYNTAX AtmVpIdentifier
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "vpi."
+      ::= { hwAtmOamCcEntry 1 }
+    
+    hwAtmOamCcVCI OBJECT-TYPE
+      SYNTAX AtmVcIdentifier
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "vci.  
+        If vci = 0, it means that this is a F4 point"
+      ::= { hwAtmOamCcEntry 2 }
+    
+    hwAtmOamCcDirection OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        sink(1),
+        source(2),
+        both(3)
+        }
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+        "OAM CC direction.
+         Options: 
+         1. sink(1)           -OAM CC direction is sink
+         2. source(2)         -OAM CC direction is source
+         3. both(3)           -OAM CC direction is both
+        "
+      DEFVAL { both }
+      ::= { hwAtmOamCcEntry 3 }
+    
+    hwAtmOamConfType OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        autoConfig(1),
+        manualConfig(2)
+        }
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+        "OAM CC configure type,only valid for up or down operating.
+         Options: 
+         1. autoConfig(1)    -active/deactive CC by A/D protocol
+         2. manualConfig(2)  -active/deactive CC by TMN entirely. see I.610
+        "
+      DEFVAL { manualConfig }
+      ::= { hwAtmOamCcEntry 4 }
+    
+    hwAtmOamCcAdminStatus OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        up(1),
+        down(2)
+        }
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+        "up(1) means enable; down(2) means disable.
+         Options: 
+         1. up(1)           -enable
+         2. down(2)         -disable
+        "
+      DEFVAL { up }
+      ::= { hwAtmOamCcEntry 5 }
+    
+    hwAtmOamCcRowStatus OBJECT-TYPE
+      SYNTAX RowStatus
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+        "OAM CC end point table row status."
+      ::= { hwAtmOamCcEntry 6 }
+    
+    hwAtmOamLbTable OBJECT-TYPE
+      SYNTAX SEQUENCE OF HwAtmOamLbEntry
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "Table of ATM OAM loopback, it is used for setting flow loopback.
+         The indexes of this table are ifIndex,hwAtmOamLbVPI and hwAtmOamLbVCI.
+         "
+      ::= { hwAtmOamMibObjects 3 }
+    
+    hwAtmOamLbEntry OBJECT-TYPE
+      SYNTAX HwAtmOamLbEntry
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "Table of ATM OAM loopback, it is used for setting flow loopback.
+         The indexes of this entry are ifIndex,hwAtmOamLbVPI and hwAtmOamLbVCI.
+         "
+      INDEX { ifIndex,hwAtmOamLbVPI, hwAtmOamLbVCI }
+      ::= { hwAtmOamLbTable 1 }
+    
+    HwAtmOamLbEntry ::=
+      SEQUENCE { 
+        hwAtmOamLbVPI
+          AtmVpIdentifier,
+        hwAtmOamLbVCI
+          AtmVcIdentifier,
+        hwAtmOamLbType
+          INTEGER,
+        hwAtmOamLbPointLLID
+          OCTET STRING,
+        hwAtmOamLbNumber
+          Integer32,
+        hwAtmOamLbInterval
+          Integer32
+       }
+
+    hwAtmOamLbVPI OBJECT-TYPE
+      SYNTAX AtmVpIdentifier
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "Vpi of the OAM loopback flow."
+      ::= { hwAtmOamLbEntry 1 }
+    
+    hwAtmOamLbVCI OBJECT-TYPE
+      SYNTAX AtmVcIdentifier
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "Vci of the OAM loopback flow. 
+         If vci = 0, means that this is a F4 point.
+         "
+      ::= { hwAtmOamLbEntry 2 }
+    
+    hwAtmOamLbType OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        e2e(1),
+        segment(2),
+        llid(3),
+        noloopback(4)
+        }
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+        "OAM loopback type.
+         Options: 
+         1. e2e(1)         -end to end loopback
+         2. segment(2)     -segment loopback
+         3. llid(3)        -specified llid loopback
+         4. noloopback(4)  -stopping loopback 
+         "
+      DEFVAL { segment }
+      ::= { hwAtmOamLbEntry 3 }
+    
+    hwAtmOamLbPointLLID OBJECT-TYPE
+      SYNTAX OCTET STRING (SIZE (0..16))
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+        "Specify loopback destination LLID. 
+         It is valid to be set llid(3) for hwAtmOamLbType only. 
+        "
+      ::= { hwAtmOamLbEntry 4 }
+    
+    hwAtmOamLbNumber OBJECT-TYPE
+      SYNTAX Integer32 (1..65535)
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+        "Specify the number of the cells loopbacked.
+        "
+      ::= { hwAtmOamLbEntry 5 }
+    
+    hwAtmOamLbInterval OBJECT-TYPE
+      SYNTAX Integer32 (1..5)
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+        "Specify the interval between two insert operation. "
+      ::= { hwAtmOamLbEntry 6 }
+    
+    hwAtmOamLlidTable OBJECT-TYPE
+      SYNTAX SEQUENCE OF HwAtmOamLlidEntry
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "Table of OAM LLID.
+         The index of this table is ifIndex.
+        "
+      ::= { hwAtmOamMibObjects 4 }
+    
+    hwAtmOamLlidEntry OBJECT-TYPE
+      SYNTAX HwAtmOamLlidEntry
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "Table of OAM LLID.
+         The index of this entry is ifIndex.
+        "
+      INDEX { ifIndex }
+      ::= { hwAtmOamLlidTable 1 }
+    
+    HwAtmOamLlidEntry ::=
+      SEQUENCE { 
+        hwAtmOamLlidPointLLID
+          OCTET STRING
+       }
+
+    hwAtmOamLlidPointLLID OBJECT-TYPE
+      SYNTAX OCTET STRING (SIZE (0..16))
+      MAX-ACCESS read-write
+      STATUS current
+      DESCRIPTION
+        "local interface LLID. "
+      ::= { hwAtmOamLlidEntry 1 }
+    
+    hwAtmOamInsertTable OBJECT-TYPE
+      SYNTAX SEQUENCE OF HwAtmOamInsertEntry
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "Table of OAM Insert.
+         This table only support 'set' operation.
+         The indexes of this table are ifIndex,hwAtmOamInsertVPI and hwAtmOamInsertVCI.
+        "
+      ::= { hwAtmOamMibObjects 5 }
+    
+    hwAtmOamInsertEntry OBJECT-TYPE
+      SYNTAX HwAtmOamInsertEntry
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "Table of OAM Insert.
+         This table only support 'set' operation.
+         The indexes of this entry are ifIndex,hwAtmOamInsertVPI and hwAtmOamInsertVCI.
+        "
+      INDEX { ifIndex,hwAtmOamInsertVPI, hwAtmOamInsertVCI }
+      ::= { hwAtmOamInsertTable 1 }
+    
+    HwAtmOamInsertEntry ::=
+      SEQUENCE { 
+        hwAtmOamInsertVPI
+          AtmVpIdentifier,
+        hwAtmOamInsertVCI
+          AtmVcIdentifier,
+        hwAtmOamInsertOperation
+          INTEGER,
+        hwAtmOamInsertSegment
+          INTEGER,
+        hwAtmOamInsertCellType
+          INTEGER
+       }
+
+    hwAtmOamInsertVPI OBJECT-TYPE
+      SYNTAX AtmVpIdentifier
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "vpi."
+      ::= { hwAtmOamInsertEntry 1 }
+    
+    hwAtmOamInsertVCI OBJECT-TYPE
+      SYNTAX AtmVcIdentifier
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "vci. 
+        if vci = 0, means that this is a F4 point."
+      ::= { hwAtmOamInsertEntry 2 }
+    
+    hwAtmOamInsertOperation OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        start(1),
+        stop(2)
+        }
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+        "specify the operation(begin or stop) of the insertion.
+         Options: 
+         1. start(1)           -the operation of the insertion is begin 
+         2. stop(2)            -the operation of the insertion is stop
+        "
+      ::= { hwAtmOamInsertEntry 3 }
+    
+    hwAtmOamInsertSegment OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        segment(1),
+        end(2)
+        }
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+        "specify the segment type.
+         Options: 
+         1. segment(1)           -specify the segment type is segment 
+         2. end(2)               -specify the segment type is end
+        "
+      ::= { hwAtmOamInsertEntry 4 }
+    
+    hwAtmOamInsertCellType OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        ais(1),
+        rdi(2),
+        cc(3)
+        }
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+        "specify the type of the inserted cell. 
+         Options: 
+         1. ais(1)           -specify the type of the inserted cell is ais 
+         2. rdi(2)           -specify the type of the inserted cell is rdi
+         3. cc(3)            -specify the type of the inserted cell is cc
+        "
+      ::= { hwAtmOamInsertEntry 5 }
+    
+    hwAtmOamTraps OBJECT IDENTIFIER ::= { hwAtmOam 2 }
+    
+    hwAtmOamTrapVarBindOids OBJECT IDENTIFIER ::= { hwAtmOamTraps 1 }
+    
+    hwAtmOamGeneralVarBindOids OBJECT IDENTIFIER ::= { hwAtmOamTrapVarBindOids 1 }
+    
+    hwAtmOamVarBindLoopbackResult OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        success(1),
+        timeout(2)
+        }
+      MAX-ACCESS accessible-for-notify
+      STATUS current
+      DESCRIPTION
+        "Loopback result.
+         Options: 
+         1. success(1)          -loopback success
+         2. timeout(2)          -not received loopback cell for 5 seconds after sent
+       "
+      ::= { hwAtmOamGeneralVarBindOids 1 }
+    
+    hwAtmOamVarBindOidsReason OBJECT IDENTIFIER ::= { hwAtmOamTrapVarBindOids 2 }
+    
+    hwAtmOamAisReason OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        connDelete(1),
+        boardFail(2)
+        }
+      MAX-ACCESS accessible-for-notify
+      STATUS current
+      DESCRIPTION
+        "OAM operation terminate reason.
+         Options: 
+         1. connDelete(1)            -ATM connection be deleted 
+         2. boardFail(2)             -Board fail
+        "
+      ::= { hwAtmOamVarBindOidsReason 1 }
+    
+    hwAtmOamOperTerminateReason OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        connDelete(1),
+        boardFail(2)
+        }
+      MAX-ACCESS accessible-for-notify
+      STATUS current
+      DESCRIPTION
+        "OAM operation terminate reason:
+         Options: 
+         1. connDelete(1)            -ATM connection be deleted 
+         2. boardFail(2)             -Board fail
+        "
+      ::= { hwAtmOamVarBindOidsReason 2 }
+    
+    hwAtmOamAlarmTraps OBJECT IDENTIFIER ::= { hwAtmOamTraps 2 }
+    
+    hwAtmOamAlarmTrapsOids OBJECT IDENTIFIER ::= { hwAtmOamAlarmTraps 0 }
+    
+    hwAtmOamAlarmAis NOTIFICATION-TYPE
+      OBJECTS { ifIndex, hwAtmOamPointVPI, hwAtmOamPointVCI }
+      STATUS current
+      DESCRIPTION
+        "This trap will send when there is some defect in the upstream.
+        alarm description:AIS alarm.
+        explain: AIS cell received from upstream.
+        resolving method:Check if there is some defect in the upstream.
+        "
+      ::= { hwAtmOamAlarmTrapsOids 1 }
+    
+    hwAtmOamAlarmAisRestore NOTIFICATION-TYPE
+      OBJECTS { ifIndex, hwAtmOamPointVPI, hwAtmOamPointVCI }
+      STATUS current
+      DESCRIPTION
+        "This trap will send when there is no AIS cell received from upstream within a time interval of 2.5 seconds, with a margin of 0.5 seconds.
+        alarm description: AIS alarm restore.
+        explain: There is no AIS cell received from upstream within a time interval of 2.5 seconds, with a margin of 0.5 seconds.
+        resolving method:NA.
+        "
+      ::= { hwAtmOamAlarmTrapsOids 2 }
+    
+    hwAtmOamAlarmRdi NOTIFICATION-TYPE
+      OBJECTS { ifIndex, hwAtmOamPointVPI, hwAtmOamPointVCI }
+      STATUS current
+      DESCRIPTION
+        "This trap will send when there is some defect in the downstream.
+        alarm description:RDI alarm.
+        explain: RDI cell received from downstream.
+        resolving method:Check if there is some defect in the downstream.
+        "
+      ::= { hwAtmOamAlarmTrapsOids 3 }
+    
+    hwAtmOamAlarmRdiRestore NOTIFICATION-TYPE
+      OBJECTS { ifIndex, hwAtmOamPointVPI, hwAtmOamPointVCI }
+      STATUS current
+      DESCRIPTION
+        "This trap will send when there is no RDI cell received from downstream within a time interval of 2.5 seconds, with a margin of 0.5 seconds.
+        alarm description:RDI alarm restore
+        explain: There is no RDI cell received from downstream within a time interval of 2.5 seconds, with a margin of 0.5 seconds.
+        resolving method:NA.
+        "
+      ::= { hwAtmOamAlarmTrapsOids 4 }
+    
+    hwAtmOamAlarmLoc NOTIFICATION-TYPE
+      OBJECTS { ifIndex, hwAtmOamPointVPI, hwAtmOamPointVCI }
+      STATUS current
+      DESCRIPTION
+        "This trap will send when CC sink can not receive CC cells from source within a time interval of 3.5 seconds,with a margin of 0.5 seconds;Or physical fault is detected.
+        alarm description:LOC alarm.
+        explain: CC sink can not receive CC cells from source within a time interval of 3.5 seconds,with a margin of 0.5 seconds;Or physical fault is detected.
+        resolving method:Check if there is some physical fault.check if there is some defect between CC source and CC sink.check if CC source is configured correctly.
+        "
+      ::= { hwAtmOamAlarmTrapsOids 5 }
+    
+    hwAtmOamAlarmLocRestore NOTIFICATION-TYPE
+      OBJECTS { ifIndex, hwAtmOamPointVPI, hwAtmOamPointVCI }
+      STATUS current
+      DESCRIPTION
+        "This trap will send when CC cells can be received from CC source.Or physical fault is restored.
+        alarm description:LOC alarm restore.
+        explain: CC cells can be received from CC source.Or physical fault is restored.
+        resolving method:NA.
+        "
+      ::= { hwAtmOamAlarmTrapsOids 6 }
+    
+    hwAtmOamAlarmLbTerminate NOTIFICATION-TYPE
+      OBJECTS { ifIndex, hwAtmOamPointVPI, hwAtmOamPointVCI, hwAtmOamOperTerminateReason }
+      STATUS current
+      DESCRIPTION
+        "This trap will send when the corresponding connection is deleted or there is some fault in the corresponding board.
+        alarm description:LB abort alarm.
+        explain: 1.The corresponding connection is deleted.
+                 2.There is some fault in the corresponding board. 
+        resolving method:Until the board changes normal, and renew configuring if necessary.
+
+        "
+      ::= { hwAtmOamAlarmTrapsOids 7 }
+    
+    hwAtmOamAlarmInsTerminate NOTIFICATION-TYPE
+      OBJECTS { ifIndex, hwAtmOamPointVPI, hwAtmOamPointVCI, hwAtmOamOperTerminateReason }
+      STATUS current
+      DESCRIPTION
+        "This trap will send when the corresponding connection is deleted or there is some fault in the corresponding board.
+        alarm description:Insertion abort alarm.
+        explain: 1.The corresponding connection is deleted.
+                 2.There is some fault in the corresponding board. 
+        resolving method:Until the board changes normal, and renew configuring if necessary.
+        "
+      ::= { hwAtmOamAlarmTrapsOids 8 }
+    
+    hwAtmOamGeneralTraps OBJECT IDENTIFIER ::= { hwAtmOamTraps 3 }
+    
+    hwAtmOamGeneralTrapsOids OBJECT IDENTIFIER ::= { hwAtmOamGeneralTraps 0 }
+    
+    hwAtmOamTrapLoopbackReport NOTIFICATION-TYPE
+      OBJECTS { hwAtmOamLbPointLLID, hwAtmOamVarBindLoopbackResult, hwAtmOamLbVPI, hwAtmOamLbVCI, ifIndex
+         }
+      STATUS current
+      DESCRIPTION
+        "This trap will send when the loopback result of LB cell return.
+        General trap description:
+        Used to send loopback result of LB cell, success(1) or timeout(2).
+        "
+      ::= { hwAtmOamGeneralTrapsOids 1 }
+      
+    hwAtmOamPingLoopTestTrap NOTIFICATION-TYPE
+      OBJECTS {
+              ifIndex,
+              hwAtmOamLbVPI ,
+              hwAtmOamLbVCI,
+              hwAtmOamLbCurrentNumber,
+              hwAtmOamLbCurrentResult        
+          } 
+      STATUS current
+      DESCRIPTION 
+             "The trap whill send when the ATM ping loop test finished."
+      ::= { hwAtmOamGeneralTrapsOids  2 }
+    
+    
+    hwAtmOamTrapsVbOids OBJECT IDENTIFIER ::= { hwAtmOam 3 }
+    
+    hwAtmOamLbCurrentNumber OBJECT-TYPE
+      SYNTAX Integer32 
+      MAX-ACCESS accessible-for-notify
+      STATUS current
+      DESCRIPTION
+        "The current atmping number."
+      ::= { hwAtmOamTrapsVbOids 1 }
+    
+    hwAtmOamLbCurrentResult OBJECT-TYPE
+      SYNTAX Integer32 
+      MAX-ACCESS accessible-for-notify
+      STATUS current
+      DESCRIPTION
+        "The current atmping result.
+         Options:
+         1. successful(0)   -the current atmping successful
+         2. timeout(1)      -the current atmping timeout
+         3. boardfailed(2)  -the board failed
+        "
+      ::= { hwAtmOamTrapsVbOids 2 }     
+    
+  END
+
+

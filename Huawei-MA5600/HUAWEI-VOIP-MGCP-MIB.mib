@@ -1,0 +1,1521 @@
+-- ============================================================================
+-- Copyright (C) 2012 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description:  This MIB module defines MIB objects which provides MGCP management.
+-- Reference:  
+-- Version: V1.17
+-- ============================================================================
+
+ HUAWEI-VOIP-MGCP-MIB DEFINITIONS ::= BEGIN
+      IMPORTS
+        	MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE, private
+        		FROM SNMPv2-SMI
+        	MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+        		FROM SNMPv2-CONF
+        	TEXTUAL-CONVENTION
+        		FROM SNMPv2-TC
+        	IpAddress,TimeTicks,Counter32, Integer32, Unsigned32
+        		FROM SNMPv2-SMI
+        	RowStatus,DisplayString
+        		FROM SNMPv2-TC
+        	huaweiUtility
+        		FROM HUAWEI-MIB;
+        
+      hwVoip MODULE-IDENTITY
+                LAST-UPDATED "201109100000Z"
+                ORGANIZATION "Huawei Technologies Co., Ltd."
+                CONTACT-INFO                                        
+                             "Huawei Industrial Base                
+            	              Bantian, Longgang                     
+            	              Shenzhen 518129                       
+            	              People's Republic of China            
+            	              Website: http://www.huawei.com        
+            	              Email: support@huawei.com             
+            	             "                                      
+                DESCRIPTION 
+            	            "
+            	            This MIB module defines MIB objects which provides MGCP management.
+            	            "
+            --  Revision history
+            REVISION     "201302060000Z"
+            DESCRIPTION  "V1.17, revise the errors of description"
+            
+            REVISION     "201207200000Z"
+            DESCRIPTION  "V1.16, delete the redundant comments"
+            
+            REVISION     "201109100000Z"
+            DESCRIPTION  "V1.15, revise the errors of description"
+            
+            REVISION     "201106010000Z"
+            DESCRIPTION  "V1.14, revise the errors of description"
+                              
+            REVISION     "201104010000Z"
+            DESCRIPTION  "V1.13, revise the errors of description"
+            
+            REVISION     "201009150000Z"
+            DESCRIPTION  "V1.12, revise the errors of description"
+            
+            REVISION     "201009020000Z"
+            DESCRIPTION  "V1.11, revise the errors of description"
+            
+            REVISION     "201007020000Z"
+            DESCRIPTION  "V1.10, correct revision history"
+            
+            REVISION     "201005050000Z"
+            DESCRIPTION  "V1.09, revise the errors"
+            
+            REVISION     "201004100000Z"
+            DESCRIPTION  "V1.08, correct the enumerate name" 
+            
+            REVISION     "201003220000Z"
+            DESCRIPTION  "V1.07, correct test errors"
+            
+            REVISION     "201001250000Z"
+            DESCRIPTION  "V1.06, add trap notification and correct compile error"
+            
+            REVISION     "200912180000Z"        
+            DESCRIPTION  "V1.05, add hwMgcpMedGwyDynAddrName, hwMgcpMedGwyCurDynAddrName, hwMgcpMedGwyCurIPAddress to support DHCP"
+            
+            REVISION     "200910150000Z"
+            DESCRIPTION  "V1.04, add hwMgcpMgSoftParameter16 to indicate whether add a 'T' follow the digit string"
+            
+            REVISION     "200903240000Z"        
+            DESCRIPTION  "V1.03, add hwMgcpMgSoftParameter13,hwMgcpMgSoftParameter14,hwMgcpMgSoftParameter15 to support indication of tone type to play when the service is blocked"
+                                   
+            ::= { huaweiUtility 36 }
+               
+                       
+ hwIASVoipAlarmOids OBJECT IDENTIFIER ::= { hwIASVoipTraps 1 }
+ 
+ hwIASVoipAlarmTraps OBJECT IDENTIFIER ::= { hwIASVoipTraps 0 }
+
+ hwIASVoipObjects OBJECT IDENTIFIER ::= { hwVoip 1 }
+  
+ hwIASVoipTraps OBJECT IDENTIFIER ::= { hwVoip 2 }
+
+ hwIASMgcpTrapsVbOids OBJECT IDENTIFIER ::= { hwVoip 5 }
+
+ hwIASMgcpTraps OBJECT IDENTIFIER ::= { hwVoip 6 }
+            
+ hwIASMgcpCommonTraps OBJECT IDENTIFIER ::= { hwIASMgcpTraps 1 }
+ 
+ hwIASMgcpAlarmTraps OBJECT IDENTIFIER ::= { hwIASMgcpTraps 2 }
+ 
+ 
+   hwMgcpParaTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF HwMgcpParaEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "
+       This table is used to set the MGCP dynamic parameters.
+       The index of this table is hwMgcpParaMgId. 
+       "
+     ::= { hwIASVoipObjects 15 }
+ 
+   hwMgcpParaEntry OBJECT-TYPE
+     SYNTAX      HwMgcpParaEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "
+       This table is used to set the MGCP dynamic parameters.
+       The index of this entry is hwMgcpParaMgId. 
+       "
+     INDEX    {  
+               hwMgcpParaMgId
+              }
+     ::= { hwMgcpParaTable 1 }
+ 
+   HwMgcpParaEntry ::=
+     SEQUENCE
+     {
+       hwMgcpParaMgId	               Integer32,
+       hwMgcpParaRetranIntervalTimer   Integer32,
+       hwMgcpParaMaxRetranTimes        Integer32,
+       hwMgcpParaProvRspDelay          Integer32,
+       hwMgcpParaAtMostOnceTimer       Integer32,
+       hwMgcpParaEnbProyRsp	       INTEGER,
+       hwMgcpParaEnbSdpTransParent     INTEGER
+  
+     }
+ 
+   hwMgcpParaMgId OBJECT-TYPE
+     SYNTAX      Integer32(0..16777215)
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the MG ID.
+         "
+     ::= { hwMgcpParaEntry 1 }
+ 
+   hwMgcpParaRetranIntervalTimer OBJECT-TYPE
+     SYNTAX      Integer32(1..10)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the maximum re-transmission interval of MGCP messages.
+         "
+     DEFVAL      { 2 }
+     ::= { hwMgcpParaEntry 2 }
+ 
+   hwMgcpParaMaxRetranTimes OBJECT-TYPE
+     SYNTAX      Integer32(1..10)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the maximum re-transmission times of MGCP messages.
+         "
+     DEFVAL      { 7 }
+     ::= { hwMgcpParaEntry 3 }
+ 
+   hwMgcpParaProvRspDelay OBJECT-TYPE
+     SYNTAX      Integer32(1..10)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the delay of the MGCP stack timer for receiving the provisional responses.
+         "
+     DEFVAL      { 5 }
+     ::= { hwMgcpParaEntry 4 }
+ 
+   hwMgcpParaAtMostOnceTimer OBJECT-TYPE
+     SYNTAX      Integer32(1..60)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the length of the At-most-once timer of the MGCP stack.
+         "
+     DEFVAL      { 30 }
+     ::= { hwMgcpParaEntry 5 }
+ 
+   hwMgcpParaEnbProyRsp OBJECT-TYPE
+     SYNTAX      INTEGER{no(1),yes(2)}
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates whether the MGCP stack supports transmitting provisional responses.
+         Options:
+         1. no(1) - indicates that the MGCP stack not supports transmitting provisional responses
+         1. yes(2) - indicates that the MGCP stack supports transmitting provisional responses
+         "
+     DEFVAL      { no }
+     ::= { hwMgcpParaEntry 6 }
+ 
+   hwMgcpParaEnbSdpTransParent OBJECT-TYPE
+     SYNTAX      INTEGER{no(1),yes(2)}
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates whether the MGCP stack supports partial transparent transmission of the Session Description Protocol (SDP).
+         Options:
+         1. no(1) - indicates that the MGCP stack not supports partial transparent transmission of the Session Description Protocol (SDP)
+         1. yes(2) - indicates that the MGCP stack supports partial transparent transmission of the Session Description Protocol (SDP)
+         "
+     DEFVAL      { no }
+     ::= { hwMgcpParaEntry 7 }
+
+   hwMgcpMedGwyConfigTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF HwMgcpMedGwyConfigEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "
+       This table is used to config the MGCP media gateway.
+       The index of this table is hwMgcpMedGwyId. 
+       "
+     ::= { hwIASVoipObjects 37 }
+ 
+   hwMgcpMedGwyConfigEntry OBJECT-TYPE
+     SYNTAX      HwMgcpMedGwyConfigEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "
+       This table is used to config the MGCP media gateway.
+       The index of this entry is hwMgcpMedGwyId. 
+       "
+     INDEX    {  
+               hwMgcpMedGwyId
+              }
+     ::= { hwMgcpMedGwyConfigTable 1 }
+ 
+   HwMgcpMedGwyConfigEntry ::=
+     SEQUENCE
+     {
+       hwMgcpMedGwyId	              Integer32,
+       hwMgcpMedGwyDomainName	      OCTET STRING,
+       hwMgcpMedGwyDesc               OCTET STRING,
+       hwMgcpMedGwyIPAddress	      IpAddress,
+       hwMgcpMedGwyUDPPort	      Integer32,
+       hwMgcpMedGwyCodeType           INTEGER,
+       hwMgcpMedGwyTransMode          INTEGER,
+       hwMgcpMedGwyRegisterKey	      OCTET STRING,
+       hwMgcpMedGwyOperKey	      OCTET STRING,
+       hwMgcpMedGwyOperKeyNew	      OCTET STRING,
+       hwMgcpMedGwyAdminStatus	      INTEGER,
+       hwMgcpMedGwyOperStatus	      INTEGER,
+       hwMgcpMedGwyRowStatus	      RowStatus,
+       hwMgcpMedGwyLastChange	      TimeTicks,
+       hwMgcpMedGwyAuthMode           INTEGER,
+       hwMgcpMedGwyAuthInitialKey     OCTET STRING,  
+       hwMgcpMedGwyAuthMgId           OCTET STRING,  
+       hwMgcpMedGwyAuthKey            OCTET STRING,
+       hwMgcpMedGwy2833Encrypt        OCTET STRING,
+       hwMgcpMedGwyCfgHeartBeatTimer  Integer32,
+       hwMgcpMedGwyIPAddrDhcpClientIndex Integer32,
+       hwMgcpMedGwyDynAddrName        OCTET STRING,
+       hwMgcpMedGwyCurDynAddrName   OCTET STRING,
+       hwMgcpMedGwyCurIPAddress   IpAddress
+     }
+ 
+   hwMgcpMedGwyId OBJECT-TYPE
+     SYNTAX      Integer32(0..16777215)
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+         "
+         Media Gateway ID
+         "
+     ::= { hwMgcpMedGwyConfigEntry 1 }
+ 
+   hwMgcpMedGwyDomainName OBJECT-TYPE
+     SYNTAX      OCTET STRING(SIZE (0..64))
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Domain name  Parameter 0: clears the value of the parameter
+         "
+     ::= { hwMgcpMedGwyConfigEntry 2 }
+ 
+   hwMgcpMedGwyDesc OBJECT-TYPE
+     SYNTAX      OCTET STRING(SIZE (0..32))
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the interface description.
+         "
+     ::= { hwMgcpMedGwyConfigEntry 3 }
+ 
+   hwMgcpMedGwyIPAddress OBJECT-TYPE
+     SYNTAX      IpAddress
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the IP address that the Media Gateway Controller will use to communicate with the Media Gateway.
+         "
+     ::= { hwMgcpMedGwyConfigEntry 4 }
+ 
+ 
+   hwMgcpMedGwyUDPPort OBJECT-TYPE
+     SYNTAX      Integer32(2000..3000|65535)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the UDP port that the Media Gateway Controller will use to communicate with the Media Gateway. The value 65535 is returned if the entry is invalid. The valid value is from 1 to 4999 in MD5500 and from 1 to 16383 in AMG5000.
+         "
+     ::= { hwMgcpMedGwyConfigEntry 5 }
+ 
+   hwMgcpMedGwyCodeType OBJECT-TYPE
+     SYNTAX      INTEGER{txt(1) -- text
+                         }
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the coding type.
+         Options: 
+         1.txt(1)-indicates that the coding type is text
+         "
+     ::= { hwMgcpMedGwyConfigEntry 6 }
+ 
+   hwMgcpMedGwyTransMode OBJECT-TYPE
+     SYNTAX      INTEGER{udp(2)}
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the transmission mode.
+         Options: 
+         1.udp(2)-indicates that the transmission mode is udp
+         "
+     ::= { hwMgcpMedGwyConfigEntry 7 } 
+ 
+   hwMgcpMedGwyRegisterKey OBJECT-TYPE
+     SYNTAX      OCTET STRING(SIZE (0..32))
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the key that is registered with the MGC, and the length of valid key input is from 8 to 32. The key cannot be modified, read, or written by the operator without authority, so the hwMgcpMedGwyRegisterKey and hwMgcpMedGwyOperKey must also be provided to query and modify the hwMgcpMedGwyRegisterKey. The conditions for querying and modifying the hwMgcpMedGwyRegisterKey are as follows: 1) The hwMgcpMedGwyRegisterKey can return the correct query result only when the hwMgcpMedGwyOperKey is correct. Otherwise, the query fails; 2) The hwMgcpMedGwyRegisterKey can be set successfully only when the hwMgcpMedGwyOperKey is correct. Otherwise, the setting fails.
+         The size 0 means the parameter not configured.
+         "
+     ::= { hwMgcpMedGwyConfigEntry 8 }
+ 
+   hwMgcpMedGwyOperKey OBJECT-TYPE
+     SYNTAX      OCTET STRING(SIZE (0..32))
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the key for operating the MG. The hwMgcpMedGwyOperKey cannot be read or written. The functions of this key are as follows: 1) The hwMgcpMedGwyRegisterKey and hwMgcpMedGwyOperKey must be provided for modifying the hwMgcpMedGwyRegisterKey. The hwMgcpMedGwyRegisterKey can return the correct query result only when the hwMgcpMedGwyOperKey is correct. Otherwise, the query fails. The hwMgcpMedGwyRegisterKey can be set successfully only when the hwMgcpMedGwyOperKey is correct. Otherwise, the setting fails. 2) The hwMgcpMedGwyOperKey must work with the hwMgcpMedGwyOperKeyNew for modifying the hwMgcpMedGwyOperKey itself. The hwMgcpMedGwyOperKeyNew and hwMgcpMedGwyOperKey must be provided at the same time. The value of the hwMgcpMedGwyOperKeyNew can replace the value of the hwMgcpMedGwyOperKey and the hwMgcpMedGwyOperKeyNew can become the new operation key only when the hwMgcpMedGwyOperKey is correct. Otherwise, the modification fails and the hwMgcpMedGwyOperKey operation key is retained.
+         "
+     ::= { hwMgcpMedGwyConfigEntry 9 }
+ 
+   hwMgcpMedGwyOperKeyNew OBJECT-TYPE
+     SYNTAX      OCTET STRING(SIZE (0..32))
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the new operation key, and the length of valid key input is from 8 to 32. The hwMgcpMedGwyOperKeyNew is a temporary variable, and cannot be read. If you query one hwMgcpMedGwyOperKeyNew not configured, the system always returns a null value.
+         "
+     ::= { hwMgcpMedGwyConfigEntry 10 }
+ 
+   hwMgcpMedGwyAdminStatus OBJECT-TYPE
+     SYNTAX      INTEGER{up(1),down(2)}
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the administrative status for this media gateway control group.
+         Options: 
+         1.up(1)-indicates that the administrative status for this media gateway control group is up
+         2.down(2)-indicates that the administrative status for this media gateway control group is down
+         "
+     ::= { hwMgcpMedGwyConfigEntry 11 }
+ 
+   hwMgcpMedGwyOperStatus OBJECT-TYPE
+     SYNTAX      INTEGER{up(1),down(2),fault(3),waitingAck(4),unknown(5),notStart(6)}
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the current operational status of the signaling link.
+         Options: 
+         1.up(1)-indicates that the current operational status of the signaling link is up
+         2.down(2)-indicates that the current operational status of the signaling link is down
+         3.fault(3)-indicates that the current operational status of the signaling link is fault
+         4.waitingAck(4)-indicates that the current operational status of the signaling link is waitingAck
+         5.unknown(5)-indicates that the current operational status of the signaling link is unknown
+         6.notStart(6)-indicates that the current operational status of the signaling link is notStart
+         "
+     ::= { hwMgcpMedGwyConfigEntry 12 }
+ 
+   hwMgcpMedGwyRowStatus OBJECT-TYPE
+     SYNTAX      RowStatus
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         This is used to create new rows in this table, Modify existing rows, and to delete existing rows.
+         "
+     ::= { hwMgcpMedGwyConfigEntry 13 }
+ 
+   hwMgcpMedGwyLastChange OBJECT-TYPE
+     SYNTAX      TimeTicks
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the value of sysUpTime at the time the associated link entered its current operational status. If the current status was entered prior to the last re-initialization of the local network management subsystem, then this object contains a zero value.
+         "
+     ::= { hwMgcpMedGwyConfigEntry 14 }
+     
+   hwMgcpMedGwyAuthMode  OBJECT-TYPE
+     SYNTAX      INTEGER{hwmode(1), -- huawei mode
+                         gbmode(2)  -- global mode
+                         }
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the authentication mode.
+         Options: 
+         1.hwmode(1)-indicates that the authentication mode is huawei mode
+         2.gbmode(2)-indicates that the authentication mode is global mode
+         "
+     ::= { hwMgcpMedGwyConfigEntry 15 } 
+
+   
+   hwMgcpMedGwyAuthInitialKey    OBJECT-TYPE
+     SYNTAX      OCTET STRING(SIZE (0..16))
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the authentication initial key, and the length of valid key input is from 1 to 16.
+         The size 0 means the parameter is not configured.
+         "
+     ::= { hwMgcpMedGwyConfigEntry 16 } 
+
+   hwMgcpMedGwyAuthMgId    OBJECT-TYPE
+     SYNTAX      OCTET STRING(SIZE (0..16))
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the authentication MG ID and the length input is from 1 to 16.
+         The size 0 means the parameter is not configured.
+         "
+     ::= { hwMgcpMedGwyConfigEntry 17 }  
+         
+   hwMgcpMedGwyAuthKey    OBJECT-TYPE
+     SYNTAX      OCTET STRING(SIZE (1..16))
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the authentication initial key.
+         "
+     ::= { hwMgcpMedGwyConfigEntry 18 } 
+     
+   hwMgcpMedGwy2833Encrypt    OBJECT-TYPE
+     SYNTAX      OCTET STRING(SIZE (0..16))
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the 2833 encryption key and the length of valid key input is from 1 to 16.
+         The size 0 means the parameter is not configured.
+         "
+     ::= { hwMgcpMedGwyConfigEntry 19 } 
+
+   hwMgcpMedGwyCfgHeartBeatTimer  OBJECT-TYPE
+     SYNTAX      Integer32(5..655)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the configured timer of the heartbeat (s).
+         "
+     ::= { hwMgcpMedGwyConfigEntry 20 }   
+   
+   hwMgcpMedGwyIPAddrDhcpClientIndex  OBJECT-TYPE
+     SYNTAX      Integer32(1..4093|-1)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Dhcp Signal vlan id.
+         The valid value is 1..4093,if the value is -1, the static signal ip will be used.
+         "
+     ::= { hwMgcpMedGwyConfigEntry 21 }    
+     
+   hwMgcpMedGwyDynAddrName  OBJECT-TYPE
+     SYNTAX      OCTET STRING(SIZE (0..64))
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Dynamic media gateway IP name.
+         "
+     ::= { hwMgcpMedGwyConfigEntry 22 } 
+     
+    hwMgcpMedGwyCurDynAddrName  OBJECT-TYPE
+     SYNTAX      OCTET STRING(SIZE (0..64))
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+          Current working dynamic media gateway IP name.
+         "
+     ::= { hwMgcpMedGwyConfigEntry 23 } 
+     
+   hwMgcpMedGwyCurIPAddress  OBJECT-TYPE
+     SYNTAX      IpAddress
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+          Indicates the IP address that the Media Gateway current use to communicate with the Media Gateway Controller.
+         "
+     ::= { hwMgcpMedGwyConfigEntry 24 }
+     
+     
+   hwMgcpMedGwyCtrlTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF HwMgcpMedGwyCtrlEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "
+       This table is used to config the MGCP media gateway control parameters.
+       The indexes of this table are hwMgcpMedGwyCtrlGatewayId and hwMgcpMedGwyCtrlIdx. 
+       "
+     ::= { hwIASVoipObjects 38 }
+ 
+   hwMgcpMedGwyCtrlEntry OBJECT-TYPE
+     SYNTAX      HwMgcpMedGwyCtrlEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "
+       This table is used to config the MGCP media gateway control parameters.
+       The indexes of this entry are hwMgcpMedGwyCtrlGatewayId and hwMgcpMedGwyCtrlIdx. 
+       "
+     INDEX    {  
+               hwMgcpMedGwyCtrlGatewayId,
+               hwMgcpMedGwyCtrlIdx
+              }
+     ::= { hwMgcpMedGwyCtrlTable 1 }
+ 
+   HwMgcpMedGwyCtrlEntry ::=
+     SEQUENCE
+     {
+       hwMgcpMedGwyCtrlGatewayId	Integer32,
+       hwMgcpMedGwyCtrlIdx	        Integer32,
+       hwMgcpMedGwyCtrlIPAddress	IpAddress,
+       hwMgcpMedGwyCtrlDnsName	        OCTET STRING,
+       hwMgcpMedGwyCtrlDnsIp	        IpAddress,
+       hwMgcpMedGwyCtrlPort	        Integer32,
+       hwMgcpMedGwyCtrlAdminStatus	INTEGER,
+       hwMgcpMedGwyCtrlOperStatus	INTEGER,
+       hwMgcpMedGwyCtrlRowStatus	RowStatus,
+       hwMgcpMedGwyCtrlLastChange	TimeTicks
+     }
+ 
+   hwMgcpMedGwyCtrlGatewayId OBJECT-TYPE
+     SYNTAX      Integer32(0..16777215)
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the MG ID.
+         "
+     ::= { hwMgcpMedGwyCtrlEntry 1 }
+ 
+   hwMgcpMedGwyCtrlIdx OBJECT-TYPE
+     SYNTAX      Integer32(0..2)
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the MGC index.
+         "
+     ::= { hwMgcpMedGwyCtrlEntry 2 }
+ 
+   hwMgcpMedGwyCtrlIPAddress OBJECT-TYPE
+     SYNTAX      IpAddress
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the IP address of the Media Gateway Controller. The value 255.255.255.255 is returned if the entry is invalid.
+         "
+     ::= { hwMgcpMedGwyCtrlEntry 3 }
+ 
+   hwMgcpMedGwyCtrlDnsName OBJECT-TYPE
+     SYNTAX      OCTET STRING(SIZE (0..64))
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the DNS name of the MGC.    - means clears the value of the parameter.
+         "
+     ::= { hwMgcpMedGwyCtrlEntry 4 }
+ 
+   hwMgcpMedGwyCtrlDnsIp OBJECT-TYPE
+     SYNTAX      IpAddress
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the IP address that is obtained through the MGC domain name.
+         DEFVAL { false }
+         "
+     
+     ::= { hwMgcpMedGwyCtrlEntry 5 }
+ 
+   hwMgcpMedGwyCtrlPort OBJECT-TYPE
+     SYNTAX      Integer32(1..65535)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the UDP port of the Media Gateway Controller. The value 65535 is returned if the entry is invalid.
+         "
+     ::= { hwMgcpMedGwyCtrlEntry 6 }
+ 
+   hwMgcpMedGwyCtrlAdminStatus OBJECT-TYPE
+     SYNTAX      INTEGER{active(1)}
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates to set the MGC as the active MGC.
+         Options: 
+         1. active(1) -Indicates to set the MGC as the active MGC
+         "
+     ::= { hwMgcpMedGwyCtrlEntry 7 }
+ 
+   hwMgcpMedGwyCtrlOperStatus OBJECT-TYPE
+     SYNTAX      INTEGER{up(1),down(2),standby(3)}
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the status of the Media Gateway Controller (and/or) its transportLink.
+         Options: 
+         1. up(1) -indicates that the status of the Media Gateway Controller (and/or) its transportLink is up
+         2. down(2) -indicates that the status of the Media Gateway Controller (and/or) its transportLink is down
+         3. standby(3) -indicates that the status of the Media Gateway Controller (and/or) its transportLink is standby
+         "
+     ::= { hwMgcpMedGwyCtrlEntry 8 }
+ 
+   hwMgcpMedGwyCtrlRowStatus OBJECT-TYPE
+     SYNTAX      RowStatus
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the row status.
+         "
+     ::= { hwMgcpMedGwyCtrlEntry 9 }
+ 
+   hwMgcpMedGwyCtrlLastChange OBJECT-TYPE
+     SYNTAX      TimeTicks
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the value of sysUpTime at the time the associated link entered its current operational status. If the current status was entered prior to the last re-initialization of the local network management subsystem, then this object contains a zero value.
+         "
+     ::= { hwMgcpMedGwyCtrlEntry 10 }     
+   
+    hwMgcpDigitmapTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF HwMgcpDigitmapEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "
+       This table is used to set digitmap.
+       The index of this table is hwMgcpDigitmapMgId. 
+       "
+     ::= { hwIASVoipObjects 39 }
+ 
+   hwMgcpDigitmapEntry OBJECT-TYPE
+     SYNTAX      HwMgcpDigitmapEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "
+       This table is used to set digitmap.
+       The index of this entry is hwMgcpDigitmapMgId. 
+       "
+     INDEX    {  
+               hwMgcpDigitmapMgId
+              }
+     ::= { hwMgcpDigitmapTable 1 }
+ 
+   HwMgcpDigitmapEntry ::=
+     SEQUENCE
+     {
+       hwMgcpDigitmapMgId	Integer32,
+       hwMgcpDigitmapDualdial OCTET STRING,
+       hwMgcpDigitmapOverLoadUrgent OCTET STRING
+     }
+ 
+   hwMgcpDigitmapMgId OBJECT-TYPE
+     SYNTAX      Integer32(0..16777215)
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the MG interface ID.
+         "
+     ::= { hwMgcpDigitmapEntry 1 }
+ 
+ 
+   hwMgcpDigitmapDualdial OBJECT-TYPE
+     SYNTAX      OCTET STRING(SIZE(0..14))
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the automatic re-dial digitmap.
+         "
+     ::= { hwMgcpDigitmapEntry 2 }
+  
+  
+     
+   hwMgcpDigitmapOverLoadUrgent OBJECT-TYPE
+     SYNTAX      OCTET STRING(SIZE(0..127))
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the overload control digitmap.
+         "
+     ::= { hwMgcpDigitmapEntry 3 }
+
+   hwMgcpMgSoftParameterTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF HwMgcpMgSoftParameterEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "
+       This table is used to set the software parameters of MGCP media gateway.
+       The index of this table is hwMgcpMgInterfaceIndex. 
+       "
+     ::= { hwIASVoipObjects 40 }
+ 
+   hwMgcpMgSoftParameterEntry OBJECT-TYPE
+     SYNTAX      HwMgcpMgSoftParameterEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "
+       This table is used to set the software parameters of MGCP media gateway.
+       The index of this entry is hwMgcpMgInterfaceIndex. 
+       "
+     INDEX    {  
+               hwMgcpMgInterfaceIndex
+              }
+     ::= { hwMgcpMgSoftParameterTable 1 }
+ 
+   HwMgcpMgSoftParameterEntry ::=
+     SEQUENCE
+     {
+       hwMgcpMgInterfaceIndex	        Integer32,
+       hwMgcpMgSoftParameter0	        INTEGER,
+       hwMgcpMgSoftParameter1	        INTEGER,
+       hwMgcpMgSoftParameter2	        INTEGER,
+       hwMgcpMgSoftParameter3	        INTEGER,  
+       hwMgcpMgSoftParameter4	        INTEGER,
+       hwMgcpMgSoftParameter5	        Integer32,
+       hwMgcpMgSoftParameter6	        Integer32,                          
+       hwMgcpMgSoftParameter7	        INTEGER,
+       hwMgcpMgSoftParameter8	        INTEGER,
+       hwMgcpMgSoftParameter9           INTEGER,
+       hwMgcpMgSoftParameter10          INTEGER,
+       hwMgcpMgSoftParameter11          INTEGER,
+       hwMgcpMgSoftParameter12          INTEGER,
+       hwMgcpMgSoftParameter13          INTEGER,
+       hwMgcpMgSoftParameter14          INTEGER,
+       hwMgcpMgSoftParameter15          Integer32,
+       hwMgcpMgSoftParameter16          INTEGER,  
+       hwMgcpMgSoftParameter17          Integer32, 
+       hwMgcpMgSoftParameter18          INTEGER
+     }
+ 
+   hwMgcpMgInterfaceIndex OBJECT-TYPE
+     SYNTAX      Integer32(0..16777215)
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the MG interface index.
+         "
+     ::= { hwMgcpMgSoftParameterEntry 1 }
+ 
+    hwMgcpMgSoftParameter0 OBJECT-TYPE
+     SYNTAX      INTEGER{yes(1),no(2)}
+     MAX-ACCESS  read-write
+     STATUS      deprecated
+     DESCRIPTION
+         "
+         Parameter name index 0. Indicates whether the terminal ID of the MG interface is layered.
+         Options: 
+         1. yes(1) -indicates that the terminal ID of the MG interface is layered
+         2. no(2) -indicates that the terminal ID of the MG interface is not layered
+         Default: no(2)
+         "
+    ::= { hwMgcpMgSoftParameterEntry 2 } 
+     
+    hwMgcpMgSoftParameter1 OBJECT-TYPE
+     SYNTAX      INTEGER{yes(1),no(2)}
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Parameter name index 1. It indicates whether the ongoing calls are maintained after MG is disconnected from MGC.
+         Options: 
+         1. yes(1) -indicates that the ongoing calls are maintained after MG is disconnected from MGC
+         2. no(2) -indicates that the the ongoing calls are not maintained after MG is disconnected from MGC
+         Default: no(2)
+         "
+     ::= { hwMgcpMgSoftParameterEntry 3 }   
+       
+   hwMgcpMgSoftParameter2 OBJECT-TYPE
+     SYNTAX      INTEGER{yes(1),no(2)}
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Parameter name index 2. It indicates whether the MG interface supports dual homing.
+	 Options: 
+         1. yes(1) -indicates that the MG interface supports dual homing
+         2. no(2) -indicates that the MG interface not supports dual homing
+         Default: yes(1)
+         "
+     ::= { hwMgcpMgSoftParameterEntry 4 }   
+     
+   hwMgcpMgSoftParameter3 OBJECT-TYPE
+     SYNTAX      INTEGER{yes(1),no(2)}
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Parameter name index 3. It indicates whether the heartbeat message is disabled between MG and MGC.
+         Options: 
+         1. yes(1) -indicates that the heartbeat message is enabled between MG and MGC
+         2. no(2) -indicates that the heartbeat message is disabled between MG and MGC
+         Default: no(2)
+         "
+     ::= { hwMgcpMgSoftParameterEntry 5 } 
+     
+   hwMgcpMgSoftParameter4 OBJECT-TYPE
+     SYNTAX      INTEGER{yes(1),no(2)}
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Parameter name index 4. It indicates whether the wildcard is used in registration.
+	 Options: 
+         1. yes(1) -indicates that the wildcard is used in registration
+         2. no(2) -indicates that the wildcard is not used in registration
+         Default: yes(1)
+         "
+      ::= { hwMgcpMgSoftParameterEntry 6 }      
+
+   hwMgcpMgSoftParameter5 OBJECT-TYPE
+     SYNTAX      Integer32(1..9)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Parameter name index 5. It indicates the MGC type. The value range is 1-9.
+         Options:
+         1. SOFTSWITCH
+         2. ZTE
+         3. NORTEL
+         4. CISCO
+         5. SIEMENS
+         6. SONUS
+         7. ETG
+         8. SHANGYANG
+         9. MARCONI
+         Default: 1
+         " 
+     DEFVAL      {  1  }
+     ::= { hwMgcpMgSoftParameterEntry 7 }
+           
+   hwMgcpMgSoftParameter6 OBJECT-TYPE
+     SYNTAX      Integer32(1..10)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Parameter name index 6. It indicates the maximum threshold of not responding to the transmitted heartbeat message.
+         Default: 3
+         "      
+    DEFVAL      {  3  } 
+    ::= { hwMgcpMgSoftParameterEntry 8 }   
+     
+   hwMgcpMgSoftParameter7 OBJECT-TYPE
+     SYNTAX      INTEGER{yes(1),no(2)}
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Parameter name index 7. It indicates whether to support the report that has the MG as the endpoint name.
+	 Options: 
+         1. yes(1) -indicates support the report that has the MG as the endpoint name
+         2. no(2) -indicates not support the report that has the MG as the endpoint name
+         Default: no(2)
+         "   
+     DEFVAL      { no }    
+      ::= { hwMgcpMgSoftParameterEntry 9 }  
+ 
+     hwMgcpMgSoftParameter8 OBJECT-TYPE
+     SYNTAX      INTEGER{yes(1),no(2)}
+     MAX-ACCESS  read-write
+     STATUS      deprecated
+     DESCRIPTION
+         "
+         Parameter name index 8. It indicates whether the port fault and auto-block is reported to the MGC.
+         Options: 
+         1. yes(1) -indicates that the port fault and auto-block is reported to the MGC
+         2. no(2) -indicates that the port fault and auto-block is not reported to the MGC
+         Default: yes(1)
+         "   
+     DEFVAL      { yes }    
+      ::= { hwMgcpMgSoftParameterEntry 10 }    
+      
+    hwMgcpMgSoftParameter9 OBJECT-TYPE
+     SYNTAX      INTEGER{yes(1),no(2)}
+     MAX-ACCESS  read-write
+     STATUS      deprecated
+     DESCRIPTION
+         "
+         Parameter name index 9. It is reserved in the system.
+         Options:
+         1. yes(1) -yes
+         2. no(2)  -no
+         Default: yes(1)
+         "
+     DEFVAL      { yes }
+     ::= { hwMgcpMgSoftParameterEntry 11 } 
+  
+  --BEGIN
+     hwMgcpMgSoftParameter10 OBJECT-TYPE
+     SYNTAX      INTEGER{yes(1),no(2)}
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Parameter name index 10. It indicates the point-to-point fault report flag.
+         Options: 
+         1. yes(1) -indicates that the point-to-point fault is reported
+         2. no(2) -indicates that the port fault and auto-block is not reported
+         Default: yes(1)
+         " 
+      DEFVAL      { yes }
+      ::= { hwMgcpMgSoftParameterEntry 12 }      
+      
+     hwMgcpMgSoftParameter11 OBJECT-TYPE
+     SYNTAX      INTEGER{yes(1),no(2)}
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Parameter name index 11. It indicates the point-to-multipoint fault report flag.
+         Options: 
+         1. yes(1) -indicates that the point-to-multipoint fault is reported
+         2. no(2) -indicates that the point-to-multipoint fault is not reported
+         Default: no(2)
+         "   
+     DEFVAL      { no }    
+      ::= { hwMgcpMgSoftParameterEntry 13 }           
+  --END
+  
+     hwMgcpMgSoftParameter12 OBJECT-TYPE
+     SYNTAX      INTEGER{busyTone(1),congestionTone(2),muteTone(3),userDefineTone1(4),userDefineTone2(5)}
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Parameter name index 12.  It indicates the local block tone type.
+         Options: 
+         1. busyTone(1) -indicates that the local block tone type is busyTone
+         2. congestionTone(2) -indicates that the local block tone type is congestionTone
+         3. muteTone(3) -indicates that the local block tone type is muteTone
+         4. userDefineTone1(4) -indicates that the local block tone type is userDefineTone1
+	 5. userDefineTone2(5) -indicates that the local block tone type is userDefineTone2    
+	 Default: busyTone(1)      
+         "
+     DEFVAL      { busyTone }
+     ::= { hwMgcpMgSoftParameterEntry 14 }
+     
+     hwMgcpMgSoftParameter13 OBJECT-TYPE
+     SYNTAX      INTEGER{busyTone(1),congestionTone(2),muteTone(3),userDefineTone1(4),userDefineTone2(5)}
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Parameter name index 13.  It indicates the remote block tone type.
+	 Options: 
+         1. busyTone(1) -indicates that the remote block tone type is busyTone
+         2. congestionTone(2) -indicates that the remote block tone type is congestionTone
+         3. muteTone(3) -indicates that the remote block tone type is muteTone
+         4. userDefineTone1(4) -indicates that the remote block tone type is userDefineTone1
+	 5. userDefineTone2(5) -indicates that the remote block tone type is userDefineTone2  
+	 Default: busyTone(1)
+         "
+     DEFVAL      { busyTone }
+     ::= { hwMgcpMgSoftParameterEntry 15 }
+     
+     hwMgcpMgSoftParameter14 OBJECT-TYPE
+     SYNTAX      INTEGER{filter(1),notFilter(2)}
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Parameter name index 14. It indicates the RTP source port filtering switch.
+	 Options: 
+         1. filter(1) -indicates that the RTP source port is filter
+         2. notFilter(2) -indicates that the RTP source port is not filter
+         Default: notFilter(2)
+         "
+     DEFVAL      { notFilter }
+     ::= { hwMgcpMgSoftParameterEntry 16 } 
+     
+     hwMgcpMgSoftParameter15 OBJECT-TYPE
+     SYNTAX      Integer32(1..65535)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Parameter name index 15.  It indicates the length of howl tone<1,65535>.
+         Default:60 
+         Unit: second
+         "
+     DEFVAL      { 60 }
+     ::= { hwMgcpMgSoftParameterEntry 17 }
+     
+     hwMgcpMgSoftParameter16 OBJECT-TYPE
+     SYNTAX      INTEGER{yes(1),no(2)}
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Parameter name index 16. Indicates whether the timer symbol (T) follows the number string reported by the signaling.
+	 Options: 
+         1. yes(1) -indicates that the timer symbol (T) follows the number string reported by the signaling
+         2. no(2) -indicates that the timer symbol (T) follows the number string not reported by the signaling
+         Default: yes(1) 
+         "
+     DEFVAL      { yes }
+     ::= { hwMgcpMgSoftParameterEntry 18 }
+     
+     hwMgcpMgSoftParameter17 OBJECT-TYPE
+     SYNTAX      Integer32(0..65534)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Parameter name index 17.  It indicates the duration of the timer for preventing the repeated switching between the data service and voice service after auto-switching data transparent transmission is complete. <0,65534>
+         Default:1000 
+         Unit: second
+         "
+     DEFVAL      { 1000 }
+     ::= { hwMgcpMgSoftParameterEntry 19 }
+
+     hwMgcpMgSoftParameter18 OBJECT-TYPE
+     SYNTAX      INTEGER{yes(1),no(2)}
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Parameter name index 18. Indicates whether to actively switch back to the voice service after data transparent transmission is complete.
+	   Options: 
+         1. yes(1) -indicates actively switch back to the voice service
+         2. no(2) -indicates not actively switch back to the voice service
+         Default: yes(1) 
+         "
+     DEFVAL      { yes }
+     ::= { hwMgcpMgSoftParameterEntry 20 }
+     
+   hwMgcpDmmParaTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF HwMgcpDmmParaEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "
+       This table is used to set the digitmap parameters.
+       The index of this table is hwMgcpDmmParaMgId. 
+       "
+     ::= { hwIASVoipObjects 41 }
+ 
+   hwMgcpDmmParaEntry OBJECT-TYPE
+     SYNTAX      HwMgcpDmmParaEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "
+       This table is used to set the digitmap parameters.
+       The index of this entry is hwMgcpDmmParaMgId. 
+       "
+     INDEX    {  
+               hwMgcpDmmParaMgId
+              }
+     ::= { hwMgcpDmmParaTable 1 }
+ 
+   HwMgcpDmmParaEntry ::=
+     SEQUENCE
+     {
+       hwMgcpDmmParaMgId	   Integer32,
+       hwMgcpDmmParaMgcpTTimer     Integer32
+     }
+ 
+   hwMgcpDmmParaMgId OBJECT-TYPE
+     SYNTAX      Integer32(0..16777215)
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the MG ID.
+         "
+     ::= { hwMgcpDmmParaEntry 1 }
+ 
+
+   hwMgcpDmmParaMgcpTTimer OBJECT-TYPE
+     SYNTAX      Integer32(1..99)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the length of the DMM MGCP T timer.
+         "
+     ::= { hwMgcpDmmParaEntry 2 }    
+   
+        
+   hwMgcpTIDConfigTable  OBJECT-TYPE
+     SYNTAX      SEQUENCE OF HwMgcpTIDConfigEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "
+       This table is used to config MGCP terminal ID.
+       The index of this table is hwMgcpTIDPrefixMgId. 
+       "
+     ::= { hwIASVoipObjects 42 }
+ 
+   hwMgcpTIDConfigEntry OBJECT-TYPE
+     SYNTAX      HwMgcpTIDConfigEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "
+       This table is used to config MGCP terminal ID.
+       The index of this entry is hwMgcpTIDPrefixMgId.
+       "
+     INDEX    {  
+              hwMgcpTIDPrefixMgId
+              }
+     ::= { hwMgcpTIDConfigTable 1 }
+ 
+   HwMgcpTIDConfigEntry ::=
+     SEQUENCE
+     {
+       hwMgcpTIDPrefixMgId	Integer32,
+       hwMgcpBraPrefix          OCTET STRING,
+       hwMgcpPraPrefix          OCTET STRING,
+       hwMgcpPstnPrefix         OCTET STRING,
+       hwMgcpBraTemplateIndex   Integer32 ,
+       hwMgcpPraTemplateIndex   Integer32 ,
+       hwMgcpPstnTemplateIndex  Integer32 ,
+       hwMgcpIsNeedToConfigTID  Integer32
+     }
+ 
+   hwMgcpTIDPrefixMgId OBJECT-TYPE
+     SYNTAX      Integer32(0..16777215)
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+         "
+         Media Gateway ID
+         "
+     ::= { hwMgcpTIDConfigEntry 1 }
+ 
+   hwMgcpBraPrefix OBJECT-TYPE
+     SYNTAX      OCTET STRING(SIZE (1..64))
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the BRA terminal prefix.
+         "
+     ::= { hwMgcpTIDConfigEntry 2 }
+        
+   hwMgcpPraPrefix OBJECT-TYPE
+     SYNTAX      OCTET STRING(SIZE (1..64))
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the PRA terminal prefix.
+         "
+     ::= { hwMgcpTIDConfigEntry 3 }
+        
+   hwMgcpPstnPrefix OBJECT-TYPE
+     SYNTAX      OCTET STRING(SIZE (1..64))
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the PSTN terminal prefix.
+         "
+     ::= { hwMgcpTIDConfigEntry 4 }
+     
+   hwMgcpBraTemplateIndex OBJECT-TYPE
+     SYNTAX      Integer32(0..63)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the index of the BRA TID profile.
+         "
+     ::= { hwMgcpTIDConfigEntry 5 }
+     
+   hwMgcpPraTemplateIndex OBJECT-TYPE
+     SYNTAX      Integer32(0..63)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the index of the PRA TID profile.
+         "
+     ::= { hwMgcpTIDConfigEntry 6 }
+     
+   hwMgcpPstnTemplateIndex OBJECT-TYPE
+     SYNTAX      Integer32(0..63)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the index of the PSTN TID profile.
+         "
+     ::= { hwMgcpTIDConfigEntry 7 }
+        
+   hwMgcpIsNeedToConfigTID OBJECT-TYPE
+     SYNTAX      Integer32
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates whether the terminal ID needs to be configured for the subscriber. Bit0 (low) to bit31 (high) respectively represent PSTN, BRA, and PRA. The remaining bits are reserved. (It is unavailable in the R17.)
+         "
+     ::= { hwMgcpTIDConfigEntry 8 }         
+
+ 
+  
+    
+ -- Endf IASV500R002-SRV C003 add MGCP libiao 2005-09-08
+ --  /* Start hwIASMgcpTrapsVbOids */
+    
+     hwMgcpTrapRequestID OBJECT-TYPE
+     SYNTAX Unsigned32(0..4294967295)
+     MAX-ACCESS accessible-for-notify
+     STATUS current
+     DESCRIPTION
+         "
+         The MGCP trap request ID.
+         "
+     ::= { hwIASMgcpTrapsVbOids 1 }
+
+     hwMgcpMgStatus OBJECT-TYPE
+     SYNTAX INTEGER
+     {
+         up(1),
+	 down(2),
+	 fault(3),
+	 waitAck(4)
+     }
+     MAX-ACCESS accessible-for-notify
+     STATUS current
+     DESCRIPTION
+         "
+	 The status of the MGCP media gateway.
+	 Options:
+	 1. up(1)      -normal
+	 2. down(2)    -down
+	 3. fault(3)   -fault
+	 4. waitAck(4) -waiting for ACK
+         "
+     ::= { hwIASMgcpTrapsVbOids 2 }
+     
+     hwMgcpTrapLastChangeTime OBJECT-TYPE
+     SYNTAX TimeTicks
+     MAX-ACCESS accessible-for-notify
+     STATUS current
+     DESCRIPTION
+         "
+	 The value of sysUpTime at the time the media gateway or the media gateway control entered its current status or media gateway control switched.
+         "
+     ::= { hwIASMgcpTrapsVbOids 3 }
+     
+     hwMgcpMgcIpAddress OBJECT-TYPE
+     SYNTAX IpAddress
+     MAX-ACCESS accessible-for-notify
+     STATUS current
+     DESCRIPTION
+         "
+	 The mgc ip address.
+         "
+     ::= { hwIASMgcpTrapsVbOids 4 }
+     
+     hwMgcpMgcIndex OBJECT-TYPE
+     SYNTAX Unsigned32(0..1)
+     MAX-ACCESS accessible-for-notify
+     STATUS current
+     DESCRIPTION
+         "
+	 The current mgc index.
+         "
+     ::= { hwIASMgcpTrapsVbOids 5 } 
+
+     hwMgcpMgcStatus OBJECT-TYPE
+     SYNTAX INTEGER{ up(1), down(2), standby(3) }
+     MAX-ACCESS accessible-for-notify
+     STATUS current
+     DESCRIPTION
+         "
+	 The media gateway control status.
+	 Options: 
+         1. up(1) -indicates that the media gateway control status is up
+         2. down(2) -indicates that the media gateway control status is down
+         3. standby(3) -indicates that the media gateway control status is standby
+         "
+     ::= { hwIASMgcpTrapsVbOids 6 } 
+
+     hwMgcpFrame OBJECT-TYPE
+     SYNTAX Unsigned32(0..255)
+     MAX-ACCESS accessible-for-notify
+     STATUS current
+     DESCRIPTION
+         "
+	 The frame where mg user is configed.
+         "
+     ::= { hwIASMgcpTrapsVbOids 7 } 
+    
+     hwMgcpSlot OBJECT-TYPE
+     SYNTAX Unsigned32(0..255)
+     MAX-ACCESS accessible-for-notify
+     STATUS current
+     DESCRIPTION
+         "
+	 The slot where mg user is configed.
+         "
+     ::= { hwIASMgcpTrapsVbOids 8 } 
+     
+     hwMgcpPort OBJECT-TYPE
+     SYNTAX Unsigned32(0..255)
+     MAX-ACCESS accessible-for-notify
+     STATUS current
+     DESCRIPTION
+         "
+	 The port where mg user is configed.
+         "
+     ::= { hwIASMgcpTrapsVbOids 9 }  
+
+     hwMgcpMgcPort OBJECT-TYPE
+     SYNTAX Unsigned32(0..65535)
+     MAX-ACCESS accessible-for-notify
+     STATUS current
+     DESCRIPTION
+         "
+	 The UDP port of the MGC.
+         "
+     ::= { hwIASMgcpTrapsVbOids 10 }     
+     
+     hwMgcpIsConfigTid OBJECT-TYPE
+     SYNTAX Unsigned32(0..4294967295)
+     MAX-ACCESS accessible-for-notify
+     STATUS current
+     DESCRIPTION
+     	"
+     	Indicates whether the terminal ID needs to be configured for the subscriber. Bit0 (low) to bit31 (high) respectively represent PSTN, BRA, PRA, DPNSS, DASS2, and R2. The remaining bits are reserved.
+     	"
+     ::= { hwIASMgcpTrapsVbOids 11 }
+     
+     hwMgcpIsUpdateTid OBJECT-TYPE
+     SYNTAX Unsigned32(0..4294967295)
+     MAX-ACCESS accessible-for-notify
+     STATUS current
+     DESCRIPTION
+     	"
+     	Indicates whether the terminal ID needs to be updated for the subscriber. Bit0 (low) to bit31 (high) respectively represent PSTN, BRA, PRA, DPNSS, DASS2, and R2. The remaining bits are reserved.
+     	"
+     ::= { hwIASMgcpTrapsVbOids 12 }
+     
+ --  /*  End  hwIASMgcpTrapsVbOids */    
+     
+ --  /* Start hwIASMgcpCommonTraps */
+	
+     hwIASMgcpResetTrap NOTIFICATION-TYPE
+     OBJECTS { hwMgcpTrapRequestID, hwMgcpMedGwyId, hwMgcpMgStatus, hwMgcpTrapLastChangeTime }
+     STATUS current
+     DESCRIPTION
+         "
+         This notification indicates that the MGCP media gateway reset result.
+         "
+     ::= { hwIASMgcpCommonTraps 0 1 }
+     
+     hwIASMgcpShutdownTrap NOTIFICATION-TYPE
+     OBJECTS { hwMgcpTrapRequestID, hwMgcpMedGwyId, hwMgcpMgStatus, hwMgcpTrapLastChangeTime }
+     STATUS current
+     DESCRIPTION
+         "
+         This notification indicates that the MGCP media gateway shutdown result.
+         "
+     ::= { hwIASMgcpCommonTraps 0 2 }
+     
+     hwIASMgcpMgStateTrap NOTIFICATION-TYPE
+     OBJECTS { hwMgcpTrapRequestID, hwMgcpMedGwyId, hwMgcpMgStatus, hwMgcpTrapLastChangeTime }
+     STATUS current
+     DESCRIPTION
+         "
+         This notification indicates that the MGCP media gateway status change.
+         "
+     ::= { hwIASMgcpCommonTraps 0 3 }
+
+     hwIASMgcpMgcSwitchTrap NOTIFICATION-TYPE
+     OBJECTS { hwMgcpTrapRequestID, hwMgcpMedGwyId, hwMgcpMgcIndex, hwMgcpMgcStatus, hwMgcpTrapLastChangeTime }
+     STATUS current
+     DESCRIPTION
+         "
+         This notification indicates that the MGCP media gateway control switched.
+         "
+     ::= { hwIASMgcpCommonTraps 0 4 }
+     
+     hwIASMgcpMgcStateTrap NOTIFICATION-TYPE
+     OBJECTS { hwMgcpTrapRequestID, hwMgcpMedGwyId, hwMgcpMgcIndex, hwMgcpMgcStatus, hwMgcpTrapLastChangeTime }
+     STATUS current
+     DESCRIPTION
+         "
+         This notification indicates that the MGCP media gateway control status changed.
+         "
+     ::= { hwIASMgcpCommonTraps 0 5 }  
+        
+     hwIASMgcpMgLableTrap NOTIFICATION-TYPE
+     OBJECTS { hwMgcpMedGwyId, hwMgcpMedGwyDesc }
+     STATUS current
+     DESCRIPTION
+         "
+         This notification indicates that the userlabel of the MGCP interface changed.
+         "
+     ::= { hwIASMgcpCommonTraps 0 6 }  
+     
+     hwIASMgcpTidUpdateTrap NOTIFICATION-TYPE
+     OBJECTS { hwMgcpMedGwyId, hwMgcpIsConfigTid, hwMgcpIsUpdateTid }
+     STATUS current
+     DESCRIPTION
+         "
+         This notification indicates that the MGCP terminal ID updated.
+         "
+     ::= { hwIASMgcpCommonTraps 0 7 }
+ --  /*  End  hwIASMgcpCommonTraps */
+     
+ --  /* Start hwIASMgcpAlarmTraps */
+
+    hwIASMgcpMgFaultTrap NOTIFICATION-TYPE
+    OBJECTS  { hwMgcpMedGwyId, hwMgcpMgcIpAddress, hwMgcpMgcPort }
+    STATUS      current
+    DESCRIPTION    
+        "
+        The MGCP media gateway is closed. This trap when a card asserts an alarm.
+        "
+    ::= { hwIASMgcpAlarmTraps 0 1 }
+    
+    hwIASMgcpMgRestoreTrap NOTIFICATION-TYPE
+    OBJECTS  { hwMgcpMedGwyId, hwMgcpMgcIpAddress, hwMgcpMgcPort }
+    STATUS      current
+    DESCRIPTION    
+        "
+        The MGCP media gateway is up. This trap when a card asserts an alarm.
+        "
+    ::= { hwIASMgcpAlarmTraps 0 2 }
+    
+    hwIASMgcpAbsentResourceTrap NOTIFICATION-TYPE
+    OBJECTS  { hwMgcpFrame, hwMgcpSlot, hwMgcpPort }
+    STATUS      current
+    DESCRIPTION    
+        "
+        This notification indicates that the DSP resources is insufficient.
+        "
+    ::= { hwIASMgcpAlarmTraps 0 3 }
+    
+ --  /*  End  hwIASMgcpAlarmTraps */
+
+END

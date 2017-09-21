@@ -1,0 +1,412 @@
+SIP-UA-MIB DEFINITIONS ::= BEGIN
+
+   IMPORTS 
+        MODULE-IDENTITY, 
+        OBJECT-TYPE, 
+        Counter32, 
+        Integer32 
+             FROM SNMPv2-SMI 
+
+        MODULE-COMPLIANCE, 
+        OBJECT-GROUP, 
+        NOTIFICATION-GROUP 
+             FROM SNMPv2-CONF 
+
+        sipMIB 
+             FROM SIP-MIB-SMI  
+
+        applIndex 
+             FROM NETWORK-SERVICES-MIB; 
+
+   sipUAMIB MODULE-IDENTITY 
+        LAST-UPDATED   "200007080000Z" 
+        ORGANIZATION   "IETF SIP Working Group, SIP MIB Team" 
+        CONTACT-INFO 
+                "SIP MIB Team email: sip-mib@egroups.com 
+
+                 Co-editor  Kevin Lingle 
+                            Cisco Systems, Inc. 
+                 postal:    7025 Kit Creek Road 
+                            P.O. Box 14987 
+                            Research Triangle Park, NC 27709 
+                            USA 
+                 email:     klingle@cisco.com 
+                 phone:     +1-919-392-2029 
+
+                 Co-editor  Joon Maeng 
+                            VTEL Corporation 
+                 postal:    108 Wild Basin Rd. 
+                            Austin, TX 78746 
+                            USA 
+                 email:     joon_maeng@vtel.com 
+                 phone:     +1-512-437-4567 
+
+                 Co-editor  Dave Walker 
+                            SS8 Networks, Inc. 
+                 postal:    80 Hines Road 
+                            Kanata, ON  K2K 2T8 
+                            Canada 
+                 email:     drwalker@ss8networks.com 
+                 phone:     +1 613 592 2100" 
+        DESCRIPTION 
+                "Initial version of Session Initiation Protocol (SIP) 
+                 User Agent (UA) MIB module. 
+
+                 SIP is an application-layer signalling protocol for  
+                 creating, modifying and terminating multimedia  
+                 sessions with one or more participants. These sessions 
+                 include Internet multimedia conferences and Internet  
+                 telephone calls.  SIP is defined in RFC 2543 (March  
+                 1999). 
+
+                 A User Agent is an application that contains both a 
+                 User Agent Client (UAC) and a User Agent Server (UAS). 
+                 A UAC is an application that initiates a SIP request. 
+                 A UAS is an application that contacts the user when a 
+                 SIP request is received and that returns a response on 
+                 behalf of the user.  The response accepts, rejects, or 
+                 redirects the request." 
+        ::= { sipMIB 3 }  
+
+   -- 
+   -- sipUA group 
+   -- This group contains MIB objects related to SIP User Agents. 
+   -- 
+   sipUACfg                    OBJECT IDENTIFIER ::= { sipUAMIB 1 } 
+   sipUACfgTimer               OBJECT IDENTIFIER ::= { sipUACfg 1 } 
+   sipUACfgRetry               OBJECT IDENTIFIER ::= { sipUACfg 2 } 
+   sipUAStats                  OBJECT IDENTIFIER ::= { sipUAMIB 2 } 
+   sipUAStatsRetry             OBJECT IDENTIFIER ::= { sipUAStats 1 } 
+
+   -- 
+   -- User Agent Configuration 
+   -- 
+
+   -- 
+   -- SIP Timer Configuration 
+   -- 
+   sipUACfgTimerTable OBJECT-TYPE 
+       SYNTAX      SEQUENCE OF SipUACfgTimerEntry 
+       MAX-ACCESS not-accessible 
+       STATUS     current 
+       DESCRIPTION 
+            "This table contains timer configuration objects applicable  
+             to each SIP user agent in this system.  The instances of  
+             SIP entities are uniquely identified by applIndex." 
+       ::= { sipUACfgTimer 1 } 
+
+   sipUACfgTimerEntry OBJECT-TYPE 
+       SYNTAX     SipUACfgTimerEntry 
+       MAX-ACCESS not-accessible 
+       STATUS     current 
+       DESCRIPTION 
+            "A row of timer configuration." 
+       INDEX { applIndex } 
+       ::= { sipUACfgTimerTable 1 } 
+
+   SipUACfgTimerEntry ::= 
+       SEQUENCE { 
+                sipUACfgTimerTrying        Integer32, 
+                sipUACfgTimerProv          Integer32, 
+                sipUACfgTimerAck           Integer32, 
+                sipUACfgTimerDisconnect    Integer32, 
+                sipUACfgTimerReRegister    Integer32 
+       } 
+
+   sipUACfgTimerTrying OBJECT-TYPE 
+       SYNTAX      Integer32 (100..1000) 
+       UNITS       "milliseconds" 
+       MAX-ACCESS  read-write 
+       STATUS      current 
+       DESCRIPTION 
+            "This object specifies the time a user agent will wait to 
+             receive a provisional response to an INVITE before 
+             resending the INVITE." 
+       ::= { sipUACfgTimerEntry 1 } 
+
+   sipUACfgTimerProv OBJECT-TYPE 
+       SYNTAX      Integer32 (60000..300000) 
+       UNITS       "milliseconds" 
+       MAX-ACCESS  read-write 
+       STATUS      current 
+       DESCRIPTION 
+            "This object specifies the time a user agent will wait to 
+             receive a final response to an INVITE before canceling the 
+             transaction." 
+       ::= { sipUACfgTimerEntry 2 } 
+
+   sipUACfgTimerAck OBJECT-TYPE 
+       SYNTAX      Integer32 (100..1000) 
+       UNITS       "milliseconds" 
+       MAX-ACCESS  read-write 
+       STATUS      current 
+       DESCRIPTION 
+            "This object specifies the time a user agent will wait to 
+             receive an ACK confirmation indicating that a session is 
+             established." 
+       ::= { sipUACfgTimerEntry 3 } 
+
+   sipUACfgTimerDisconnect OBJECT-TYPE 
+       SYNTAX      Integer32 (100..1000) 
+       UNITS       "milliseconds" 
+       MAX-ACCESS  read-write 
+       STATUS      current 
+       DESCRIPTION 
+            "This object specifies the time a user agent will wait to 
+             receive a BYE confirmation indicating that a session is 
+             disconnected." 
+       ::= { sipUACfgTimerEntry 4 } 
+
+   sipUACfgTimerReRegister OBJECT-TYPE 
+       SYNTAX      Integer32 (1..2147483647) 
+       UNITS       "seconds" 
+       MAX-ACCESS  read-write 
+       STATUS      current 
+       DESCRIPTION 
+            "This object specifies how long the user agent wishes its 
+             registrations to be valid." 
+       ::= { sipUACfgTimerEntry 5 } 
+
+   -- 
+   -- SIP Retry Configuration 
+   -- 
+   sipUACfgRetryTable OBJECT-TYPE 
+       SYNTAX      SEQUENCE OF SipUACfgRetryEntry 
+       MAX-ACCESS not-accessible 
+       STATUS     current 
+       DESCRIPTION 
+            "This table contains retry configuration objects applicable  
+             to each SIP user agent in this system.  The instances of  
+             SIP entities are uniquely identified by applIndex." 
+       ::= { sipUACfgRetry 1 } 
+
+   sipUACfgRetryEntry OBJECT-TYPE 
+       SYNTAX     SipUACfgRetryEntry 
+       MAX-ACCESS not-accessible 
+       STATUS     current 
+       DESCRIPTION 
+            "A row of retry configuration." 
+       INDEX { applIndex } 
+       ::= { sipUACfgRetryTable 1 } 
+
+   SipUACfgRetryEntry ::= 
+       SEQUENCE { 
+                sipUACfgRetryInvite       Integer32, 
+                sipUACfgRetryBye          Integer32, 
+                sipUACfgRetryCancel       Integer32, 
+                sipUACfgRetryRegister     Integer32, 
+                sipUACfgRetryResponse     Integer32 
+       } 
+
+   sipUACfgRetryInvite OBJECT-TYPE 
+       SYNTAX      Integer32 (1..10) 
+       MAX-ACCESS  read-write 
+       STATUS      current 
+       DESCRIPTION 
+            "This object will specify the number of times a user agent 
+             will retry sending an INVITE request." 
+       ::= { sipUACfgRetryEntry 1 } 
+
+   sipUACfgRetryBye OBJECT-TYPE 
+       SYNTAX      Integer32 (1..10) 
+       MAX-ACCESS  read-write 
+       STATUS      current 
+       DESCRIPTION 
+            "This object will specify the number of times a user agent 
+             will retry sending a BYE request." 
+       ::= { sipUACfgRetryEntry 2 } 
+
+   sipUACfgRetryCancel OBJECT-TYPE 
+       SYNTAX      Integer32 (1..10) 
+       MAX-ACCESS  read-write 
+       STATUS      current 
+       DESCRIPTION 
+            "This object will specify the number of times a user agent 
+             will retry sending a CANCEL request." 
+       ::= { sipUACfgRetryEntry 3 } 
+
+   sipUACfgRetryRegister OBJECT-TYPE 
+       SYNTAX      Integer32 (1..10) 
+       MAX-ACCESS  read-write 
+       STATUS      current 
+       DESCRIPTION 
+            "This object will specify the number of times a user agent 
+             will retry sending a REGISTER request." 
+       ::= { sipUACfgRetryEntry 4 } 
+
+   sipUACfgRetryResponse OBJECT-TYPE 
+       SYNTAX      Integer32 (1..10) 
+       MAX-ACCESS  read-write 
+       STATUS      current 
+       DESCRIPTION 
+            "This object will specify the number of times a user agent 
+             will retry sending a Response and expecting an ACK." 
+       ::= { sipUACfgRetryEntry 5 } 
+
+   -- 
+   -- User Agent Statistics 
+   -- 
+
+   -- 
+   -- SIP Retry Statistics 
+   -- 
+   -- The counter objects in this group correspond directly to the 
+   -- retry timers supported in sipCfgRetry group.  applIndex can 
+   -- be used to correlate the two groups. 
+   --  
+   -- 
+   sipUAStatsRetryTable OBJECT-TYPE 
+       SYNTAX     SEQUENCE OF SipUAStatsRetryEntry 
+       MAX-ACCESS not-accessible 
+       STATUS     current 
+       DESCRIPTION 
+            "This table contains retry statistics objects applicable  
+             to each SIP user agent in this system.  The instances of  
+             SIP entities are uniquely identified by applIndex." 
+       ::= { sipUAStatsRetry 1 } 
+
+   sipUAStatsRetryEntry OBJECT-TYPE 
+       SYNTAX     SipUAStatsRetryEntry 
+       MAX-ACCESS not-accessible 
+       STATUS     current 
+       DESCRIPTION 
+            "A row of retry statistics." 
+       INDEX { applIndex } 
+       ::= { sipUAStatsRetryTable 1 } 
+
+   SipUAStatsRetryEntry ::= 
+       SEQUENCE { 
+                sipStatsRetryInvites        Counter32, 
+                sipStatsRetryByes           Counter32, 
+                sipStatsRetryCancels        Counter32, 
+                sipStatsRetryRegisters      Counter32, 
+                sipStatsRetryResponses      Counter32 
+       } 
+
+   sipStatsRetryInvites OBJECT-TYPE 
+       SYNTAX      Counter32 
+       MAX-ACCESS  read-only 
+       STATUS      current 
+       DESCRIPTION 
+            "This object reflects the total number of INVITE retries 
+             that have been sent by the user agent.   If the number of 
+             'first attempt' INVITES is of interest, subtract the value 
+             of this object from sipStatsTrafficInviteOut." 
+       ::= { sipUAStatsRetryEntry 1 } 
+
+   sipStatsRetryByes OBJECT-TYPE 
+       SYNTAX      Counter32 
+       MAX-ACCESS  read-only 
+       STATUS      current 
+       DESCRIPTION 
+            "This object reflects the total number of BYE retries that 
+             have been sent by the user agent." 
+       ::= { sipUAStatsRetryEntry 2 } 
+
+   sipStatsRetryCancels OBJECT-TYPE 
+       SYNTAX      Counter32 
+       MAX-ACCESS  read-only 
+       STATUS      current 
+       DESCRIPTION 
+            "This object reflects the total number of CANCEL retries 
+             that have been sent by the user agent." 
+       ::= { sipUAStatsRetryEntry 3 } 
+
+   sipStatsRetryRegisters OBJECT-TYPE 
+       SYNTAX      Counter32 
+       MAX-ACCESS  read-only 
+       STATUS      current 
+       DESCRIPTION 
+            "This object reflects the total number of REGISTER retries 
+             that have been sent by the user agent." 
+       ::= { sipUAStatsRetryEntry 4 } 
+
+   sipStatsRetryResponses OBJECT-TYPE 
+       SYNTAX      Counter32 
+       MAX-ACCESS  read-only 
+       STATUS      current 
+       DESCRIPTION 
+            "This object reflects the total number of Response (while 
+             expecting an ACK) retries that have been sent by the user 
+             agent." 
+       ::= { sipUAStatsRetryEntry 5 } 
+
+   -- 
+   -- Notifications 
+   -- 
+   sipUAMIBNotif            OBJECT IDENTIFIER ::= { sipUAMIB 3 } 
+
+   -- none at this time 
+
+   -- 
+   -- Conformance 
+   -- 
+   sipUAMIBConformance       
+     OBJECT IDENTIFIER ::= { sipUAMIB 4 } 
+   sipUAMIBCompliances       
+     OBJECT IDENTIFIER ::= { sipUAMIBConformance 1 } 
+   sipUAMIBGroups            
+     OBJECT IDENTIFIER ::= { sipUAMIBConformance 2 } 
+
+   -- 
+   -- Compliance Statements 
+   -- 
+   sipUACompliance MODULE-COMPLIANCE 
+       STATUS     current 
+       DESCRIPTION 
+            "The compliance statement for SIP entities." 
+
+       MODULE -- this module 
+            MANDATORY-GROUPS { sipUAConfigGroup, 
+                               sipUAStatsGroup } 
+   --                            sipUANotifGroup } 
+       ::= { sipUAMIBCompliances 1 } 
+
+   -- 
+   -- Units of Conformance 
+   -- 
+
+   sipUAConfigGroup OBJECT-GROUP 
+       OBJECTS { 
+               sipUACfgTimerTrying, 
+               sipUACfgTimerProv, 
+               sipUACfgTimerAck, 
+               sipUACfgTimerDisconnect, 
+               sipUACfgTimerReRegister, 
+               sipUACfgRetryInvite, 
+               sipUACfgRetryBye, 
+               sipUACfgRetryCancel, 
+               sipUACfgRetryRegister, 
+               sipUACfgRetryResponse 
+       } 
+       STATUS  current 
+       DESCRIPTION 
+            "A collection of objects providing configuration for 
+             SIP User Agents." 
+       ::= { sipUAMIBGroups 1 } 
+
+   sipUAStatsGroup OBJECT-GROUP 
+       OBJECTS { 
+               sipStatsRetryInvites, 
+               sipStatsRetryByes, 
+               sipStatsRetryCancels, 
+               sipStatsRetryRegisters, 
+               sipStatsRetryResponses 
+       } 
+       STATUS  current 
+       DESCRIPTION 
+            "A collection of objects providing statistics for 
+             SIP User Agents." 
+       ::= { sipUAMIBGroups 2 } 
+
+   --sipUANotifGroup NOTIFICATION-GROUP 
+   --    OBJECTS { 
+   -- none at this time 
+   --    } 
+   --    STATUS  current 
+   --    DESCRIPTION 
+   --         "A collection of notifications defined for SIP User 
+   --          Agents." 
+   --    ::= { sipMIBGroups 3 } 
+
+END

@@ -1,0 +1,1642 @@
+CADANT-CMTS-DOWNCHANNEL-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+	OBJECT-TYPE, MODULE-IDENTITY, 
+	-- do not import BITS,
+	Integer32, TimeTicks, Unsigned32, Counter64
+		FROM SNMPv2-SMI
+	TEXTUAL-CONVENTION, TimeInterval, TruthValue, RowStatus
+		FROM SNMPv2-TC
+    InterfaceIndex
+        FROM IF-MIB
+	TenthdBmV
+		FROM DOCS-IF-MIB
+	cadSpectrum
+		FROM CADANT-PRODUCTS-MIB
+	CardId
+		FROM CADANT-TC;
+
+
+cadDownchannelMib MODULE-IDENTITY
+    LAST-UPDATED "201510270000Z"  -- Oct 27, 2015
+    ORGANIZATION "ARRIS Group, Inc."
+    CONTACT-INFO "ARRIS Technical Support
+          Postal: ARRIS
+           Phone: +1 630 281 3000
+          E-Mail: support@arris.com"
+    DESCRIPTION "ARRIS CMTS Downstream Channel Configuration and Constants"
+
+    REVISION "201510270000Z"  -- Oct 27, 2015
+    DESCRIPTION "Add cadDsOfdmProfStat30SecCwUtil and cadDsOfdmProfStat30SecCwEff."
+    REVISION "201510070000Z"  -- Oct 7, 2015
+    DESCRIPTION "Change MAX-ACCESS of cadIfDownChannelAnnex to read-write."
+    REVISION "201509300000Z"  -- Sep 30, 2015
+    DESCRIPTION "Rename cadDsOfdmOcdDpdProfAInterval to cadDsOfdmDpdProfAInterval"
+
+    REVISION "201509080000Z"  -- Sep 8, 2015
+    DESCRIPTION "Update CerOfdmModType and CerOfdmModBitsType"
+    REVISION "201508190000Z"  -- Aug 19, 2015
+    DESCRIPTION "Re-type the OfdmProfileId from (1..16|256) to (1..3|256)"
+    REVISION "201508120000Z"  -- Aug 12, 2015
+    DESCRIPTION "change default value of cadIfDownChannelPower and cadIfDsOfdmChlRfPortBasePower to 380"
+    REVISION "201506230000Z"  -- June 23, 2015
+    DESCRIPTION "Add configured active subcarriers for licensing."
+
+    REVISION "201505010000Z"  -- May 1, 2015
+    DESCRIPTION "Change OFDM packet cable related MIB object range to (0..100)."
+    REVISION "201504270000Z"  -- Apr 27, 2015
+    DESCRIPTION "Add cadDownChannelLsredMinThresh, cadDownChannelLsredMaxThresh, cadDownChannelLsredMaxProb
+                 and cadDownChannelVoiceShaping for Per Flow Downstream Latency Support."
+    REVISION "201503040000Z"  -- Mar 4, 2015
+    DESCRIPTION "Add cadDsOfdmProfStatTable"
+    REVISION "201502180000Z"  -- Feb 18, 2015
+    DESCRIPTION "Add cadIfDsOfdmPowerCurrLevel, cadIfDsOfdmPowerMinLevel, 
+                 and cadIfDsOfdmPowerMaxLevel to CadIfDsOfdmPowerEntry"
+    REVISION "201502170000Z"  -- Feb 17, 2015
+    DESCRIPTION "change default value of cadIfDsOfdmChlRfPortBasePower to 390"
+    REVISION "201502130000Z"  -- Feb 13, 2015
+    DESCRIPTION "Add cadDsOfdmProfExceptionTable and cadIfDsOfdmPowerTable"
+    REVISION "201502060000Z"  -- Feb 6, 2015
+    DESCRIPTION "Reorganize cadIfDsOfdmChlEntry and cadIfDsOfdmChlDataEntry"
+    REVISION "201501160000Z"  -- Jan 16, 2015
+    DESCRIPTION "Add cadDsOfdmOcdDpdPlcInterval, cadDsOfdmOcdDpdProfAInterval
+                 cadIfDsOfdmChlEntry, cadIfDsOfdmChlDataEntry, 
+                 and cadDsOfdmProfileEntry"
+    REVISION "201411260000Z"  -- Nov 26, 2014
+    DESCRIPTION "Remove cadIfCmtsDsTokenBucket as well as CadDsTokenBucketMode."
+    REVISION "201411170000Z"  -- Nov 17, 2014
+    DESCRIPTION "Change default value of cadIfDownChannelPower to 390 tenth dbmV."
+    REVISION "201405200000Z"  -- May 20, 2014
+    DESCRIPTION "Allow video channels to use a known channelId."
+    REVISION "201404030000Z"  -- Apr 3, 2014
+    DESCRIPTION "Add cadIfDownSpectralInversion to cadIfDownstreamChannelTable."
+    REVISION "201401160000Z"  -- January 16, 2014
+    DESCRIPTION "Revert cadIfDownChannelPower default value to 410"
+    REVISION "201310130000Z"  -- Oct 3, 2013
+    DESCRIPTION "Change cadIfDownChannelPower range to (250..600), default value from 410 to 420"
+    REVISION "201303150000Z"  -- March 15, 2013
+    DESCRIPTION "Add cadDownChannelOorRecoveryEnable"
+    REVISION "201302260000Z"  -- Feb 26, 2013
+    DESCRIPTION "Change cadDownChannelAgcEnable default value to on."
+    REVISION "201301140000Z"  -- Jan 14, 2013
+    DESCRIPTION "Add cadDownChannelAgcEnable"
+    REVISION "201210170000Z"  -- Oct 17, 2012
+    DESCRIPTION "Change cadIfDownChannelPower default value from 450 to 410"
+    REVISION "201210150000Z"  -- Oct 15, 2012
+    DESCRIPTION "Change cadIfDownChannelPower range from (370..600) to (330..600)"
+    REVISION "201109270000Z"  -- Sep 27, 2011
+    DESCRIPTION "Change default value of cadIfDownChannelPower from 490 to 450, and range (370..600)"
+    REVISION "201108300000Z"  -- Aug 30, 2011
+    DESCRIPTION "Remove cadIfDownChannelAutoGainControlEnable.
+                 Change range of cadIfDownChannelPowerFineAdj."
+    REVISION "201006100000Z"  -- June 10, 2010
+    DESCRIPTION "Change default value of cadIfDownChannelPower from 500 to 490, and range (410..605)"
+    REVISION "201005030000Z"  -- May 3rd, 2010
+    DESCRIPTION "Added non RFC 2670 interleave modes for annex B."
+    REVISION "201004010000Z"  -- Apr 1st, 2010
+    DESCRIPTION "Added cadIfDownChannelAnnex back to support 24D/32D CAM."
+    REVISION "200912160000Z"  -- Dec 16, 2009
+    DESCRIPTION "Change default value of cadIfDownChannelModulation from qam64(3) to qam256(4)."
+    REVISION "200804030000Z"  -- Apr 03, 2008
+    DESCRIPTION "Add cadDownChannelMaxFrequency and cadDownChannelMinFrequency."
+    REVISION "200710090000Z"  -- Oct 09, 2007
+    DESCRIPTION "Remove cadIfCmtsCapabilities, cadIfCmtsSyncInterval, cadIfCmtsUcdInterval, 
+                 cadIfCmtsInsertionInterval, cadIfCmtsMaxServiceIds, cadIfCmtsInvitedRangingAttempts, 
+                 cadIfCmtsInsertInterval, cadIfCmtsRangingInterval, cadIfCmtsRangeOpportunityCycle, 
+                 cadIfCmtsCPEAgingInterval, cadIfCmtsSFAgingInterval, cadIfCmtsCardNumber, 
+                 cadIfCmtsConfigured, cadIfCmtsTftpEnforce, cadIfCmtsDynamicSecret."
+    REVISION "200709280000Z"  -- Sep 28, 2007
+    DESCRIPTION "change cadIfDownChannelPower range from 43.5 to 60.5 dBmV."
+    REVISION "200702070000Z"  -- Feb 7, 2007
+    DESCRIPTION "Remove cadIfCmtsTftpEnforce and cadIfCmtsDynamicSecret."
+    REVISION "200701220000Z"  -- Jan 22, 2007
+    DESCRIPTION "Remove cadIfDownChannelAnnex"
+    REVISION "200611010000Z"  -- Nov 1, 2006
+    DESCRIPTION "Change cadIfDownChannelIfIndex as the index of cadIfDownstreamChannelTable ."
+    REVISION "200608300000Z"  -- Aug 30, 2006
+    DESCRIPTION "Add cadIfDownChannelPrimaryCapable to cadIfDownstreamChannelTable."
+    REVISION "200608280000Z"  -- Aug 28, 2006
+    DESCRIPTION "Add cadIfDownChannelIfIndex to cadIfDownstreamChannelTable."
+    REVISION "200602240000Z"
+    DESCRIPTION "Modify the range of cadIfDownChannelPowerFineAdj."
+    REVISION "200506210000Z"
+    DESCRIPTION "Included Traffic Shaping for 2D12U feature."
+    REVISION "200412030000Z"
+    DESCRIPTION "Included support for TFTP Enforce feature."
+    REVISION "200403040000Z"
+    DESCRIPTION "Populate read-write objects with defaults via DEFVAL."
+    REVISION "200307030000Z"
+    DESCRIPTION "Change definition of downstream channel to include slot."
+    REVISION "200212030000Z"
+    DESCRIPTION "Add PacketCable CAC Reserved and Allowed Values for Normal and Emergency Calls."
+    ::= { cadSpectrum 2 }
+
+
+OfdmProfileId ::= TEXTUAL-CONVENTION
+    STATUS current
+    DESCRIPTION
+        "The legal downstream profile IDs, plus one."
+    SYNTAX Integer32 (1..3|256)
+
+CerOfdmModType ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "A type definition the downstream OFDM bit-loading type."
+    SYNTAX    INTEGER {
+                        qam0(0),
+                        qpsk(2),
+                        qam16(4),
+                        qam64(6),
+                        qam128(7),
+                        qam256(8),
+                        qam512(9),
+                        qam1024(10),
+                        qam2048(11),
+                        qam4096(12),
+                        qam8192(13),
+                        qam16384(14)
+                      }
+
+CerOfdmModBitsType ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "A BITS type definition the downstream OFDM/OFDMA bit-loading type."
+    SYNTAX    BITS {
+                        qam32768(0),   --0x8000 (unused)
+                        qam16384(1),   --0x4000 (only OFDM)
+                        qam8192(2),    --0x2000 (only OFDM)
+                        qam4096(3),    --0x1000
+                        qam2048(4),    --0x0800
+                        qam1024(5),    --0x0400
+                        qam512(6),     --0x0200
+                        qam256(7),     --0x0100
+                        qam128(8),     --0x0800
+                        qam64(9),      --0x0040
+                        qam32(10),     --0x0020 (only OFDMA)
+                        qam16(11),     --0x0010
+                        qam8(12),      --0x0008 (only OFDMA)
+                        qpsk(13),      --0x0004
+                        bpsk(14),      --0x0002 (never reported used by CM or CMTS)
+                        zeroBitload(15)       --0x0001 (never reported by CM)
+                   }
+
+--
+-- The following table is implemented on both the Cable Modem (CM)
+-- and the Cable Modem Termination System (CMTS).
+--
+
+cadIfDownstreamChannelTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadIfDownstreamChannelEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table describes the attributes of downstream
+             channels (frequency bands)."
+        REFERENCE
+
+
+            "DOCSIS Radio Frequency Interface Specification,
+             Table 4-12 and Table 4-13."
+        ::= { cadDownchannelMib 1 }
+
+cadIfDownstreamChannelEntry OBJECT-TYPE
+        SYNTAX      CadIfDownstreamChannelEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry provides a list of attributes for a single
+             Downstream channel.
+             An entry in this table exists for each ifEntry with an
+             ifType of docsCableDownstream(128)."
+        INDEX { cadIfDownChannelIfIndex }
+        ::= { cadIfDownstreamChannelTable 1 }
+
+CadIfDownstreamChannelEntry ::= SEQUENCE {
+            cadIfDownChannelId                  Integer32,
+            cadIfDownChannelFrequency           Integer32,
+            cadIfDownChannelWidth               Integer32,
+            cadIfDownChannelModulation          INTEGER,
+            cadIfDownChannelInterleave          INTEGER,
+            cadIfDownChannelPower               TenthdBmV,
+            cadIfDownChannelPowerFineAdj        Integer32,
+            cadIfCmtsCardNumber                 CardId,
+            cadIfDownChannelCACL1Threshold      Integer32,
+            cadIfDownChannelCACL2Threshold      Integer32,
+            cadIfDownChannelCACL3Threshold      Integer32,
+            cadIfDownChannelMaxRoundTripDelay   Integer32,
+            cadIfDownChannelAnnex               INTEGER,
+            cadIfDownChannelPCNormAllowedUsage  Integer32,
+            cadIfDownChannelPCNormResUsage      Integer32,
+            cadIfDownChannelPCEmerAllowedUsage  Integer32,
+            cadIfDownChannelPCEmerResUsage      Integer32,
+            cadIfDownChannelPCTotalAllowedUsage Integer32,
+            cadIfDownChannelPCPreemptionAllowed TruthValue,
+            cadIfDownChannelIfIndex             InterfaceIndex,
+            cadIfDownChannelPrimaryCapable      TruthValue,
+            cadIfDownSpectralInversion          TruthValue
+        }
+
+cadIfDownChannelId OBJECT-TYPE
+        SYNTAX      Integer32 (-1..255)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The Cable Modem Termination System (CMTS) identification
+             of the downstream channel within this particular MAC
+             interface. If the interface is down, the object returns
+             the most current value. If the downstream channel ID is
+             unknown on a DOCSIS channel, this object returns a value of 0.
+             A video downstream channel will have a value of -1."
+        ::= { cadIfDownstreamChannelEntry 1 }
+
+cadIfDownChannelFrequency  OBJECT-TYPE
+        SYNTAX      Integer32 (0..1000000000)
+        UNITS       "hertz"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The center of the downstream frequency associated with
+             this channel. This object will return the current tuner
+             frequency. If this CMTS interface provides IF output only, 
+             this object will return 0 and will be treated as read-only.
+             See the associated compliance object for a description of 
+             valid frequencies that may be written to this object."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface Specification,
+             Section 4.3.3."
+        DEFVAL { 0 }
+        ::= { cadIfDownstreamChannelEntry 2 }
+
+cadIfDownChannelWidth  OBJECT-TYPE
+        SYNTAX      Integer32 (0..16000000)
+        UNITS       "hertz"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The bandwidth of this downstream channel. Most
+             implementations are expected to support a channel width
+             of 6 MHz (North America) and/or 8 MHz (Europe).  See the
+             associated compliance object for a description of the
+             valid channel widths for this object."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface Specification,
+             Table 4-12 and Table 4-13."
+        DEFVAL { 6000000 }
+        ::= { cadIfDownstreamChannelEntry 3 }
+
+cadIfDownChannelModulation OBJECT-TYPE
+        SYNTAX      INTEGER {
+            unknown(1),
+            other(2),
+            qam64(3),
+            qam256(4)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The modulation type associated with this downstream
+             channel. If the interface is down, this object either
+             returns the configured value (CMTS), the most current
+             value (CM), or the value of unknown(1).  See the
+             associated conformance object for write conditions and
+             limitations. See the reference for specifics on the
+             modulation profiles implied by qam64 and qam256."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface Specification,
+             Section 3.6.2."
+        DEFVAL { qam256 }
+        ::= { cadIfDownstreamChannelEntry 4 }
+
+cadIfDownChannelInterleave OBJECT-TYPE
+        SYNTAX      INTEGER {
+            unknown(1),
+            other(2),
+            taps8Increment16(3),
+            taps16Increment8(4),
+            taps32Increment4(5),
+            taps64Increment2(6),
+            taps128Increment1(7),
+            taps12increment17(8),
+             -- non RFC 2670 interleave modes
+            taps128increment2(9),
+            taps128increment3(10),
+            taps128increment4(11),
+            taps128increment5(12),
+            taps128increment6(13),
+            taps128increment7(14),
+            taps128increment8(15)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The Forward Error Correction (FEC) interleaving used
+             for this downstream channel.
+             Values are defined as follows:
+             taps8Increment16(3):   protection 5.9/4.1 usec,
+                                    latency .22/.15 msec
+             taps16Increment8(4):   protection 12/8.2 usec,
+                                    latency .48/.33 msec
+             taps32Increment4(5):   protection 24/16 usec,
+                                    latency .98/.68 msec
+             taps64Increment2(6):   protection 47/33 usec,
+                                    latency 2/1.4 msec
+             taps128Increment1(7):  protection 95/66 usec,
+                                    latency 4/2.8 msec
+             taps12increment17(8):  protection 18/14 usec,
+                                    latency 0.43/0.32 msec
+             If the interface is down, this object either returns
+             the configured value (CMTS), the most current value (CM),
+             or the value of unknown(1).
+             The value of other(2) is returned if the interleave
+             is known but not defined in the above list.
+             See the associated conformance object for write
+             conditions and limitations. See the reference for the FEC
+             configuration described by the setting of this object.
+             non RFC 2670 interleave modes are only available for annex B."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface Specification,
+             Section 4.3.2."
+        DEFVAL { taps32Increment4 }
+        ::= { cadIfDownstreamChannelEntry 5 }
+
+cadIfDownChannelPower OBJECT-TYPE
+        SYNTAX      TenthdBmV (0|250..600)
+        UNITS       "dBmV"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The CMTS operational transmit power.  If this CMTS
+             interface does not support output power control then
+             this object will return 0 and be treated as read-only.
+             If the interface is down, this object either returns
+             the configured value or the value of 0.  See the 
+             reference for recommended and required power levels."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface Specification,
+             Table 4-12 and Table 4-13."
+        DEFVAL { 380 }
+        ::= { cadIfDownstreamChannelEntry 6 }
+
+cadIfDownChannelPowerFineAdj OBJECT-TYPE
+        SYNTAX      Integer32 (-80..0)
+        UNITS       "Steps"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "At the CMTS, the fine power adjustments steps to increase
+             or decrease the output power in incremental steps."
+        DEFVAL { 0 }
+        ::= { cadIfDownstreamChannelEntry 7 }
+
+--cadIfCmtsCapabilities OBJECT-TYPE
+--        SYNTAX      BITS {
+--            atmCells(0),
+--            concatenation(1)
+--        }
+--        MAX-ACCESS  read-only
+--        STATUS      current
+--        DESCRIPTION
+--            "Identifies the capabilities of the CMTS MAC
+--             implementation at this interface. Note that packet
+--             transmission is always supported. Therefore, there
+--             is no specific bit required to explicitely indicate
+--             this capability."
+--        REFERENCE
+--            "DOCSIS Radio Frequency Interface specification,
+--             Chapter 6."
+--        ::= { cadIfDownstreamChannelEntry 8 }
+
+
+
+
+
+
+cadIfCmtsCardNumber OBJECT-TYPE
+        SYNTAX      CardId
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+	    "Card Number associated with this Channel."
+        ::= { cadIfDownstreamChannelEntry 19 }
+
+--cadIfCmtsConfigured OBJECT-TYPE
+--        SYNTAX      TruthValue
+--        MAX-ACCESS  read-only
+--        STATUS      current
+--        DESCRIPTION
+--	    "Is the this channel provisioned?"
+--        ::= { cadIfDownstreamChannelEntry 20 }
+
+cadIfDownChannelCACL1Threshold OBJECT-TYPE
+        SYNTAX      Integer32 (0..1000)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Percentage of available bandwidth on the channel that can
+			 be reserved for admitted/active service flows before the 
+			 channel goes into Level 1 Overload. When a channel goes 
+			 into Level 1 Overload, a warning message will be logged. 
+			 Service flow activation/admission will not be denied in 
+			 Level 1 Overload. 
+			 
+			 If the percentage is set to 0, the default value will be 
+			 used and reading this object must return the the default 
+			 L1 threshold.
+			 
+			 If a set operation tries to change the value of an
+             existing instance of this object to any value that 
+			 is higher than cadIfDownChannelCACL2Threshold or higher
+			 than cadIfDownChannelCACL3Threshold on the same row, then 
+			 an 'inconsistentValue' error must be returned."
+        REFERENCE
+            "C4 Cable Modem Termination System (CMTS): Software Architecture Document"
+        DEFVAL { 90 }
+        ::= { cadIfDownstreamChannelEntry 21 }
+
+cadIfDownChannelCACL2Threshold OBJECT-TYPE
+        SYNTAX      Integer32 (0..1000)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Percentage of available bandwidth on the channel that can
+			 be reserved for admitted/active service flows before the 
+			 channel goes into Level 2 Overload. When a channel goes 
+			 into Level 2 Overload, a warning message will be logged. 
+			 Service flow activation/admission will not be denied in 
+			 Level 2 Overload. 
+			 
+			 A channel in Level 2 Overload is a good candidate for 
+			 overload control or load balancing actions.
+
+			 If the percentage is set to 0, the default value will be 
+			 used and reading this object must return the the default 
+			 L2 threshold.
+			 
+			 If a set operation tries to change the value of an
+             existing instance of this object to any value that 
+			 is higher than cadIfDownChannelCACL3Threshold or lower
+			 than cadIfDownChannelCACL1Threshold on the same row, then 
+			 an 'inconsistentValue' error must be returned."
+        REFERENCE
+            "C4 Cable Modem Termination System (CMTS): Software Architecture Document"
+        DEFVAL { 100 }
+        ::= { cadIfDownstreamChannelEntry 22 }
+
+cadIfDownChannelCACL3Threshold OBJECT-TYPE
+        SYNTAX      Integer32 (0..1000)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Percentage of available bandwidth on the channel that can
+			 be reserved for admitted/active service flows. A 
+			 Registration Request, DSA Request or DSC Request will be 
+			 denied due to temporary resource limitations if it would 
+			 result in an active or admitted service flow whose 
+			 mininum reserved bandwidth would cause this threshold to 
+			 be exceeded on the downstream channel.
+
+			 If the percentage is set to 0, the default value will be 
+			 used and reading this object must return the the default 
+			 L3 threshold.
+			 
+			 If a set operation tries to change the value of an
+             existing instance of this object to any value that 
+			 is lower than cadIfDownChannelCACL1Threshold or lower
+			 than cadIfDownChannelCACL2Threshold on the same row, then 
+			 an 'inconsistentValue' error must be returned."
+        REFERENCE
+            "C4 Cable Modem Termination System (CMTS): Software Architecture Document"
+        DEFVAL { 500 }
+        ::= { cadIfDownstreamChannelEntry 23 }
+
+cadIfDownChannelMaxRoundTripDelay OBJECT-TYPE
+        SYNTAX      Integer32 (200..1600)
+        UNITS       "Microseconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Maximum round-trip propagation delay for cable
+             plant in Microseconds.  Should be configured for
+             the furthest CM in all cable groups containing
+             this DownChannel.  Default of 1600 Microseconds
+             is approxiamately 100 miles between the CMTS and
+             the furthest CM."
+        DEFVAL { 1600 }
+        ::= { cadIfDownstreamChannelEntry 24 }
+
+cadIfDownChannelAnnex OBJECT-TYPE
+        SYNTAX      INTEGER {
+            unknown(1),
+            other(2),
+            annexA(3),
+            annexB(4),
+            annexC(5)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The value of this object indicates the conformance of
+             the implementation to important regional cable standards.
+             annexA : Annex A from ITU-J83 is used.
+             annexB : Annex B from ITU-J83 is used.
+             annexC : Annex C from ITU-J83 is used."
+        DEFVAL { annexB }
+        ::= { cadIfDownstreamChannelEntry 26 }
+
+cadIfDownChannelPCNormAllowedUsage OBJECT-TYPE
+    SYNTAX          Integer32 (0..100)
+    UNITS           "percent"       
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Maximum percentage of downstream resources that may be 
+                     used by non-emergency telephony services. This is also 
+		     the maximum amount of resources non-exclusively allocated
+		     to sessions of this type.  The default is set from the 
+		     globals in CadPCMibBase."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+    ::= { cadIfDownstreamChannelEntry 27 }
+
+cadIfDownChannelPCNormResUsage OBJECT-TYPE
+    SYNTAX          Integer32 (0..100)
+    UNITS           "percent"       
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Minimum percentage of downstream resources that may be 
+                     used by non-emergency telephony services. This is also
+		     the maximum amount of resources exclusively allocated 
+		     to sessions of this type. If the value of this object 
+		     is non-zero, then a portion of the downstream bandwidth 
+		     will be set aside for normal telephony use only - reducing
+                     the bandwidth that is available for normal data.  The
+		     default is set from the globals in CadPCMibBase."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+    ::= { cadIfDownstreamChannelEntry 28 }
+
+cadIfDownChannelPCEmerAllowedUsage OBJECT-TYPE
+    SYNTAX          Integer32 (0..100)
+    UNITS           "percent"       
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Maximum percentage of downstream resources that may 
+                     be used by emergency telephony services.  The default
+		     is set from the globals in CadPCMibBase."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+    ::= { cadIfDownstreamChannelEntry 29 }
+
+cadIfDownChannelPCEmerResUsage OBJECT-TYPE
+    SYNTAX          Integer32 (0..100)
+    UNITS           "percent"       
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Minimum percentage of downstream resources that may be 
+                     used by emergency telephony services. If the value of 
+		     this object is non-zero, then a portion of the downstream 
+		     bandwidth will be set aside for normal telephony use 
+		     only - reducing the bandwidth that is available for
+                     normal data.  The default is set from the globals in 
+		     CadPCMIbBase."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+    ::= { cadIfDownstreamChannelEntry 30 }
+
+cadIfDownChannelPCTotalAllowedUsage OBJECT-TYPE
+    SYNTAX          Integer32 (0..100)
+    UNITS           "percent"       
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Maximum percentage of downstream resources that may 
+                     be used by both normal and  emergency telephony services.
+		     The default is set from the globals in CadPCMibBase."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+    ::= { cadIfDownstreamChannelEntry 31 }
+
+cadIfDownChannelPCPreemptionAllowed OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Indicates whether the system will preempt another session
+                     for an emergency call.  The default is set from the 
+		     globals in CadPCMibBase."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+    ::= { cadIfDownstreamChannelEntry 32 }
+
+cadIfDownChannelIfIndex OBJECT-TYPE
+    SYNTAX     InterfaceIndex
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "the ifIndex of this downstream channel."
+    ::= { cadIfDownstreamChannelEntry 37 }
+
+cadIfDownChannelPrimaryCapable OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "When a row's cadIfDownChannelPrimaryCapable column is set to true(1)
+         then DOCSIS SYNC message generation is enabled on the downstream channel.
+         Otherwise, DOCSIS SYNC message generation is disabled."
+    DEFVAL { true }
+    ::= { cadIfDownstreamChannelEntry 38 }
+
+cadIfDownSpectralInversion OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "When a row's cadIfDownSpectralInversion column is set to true(1),
+         then spectral inversion is enabled.  Otherwise, spectral inversion
+         is disabled.  Note that spectral inversion is a video PHY parameter
+         not used with DOCSIS channels; it is only used for channels of type
+         VOD and video-replica."
+    DEFVAL { false }
+    ::= { cadIfDownstreamChannelEntry 39 }
+
+
+--========================= cadDownChannelParams =========================
+
+cadDownChannelParams OBJECT IDENTIFIER ::= { cadDownchannelMib 2 }
+
+cadDownChannelMaxFrequency OBJECT-TYPE
+        SYNTAX      INTEGER (858000000 | 867000000 | 999000000)
+        UNITS       "hertz"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This object is used to configure the C4 CMTS to accept maximum downstream
+            frequency limit that conform with the EuroDOCSIS specifications
+            (starndard range 112 MHz to 858 MHz), (extended 85 MHz to 999MHz)
+            or to the DOCSIS specifications (standard 91 to 867 MHz), (extended range 57 MHz to 999 MHz).
+            Changes to downstream frequency and width are verified against this
+            object to ensure the C4 CMTS does not exceed the downstream spectrum
+            limits imposed by this object. Attempting to decrease the downstream
+            frequency spectrum implied by this object will fail if at least
+            a single downstream is configured outside of the range for the new
+            value. It is recommended this object be set during initial system
+            setup."
+        DEFVAL { 867000000 } -- rely upon Annex for frequency ranges
+        ::= { cadDownChannelParams 1 }
+
+cadDownChannelMinFrequency OBJECT-TYPE
+        SYNTAX      INTEGER (57000000 | 85000000 | 91000000 | 112000000)
+        UNITS       "hertz"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This object is used to configure the C4 CMTS to accept minimum downstream
+            frequency limit that conform with the EuroDOCSIS specifications
+            (starndard range 112 MHz to 858 MHz), (extended 85 MHz to 999MHz)
+            or to the DOCSIS specifications (standard 91 to 867 MHz), (extended range 57 MHz to 999 MHz).
+            Changes to downstream frequency and width are verified against this
+            object to ensure the C4 CMTS does not exceed the downstream spectrum
+            limits imposed by this object. Attempting to increase the minimum downstream
+            frequency limit implied by this object will fail if at least
+            a single downstream is configured outside of the range for the new
+            value. It is recommended this object be set during initial system
+            setup."
+        DEFVAL { 91000000 } -- rely upon Annex for frequency ranges
+        ::= { cadDownChannelParams 2 }
+
+cadDownChannelAgcEnable OBJECT-TYPE
+        SYNTAX  TruthValue
+        MAX-ACCESS  read-write
+        STATUS  current
+        DESCRIPTION
+            "Enable Automatic Gain Control on DCAMs."
+        DEFVAL { true }
+        ::= { cadDownChannelParams 3 }
+
+cadDownChannelOorRecoveryEnable  OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "True to enable toggling the Sequence Change Count for a DSID in response to 
+            a CM-STATUS sequence number Out-Of-Range message."
+        DEFVAL { false }
+        ::= { cadDownChannelParams 4}
+
+cadDsOfdmOcdDpdPlcInterval OBJECT-TYPE
+        SYNTAX      INTEGER (50..250)
+        UNITS       "milliseconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "How often to send the OCD and DPD messages on a channel over the PLC."
+        DEFVAL { 200 } 
+        ::= { cadDownChannelParams 5 }
+
+cadDsOfdmDpdProfAInterval OBJECT-TYPE
+        SYNTAX      INTEGER (100..600)
+        UNITS       "milliseconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "How often to send the DPD messages on a channel using profile A."
+        DEFVAL { 500 } 
+        ::= { cadDownChannelParams 6 }
+
+cadDownChannelLsredMinThresh OBJECT-TYPE
+        SYNTAX      INTEGER (10..2000)
+        UNITS       "milliseconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This parameter defines the start of the downstream latency
+             region where packets are randomly dropped.  This value must
+             be less than or equal to cadDownChannelLsredMaxThresh."
+        DEFVAL { 2000 } 
+        ::= { cadDownChannelParams 7 }
+
+cadDownChannelLsredMaxThresh OBJECT-TYPE
+        SYNTAX      INTEGER (10..2500)
+        UNITS       "milliseconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This parameter defines the end of the downstream latency
+             region where packets are randomly dropped.  This value must
+             be greater than or equal to cadDownChannelLsredMinThresh."
+        DEFVAL { 2500 } 
+        ::= { cadDownChannelParams 8 }
+
+cadDownChannelLsredMaxProb OBJECT-TYPE
+        SYNTAX      INTEGER (1..10000)
+        UNITS       "0.01%"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This parameter defines the drop probability of a packet when
+             its downstream latency is equal to cadDownChannelLsredMaxThresh.
+             The probability of dropping a packet varies linearly from 0%
+             at a latency of cadDownChannelLsredMinThresh and the value of
+             this parameter at cadDownChannelLsredMaxThresh."
+        DEFVAL { 10000 } 
+        ::= { cadDownChannelParams 9 }
+
+cadDownChannelVoiceShaping OBJECT-TYPE
+        SYNTAX  TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This parameter defines whether downstream voice packets should
+             be shaped or not.  When this this parameter is set to false,
+             voice packets that do not conform to the policing parameters
+             are dropped instead of being delayed."
+        DEFVAL { false } 
+        ::= { cadDownChannelParams 10 }
+
+--========================= cadIfDsOfdmPowerTable =========================
+
+cadIfDsOfdmPowerTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadIfDsOfdmPowerEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This status table contains the power parameters for a DS 
+             OFDM channel."
+        ::= { cadDownchannelMib 3 }
+
+cadIfDsOfdmPowerEntry OBJECT-TYPE
+        SYNTAX      CadIfDsOfdmPowerEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry shows the power setting and measured power
+             for one of the frequencies within an OFDM channel."
+        INDEX { cadIfDsOfdmPowerIfIndex, cadIfDsOfdmPowerFrequency }
+        ::= { cadIfDsOfdmPowerTable 1 }
+
+CadIfDsOfdmPowerEntry ::= SEQUENCE {
+            cadIfDsOfdmPowerIfIndex             InterfaceIndex,
+            cadIfDsOfdmPowerFrequency           Integer32,
+            cadIfDsOfdmPowerFineAdjustment      TenthdBmV,
+            cadIfDsOfdmPowerCurrLevel           TenthdBmV,
+            cadIfDsOfdmPowerMinLevel            TenthdBmV,
+            cadIfDsOfdmPowerMaxLevel            TenthdBmV
+
+        }
+
+cadIfDsOfdmPowerIfIndex OBJECT-TYPE
+        SYNTAX     InterfaceIndex
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "The ifIndex of this downstream OFDM channel."
+    ::= { cadIfDsOfdmPowerEntry 1 }
+
+cadIfDsOfdmPowerFrequency OBJECT-TYPE
+        SYNTAX      Integer32 (0..192)
+        UNITS       "MHz"
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A relative frequency within the OFDM channel for power
+             control/status, in 6 MHz increments(i.e., legal values
+             are 3, 9, 15, etc)."
+        REFERENCE
+            "DOCSIS Physical Layer Specification,
+             Table 7-36."
+        ::= { cadIfDsOfdmPowerEntry 2 } 
+
+cadIfDsOfdmPowerFineAdjustment OBJECT-TYPE
+        SYNTAX      TenthdBmV (-80..0)
+        UNITS       "dBmVtenths"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The configured power for this OFDM channel frequency. This
+             consists of the base RF port power per channel plus any
+             configured tilt adjustment."
+        DEFVAL { 0 }
+        ::= { cadIfDsOfdmPowerEntry 3 }
+
+cadIfDsOfdmPowerCurrLevel OBJECT-TYPE
+        SYNTAX      TenthdBmV 
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            " The latest downstream power level reported by the port for
+              this frequency. "
+        DEFVAL { 0 }
+        ::= { cadIfDsOfdmPowerEntry 4 }
+
+cadIfDsOfdmPowerMinLevel OBJECT-TYPE
+        SYNTAX      TenthdBmV 
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            " The minimum downstream power level read on the port for
+              this frequency."
+        DEFVAL { 0 }
+        ::= { cadIfDsOfdmPowerEntry 5 }
+
+cadIfDsOfdmPowerMaxLevel OBJECT-TYPE
+        SYNTAX      TenthdBmV 
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            " The minimum downstream power level reported by the port for
+              this frequency."
+        DEFVAL { 0 }
+        ::= { cadIfDsOfdmPowerEntry 6 }
+
+
+
+--========================= cadIfDsOfdmChlEntry =========================
+
+cadIfDsOfdmChlTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadIfDsOfdmChlEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table describes the attributes of downstream
+             OFDM channels."
+        ::= { cadDownchannelMib 5 }
+
+cadIfDsOfdmChlEntry OBJECT-TYPE
+        SYNTAX      CadIfDsOfdmChlEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry provides a list of attributes for a single
+             OFDM Downstream channel.
+             An entry in this table exists for each ifEntry with an
+             ifType of docsOfdmDownstream (277)."
+        INDEX { cadIfDsOfdmChlIfIndex }
+        ::= { cadIfDsOfdmChlTable 1 }
+
+CadIfDsOfdmChlEntry ::= SEQUENCE {
+            cadIfDsOfdmChlIfIndex                  InterfaceIndex,
+            cadIfDsOfdmChlLowFreq                  Integer32,
+            cadIfDsOfdmChlHighFreq                 Integer32,
+            cadIfDsOfdmChlPlcBlkLowSubcCentFreq    Integer32,
+            cadIfDsOfdmChlCyclicPrefix             Integer32,
+            cadIfDsOfdmChlRolloffPeriod            Integer32,
+            cadIfDsOfdmChlTimeIntlvrDepth          Integer32,
+            cadIfDsOfdmChlSubcSpacing              Integer32,
+            cadIfDsOfdmChlContPilotScaleFactor     Integer32,
+            cadIfDsOfdmChlMaxRoundTripDelay        Integer32,
+            cadIfDsOfdmChlPCNormAllowedUsage       Integer32,
+            cadIfDsOfdmChlPCNormResUsage           Integer32,
+            cadIfDsOfdmChlPCEmerAllowedUsage       Integer32,
+            cadIfDsOfdmChlPCEmerResUsage           Integer32,
+            cadIfDsOfdmChlPCTotalAllowedUsage      Integer32,
+            cadIfDsOfdmChlPCPreemptionAllowed      TruthValue,
+            cadIfDsOfdmChlRfPortBasePower          TenthdBmV,
+            cadIfDsOfdmChlSubcZeroCentFreq         Integer32,
+            cadIfDsOfdmChlLowActSubcCentFreq       Integer32,
+            cadIfDsOfdmChlHighActSubcCentFreq      Integer32,
+            cadIfDsOfdmChlPlcLowSubcCentFreq       Integer32,          
+            cadIfDsOfdmChlNumActSubc               Integer32
+        }
+
+cadIfDsOfdmChlIfIndex OBJECT-TYPE
+        SYNTAX     InterfaceIndex
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "The ifIndex of this OFDM downstream channel."
+    ::= { cadIfDsOfdmChlEntry 1 }
+
+cadIfDsOfdmChlLowFreq  OBJECT-TYPE
+        SYNTAX      Integer32 (0|108000000..1770000000)
+        UNITS       "hertz"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The lowest subcarrier center frequency of the low guard band 
+             just below the encompassed spectrum. While this is the center 
+             frequency of a subcarrier, it is the low edge frequency of
+             the OFDM channel. The center frequency of 
+             subcarrier zero is 6.4 MHz less than this value. Zero means 
+             not configured. Must be configured to go in-service."
+        REFERENCE
+            "DOCSIS Physical Layer Specification,
+             Table 7-36."
+        DEFVAL { 0 }
+        ::= { cadIfDsOfdmChlEntry 2 } 
+
+cadIfDsOfdmChlHighFreq  OBJECT-TYPE
+        SYNTAX      Integer32 (0|132000000..1794000000)
+        UNITS       "hertz"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The highest subcarrier center frequency of the high guard band 
+             just above the encompassed spectrum. While this is the center 
+             frequency of a subcarrier, it is the high edge frequency of
+             the OFDM channel. Zero means not configured.
+             24 MHz <= (HighFreqEdge - LowFreqEdge) <= 192 MHz.
+             Must be configured to go in-service."
+        REFERENCE
+            "DOCSIS Physical Layer Specification,
+             Table 7-36."
+        DEFVAL { 0 }
+        ::= { cadIfDsOfdmChlEntry 3 }
+
+cadIfDsOfdmChlPlcBlkLowSubcCentFreq OBJECT-TYPE
+        SYNTAX      Integer32 (0|108000000..1788000000)
+        UNITS       "hertz"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The center frequency of the lowest frequency subcarrier of 
+             the 6 MHz encompassed spectrum containing the PLC.
+             Must be an integral number of Megahertz. Zero
+             means not configured. Must be configured to go in-service."
+        REFERENCE
+            "DOCSIS Physical Layer Specification,
+             Physical Layer Link Channel"
+        DEFVAL { 0 }
+        ::= { cadIfDsOfdmChlEntry 4 }
+
+cadIfDsOfdmChlCyclicPrefix OBJECT-TYPE
+        SYNTAX      Integer32 (192|256|512|768|1024)
+        UNITS       "samples"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The cyclic-prefix, converted into samples
+             using the sample rate of 204.8 Million samples/second."
+        REFERENCE
+            "DOCSIS Physical Layer Specification, Table 7-34."
+        DEFVAL { 1024 }
+        ::= { cadIfDsOfdmChlEntry 5 }
+
+cadIfDsOfdmChlRolloffPeriod OBJECT-TYPE
+        SYNTAX      Integer32 (0|64|128|192|256)
+        UNITS       "samples"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The roll-off period used in windowing, converted into samples
+             using the sample rate of 204.8 Million samples/second."
+        REFERENCE
+            "DOCSIS Physical Layer Specification,
+             Table 7-35."
+        DEFVAL { 256 }
+        ::= { cadIfDsOfdmChlEntry 6 }
+
+cadIfDsOfdmChlTimeIntlvrDepth OBJECT-TYPE
+        SYNTAX      Integer32 (1..32)
+        UNITS       "symbols"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The number of symbols in the time domain for
+             interleaving. The range is 1..32 for 50 KHz
+             subcarrier spacing, and 1..16 for 25 KHz spacing.
+             A value of one means no time interleaving."
+        REFERENCE
+            "DOCSIS Physical Layer Specification,
+             Section 7.5.6.1"
+        DEFVAL { 1 }
+        ::= { cadIfDsOfdmChlEntry 7 }
+
+cadIfDsOfdmChlSubcSpacing OBJECT-TYPE
+        SYNTAX      Integer32 (25000|50000)
+        UNITS       "hertz"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The subcarrier frequency width for this OFDM channel."
+        REFERENCE
+            "DOCSIS Physical Layer Specification,
+             Table 7-36."
+        DEFVAL { 50000 }
+        ::= { cadIfDsOfdmChlEntry 8 }
+
+cadIfDsOfdmChlContPilotScaleFactor OBJECT-TYPE
+        SYNTAX      Integer32 (48..120)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The scale factor M used to calculate the total number of
+             continuous pilots defined using the PLC. The number 
+             of continuous pilots also 
+             depends on the encompassed bandwidth."
+        REFERENCE
+            "DOCSIS Physical Layer Specification,
+             Section 7.5.15.2.2"
+        DEFVAL { 48 }
+        ::= { cadIfDsOfdmChlEntry 9 }
+
+cadIfDsOfdmChlMaxRoundTripDelay OBJECT-TYPE
+        SYNTAX      Integer32 (200..1600)
+        UNITS       "Microseconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Maximum round-trip propagation delay for cable
+             plant in Microseconds.  Should be configured for
+             the furthest CM in all cable groups containing
+             this DownChannel.  Default of 800 Microseconds
+             is approxiamately 50 miles between the CMTS and
+             the furthest CM."
+        REFERENCE
+            "DOCSIS Physical Layer Specification,Section 1.2.1"
+        DEFVAL { 800 }
+        ::= { cadIfDsOfdmChlEntry 10 }
+
+cadIfDsOfdmChlPCNormAllowedUsage OBJECT-TYPE
+        SYNTAX      Integer32 (0..100)
+        UNITS       "percent"       
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Maximum percentage of downstream resources that may be 
+             used by non-emergency telephony services. This is also 
+		the maximum amount of resources non-exclusively allocated
+		to sessions of this type.  The default is set from the 
+		globals in CadPCMibBase."
+        REFERENCE
+          "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+        DEFVAL { 50 }
+    ::= { cadIfDsOfdmChlEntry 11 }
+
+cadIfDsOfdmChlPCNormResUsage OBJECT-TYPE
+        SYNTAX      Integer32 (0..100)
+        UNITS       "percent"       
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+           "Minimum percentage of downstream resources that may be 
+            used by non-emergency telephony services. This is also
+            the maximum amount of resources exclusively allocated 
+	     to sessions of this type. If the value of this object 
+	     is non-zero, then a portion of the downstream bandwidth 
+	     will be set aside for normal telephony use only - reducing
+            the bandwidth that is available for normal data.  The
+	     default is set from the globals in CadPCMibBase."
+        REFERENCE
+          "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+        DEFVAL { 0 }
+    ::= { cadIfDsOfdmChlEntry 12 }
+
+cadIfDsOfdmChlPCEmerAllowedUsage OBJECT-TYPE
+        SYNTAX      Integer32 (0..100)
+        UNITS       "percent"       
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+           "Maximum percentage of downstream resources that may 
+            be used by emergency telephony services.  The default
+            is set from the globals in CadPCMibBase."
+        REFERENCE
+          "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+        DEFVAL { 70 }
+    ::= { cadIfDsOfdmChlEntry 13 }
+
+cadIfDsOfdmChlPCEmerResUsage OBJECT-TYPE
+        SYNTAX      Integer32 (0..100)
+        UNITS       "percent"       
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+           "Minimum percentage of downstream resources that may be 
+            used by emergency telephony services. If the value of 
+            this object is non-zero, then a portion of the downstream 
+	     bandwidth will be set aside for normal telephony use 
+	     only - reducing the bandwidth that is available for
+            normal data.  The default is set from the globals in 
+            CadPCMIbBase."
+        REFERENCE
+          "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+        DEFVAL { 0 }
+    ::= { cadIfDsOfdmChlEntry 14 }
+
+cadIfDsOfdmChlPCTotalAllowedUsage OBJECT-TYPE
+        SYNTAX      Integer32 (0..100)
+        UNITS       "percent"       
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+           "Maximum percentage of downstream resources that may 
+            be used by both normal and  emergency telephony services.
+	     The default is set from the globals in CadPCMibBase."
+        REFERENCE
+          "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+        DEFVAL { 70 }
+    ::= { cadIfDsOfdmChlEntry 15 }
+
+cadIfDsOfdmChlPCPreemptionAllowed OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+           "Indicates whether the system will preempt another session
+            for an emergency call.  The default is set from the 
+	     globals in CadPCMibBase."
+        REFERENCE
+          "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+        DEFVAL { true }
+    ::= { cadIfDsOfdmChlEntry 16 }
+
+cadIfDsOfdmChlRfPortBasePower OBJECT-TYPE
+        SYNTAX      TenthdBmV (250..600)
+        UNITS       "dBmV"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The CCAP operational transmit power.  See the 
+             reference for recommended and required power levels
+             for the equivalent total number of 6 MHz channels on
+             the RF port. The default is the DRFI maximum for 48 6 MHz SC
+             channels plus one 96 MHz OFDM channel equaling 16 equivalent
+             channels, for a total of 64 equivalent 6 Mhz channels."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface Specification,
+             Table 4-12 and Table 4-13."
+        DEFVAL { 380 }
+        ::= { cadIfDsOfdmChlEntry 17 }
+
+cadIfDsOfdmChlSubcZeroCentFreq OBJECT-TYPE
+        SYNTAX      Integer32
+        UNITS       "hertz"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The center frequency of subcarrier 0. This is 102.4 MHz less 
+             than (cadIfDsOfdmChlLowFreq + cadIfDsOfdmChlHighFreq)/2 
+             if cadIfDsOfdmChlLowFreq is divisible by 250 KHz.
+             Otherwise, it is 102.525 MHz less
+             than (cadIfDsOfdmChlLowFreq + cadIfDsOfdmChlHighFreq)/2."
+        REFERENCE
+            "DOCSIS Physical Layer Specification,
+             Table 7-36."
+        DEFVAL { 0 }
+        ::= { cadIfDsOfdmChlEntry 18 }
+
+cadIfDsOfdmChlLowActSubcCentFreq  OBJECT-TYPE
+        SYNTAX      Integer32
+        UNITS       "hertz"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The low center frequency of the lowest active subcarrier in the 
+             OFDM channel. The low edge of the encompassed spectrum is
+             half a subcarrier less than this value."
+        REFERENCE
+            "DOCSIS Physical Layer Specification,
+             Table 7-36."
+        DEFVAL { 0 }
+        ::= { cadIfDsOfdmChlEntry 19 } 
+
+cadIfDsOfdmChlHighActSubcCentFreq  OBJECT-TYPE
+        SYNTAX      Integer32
+        UNITS       "hertz"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The high center frequency of the highest active subcarrier in the 
+             the OFDM channel. The high edge of the encompassed spectrum is
+             half a subcarrier more than this value."
+        REFERENCE
+            "DOCSIS Physical Layer Specification,
+             Table 7-36."
+        DEFVAL { 0 }
+        ::= { cadIfDsOfdmChlEntry 20 }
+
+cadIfDsOfdmChlPlcLowSubcCentFreq OBJECT-TYPE
+        SYNTAX      Integer32
+        UNITS       "hertz"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The center frequency of the lowest frequency subcarrier of 
+             the PLC itself. By definition, this is 2.8 MHz higher than
+             cadIfDsOfdmChlPlcBlkLowSubcCentFreq (i.e., the PLC block
+             is 6 MHz, and the 400 KHz PLC is centered in that block)."
+
+        REFERENCE
+            "DOCSIS Physical Layer Specification,
+             Physical Layer Link Channel, section 7.5.13.1"
+        DEFVAL { 0 }
+        ::= { cadIfDsOfdmChlEntry 21 }
+
+cadIfDsOfdmChlNumActSubc  OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The configured number of subcarriers based on the high and low 
+             center frequencies of the active subcarriers in the 
+             the OFDM channel."
+        REFERENCE
+            "DOCSIS Physical Layer Specification,
+             Table 7-36."
+        DEFVAL { 0 }
+        ::= { cadIfDsOfdmChlEntry 22 }
+         
+--=============================== cadIfDsOfdmChlDataTable ================================
+
+cadIfDsOfdmChlDataTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadIfDsOfdmChlDataEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table describes the read-only attributes of 
+             downstream OFDM channels (frequency bands)."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface Specification,
+             Table 4-12 and Table 4-13."
+        ::= { cadDownchannelMib 6 }
+
+cadIfDsOfdmChlDataEntry OBJECT-TYPE
+        SYNTAX      CadIfDsOfdmChlDataEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry provides a list of read-only attributes for a single
+             OFDM downstream channel.
+             An entry in this table exists for each ifEntry with an
+             ifType of docsOfdmDownstream (277)."
+        AUGMENTS { cadIfDsOfdmChlEntry }
+        ::= { cadIfDsOfdmChlDataTable 1 }
+
+CadIfDsOfdmChlDataEntry ::= SEQUENCE {
+            cadIfDsOfdmChlDataNumActSubcarriers       Integer32,
+            cadIfDsOfdmChlDataNumContPilots           Integer32
+        }
+
+cadIfDsOfdmChlDataNumActSubcarriers OBJECT-TYPE
+        SYNTAX      Integer32 (0 | 200..7600)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The number of non-excluded subcarriers in the OFDM channel.
+             7600 is the maximum allowed for a 190 MHz of active
+             Spectrum. 350 would be the worst case for 22 MHz of
+             Active spectrum with 50 KHz subcarriers, with 20 percent
+             exclusions."
+        REFERENCE
+            "DOCSIS Physical Layer Specification,
+             Physical Layer Link Channel"
+        DEFVAL { 0 }
+        ::= { cadIfDsOfdmChlDataEntry 1 }
+
+cadIfDsOfdmChlDataNumContPilots OBJECT-TYPE
+        SYNTAX      Integer32 (0 | 16..128)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of continuous pilots. The total number of
+             of continuous pilots is the number defined by the PLC 
+             plus the 8 pre-defined ones positioned around the PLC."
+        DEFVAL { 0 }
+        ::= { cadIfDsOfdmChlDataEntry 2 }
+
+
+
+
+--============================= cadDsOfdmProfileTable ===========================
+
+cadDsOfdmProfileTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadDsOfdmProfileEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table defines the profiles assigned to an OFDM channel."
+        ::= { cadDownchannelMib 8 }
+
+cadDsOfdmProfileEntry OBJECT-TYPE
+        SYNTAX      CadDsOfdmProfileEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry defines one profile on one channel."
+        INDEX { cadDsOfdmProfileIfIndex, cadDsOfdmProfileId }
+        ::= { cadDsOfdmProfileTable 1 }
+
+CadDsOfdmProfileEntry ::= SEQUENCE {
+            cadDsOfdmProfileIfIndex        InterfaceIndex,
+            cadDsOfdmProfileId             OfdmProfileId,
+            cadDsOfdmProfileDefBitload     CerOfdmModType,
+            cadDsOfdmProfileRowStatus      RowStatus
+        }
+
+cadDsOfdmProfileIfIndex OBJECT-TYPE
+        SYNTAX     InterfaceIndex
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "The ifIndex of the channel using this profile."
+    ::= { cadDsOfdmProfileEntry 1 }
+
+cadDsOfdmProfileId OBJECT-TYPE
+        SYNTAX     OfdmProfileId
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "The ID of a profile plus one."
+    ::= { cadDsOfdmProfileEntry 2 }
+
+cadDsOfdmProfileDefBitload OBJECT-TYPE
+        SYNTAX      CerOfdmModType
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The default bit-loading (modulation) for this profile.
+             If cadDsOfdmProfileId is 256, only qpsk, qam16,
+             and qam64 are legal. Otherwise, all but qpsk and qam0
+             are legal."
+        DEFVAL { qam1024 }
+    ::= { cadDsOfdmProfileEntry 3 }
+
+cadDsOfdmProfileRowStatus   OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The RowStatus for controlling entries in this table."
+    ::= { cadDsOfdmProfileEntry 4 }
+
+--============================= cadDsOfdmProfStatTable ================================
+cadDsOfdmProfStatTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadDsOfdmProfStatEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table provides counts and the average bits per Hertz
+             per OFDM channel per profile."
+        ::= { cadDownchannelMib 9 }
+
+cadDsOfdmProfStatEntry OBJECT-TYPE
+        SYNTAX      CadDsOfdmProfStatEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry provides the values for one profile on one channel."
+        INDEX { cadDsOfdmProfStatIfIndex, cadDsOfdmProfStatProfId }
+        ::= { cadDsOfdmProfStatTable 1 }
+
+CadDsOfdmProfStatEntry ::= SEQUENCE {
+            cadDsOfdmProfStatIfIndex         InterfaceIndex,
+            cadDsOfdmProfStatProfId          OfdmProfileId,
+            cadDsOfdmProfStatAvgBitsPerSubc  Unsigned32,
+            cadDsOfdmProfStatReqMods         CerOfdmModBitsType,
+            cadDsOfdmProfStatEtherFrameBytes Counter64,
+            cadDsOfdmProfStatTotalCodewords  Counter64,
+            cadDsOfdmProfStat30SecCwUtil     Unsigned32,
+            cadDsOfdmProfStat30SecCwEff      Unsigned32
+        }
+
+cadDsOfdmProfStatIfIndex OBJECT-TYPE
+        SYNTAX     InterfaceIndex
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "The ifIndex of this OFDM downstream channel."
+        REFERENCE
+            "DOCSIS 3.1 CCAP OSSI Specification,
+             Section Downstream OFDM Status Objects"
+    ::= { cadDsOfdmProfStatEntry 1 }
+
+cadDsOfdmProfStatProfId OBJECT-TYPE
+        SYNTAX     OfdmProfileId
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "The profile number plus one of this profile on this channel."
+        REFERENCE
+            "DOCSIS 3.1 CCAP OSSI Specification,
+             Section Downstream OFDM Status Objects"
+    ::= { cadDsOfdmProfStatEntry 2 }
+
+cadDsOfdmProfStatAvgBitsPerSubc OBJECT-TYPE
+        SYNTAX      Unsigned32
+        UNITS       "HundredthBit"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The average number of bits per subcarrier times 100 across all 
+             active subcarriers on the channel, rounded to nearest
+             hundredth. Continuous pilots and subcarriers in the PLC are
+             not included in this calculation, even though they are active.
+             NCP subcarriers are counted as if they could carry data,
+             because it is too difficult to factor them out, given their
+             variability."
+        ::= { cadDsOfdmProfStatEntry 3 }
+
+cadDsOfdmProfStatReqMods OBJECT-TYPE
+        SYNTAX      CerOfdmModBitsType
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The modulations used by this profile and any exceptions
+             to this profile."
+        ::= { cadDsOfdmProfStatEntry 4 }
+
+cadDsOfdmProfStatEtherFrameBytes OBJECT-TYPE
+        SYNTAX     Counter64
+        MAX-ACCESS read-only
+        STATUS     current
+        DESCRIPTION
+             "The count of Layer 2 Ethernet frame bytes that have 
+              been sent on this channel using this specific profile."
+        REFERENCE
+            "DOCSIS 3.1 CCAP OSSI Specification,
+             Section Downstream OFDM Status Objects"
+    ::= { cadDsOfdmProfStatEntry 5 }
+
+cadDsOfdmProfStatTotalCodewords  OBJECT-TYPE
+        SYNTAX     Counter64
+        MAX-ACCESS read-only
+        STATUS     current
+        DESCRIPTION
+           "The number of codewords sent on this channel
+            using this specific profile."
+        REFERENCE
+            "DOCSIS 3.1 CCAP OSSI Specification,
+             Section Downstream OFDM Status Objects"
+    ::= { cadDsOfdmProfStatEntry 6 }
+
+cadDsOfdmProfStat30SecCwUtil  OBJECT-TYPE
+        SYNTAX     Unsigned32 (0..100)
+        MAX-ACCESS read-only
+        STATUS     current
+        DESCRIPTION
+           "The codeword utilization percentage of this profile 
+            on this channel. The utilization is measured over
+            the last 30 seconds."
+        REFERENCE
+            "DOCSIS 3.1 CCAP OSSI Specification,
+             Section Downstream OFDM Status Objects"
+    ::= { cadDsOfdmProfStatEntry 7 }
+
+cadDsOfdmProfStat30SecCwEff  OBJECT-TYPE
+        SYNTAX     Unsigned32 (0..100)
+        MAX-ACCESS read-only
+        STATUS     current
+        DESCRIPTION
+          "The Efficiency percentage of this profile on
+            this channel over the last 30 seconds (i.e,.
+            the average number of data bits per codeword
+            used by this profile, divided by the size of
+            a codeword)."
+        REFERENCE
+            "DOCSIS 3.1 CCAP OSSI Specification,
+             Section Downstream OFDM Status Objects"
+    ::= { cadDsOfdmProfStatEntry 8 }
+
+
+--============================= cadDsOfdmProfExceptionTable ===========================
+
+cadDsOfdmProfExceptionTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadDsOfdmProfExceptionEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table defines exceptions to profiles on an OFDM channel."
+        ::= { cadDownchannelMib 11 }
+
+cadDsOfdmProfExceptionEntry OBJECT-TYPE
+        SYNTAX      CadDsOfdmProfExceptionEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry defines one profile exception."
+        INDEX { cadDsOfdmProfExceptionIfIndex,
+                cadDsOfdmProfExceptionProfId,
+                cadDsOfdmProfExceptionLowFreq }
+        ::= { cadDsOfdmProfExceptionTable 1 }
+
+CadDsOfdmProfExceptionEntry ::= SEQUENCE {
+            cadDsOfdmProfExceptionIfIndex        InterfaceIndex,
+            cadDsOfdmProfExceptionProfId         OfdmProfileId,
+            cadDsOfdmProfExceptionLowFreq        Integer32,
+            cadDsOfdmProfExceptionHighFreq       Integer32,
+            cadDsOfdmProfExceptionSkip           TruthValue,
+            cadDsOfdmProfExceptionMainBitload    CerOfdmModType,
+            cadDsOfdmProfExceptionOddBitload     CerOfdmModType,
+            cadDsOfdmProfExceptionRowStatus      RowStatus
+        }
+
+cadDsOfdmProfExceptionIfIndex OBJECT-TYPE
+        SYNTAX     InterfaceIndex
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "The ifIndex of the channel using this profile."
+    ::= { cadDsOfdmProfExceptionEntry 1 }
+
+cadDsOfdmProfExceptionProfId OBJECT-TYPE
+        SYNTAX     OfdmProfileId
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "The Id of a profile plus one."
+        REFERENCE
+            "DOCSIS OSSI Specification,Section DsOfdmProfExceptionCfg"
+    ::= { cadDsOfdmProfExceptionEntry 2 }
+
+cadDsOfdmProfExceptionLowFreq  OBJECT-TYPE
+        SYNTAX      Integer32 (108000000..1770000000)
+        UNITS       "hertz"
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The low edge frequency of a frequency range being assigned 
+             a different bit-loading type from the default for the profile."
+        REFERENCE
+            "DOCSIS Physical Layer Specification,
+             Table 7-36."
+        ::= { cadDsOfdmProfExceptionEntry 3 } 
+
+cadDsOfdmProfExceptionHighFreq  OBJECT-TYPE
+        SYNTAX      Integer32 (0 | 108000000..1770000000)
+        UNITS       "hertz"
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The high edge frequency of a frequency range being assigned 
+             a different bit-loading type from the default for the profile."
+        REFERENCE
+            "DOCSIS Physical Layer Specification,
+             Table 7-36."
+        DEFVAL { 0 }
+        ::= { cadDsOfdmProfExceptionEntry 4 } 
+
+cadDsOfdmProfExceptionSkip OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "True if using different bit-loading for odd and even
+             numbered subcarriers in this frequency range. False if
+             all subcarriers in the range use the single bit-loading
+             type given by cadDsOfdmProfExceptionMainBitload."
+        DEFVAL { false }
+        ::= { cadDsOfdmProfExceptionEntry 5 }
+
+cadDsOfdmProfExceptionMainBitload OBJECT-TYPE
+        SYNTAX      CerOfdmModType
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The main bit-loading (modulation) for this frequency range.
+             If skip is true, this is the bit-loading for only the even
+             numbered subcarriers. If false, it is for all subcarriers."
+        DEFVAL { qam1024 }
+        ::= { cadDsOfdmProfExceptionEntry 6 }
+
+cadDsOfdmProfExceptionOddBitload OBJECT-TYPE
+        SYNTAX      CerOfdmModType
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The bit-loading (modulation) for the odd numbered
+             subcarriers when skip is true. Ignored if skip is false."
+        DEFVAL { qam0 }
+        ::= { cadDsOfdmProfExceptionEntry 7 }
+
+cadDsOfdmProfExceptionRowStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The RowStatus for controlling entries in this table."
+        ::= { cadDsOfdmProfExceptionEntry 8 }
+
+
+END

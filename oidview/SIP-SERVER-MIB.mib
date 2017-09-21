@@ -1,0 +1,759 @@
+SIP-SERVER-MIB DEFINITIONS ::= BEGIN
+
+   IMPORTS 
+        MODULE-IDENTITY, 
+        OBJECT-TYPE, 
+        Counter32, 
+        Integer32, 
+        Unsigned32 
+             FROM SNMPv2-SMI 
+
+        RowStatus, 
+        TruthValue 
+             FROM SNMPv2-TC 
+
+        MODULE-COMPLIANCE, 
+        OBJECT-GROUP 
+             FROM SNMPv2-CONF 
+
+        SnmpAdminString 
+             FROM SNMP-FRAMEWORK-MIB 
+
+        SipServerActions 
+             FROM SIP-TC 
+
+        sipMIB 
+             FROM SIP-MIB-SMI 
+
+        applIndex 
+             FROM NETWORK-SERVICES-MIB;      
+
+
+   sipServerMIB MODULE-IDENTITY 
+        LAST-UPDATED   "200007080000Z" 
+        ORGANIZATION   "IETF SIP Working Group, SIP MIB Team" 
+        CONTACT-INFO 
+                "SIP MIB Team email: sip-mib@egroups.com 
+
+                 Co-editor  Kevin Lingle 
+                            Cisco Systems, Inc. 
+                 postal:    7025 Kit Creek Road 
+                            P.O. Box 14987 
+                            Research Triangle Park, NC 27709 
+                            USA 
+                 email:     klingle@cisco.com 
+                 phone:     +1-919-392-2029 
+
+                 Co-editor  Joon Maeng 
+                            VTEL Corporation 
+                 postal:    108 Wild Basin Rd. 
+                            Austin, TX 78746 
+                            USA 
+                 email:     joon_maeng@vtel.com 
+                 phone:     +1-512-437-4567 
+
+                 Co-editor  Dave Walker 
+                            SS8 Networks, Inc. 
+                 postal:    80 Hines Road 
+                            Kanata, ON  K2K 2T8 
+                            Canada 
+                 email:     drwalker@ss8networks.com 
+                 phone:     +1 613 592 2100" 
+        DESCRIPTION 
+                "Initial version of Session Initiation Protocol (SIP) 
+                 Server MIB module. 
+
+                 SIP is an application-layer signalling protocol for  
+                 creating, modifying and terminating multimedia  
+                 sessions with one or more participants. These sessions 
+                 include Internet multimedia conferences and Internet  
+                 telephone calls.  SIP is defined in RFC 2543 (March  
+                 1999). 
+
+                 This MIB is defined for the management of SIP Proxy  
+                 and Redirect Servers. 
+
+                 A Proxy Server acts as both a client and a server. 
+                 It accepts requests from other clients, either 
+                 responding to them or passing them on to other 
+                 servers, possibly after modification. 
+
+                 A Redirect Server accepts requests from clients and 
+                 returns zero or more addresses to that client. Unlike 
+                 a Proxy server it does not initiate requests.  Unlike 
+                 a User Agent Server it does not accept calls." 
+        ::= { sipMIB 4 }  
+
+   -- 
+   -- sipServer group 
+   -- This group contains MIB objects common to Proxy and Redirect 
+   -- Servers. 
+   -- 
+   sipServerCfg                OBJECT IDENTIFIER ::= { sipServerMIB 1 } 
+   sipServerStats              OBJECT IDENTIFIER ::= { sipServerMIB 2 } 
+
+   -- 
+   -- Common Server Configuration Objects 
+   -- 
+   sipServerCfgTable OBJECT-TYPE 
+       SYNTAX     SEQUENCE OF SipServerCfgEntry 
+       MAX-ACCESS not-accessible 
+       STATUS     current 
+       DESCRIPTION 
+            "This table contains configuration objects applicable 
+             to SIP redirect and proxy servers.  Each row represents  
+             those objects for a particular SIP server present in  
+             this system. The instances of SIP servers are uniquely 
+             identified by applIndex." 
+       ::= { sipServerCfg 1 } 
+
+   sipServerCfgEntry OBJECT-TYPE 
+       SYNTAX     SipServerCfgEntry 
+       MAX-ACCESS not-accessible 
+       STATUS     current 
+       DESCRIPTION 
+            "A row of common configuration." 
+       INDEX { applIndex } 
+       ::= { sipServerCfgTable 1 } 
+
+   SipServerCfgEntry ::= 
+       SEQUENCE { 
+                sipServerHost                   SnmpAdminString, 
+                sipInformationAlwaysSendTrying  TruthValue, 
+                sipInformationTryingInterval    Integer32, 
+                sipPgpVersion                   SnmpAdminString, 
+                sipServerDfltAction             SipServerActions, 
+                sipServerRespectUAAction        TruthValue 
+       } 
+
+   sipServerHost OBJECT-TYPE 
+       SYNTAX     SnmpAdminString 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "This is the host portion of a SIP URL that is assigned 
+             to the SIP server.  It may contain a fully qualified 
+             domain name, or an IP address (v4 only for now)." 
+       REFERENCE 
+             "RFC 2543, Section 2" 
+       ::= { sipServerCfgEntry 1 } 
+
+   -- 
+   -- Support for 1xx Status Codes 
+   -- 
+   sipInformationAlwaysSendTrying OBJECT-TYPE 
+       SYNTAX     TruthValue 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "If this object is true, the server sends 100 Trying when a 
+             request is processed." 
+       ::= { sipServerCfgEntry 2 } 
+
+   sipInformationTryingInterval OBJECT-TYPE 
+       SYNTAX     Integer32 (0..60000) 
+       UNITS      "milliseconds" 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "Server sends a 100 Trying at intervals of this duration 
+             as counted from when the request was processed.  If the 
+             value is zero, no such retransmission is performed." 
+       ::= { sipServerCfgEntry 3 } 
+
+   -- 
+   -- Security 
+   -- 
+   sipPgpVersion OBJECT-TYPE 
+       SYNTAX     SnmpAdminString 
+       MAX-ACCESS read-only 
+       STATUS     current 
+       DESCRIPTION 
+            "This object indicates the version of PGP (Pretty Good 
+             Privacy) supported by this server.  Common values are 
+             2.6.2 and 5.0." 
+       ::= { sipServerCfgEntry 4 } 
+
+   -- 
+   -- Additional Server Configuration 
+   -- 
+   sipServerDfltAction OBJECT-TYPE 
+       SYNTAX     SipServerActions 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "This object specifies whether the default action of the 
+             server is to be a proxy server or a redirect server.  A 
+             User Agent may indicate a preference upon registration of 
+             Contact information. The value of this object is used in 
+             the absence of such an indication." 
+       REFERENCE 
+             "RFC 2543,  Section 6.13" 
+       ::= { sipServerCfgEntry 5 } 
+
+   sipServerRespectUAAction OBJECT-TYPE 
+       SYNTAX     TruthValue 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "This object specifies whether the server should respect 
+             the wishes of a User Agent when the UA specifies a server 
+             action (proxy or redirect) for certain Contact 
+             information.  If the value of this object is false, then 
+             the value contained in the sipServerDfltAction is used." 
+       REFERENCE 
+             "RFC 2543, Section 6.13" 
+       ::= { sipServerCfgEntry 6 } 
+
+   -- 
+   -- Common Server Statistics 
+   -- 
+
+   -- none at this time 
+
+   -- sipProxy group 
+   -- This group contains MIB objects related to SIP Proxy Servers. 
+   -- 
+   sipProxy                    OBJECT IDENTIFIER ::= { sipServerMIB 3 } 
+   sipProxyCfg                 OBJECT IDENTIFIER ::= { sipProxy 1 } 
+   sipProxyStats               OBJECT IDENTIFIER ::= { sipProxy 2 } 
+
+   -- 
+   -- Proxy Server Configuration 
+   -- 
+   sipProxyCfgTable OBJECT-TYPE 
+       SYNTAX     SEQUENCE OF SipProxyCfgEntry 
+       MAX-ACCESS not-accessible 
+       STATUS     current 
+       DESCRIPTION 
+            "This table contains configuration objects applicable 
+             to SIP proxy servers.  Each row represents those objects  
+             for a particular SIP proxy server present in this system.  
+             The instances of SIP proxy servers are uniquely identified  
+             by applIndex." 
+       ::= { sipProxyCfg 1 } 
+
+   sipProxyCfgEntry OBJECT-TYPE 
+       SYNTAX     SipProxyCfgEntry 
+       MAX-ACCESS not-accessible 
+       STATUS     current 
+       DESCRIPTION 
+            "A row of common configuration." 
+       INDEX { applIndex } 
+
+       ::= { sipProxyCfgTable 1 } 
+
+   SipProxyCfgEntry ::= 
+       SEQUENCE { 
+                sipRequestMaxExpires         Unsigned32, 
+                sipProxyStateful             TruthValue, 
+                sipProxySendsCancel          TruthValue, 
+                sipProxyForwardAll1xx        TruthValue, 
+                sipProxyRecursion            TruthValue, 
+                sipProxyProvideAlternatives  TruthValue, 
+                sipProxyRecordRoute          TruthValue, 
+                sipProxyStateTimeout         Integer32, 
+                sipProxyAuthMethod           INTEGER, 
+                sipProxyAuthPgpAlgorithm     INTEGER, 
+                sipProxyAuthRealm            SnmpAdminString, 
+                sipProxyNonceLifeTime        Integer32, 
+                sipPgpPrivateKey             OCTET 
+   STRING(SIZE(0..255)), 
+                sipHideRespect               TruthValue 
+       } 
+
+   sipRequestMaxExpires OBJECT-TYPE 
+       SYNTAX     Unsigned32 (0..4294967295) 
+       UNITS      "seconds" 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "This object specifies the maximum duration that a SIP 
+             proxy server will accept from a client in the Expires 
+             header. 
+
+             If a longer duration is contained in the request, the 
+             server returns a 400 Bad Request response." 
+       ::= { sipProxyCfgEntry 1 } 
+
+   sipProxyStateful OBJECT-TYPE 
+       SYNTAX     TruthValue 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "This object specifies whether or not the default for  
+             the the proxy server is to operate in stateful mode.   
+
+             When stateful, a proxy remembers the incoming request  
+             which generated outgoing requests, and the outgoing  
+             requests. A stateless proxy forgets all information  
+             once an outgoing request is generated. 
+
+             If the value of this object is TRUE, the proxy defaults 
+             to stateful.  If FALSE, the proxy defaults to stateless." 
+       REFERENCE 
+             "RFC 2543, Section 12.3" 
+       ::= { sipProxyCfgEntry 2 } 
+
+   sipProxySendsCancel OBJECT-TYPE 
+       SYNTAX     TruthValue 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "This object specifies whether or not a forking proxy sends 
+             CANCEL on outstanding branch requests after receiving a 
+             2xx or 6xx, or after the request times-out. 
+
+             If the value of this object is TRUE, the server sends a 
+             CANCELs on branches where no definitive response has been 
+             received.  If FALSE, the proxy does not send CANCELs." 
+       REFERENCE 
+             "RFC 2543, Section 12.4" 
+       ::= { sipProxyCfgEntry 3 } 
+
+   sipProxyForwardAll1xx OBJECT-TYPE 
+       SYNTAX     TruthValue 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "This object specifies whether or not the proxy forwards 
+             all 1xx responses, except the 100 Trying response,  
+             upstream towards the source of the request. 
+
+             If the value of this object is TRUE, the 1xx responses are 
+             sent.  If the value is FALSE, duplicate 1xx responses are 
+             not sent upstream." 
+       ::= { sipProxyCfgEntry 4 } 
+
+   sipProxyRecursion OBJECT-TYPE 
+       SYNTAX     TruthValue 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "This object specifies whether or not the Proxy performs 
+             recursive search on the Contacts provided in 3xx 
+             redirects. 
+
+             If the value of this object is TRUE, a recursive search is 
+             performed.  If the value is FALSE, no search is performed, 
+             the 3xx response is sent upstream towards the source of 
+             the request." 
+       ::= { sipProxyCfgEntry 5 } 
+
+   sipProxyProvideAlternatives OBJECT-TYPE 
+       SYNTAX     TruthValue 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "The object specifies whether or not the Server provides 
+             alternative Contacts in 3xx and 485 responses. 
+
+             If the value of this object is TRUE, the server inserts a 
+             list of alternative URLs into a Contact header where the 
+             request Originator may possibly find the desired called 
+             party.  If the value is FALSE, the server doesn't add 
+             Contact information to 3xx and 485 responses. 
+
+             Note that the policies of a server may limit the 
+             particular alternatives that are returned when this object 
+             is TRUE." 
+       REFERENCE 
+             "RFC 2543, Section 6.13" 
+       DEFVAL { false } 
+       ::= { sipProxyCfgEntry 6 } 
+
+   sipProxyRecordRoute OBJECT-TYPE 
+       SYNTAX     TruthValue 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "This object specifies whether or not the proxy adds itself 
+             to the Record-Route header as a default action.  This  
+             header is used to list the proxies that insist on being in 
+             the signalling path for subsequent requests related to the  
+             call-leg. 
+
+             If the value of this object is TRUE, the proxy adds itself 
+             to the end of the Record-Route header, creating the header 
+             if required.  If the value is FALSE, the proxy doesn't add  
+             itself to the Record-Route header." 
+       REFERENCE 
+             "RFC 2543, Section 6.29" 
+       ::= { sipProxyCfgEntry 7 } 
+
+   sipProxyStateTimeout OBJECT-TYPE 
+       SYNTAX     Integer32 (0..255) 
+       UNITS      "seconds" 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "This object specifies the duration after reception of the 
+             first definitive non-200 response that a stateful proxy 
+             retains state in order to handle possible retransmissions 
+             of the response." 
+       REFERENCE 
+             "RFC 2543, Section 12.3.6" 
+       ::= { sipProxyCfgEntry 8 } 
+
+   -- 
+   -- Security 
+   -- 
+   sipProxyAuthMethod OBJECT-TYPE 
+       SYNTAX     INTEGER { 
+                          none(1), 
+                          basic(2), 
+                          digest(3), 
+                          pgp(4) 
+                  } 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "This object specifies the authentication method that is 
+             used to authenticate request originators.  If the value is 
+             none(1), no authentication is performed." 
+       ::= { sipProxyCfgEntry 9 } 
+
+   sipProxyAuthPgpAlgorithm OBJECT-TYPE 
+       SYNTAX     INTEGER { 
+                          other(1), 
+                          md5(2), 
+                          sha1(3) 
+
+                  } 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "This object specifies the PGP algorithm the proxy uses." 
+       ::= { sipProxyCfgEntry 10 } 
+
+   sipProxyAuthRealm OBJECT-TYPE 
+       SYNTAX     SnmpAdminString 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "This object specifies the realm used in Proxy-Authenticate 
+             headers.  Note that this may need to be stored per user." 
+       ::= { sipProxyCfgEntry 11 } 
+
+   sipProxyNonceLifeTime OBJECT-TYPE 
+       SYNTAX Integer32 (0..65535) 
+       UNITS "milliseconds" 
+       MAX-ACCESS read-write 
+       STATUS current 
+       DESCRIPTION 
+            "This object specifies the life-time of a given nonce.  A 
+             nonce is a server specified value whose contents are 
+             opaque to the entity being authenticated and which is used 
+             in calculating authentication data.  If this object has a 
+             value of zero, then 
+             nonces are not reused." 
+       ::= { sipProxyCfgEntry 12 } 
+
+   -- 
+   -- Proxy-Authenticate received by this server 
+   -- (i.e. this server is being authenticated by a peer) 
+   -- 
+   sipPgpPrivateKey OBJECT-TYPE 
+       SYNTAX     OCTET STRING(SIZE(0..255)) 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "The value of this object is the server's private PGP key, 
+             used for both PGP authentication of this server and for 
+             PGP-based 
+             encryption." 
+       ::= { sipProxyCfgEntry 13 } 
+
+   sipHideRespect OBJECT-TYPE 
+       SYNTAX     TruthValue 
+       MAX-ACCESS read-write 
+       STATUS     current 
+       DESCRIPTION 
+            "This object specifies whether the server encrypts Via 
+             headers as requested by received Hide headers." 
+       ::= { sipProxyCfgEntry 14 } 
+
+   sipRxProxyAuthTable OBJECT-TYPE 
+       SYNTAX     SEQUENCE OF SipRxProxyAuthEntry 
+       MAX-ACCESS not-accessible 
+       STATUS     current 
+       DESCRIPTION 
+            "This table contains authentication data for peers of each 
+             proxy server in this system.  The instances of proxy 
+             server are uniquely identified by the applIndex." 
+       ::= { sipProxyCfg 2 } 
+
+   sipRxProxyAuthEntry OBJECT-TYPE 
+       SYNTAX     SipRxProxyAuthEntry 
+       MAX-ACCESS not-accessible 
+       STATUS     current 
+       DESCRIPTION 
+            "This object contains authentication data for a single 
+             peer." 
+       INDEX { applIndex, sipRxProxyAuthIndex } 
+       ::= { sipRxProxyAuthTable 1 } 
+
+   SipRxProxyAuthEntry ::= 
+       SEQUENCE { 
+                sipRxProxyAuthIndex              Unsigned32, 
+                sipRxProxyAuthRealm              SnmpAdminString, 
+                sipRxProxyAuthPassword           OCTET STRING, 
+                sipRxProxyAuthStatus             RowStatus 
+       } 
+
+   sipRxProxyAuthIndex OBJECT-TYPE 
+       SYNTAX     Unsigned32 (1..4294967295) 
+       MAX-ACCESS not-accessible 
+       STATUS     current 
+       DESCRIPTION 
+            "This object uniquely identifies a conceptual row in the 
+             table." 
+       ::= { sipRxProxyAuthEntry 1 } 
+
+   sipRxProxyAuthRealm OBJECT-TYPE 
+       SYNTAX     SnmpAdminString 
+       MAX-ACCESS read-create 
+       STATUS     current 
+       DESCRIPTION 
+            "This object contains the realm that is specified by 
+             another server when it is authenticating this server." 
+       ::= { sipRxProxyAuthEntry 2 } 
+
+   sipRxProxyAuthPassword OBJECT-TYPE 
+       SYNTAX     OCTET STRING(SIZE(1..4095)) 
+       MAX-ACCESS read-create 
+       STATUS     current 
+       DESCRIPTION 
+            "This object contains the password that this server uses 
+             when it is being authenticated by another server using the 
+             realm specified by the sipRxProxyAuthRealm object in this 
+             table row." 
+       ::= { sipRxProxyAuthEntry 3 } 
+
+   sipRxProxyAuthStatus OBJECT-TYPE 
+       SYNTAX     RowStatus 
+       MAX-ACCESS read-create 
+       STATUS     current 
+       DESCRIPTION 
+            "The row status of the entry. This object is required 
+             to create or delete rows remotely by a manager." 
+       ::= { sipRxProxyAuthEntry 4 } 
+
+   -- 
+   -- Proxy Server Statistics 
+   -- 
+   sipProxyStatsTable OBJECT-TYPE 
+       SYNTAX     SEQUENCE OF SipProxyStatsEntry 
+       MAX-ACCESS not-accessible 
+       STATUS     current 
+       DESCRIPTION 
+            "This table contains the statistics objects applicable 
+             to all SIP Proxy Servers in this system.   
+
+             Each row represents those objects for a particular  
+             SIP Proxy Server.  The instances of SIP Proxy Server  
+             are uniquely identified by applIndex." 
+       ::= { sipProxyStats 1 } 
+
+   sipProxyStatsEntry OBJECT-TYPE 
+       SYNTAX     SipProxyStatsEntry 
+       MAX-ACCESS not-accessible 
+       STATUS     current 
+       DESCRIPTION 
+            "A row of summary statistics." 
+       INDEX { applIndex } 
+       ::= { sipProxyStatsTable 1 } 
+
+   SipProxyStatsEntry ::= 
+       SEQUENCE { 
+                sipNumProxyRequireFailures Counter32 
+       } 
+
+   sipNumProxyRequireFailures OBJECT-TYPE 
+       SYNTAX     Counter32 
+       MAX-ACCESS read-only 
+       STATUS     current 
+       DESCRIPTION 
+            "This object contains the number of occurrences of 
+             unsupported options being specified in received Proxy- 
+             Require headers.  Such occurrences result in a 420 Bad 
+             Extension status code being 
+             returned." 
+       ::= { sipProxyStatsEntry 1 } 
+
+   -- 
+   -- sipRedir group 
+   -- This group contains MIB objects related to SIP Redirect Servers. 
+   -- 
+   sipRedir               OBJECT IDENTIFIER ::= { sipServerMIB 4 } 
+   sipRedirCfg            OBJECT IDENTIFIER ::= { sipRedir 1 } 
+   sipRedirStats          OBJECT IDENTIFIER ::= { sipRedir 2 } 
+
+   -- none at this time 
+
+   -- 
+   -- Notifications 
+   -- 
+   sipServerMIBNotif      OBJECT IDENTIFIER ::= { sipServerMIB 5 } 
+   sipProxyNotif          OBJECT IDENTIFIER ::= { sipServerMIBNotif 1 } 
+   sipRedirNotif          OBJECT IDENTIFIER ::= { sipServerMIBNotif 2 } 
+
+   -- none at this time 
+
+   -- 
+   -- Conformance 
+   -- 
+   sipServerMIBConformance       
+     OBJECT IDENTIFIER ::= { sipServerMIB 6 } 
+   sipServerMIBCompliances       
+     OBJECT IDENTIFIER ::= { sipServerMIBConformance 1 } 
+   sipServerMIBGroups            
+     OBJECT IDENTIFIER ::= { sipServerMIBConformance 2 } 
+
+   -- 
+   -- Compliance Statements 
+   -- 
+
+   sipCompliance MODULE-COMPLIANCE 
+       STATUS     current 
+       DESCRIPTION 
+            "The compliance statement for SIP entities." 
+
+       MODULE -- this module 
+            MANDATORY-GROUPS { sipServerConfigGroup } 
+   --                            sipServerStatsGroup, 
+   --                            sipServerNotifGroup } 
+
+            GROUP sipProxyConfigGroup 
+            DESCRIPTION 
+                  "This group is mandatory for SIP Proxy servers." 
+
+            GROUP sipProxyStatsGroup 
+            DESCRIPTION 
+                  "This group is mandatory for SIP Proxy servers." 
+
+   --         GROUP sipProxyNotifGroup 
+   --         DESCRIPTION 
+   --               "This group is mandatory for SIP Proxy servers." 
+
+   --         GROUP sipRedirectConfigGroup 
+   --         DESCRIPTION 
+   --               "This group is mandatory for SIP Redirect servers." 
+
+   --         GROUP sipRedirectStatsGroup 
+   --         DESCRIPTION 
+   --               "This group is mandatory for SIP Redirect servers." 
+
+   --         GROUP sipRedirectNotifGroup 
+   --         DESCRIPTION 
+   --               "This group is mandatory for SIP Redirect servers." 
+
+       ::= { sipServerMIBCompliances 1 } 
+
+   -- 
+   -- Units of Conformance 
+   -- 
+
+   sipServerConfigGroup OBJECT-GROUP 
+       OBJECTS { 
+               sipServerHost, 
+               sipInformationAlwaysSendTrying, 
+               sipInformationTryingInterval, 
+               sipPgpVersion, 
+               sipServerDfltAction, 
+               sipServerRespectUAAction 
+       } 
+       STATUS  current 
+       DESCRIPTION 
+            "A collection of objects providing configuration common 
+             to SIP Proxy and Redirect servers." 
+       ::= { sipServerMIBGroups 1 } 
+
+   --sipServerStatsGroup OBJECT-GROUP 
+   --    OBJECTS { 
+   -- none at this time 
+   --    } 
+   --    STATUS  current 
+   --    DESCRIPTION 
+   --         "A collection of objects providing common statistics for 
+   --          SIP Proxy and Redirect servers." 
+   --    ::= { sipServerMIBGroups 2 } 
+
+   sipProxyConfigGroup OBJECT-GROUP 
+       OBJECTS { 
+               sipRequestMaxExpires, 
+               sipProxyStateful, 
+               sipProxySendsCancel, 
+               sipProxyForwardAll1xx, 
+               sipProxyRecursion, 
+               sipProxyProvideAlternatives, 
+               sipProxyRecordRoute, 
+               sipProxyStateTimeout, 
+               sipProxyAuthMethod, 
+               sipProxyAuthPgpAlgorithm, 
+               sipProxyAuthRealm, 
+               sipProxyNonceLifeTime, 
+               sipPgpPrivateKey, 
+               sipRxProxyAuthRealm, 
+               sipRxProxyAuthPassword, 
+               sipRxProxyAuthStatus, 
+               sipHideRespect 
+       } 
+       STATUS  current 
+       DESCRIPTION 
+            "A collection of objects providing configuration for 
+             SIP Proxy servers." 
+       ::= { sipServerMIBGroups 3 } 
+
+   sipProxyStatsGroup OBJECT-GROUP 
+       OBJECTS { 
+               sipNumProxyRequireFailures 
+       } 
+       STATUS  current 
+       DESCRIPTION 
+            "A collection of objects providing statistics for 
+             SIP Proxy servers." 
+       ::= { sipServerMIBGroups 4 } 
+
+   --sipProxyNotifGroup NOTIFICATION-GROUP 
+   --    OBJECTS { 
+   -- none at this time 
+   --    } 
+   --    STATUS  current 
+   --    DESCRIPTION 
+
+   --         "A collection of notifications defined for SIP 
+   --          Proxy servers." 
+   --    ::= { sipServerMIBGroups 5 } 
+
+   --sipRedirectConfigGroup OBJECT-GROUP 
+   --    OBJECTS { 
+   -- none at this time 
+   --    } 
+   --    STATUS  current 
+   --    DESCRIPTION 
+   --         "A collection of objects providing configuration for 
+   --          SIP Redirect servers." 
+   --    ::= { sipServerMIBGroups 6 } 
+
+   --sipRedirectStatsGroup OBJECT-GROUP 
+   --    OBJECTS { 
+   -- none at this time 
+   --    } 
+   --    STATUS  current 
+   --    DESCRIPTION 
+   --         "A collection of objects providing statistics for 
+   --          SIP Redirect servers." 
+   --    ::= { sipServerMIBGroups 7 } 
+
+   --sipRedirectNotifGroup NOTIFICATION-GROUP 
+   --    OBJECTS { 
+   -- none at this time 
+   --    } 
+   --    STATUS  current 
+   --    DESCRIPTION 
+   --         "A collection of notifications defined for SIP 
+   --          Redirect servers." 
+   --    ::= { sipServerMIBGroups 8 } 
+
+END

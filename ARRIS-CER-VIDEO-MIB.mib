@@ -1,0 +1,3248 @@
+ARRIS-CER-VIDEO-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, Unsigned32,
+    Counter64, Counter32, Gauge32, IpAddress, 
+    Integer32, NOTIFICATION-TYPE
+        FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION, TruthValue, RowStatus, DisplayString,
+    TimeStamp, DateAndTime
+        FROM SNMPv2-TC
+    OBJECT-GROUP, MODULE-COMPLIANCE
+        FROM SNMPv2-CONF
+    InetAddressIPv4or6, AdminState
+        FROM CADANT-TC
+    InetAddressType, InetAddress
+        FROM INET-ADDRESS-MIB
+    ifIndex, InterfaceIndex, InterfaceIndexOrZero
+        FROM IF-MIB
+    trapCounter, trapSeverity
+        FROM CADANT-CMTS-EQUIPMENT-MIB
+    arrisE6Cer
+        FROM ARRIS-MIB;
+
+cerMpegVideoMIB  MODULE-IDENTITY
+    LAST-UPDATED "201510260000Z" -- 26 Octobor 2015
+    ORGANIZATION "Arris International"
+    CONTACT-INFO
+        "   Network Management
+            Postal: Arris International.
+                    4300 Cork Airport Business Park
+                    Cork Airport, Kinsale Road
+                    Cork, Ireland.
+            Tel:    +353 21 7305 800
+            Fax:    +353 21 4321 972"
+
+    DESCRIPTION
+        "This MIB manages the MPEG / VIDEO software on the Arris CER."
+
+
+    REVISION "201510260000Z" -- 26 Octobor 2015
+    DESCRIPTION
+        "Remove cerveStatusCurrentProgramsTx."
+    REVISION "201504250000Z" -- 25 April 2015
+    DESCRIPTION
+        "Modify range of programs allowed on a channel."
+    REVISION "201501150000Z" -- 15 January 2015
+    DESCRIPTION
+        "Remove cerveServiceGroupChanTable."
+    REVISION "201411240000Z" -- 24 November 2014
+    DESCRIPTION
+        "Remove cerVideoLookupTsidToIfIndexTable."
+    REVISION "201411200000Z" -- 20 November 2014
+    DESCRIPTION
+        "Restrict virtual edge indexes to supported set."
+    REVISION "201411100000Z" -- 10 November 2014
+    DESCRIPTION
+        "More V3.2 PSA updates."
+    REVISION "201411050000Z" -- 5, November 2014
+    DESCRIPTION
+        "Rename cerVideoErmConnection to cerVideoSrvDiscErmConnection."
+    REVISION "201410280000Z" -- 28 October 2014
+    DESCRIPTION
+        "Updated cervQamJitterDepth description."
+    REVISION "201410200000Z" -- 20 October 2014
+    DESCRIPTION
+        "Updated MIB SDV support for PSA v3.2"
+    REVISION "201409290000Z" -- 29 September 2014
+    DESCRIPTION
+        "Remove cerveStatusbadSyncPkts and cerveStatusDcamDroppedPkts"
+    REVISION "201409100000Z" -- 10 September 2014
+    DESCRIPTION
+        "Updated MIB SDV support for PSA"
+    REVISION "201409020000Z" -- 2 September 2014
+    DESCRIPTION
+        "Updated MIB SDV support for PSA v2.4"
+    REVISION "201407250000Z" -- 25 July 2014
+    DESCRIPTION
+        "Updated MIB SDV support"
+    REVISION "201406250000Z" -- 25 June 2014
+    DESCRIPTION
+        "Updated MIB to E6000 IEQ Application PSA v2.1"
+    REVISION "201406050000Z" -- 05 June 2014
+    DESCRIPTION
+        "Fix accessiblity of cerveDataAddrMapIfIndex."
+    REVISION "201404240000Z" -- 24 April 2014
+    DESCRIPTION
+        "Change cerErmPort range to (1024..65535)"
+    REVISION "201401310000Z" -- 31 January 2014
+    DESCRIPTION
+        "Editorial changes and index restructuring."
+    REVISION "201401150000Z" -- 15 January 2014
+    DESCRIPTION
+        "Updated MIB to E6000 IEQ Application PSA v1.0"
+    REVISION "201308090000Z" -- 9 August 2013
+    DESCRIPTION
+        "Updated MIB to match latest E6000 IEQ Application PSA for R3.0"
+    REVISION "201008010000Z" -- 1 August 2010
+    DESCRIPTION
+        "Change default AutoGeneratePAT and AutoGeneratePMT to true."
+    REVISION "201007280000Z" -- 28 July 2010
+    DESCRIPTION
+        "Change default max programs to 20."
+    REVISION "201002230000Z" -- 23 Feburary 2010
+    DESCRIPTION
+        "E6000 CER Initial revision."
+    ::= { arrisE6Cer 1 }
+
+cerVideoObjects OBJECT IDENTIFIER ::= { cerMpegVideoMIB 1 }
+
+CerTransportStreamIndex ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "An identifier that uniquely identifies an MPEG Transport Stream in
+         the E6000 MPEG Manager. This could represent an incoming or outgoing
+         TS, or could represent an SPTS or MPTS."
+    SYNTAX    Unsigned32 ( 1..1073741823 )
+
+CerElementaryStreamType ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "A convenient type definition for MPEG Elementary Stream Type values."
+    SYNTAX    Integer32 ( 1..255 )
+
+CerDescriptorTag ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "A convenient type definition for MPEG Descriptor Tags values."
+    SYNTAX    Integer32 ( 1..255 )
+
+CerDescriptorIndex ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "An identifier that uniquely identifies an MPEG Descriptor within a
+        given Program or Elementary Stream."
+    SYNTAX    Integer32 ( 1..65535 )
+
+CerDescriptorBuffer ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "A buffer that contains MPEG Descriptor data."
+    SYNTAX    OCTET STRING (SIZE (0..255))
+
+CerPID ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "A convenient type definition for MPEG PID values."
+    SYNTAX    Integer32 ( 0..8191 )
+
+CerProgram ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "A convenient type definition for MPEG Program Number values."
+    SYNTAX    Unsigned32
+
+CerPidType ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "A convenient type definition for PID - whether PSI or ES.
+         PSI - the typical program defined by PAT & PMT tables
+         ES  - a stream that contains only PIDs with not references to PAT/PMT tables (si-stream)
+         ghost - neither of the above, an unreferenced PID."
+    SYNTAX    INTEGER {
+                        es(1),
+                        psi(2),
+                        ghost(3)
+                      }
+
+CerTransportStreamStatus ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+        "A convenient type definition for MPEG transport stream status
+         states. These can be as follows
+            active     - currently passing video traffic
+            blocked    - no video passing currently, the stream is blocked
+            inactive   - not passing ANY traffic - used for statically
+                         configured streams"
+    SYNTAX    INTEGER {
+                        active(1),
+                        timingOut(2),
+                        inactive(3)
+                       }
+
+CerProgStatus ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+        "A convenient type definition for MPEG Program status states. These
+         can be as follows
+            active     - currently passing video traffic
+            timedOut   - No video passing currently, in transition from
+                         active to inactive states
+            inactive   - not passing ANY traffic - used for statically
+                         configured programs"
+    SYNTAX    INTEGER {
+                        active(1),
+                        timingOut(2),
+                        inactive(3)
+                       }
+
+CerTransportStreamDirection ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "A convenient type definition for the direction of a Transport
+         Stream
+            incoming - the Transport Stream is being received by the E6000,
+                        typically over IP
+            outgoing - the Transport Stream is being generated by the E6000 and
+                        sent to a QAM."
+    SYNTAX    INTEGER {
+                        incoming(1),
+                        outgoing(2)
+                       }
+                       
+CerVirtualEdgeIndexType ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "A convenient type definition for the index associated with a Virtual Edge instance."
+    SYNTAX    Integer32 ( 0..8 )
+
+CerServiceGroupNameIndexType ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "A convenient type definition for the index associated with a video Service Group instance."
+    SYNTAX    Integer32 ( 1..65535 )
+
+CerIeqQamType ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "The Type of IEQ QAM channel:
+            vod - Video On Demand
+            sdv - Switched Digital Video
+            linear - Broadcast video
+            vodsdv - VOD or SDV"
+    SYNTAX    INTEGER {
+                        vod(1),
+                        sdv(2),
+                        linear(3),
+                        vodsdv(4)
+                       }
+
+CerUdpPortMapType ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+        "Defines the type of dataplane UDP port mapping used by a Virtual Edge as one of the following
+            map8x8   - Static map: Upper 8 bits of UDP port determines the channel; lower 8 bits, the program number.
+            map10x6  - Static map: Upper 10 bits of UDP port determines the channel; lower 6 bits, the program number.
+            session  - Mapping determined via ERM non-multicast session-based messages."
+    SYNTAX    INTEGER {
+                        map8x8  (1),
+                        map10x6 (2),
+                        session (3)
+                       }
+
+CerStreamType ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+        "Defines the type of stream in the UdpIpStream table
+            static    - Either a static UDP port map or manual map of a single port (future).
+            dynamic   - Set up via a message from a Session ERM.
+            redundant - Redundant dynamic input stream set up via a message from a Session ERM (future)."
+    SYNTAX    INTEGER {
+                        static  (1),
+                        dynamic (2),
+                        redundant (3)
+                       }
+
+CerPerChanEnable ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+        "A convenient type definition for per-channel feature configuration.
+         These can be as follows
+            enabled     - the feature is enabled for this channel
+            disabled    - the feature is disabled for this channel
+            global      - the feature has no per-channel value, but uses
+                          the current global setting."
+    SYNTAX    INTEGER {
+                        enabled (1),
+                        disabled (2),
+                        global (3)
+                      }
+
+CerMulticastType ::= TEXTUAL-CONVENTION 
+    STATUS  current
+    DESCRIPTION
+        "A convenient type definition for the multicast type for SDV/broadcast."
+    SYNTAX    INTEGER {
+                        pim (1),
+                        igmp (2),
+                        none (3)
+                      }
+
+CerErmProtocolType ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "A convenient type definition for which type of protocol to use for communication with an ERM.
+         ngod  - Comcast Next Generation on Demand 2.0 protocol
+         rpc - TWC Remote Procedure Call protocol
+         rmi - CableLabs Remote Management Interface protocol
+         none - No ERM will be used (e.g., manually configured table-based VOD only)"
+    SYNTAX    INTEGER {
+                        ngod(1),
+                        rpc(2),
+                        rmi(3),
+                        none(4)
+                      }
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- Global MPEG Processing configuration settings including defaults for qams
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    cerVideoControlGroup OBJECT IDENTIFIER ::= { cerVideoObjects 1 }
+            cervControlPatInterval   OBJECT-TYPE
+                SYNTAX      Unsigned32 (50..2000)
+                UNITS       "milliseconds"
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "Retransmission interval for PAT tables in milliseconds."
+                DEFVAL { 100 }
+                ::= { cerVideoControlGroup 1 }
+
+            cervControlPmtInterval   OBJECT-TYPE
+                SYNTAX      Unsigned32 (50..2000)
+                UNITS       "milliseconds"
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "Retransmission interval for PMT tables in milliseconds."
+                DEFVAL { 100 }
+                ::= { cerVideoControlGroup 2 }
+
+            cervControlUnicastTimeoutInterval   OBJECT-TYPE
+                SYNTAX      Unsigned32 (1..65)
+                UNITS       "seconds"
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "The unicast (VOD) TS timeout interval in seconds."
+                DEFVAL { 10 }
+                ::= { cerVideoControlGroup 3 }
+
+            cervControlMaxProgramsPerQamChannel   OBJECT-TYPE
+                SYNTAX      Unsigned32 (10..31)
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "Max number of programs per channel. Without this parameter, with 8:8 port
+                     mapping, the maximum port value allowed would be 255. Since we can fit
+                     at least 10 SD programs on a video channel, should not allow setting below 10.
+                     The legal program number range for OTS program numbers
+                     is 1 to cervControlMaxProgramsPerQamChannel."
+                DEFVAL { 15 }
+                ::= { cerVideoControlGroup 4 }
+
+            cervControlOverSubscriptionRecovery OBJECT-TYPE
+                SYNTAX      TruthValue
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "If this is set to TRUE, then the E6000 will attempt to
+                     recover automatically from a QAM-overscribed condition by
+                     shutting down active programs selectively.  It selects
+                     which programs to shut down by order of most recently
+                     activated, checks the new bitrates, then continues to
+                     shutdown more programs as neccessary untill the total
+                     bandwidth fits within the QAM available bandwidth."
+                DEFVAL { true }
+                ::= { cerVideoControlGroup 5 }
+
+           cervControlDuplicateTsidCheck OBJECT-TYPE
+                SYNTAX    INTEGER {
+                        streamingZone(1),
+                        serviceGroup(2),
+                        never(3)
+                       }
+
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "If this is set to never, then the E6000 disablse detection of
+                     duplicate TSIDs, allowing any pair of channels to use the same value.
+                     If it is set to streamingZone, the E6000 will check that TSIDs are
+                     unique within streaming zones. If set to serviceGroup, it will check
+                     that TSIDs are unique within service groups."
+                DEFVAL { never }
+                ::= { cerVideoControlGroup 6 }
+
+            cervControlPreEncDetect   OBJECT-TYPE
+                SYNTAX      TruthValue
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "If this is set to TRUE, then the E6000 will detect 
+                     pre-encrypted streams, and will avoid re-encrypting the
+                     traffic when forwarding it downstream."
+                DEFVAL { true }
+                ::= { cerVideoControlGroup 7 }
+                
+           cervControlOnProgConflictDropOld   OBJECT-TYPE
+                SYNTAX      TruthValue
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "If this is set to FALSE, if a new stream from a different
+                    source IP address maps to the 
+                    same output QAM channel and program number as an existing
+                    stream, the E6000 will drop the newer stream and forward
+                    the older stream. If it is TRUE then the older stream will 
+                    be blocked, and the newer one will be forwarded."
+                DEFVAL { true }
+                ::= { cerVideoControlGroup 8 }
+
+            cervControlDefaultJitter OBJECT-TYPE
+                SYNTAX      Unsigned32 (0..500)
+                UNITS       "milliseconds"
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "The default jitter buffer depth for a channel in milliseconds.
+                     Zero means do not compensate for jitter (i.e., send immediately)."
+                DEFVAL { 200 }
+                ::= { cerVideoControlGroup 9 }
+
+            cervControlUdpPortOffset OBJECT-TYPE
+                SYNTAX      Unsigned32 (1..255)
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "The low UDP port number in the block of 256 UDP ports
+                    assigned to a channel. cervControlUdpPortOffset plus 
+                    cervControlMaxProgramsPerQamChannel must be less than 257."
+                DEFVAL { 1 }
+                ::= { cerVideoControlGroup 10 }
+
+            cervErmProtocol OBJECT-TYPE
+                SYNTAX      CerErmProtocolType
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "The type of ERM protocol for ERM communications. Must be configured
+                     before configuring ERM parameters."
+                DEFVAL { none }
+                ::= { cerVideoControlGroup 11 }
+                
+             cervStaticVodPidRemapScheme OBJECT-TYPE
+                SYNTAX    INTEGER {
+                        atsc (1),
+                        dynamic (2)
+                       }
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "The type of PID remapping scheme to use to static (table-based)
+                     VOD. Session-based VOD is only allowed to use dynamic remapping."
+                DEFVAL { atsc }
+                ::= { cerVideoControlGroup 12 }
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- QAM table (root of outgoing transport-streams in the MIB)
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    cerVideoQamStreamTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerVideoQamStreamEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table stores MPEG Video related data on a per QAM channel
+                 basis. Rows in this table are auto-created when a row of type
+                 dchannelVideo is created in the portTable. It is autodeleted 
+                 when the row in the portTable is deleted."
+        ::= { cerVideoObjects 2 }
+
+        cerVideoQamStreamEntry OBJECT-TYPE
+            SYNTAX     CerVideoQamStreamEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Video QAM channel configuration parameters"
+            INDEX { ifIndex }
+            ::= { cerVideoQamStreamTable 1 }
+
+            CerVideoQamStreamEntry ::= SEQUENCE {
+                cervQamTransportStreamID       Unsigned32,
+                cervQamTsMibIndex              CerTransportStreamIndex,
+                cervQamPatInterval             Unsigned32,
+                cervQamPmtInterval             Unsigned32,
+                cervQamOverSubscriptionRecoveryEnabled CerPerChanEnable,
+                cervQamPreEncDetect            CerPerChanEnable,
+                cervQamOnProgConflictDropOld   CerPerChanEnable,
+                cervQamServiceGroupName        OCTET STRING,
+                cervQamServiceGroupIndex       Unsigned32,
+                cervQamVeqIndex                CerVirtualEdgeIndexType,
+                cervQamUdpBasePort             Unsigned32,
+                cervQamJitterDepth             Integer32,
+                cervQamUdpPortOffset           Unsigned32,
+                cervQamClearCounters           TruthValue,
+                cervQamSubtype                 CerIeqQamType
+            }
+
+            cervQamTransportStreamID   OBJECT-TYPE
+                SYNTAX      Unsigned32 (0..65535)
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "The MPEG transport_stream_id used when transmitting PAT
+                     tables on this QAM channel.  All QAM streams in the
+                     same streaming zone must have a unique TSID value, unless
+                     cervControlAllowTsidDuplication is set to true. A
+                     unique value is auto-populated when the row is created,
+                     although the value may be explicitly written to a
+                     different, unique value (with the SZ) at a later time."
+                DEFVAL { 0 }
+                ::= { cerVideoQamStreamEntry 1 }
+
+            cervQamTsMibIndex   OBJECT-TYPE
+                SYNTAX      CerTransportStreamIndex
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The index of the outgoing Transport Stream on this QAM
+                     channel."
+                ::= { cerVideoQamStreamEntry 2 }
+
+            cervQamPatInterval   OBJECT-TYPE
+                SYNTAX      Unsigned32 (0|50..2000)
+                UNITS       "milliseconds"
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "Retransmission interval for PAT tables in milliseconds. A value of zero
+                     means use the global value."
+                DEFVAL { 0 }
+                ::= { cerVideoQamStreamEntry 3 }
+
+            cervQamPmtInterval   OBJECT-TYPE
+                SYNTAX      Unsigned32(0|50..2000)
+                UNITS       "milliseconds"
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "Retransmission interval for PMT tables in milliseconds. A value of zero
+                     means use the global value."
+                DEFVAL { 0 }
+                ::= { cerVideoQamStreamEntry 4 }
+
+            cervQamOverSubscriptionRecoveryEnabled   OBJECT-TYPE
+                SYNTAX      CerPerChanEnable
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "If this is set to enabled, then the E6000 will attempt to
+                     recover automatically from a QAM-overscribed condition by
+                     shutting down active programs selectively.  It selects
+                     which programs to shut down by order of most recently
+                     activated, checks the new bitrates, then continues to
+                     shutdown more programs as neccessary untill the total
+                     bandwidth fits within the QAM available bandwidth.
+                     If set to disabled, packets are discarded randomly.
+                     If set to global, then the current value of 
+                     cervControlOverSubscriptionRecovery is used."
+                DEFVAL { global }
+                ::= { cerVideoQamStreamEntry 5 }
+
+            cervQamPreEncDetect   OBJECT-TYPE
+                SYNTAX      CerPerChanEnable
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "If this is set to enabled, then the E6000 will detect Motorola
+                     pre-encrypted streams, and will avoid re-encrypting the
+                     traffic when forwarding it downstream. If set to global, then
+                     the current value of cervControlPreEncDetect is used."
+                DEFVAL { global }
+                ::= { cerVideoQamStreamEntry 6 }
+
+            cervQamOnProgConflictDropOld OBJECT-TYPE
+                SYNTAX      CerPerChanEnable
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "If this is set to enabled, if a new stream from a different
+                    source IP address maps to the same output QAM channel
+                    and program number as an existing stream, the newer stream 
+                    will be forwarded, and the older stream will be blocked. If set to 
+                    disabled, then the newer stream will be blocked, and
+                    the older, existing one will be forwarded. If set to global, then
+                    the current value of cervControlOnProgConflictDropOld is used."
+                DEFVAL { global }
+                ::= { cerVideoQamStreamEntry 7 }
+
+            cervQamServiceGroupName   OBJECT-TYPE
+                SYNTAX      OCTET STRING (SIZE (0..32))
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "The name of the Service Group that this QAM channel is assigned to.
+                    A null string means the channel is not assigned to any Service Group."
+                DEFVAL { "" }
+                ::= { cerVideoQamStreamEntry 8 }
+
+            cervQamServiceGroupIndex   OBJECT-TYPE
+                SYNTAX      Unsigned32
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "The index for the Service Group, required for session-based ERMs.
+                     Zero means the channel is not assigned to a service group."
+                DEFVAL { 0 }
+                ::= { cerVideoQamStreamEntry 9 }
+
+            cervQamVeqIndex   OBJECT-TYPE
+                SYNTAX      CerVirtualEdgeIndexType
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "The index of the Virtual Edge that this QAM channel is assigned to.
+                     This value must be provided when the row is created and cannot be updated."
+                DEFVAL { 0 }
+                ::= { cerVideoQamStreamEntry 10 }
+
+            cervQamUdpBasePort   OBJECT-TYPE
+                SYNTAX      Unsigned32 (0..65535)
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "This attribute is only used when cervePortMap is set to 8x8 or 10x6.
+                    The start of the UDP port range is assigned to this QAM channel for the purposes
+                    of routing video traffic to it. There will be 256 ports assigned when using 8x8,
+                    or 64 when using 10x6 port mapping scheme. The lowest port number in each
+                    block is not used in the port map. Only the 8x8 mapping scheme is currently supported.
+                    Setting this value auto-populates a corresponding row in cerveUdpPortMapTable and, 
+                    when the value is changed in an existing row, deletes the row in cerveUdpPortMapTable 
+                    for the old value. The UDP block starting with zero is not usable; 
+                    zero means no block is assigned."
+                DEFVAL { 0 }
+                ::= { cerVideoQamStreamEntry 11 }
+
+            cervQamJitterDepth   OBJECT-TYPE
+                SYNTAX      Integer32 (-1..500)
+                UNITS       "milliseconds"
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "The setting for jitter-buffer depth in milliseconds for
+                     video program streams on this channel.
+                     Can be set to a small value to reduce latency through the
+                     box, or set to a higher value to compensate for more
+                     jitter in the input video stream.  Uses the global value
+                     cervControlDefaultJitter when the value is -1"
+                DEFVAL { -1 }
+                ::= { cerVideoQamStreamEntry 12 }
+
+            cervQamUdpPortOffset OBJECT-TYPE
+                SYNTAX      Unsigned32 (0..246)
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "The offset in the 256 UDP port block for the lowest numbered UDP port mapped
+                     to this channel. cervQamUdpPortOffset plus cervControlMaxProgramsPerQamChannel
+                     must be less than 257. Zero means uses the current global value
+                     cervControlUdpPortOffset."
+                DEFVAL { 0 }
+                ::= { cerVideoQamStreamEntry 13 }
+
+            cervQamClearCounters OBJECT-TYPE
+                SYNTAX      TruthValue
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "Always reads as false. Setting it to true clears all IEQ video counters
+                     related to this DS channel. Setting it to false has no effect."
+                DEFVAL { false }
+                ::= { cerVideoQamStreamEntry 14 }
+
+            cervQamSubtype OBJECT-TYPE
+                SYNTAX      CerIeqQamType
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "The type(s) of Ieq traffic to be carried over this QAM channel.
+                     Used for reporting config to ERM session managers. Linear is not
+                     yet supported. Channels cannot be used for video if the subtype is none."
+                DEFVAL { vodsdv }
+                ::= { cerVideoQamStreamEntry 15 }
+
+cerVideoQamStreamStateTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerVideoQamStreamStateEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table provides MPEG Video status on a per QAM channel
+                 basis. Rows in this table are auto-created when a row of type
+                 dchannelVod, dchannelSdv, or dchannelBroadcast is created in
+                 the portTable. It is autodeleted when the row in the portTable
+                 is deleted."
+        ::= { cerVideoObjects 3 }
+
+        cerVideoQamStreamStateEntry OBJECT-TYPE
+            SYNTAX     CerVideoQamStreamStateEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Video QAM channel status"
+            AUGMENTS { cerVideoQamStreamEntry }
+            ::= { cerVideoQamStreamStateTable 1 }
+
+            CerVideoQamStreamStateEntry ::= SEQUENCE {
+                cervQamTotalPatsTx             Counter32,
+                cervQamTotalProgramsTx         Counter32,
+                cervQamCurrentProgramsTx       Gauge32,
+                cervQamPeakProgramsTx          Gauge32,
+                cervQamStreamStatus            CerTransportStreamStatus,
+                cervQamTimeActivated           TimeStamp,
+                cervQamTimeActive              Unsigned32,
+                cervQamTimeDeactivated         TimeStamp,
+                cervQamOverSubscribed          TruthValue,
+                cervQamCurrentBandwidth        Gauge32,
+                cervQamPeakBandwidth           Gauge32
+            }
+
+            cervQamTotalPatsTx   OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The total number of unique PAT Tables that have been
+                     generated for this QAM channel."
+                ::= { cerVideoQamStreamStateEntry 1 }
+
+            cervQamTotalProgramsTx   OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The accumulated number of Programs transmitted on this QAM
+                     channel."
+                ::= { cerVideoQamStreamStateEntry 2}
+
+            cervQamCurrentProgramsTx   OBJECT-TYPE
+                SYNTAX      Gauge32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The  number of Programs currently being transmitted on this
+                     QAM channel."
+                ::= { cerVideoQamStreamStateEntry 3 }
+
+            cervQamPeakProgramsTx   OBJECT-TYPE
+                SYNTAX      Gauge32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The peak number of Programs transmitted since the channel
+                     was activated."
+                ::= { cerVideoQamStreamStateEntry 4 }
+
+            cervQamStreamStatus    OBJECT-TYPE
+                SYNTAX      CerTransportStreamStatus
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Current status of this QAM Transport stream"
+                DEFVAL { inactive }
+                ::= { cerVideoQamStreamStateEntry 5 }
+
+            cervQamTimeActivated  OBJECT-TYPE
+                SYNTAX      TimeStamp
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The value of sysUpTime when this stream was last activated.
+                           Zero if not-applicable."
+                ::= { cerVideoQamStreamStateEntry 6 }
+
+            cervQamTimeActive OBJECT-TYPE
+                SYNTAX          Unsigned32
+                UNITS           "seconds"
+                MAX-ACCESS      read-only
+                STATUS          current
+                DESCRIPTION
+                    "The total time that MPEG stream has been active."
+                ::= { cerVideoQamStreamStateEntry 7 }
+
+            cervQamTimeDeactivated  OBJECT-TYPE
+                SYNTAX      TimeStamp
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The value of sysUpTime when this stream was last
+                     deactivated.  Zero if not-known."
+                ::= { cerVideoQamStreamStateEntry 8 }
+
+            cervQamOverSubscribed   OBJECT-TYPE
+                SYNTAX      TruthValue
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Indicates if the bandwidth of this QAM is currently
+                     over-subscribed (receiving more packets than can be
+                     transmitted).  If the QAM is currently over-subscribed,
+                     some programs will suffer packet-loss.  The affected
+                     programs are identified in the cerQamProgramPcrBufferTable."
+                DEFVAL { false }
+                ::= { cerVideoQamStreamStateEntry 9 }
+
+            cervQamCurrentBandwidth   OBJECT-TYPE
+                SYNTAX      Gauge32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "For table-based VOD,the current bandwidth in use. For
+                     Session-based VOD and SDV, the total requested bandwidth."
+                ::= { cerVideoQamStreamStateEntry 10 }
+
+            cervQamPeakBandwidth   OBJECT-TYPE
+                SYNTAX      Gauge32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "For table-based VOD,the peak bandwidth in use since the
+                     channel was activated. For session-based VOD and SDV, the peak
+                     requested bandwidth since the channel was activated."
+                ::= { cerVideoQamStreamStateEntry 11 }
+
+    cerVideoReplicaChanTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerVideoReplicaChanEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This Table contains one row for each replicated channel."
+        ::= { cerVideoObjects 4 }
+
+        cerVideoReplicaChanEntry OBJECT-TYPE
+            SYNTAX     CerVideoReplicaChanEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Video replicated channel configuration"
+            INDEX { cervReplicaSourceIfIndex, cervReplicatedIfIndex }
+            ::= { cerVideoReplicaChanTable 1 }
+
+            CerVideoReplicaChanEntry ::= SEQUENCE {
+                cervReplicaSourceIfIndex    InterfaceIndex,
+                cervReplicatedIfIndex       InterfaceIndex,
+                cervReplicaRowStatus        RowStatus
+                }
+
+            cervReplicaSourceIfIndex   OBJECT-TYPE
+                SYNTAX      InterfaceIndex
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The ifIndex of the source (base) video channel."
+                ::= { cerVideoReplicaChanEntry 1 }
+
+            cervReplicatedIfIndex OBJECT-TYPE
+                SYNTAX      InterfaceIndex
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The ifIndex of the replicated channel associated with this source
+                     video channel."
+                ::= { cerVideoReplicaChanEntry 2 }
+
+            cervReplicaRowStatus   OBJECT-TYPE
+                SYNTAX      RowStatus
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "The RowStatus for controlling entries in this table."
+                ::= { cerVideoReplicaChanEntry 3 }
+                 
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- Video Service Group configuration
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    cerveServiceGroupTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerveServiceGroupEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table contains a mapping, per VE, of RF connectors to SG names."
+        ::= { cerVideoObjects 5 }
+
+        cerveServiceGroupEntry OBJECT-TYPE
+            SYNTAX     CerveServiceGroupEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Video service group configuration. A row in this table is created
+                     when the first channel on an RF connector is assigned to a SG.
+                     All channels on the same RF port (i.e., same slot and connector) 
+                     and in the same VE must have the same SG name."
+            INDEX { cerveIndex, cerveServiceGroupSlot, cerveServiceGroupConnector }
+            ::= { cerveServiceGroupTable 1 }
+
+            CerveServiceGroupEntry ::= SEQUENCE {
+                cerveServiceGroupSlot       Unsigned32,
+                cerveServiceGroupConnector  Unsigned32,
+                cerveServiceGroupName       OCTET STRING,
+                cerveServiceGroupIndex      Unsigned32
+                }
+                
+           cerveServiceGroupSlot  OBJECT-TYPE
+                SYNTAX      Unsigned32 (1..6 | 9..14)
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The card slot plus one of the channel in this service group."
+                ::= { cerveServiceGroupEntry 2 }
+                
+            cerveServiceGroupConnector  OBJECT-TYPE
+                SYNTAX      Unsigned32 (1..16)
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The DS connector number plus one of the channel in this service group.
+                     Only 1..8 is legal for first generation DCAM."
+                ::= { cerveServiceGroupEntry 3 }
+
+            cerveServiceGroupName  OBJECT-TYPE
+                SYNTAX      OCTET STRING (SIZE (0..32))
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The name of the video Service Group."
+                DEFVAL { "" }
+                ::= { cerveServiceGroupEntry 4 }
+
+            cerveServiceGroupIndex  OBJECT-TYPE
+                SYNTAX      Unsigned32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The index number for the SG, required for session-based ERMs.
+                     Set by assigning a SG index to a channel on this RF connector."
+                DEFVAL { 0 }
+                ::= { cerveServiceGroupEntry 5 }
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- UDP/IP table (root of incoming transport-streams in the MIB)
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    cerVideoUdpIpStreamTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerVideoUdpIpStreamEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table displays the current incoming Transport Streams that
+                 are to be forwarded to an active QAM channel. 
+                 Only streams being forwarded are in this table. 
+                 Entries contain a reference to either a specific QAM channel
+                 or to a channel-container. While not needed for uniqueness, the
+                 VE index is a key to allow us to easily find all streams in a VE."
+        ::= { cerVideoObjects 7 }
+
+        cerVideoUdpIpStreamEntry OBJECT-TYPE
+            SYNTAX     CerVideoUdpIpStreamEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    " "
+            INDEX { cerveIndex, cervUdpIpDestIpAddr, cervUdpIpDestUdpPort, cervUdpIpSrcIpAddr }
+            ::= { cerVideoUdpIpStreamTable 1 }
+
+            CerVideoUdpIpStreamEntry ::= SEQUENCE {
+                cervUdpIpDestIpAddr           InetAddressIPv4or6,
+                cervUdpIpDestUdpPort          Unsigned32,
+                cervUdpIpSrcIpAddr            InetAddressIPv4or6,
+                cervUdpIpStreamStatus         CerTransportStreamStatus,
+                cervUdpIpTsMibIndex           CerTransportStreamIndex,
+                cervUdpIpActiveQamIfIndex     InterfaceIndexOrZero,
+                cervUdpIpTimeActivated        TimeStamp,
+                cervUdpIpTimeActive           Unsigned32,
+                cervUdpIpTimeDeactivated      TimeStamp,
+                cervUdpIpPacketCount          Counter64,
+                cervUdpIpBadSyncCount         Counter32,
+                cervUdpIpChanContainer        Unsigned32,
+                cervUdpIpPidPassthruEnable    TruthValue,
+                cervUdpIpAddrType             InetAddressType,
+                cervUdpIpStreamType           CerStreamType
+                }
+
+           cervUdpIpDestIpAddr   OBJECT-TYPE
+                SYNTAX      InetAddressIPv4or6
+                MAX-ACCESS  accessible-for-notify
+                STATUS      current
+                DESCRIPTION
+                    "The DEST IP address of the incoming TS being mapped to the specified
+                     QAM Channel."
+                ::= { cerVideoUdpIpStreamEntry 2 }
+
+           cervUdpIpDestUdpPort  OBJECT-TYPE
+                SYNTAX      Unsigned32 (1..65535)
+                MAX-ACCESS  accessible-for-notify
+                STATUS      current
+                DESCRIPTION
+                    "The destination UDP Port of the incoming TS being mapped to the specified QAM
+                     Channel."
+                ::= { cerVideoUdpIpStreamEntry 3 }
+
+           cervUdpIpSrcIpAddr    OBJECT-TYPE
+                SYNTAX      InetAddressIPv4or6
+                MAX-ACCESS  accessible-for-notify
+                STATUS      current
+                DESCRIPTION
+                    "The SRC IP address of the incoming TS being mapped to the specified
+                     QAM Channel."
+                ::= { cerVideoUdpIpStreamEntry 4 }
+
+            cervUdpIpStreamStatus  OBJECT-TYPE
+                SYNTAX      CerTransportStreamStatus
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The status of this stream."
+                ::= { cerVideoUdpIpStreamEntry 5 }
+
+            cervUdpIpTsMibIndex    OBJECT-TYPE
+                SYNTAX      CerTransportStreamIndex
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The index of the entry in the cerVideoStreamTable
+                     corresponding to this table entry."
+                ::= { cerVideoUdpIpStreamEntry 6 }
+
+            cervUdpIpActiveQamIfIndex   OBJECT-TYPE
+                SYNTAX      InterfaceIndexOrZero
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The ifIndex of the table-based QAM channel that this stream is
+                     currently mapped to. This is zero if the input stream is session-based
+                     and therefore is mapped to a channel container. Only one of 
+                     cervUdpIpActiveQamIfIndex and cervUdpIpChanContainer are set for any 
+                     single input stream."
+                ::= { cerVideoUdpIpStreamEntry 7 }
+
+             cervUdpIpTimeActivated  OBJECT-TYPE
+                SYNTAX      TimeStamp
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The value of sysUpTime when this stream was last activated.
+                           Zero if not-applicable."
+                ::= { cerVideoUdpIpStreamEntry 8 }
+
+            cervUdpIpTimeActive OBJECT-TYPE
+                SYNTAX          Unsigned32
+                UNITS           "seconds"
+                MAX-ACCESS      read-only
+                STATUS          current
+                DESCRIPTION
+                    "The total time that the stream has been active."
+                ::= { cerVideoUdpIpStreamEntry 9 }
+
+            cervUdpIpTimeDeactivated  OBJECT-TYPE
+                SYNTAX      TimeStamp
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The value of sysUpTime when this stream was last
+                     deactivated."
+                ::= { cerVideoUdpIpStreamEntry 10 }
+
+            cervUdpIpPacketCount  OBJECT-TYPE
+                SYNTAX      Counter64
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The number of UDP packets received for this stream."
+                ::= { cerVideoUdpIpStreamEntry 11 }
+
+            cervUdpIpBadSyncCount  OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The number of ingress MPEG frames (TSPs)without the MPEG Sync
+                     byte. Since there can be multiple MPEG frames per UDP packet, 
+                     this count could be higher than cervUdpIpPacketCount."
+                ::= { cerVideoUdpIpStreamEntry 12 }
+
+            cervUdpIpChanContainer OBJECT-TYPE
+                SYNTAX      Unsigned32 (0..65535)
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The channel container for this session-based input stream. This 
+                     is zero if the input stream is mapped using table-based VOD.
+                     Only one of cervUdpIpActiveQamIfIndex and cervUdpIpChanContainer
+                     is set for any single input stream."
+                ::= { cerVideoUdpIpStreamEntry 13 }
+
+            cervUdpIpPidPassthruEnable OBJECT-TYPE
+                SYNTAX      TruthValue
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Whether or not to remap the PIDs in this stream. True means no remap."
+                ::= { cerVideoUdpIpStreamEntry 14 }
+
+            cervUdpIpAddrType OBJECT-TYPE
+                SYNTAX InetAddressType
+                MAX-ACCESS read-only
+                STATUS current
+                DESCRIPTION
+                    "Type of IP address."
+                DEFVAL { ipv4 }
+                ::= { cerVideoUdpIpStreamEntry 15}
+
+            cervUdpIpStreamType OBJECT-TYPE
+                SYNTAX CerStreamType
+                MAX-ACCESS read-only
+                STATUS current
+                DESCRIPTION
+                    "If dynamic, then a message to the session ERM is needed if the stream fails."
+                ::= { cerVideoUdpIpStreamEntry 16}
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- MPEG Transport Streams, Programs, Elementary Streams and Descriptor Tables
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    cerVideoStreamTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerVideoStreamEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table stores basic information on all Transport Streams
+                 in the E6000. It covers both incoming and outgoing ones. The MPEG
+                 Manager automatically creates any entry in this table when it
+                 detects a new incoming TS or begins to generate a new outgoing
+                 TS."
+        ::= { cerVideoObjects 8 }
+
+        cerVideoStreamEntry OBJECT-TYPE
+            SYNTAX     CerVideoStreamEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Video stream status table"
+            INDEX { cervStreamDirectionIndex, cervStreamTsMibIndex }
+            ::= { cerVideoStreamTable 1 }
+
+            CerVideoStreamEntry ::= SEQUENCE {
+                cervStreamDirectionIndex           CerTransportStreamDirection,
+                cervStreamTsMibIndex               CerTransportStreamIndex,
+                cervStreamPatVersion               Unsigned32,
+                cervStreamTsID                     Unsigned32,
+                cervStreamProgramCount             Gauge32,
+                cervStreamPatCurrTimeCreated       TimeStamp,
+                cervStreamPatCurrTimeActive        Unsigned32,
+                cervStreamPatPrevTimeCreated       TimeStamp,
+                cervStreamProgramFilteredCount     Gauge32,
+                cervStreamPidCount                 Gauge32,
+                cervStreamTspCount                 Counter64,
+                cervStreamDroppedTspCount          Counter32
+                }
+
+            cervStreamDirectionIndex   OBJECT-TYPE
+                SYNTAX      CerTransportStreamDirection
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The direction of this Transport Stream."
+                ::= { cerVideoStreamEntry 1 }
+
+            cervStreamTsMibIndex   OBJECT-TYPE
+                SYNTAX      CerTransportStreamIndex
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The unique index that identifies the Transport Stream
+                     within the E6000."
+                ::= { cerVideoStreamEntry 2 }
+
+            cervStreamPatVersion   OBJECT-TYPE
+                SYNTAX      Unsigned32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The version number of the current PAT Table for this
+                     Transport Stream."
+                ::= { cerVideoStreamEntry 3 }
+
+            cervStreamTsID   OBJECT-TYPE
+                SYNTAX      Unsigned32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The MPEG transport_stream_id in the PAT tables on this
+                     Transport Stream."
+                ::= { cerVideoStreamEntry 4 }
+
+            cervStreamProgramCount   OBJECT-TYPE
+                SYNTAX      Gauge32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The  number of Programs currently in this Transport
+                     Stream."
+                ::= { cerVideoStreamEntry 5 }
+
+            cervStreamPatCurrTimeCreated  OBJECT-TYPE
+                SYNTAX      TimeStamp
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The value of sysUpTime when the current PAT was created.
+                           Zero if not-applicable."
+                ::= { cerVideoStreamEntry 6 }
+
+            cervStreamPatCurrTimeActive OBJECT-TYPE
+                SYNTAX          Unsigned32
+                UNITS           "seconds"
+                MAX-ACCESS      read-only
+                STATUS          current
+                DESCRIPTION    "The total time the current PAT has been active."
+                ::= { cerVideoStreamEntry 7 }
+
+            cervStreamPatPrevTimeCreated  OBJECT-TYPE
+                SYNTAX      TimeStamp
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The value of sysUpTime when the predecessor of this PAT was
+                     created.  Zero if not-known."
+                ::= { cerVideoStreamEntry 8 }
+
+            cervStreamProgramFilteredCount   OBJECT-TYPE
+                SYNTAX      Gauge32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The  number of Programs currently being filtered from this Transport
+                     Stream."
+                ::= { cerVideoStreamEntry 9 }
+
+            cervStreamPidCount   OBJECT-TYPE
+                SYNTAX      Gauge32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The total number of PIDs used by this Transport Stream. It is the sum of
+                    all Program cervStreamProgEsCount + PMT PIDs + ECM PIDs (if present) + 
+                    PCR PIDs (if different) + ghost PIDs (if present)."
+                ::= { cerVideoStreamEntry 10 }
+
+            cervStreamTspCount    OBJECT-TYPE
+                SYNTAX      Counter64
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The total number of MPEG Transport Stream Packets sent/received on this stream."
+                ::= { cerVideoStreamEntry 11 }
+
+            cervStreamDroppedTspCount    OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The total number of MPEG Transport Stream Packets dropped on this stream."
+                ::= { cerVideoStreamEntry 12 }
+
+    cerVideoStreamProgramTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerVideoStreamProgramEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table stores basic information for each Program in each
+                 Transport Stream known to the E6000. Each entry in
+                 cerVideoStreamTable will have at least one entry in this table."
+        ::= { cerVideoObjects 9 }
+
+        cerVideoStreamProgramEntry OBJECT-TYPE
+            SYNTAX     CerVideoStreamProgramEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Video program status table"
+            INDEX { cervStreamProgTsMibIndex, cervStreamProgIndex }
+            ::= { cerVideoStreamProgramTable 1 }
+
+            CerVideoStreamProgramEntry ::= SEQUENCE {
+                cervStreamProgTsMibIndex       CerTransportStreamIndex,
+                cervStreamProgIndex            CerProgram,
+                cervStreamProgPmtVersion       Unsigned32,
+                cervStreamProgPmtPid           CerPID,
+                cervStreamProgEcmPid           CerPID,
+                cervStreamProgPcrPid           CerPID,
+                cervStreamProgEsCount          Gauge32,
+                cervStreamProgDescCount        Gauge32,
+                cervStreamPmtCurrTimeCreated   TimeStamp,
+                cervStreamPmtCurrTimeActive    Unsigned32,
+                cervStreamPmtPrevTimeCreated   TimeStamp,
+                cervStreamProgBitrate          Unsigned32,
+                cervStreamProgPidFilteredCnt   Gauge32,
+                cervStreamProgContinuityErrCnt Counter32
+               }
+
+            cervStreamProgTsMibIndex   OBJECT-TYPE
+                SYNTAX      CerTransportStreamIndex
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The unique index that identifies the Transport Stream
+                     containing this Program."
+                ::= { cerVideoStreamProgramEntry 1 }
+
+            cervStreamProgIndex   OBJECT-TYPE
+                SYNTAX      CerProgram
+                MAX-ACCESS  accessible-for-notify
+                STATUS      current
+                DESCRIPTION
+                    "The Program Number for this program within the associated
+                     Transport Stream."
+                ::= { cerVideoStreamProgramEntry 2 }
+
+            cervStreamProgPmtVersion   OBJECT-TYPE
+                SYNTAX      Unsigned32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The version number of the current PMT Table for this
+                     Program."
+                ::= { cerVideoStreamProgramEntry 3 }
+
+            cervStreamProgPmtPid   OBJECT-TYPE
+                SYNTAX      CerPID
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The MPEG PID used for the PMT Table for this Program."
+                ::= { cerVideoStreamProgramEntry 4 }
+
+            cervStreamProgEcmPid   OBJECT-TYPE
+                SYNTAX      CerPID
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The MPEG PID used to for the ECM Table for this Program.
+                    This is set to 0 in the program is unencrypted."
+                ::= { cerVideoStreamProgramEntry 5 }
+
+            cervStreamProgPcrPid   OBJECT-TYPE
+                SYNTAX      CerPID
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The MPEG PID used to for the PCR for this Program."
+                ::= { cerVideoStreamProgramEntry 6 }
+
+            cervStreamProgEsCount   OBJECT-TYPE
+                SYNTAX      Gauge32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The  number of Elementary Streams currently in this
+                     Program."
+                ::= { cerVideoStreamProgramEntry 7 }
+
+            cervStreamProgDescCount   OBJECT-TYPE
+                SYNTAX      Gauge32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The  number of Descriptors in the PMT 'first_loop' for this
+                     Program."
+                ::= { cerVideoStreamProgramEntry 8 }
+
+            cervStreamPmtCurrTimeCreated  OBJECT-TYPE
+                SYNTAX      TimeStamp
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The value of sysUpTime when the current PMT was created.
+                           Zero if not-applicable."
+                ::= { cerVideoStreamProgramEntry 9 }
+
+            cervStreamPmtCurrTimeActive OBJECT-TYPE
+                SYNTAX          Unsigned32
+                UNITS           "seconds"
+                MAX-ACCESS      read-only
+                STATUS          current
+                DESCRIPTION    "The total time the current PMT has been active."
+                ::= { cerVideoStreamProgramEntry 10 }
+
+            cervStreamPmtPrevTimeCreated  OBJECT-TYPE
+                SYNTAX      TimeStamp
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The value of sysUpTime when the predecessor of this PMT was
+                     created.  Zero if not-known."
+                ::= { cerVideoStreamProgramEntry 11 }
+
+            cervStreamProgBitrate    OBJECT-TYPE
+                SYNTAX      Unsigned32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The bitate in Kbps, of this Program. This may have a value
+                     of 0 if the bitrate is not known."
+                ::= { cerVideoStreamProgramEntry 12 }
+
+            cervStreamProgPidFilteredCnt    OBJECT-TYPE
+                SYNTAX      Gauge32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The  number of PIDs currently being filtered from this Program."
+                ::= { cerVideoStreamProgramEntry 13 }
+
+            cervStreamProgContinuityErrCnt    OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The continuity-counter errors seen on PIDs in this Program"
+                ::= { cerVideoStreamProgramEntry 14 }
+
+    cerVideoStreamEsTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerVideoStreamEsEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table stores basic information for each Elementary Stream
+                 in each Transport Stream known to the E6000. Each entry in
+                 cerVideoProgTable will have at least one entry in this table.
+                 These entries are created automatically as the E6000 processes PMT
+                 table entries for each Elementary Stream in a Program"
+        ::= { cerVideoObjects 10 }
+
+        cerVideoStreamEsEntry OBJECT-TYPE
+            SYNTAX     CerVideoStreamEsEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Elementary stream status table"
+            INDEX { cervStreamEsTsMibIndex, cervStreamEsProgIndex, cervStreamEsPidIndex}
+            ::= { cerVideoStreamEsTable 1 }
+
+            CerVideoStreamEsEntry ::= SEQUENCE {
+                cervStreamEsTsMibIndex             CerTransportStreamIndex,
+                cervStreamEsProgIndex              CerProgram,
+                cervStreamEsPidIndex               CerPID,
+                cervStreamEsType                   CerElementaryStreamType,
+                cervStreamEsDescCount              Gauge32,
+                cervStreamEsContinuityErrCnt       Counter32,
+                cervStreamEsTspCount               Counter32
+                }
+
+            cervStreamEsTsMibIndex   OBJECT-TYPE
+                SYNTAX      CerTransportStreamIndex
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The unique index that identifies the Transport Stream
+                     containing this Program."
+                ::= { cerVideoStreamEsEntry 1 }
+
+            cervStreamEsProgIndex   OBJECT-TYPE
+                SYNTAX      CerProgram
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The Program Number for the program containing this ES."
+                ::= { cerVideoStreamEsEntry 2 }
+
+            cervStreamEsPidIndex   OBJECT-TYPE
+                SYNTAX      CerPID
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The MPEG PID used for this Elementary Stream."
+                ::= { cerVideoStreamEsEntry 3 }
+
+            cervStreamEsType   OBJECT-TYPE
+                SYNTAX      CerElementaryStreamType
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The  type of this Elementary Streams."
+                ::= { cerVideoStreamEsEntry 4 }
+
+            cervStreamEsDescCount   OBJECT-TYPE
+                SYNTAX      Gauge32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The  number of Descriptors in the PMT 'second_loop' for
+                     this Elementary Stream."
+                ::= { cerVideoStreamEsEntry 5 }
+
+             cervStreamEsContinuityErrCnt    OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The continuity-counter errors seen on this PID."
+                ::= { cerVideoStreamEsEntry 6 }
+
+             cervStreamEsTspCount    OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The number of MPEG frames (TSPs) seen on this PID."
+                ::= { cerVideoStreamEsEntry 7 }
+
+    cerVideoStreamDataEsTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerVideoStreamDataEsEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table stores basic information for each data-only Elementary 
+                 Stream in each Transport Stream known to the E6000. For is one row
+                 for each ghost-pid, whether or not it is being forwarded."
+        ::= { cerVideoObjects 11 }
+   
+        cerVideoStreamDataEsEntry OBJECT-TYPE
+            SYNTAX     CerVideoStreamDataEsEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Data-only Elementary stream status table."
+            INDEX { cervStreamDataEsTsMibIndex, cervStreamDataEsPidIndex }
+            ::= { cerVideoStreamDataEsTable 1 }
+
+            CerVideoStreamDataEsEntry ::= SEQUENCE {
+                cervStreamDataEsTsMibIndex             CerTransportStreamIndex,
+                cervStreamDataEsPidIndex               CerPID,
+                cervStreamDataEsIsGhostPid             TruthValue,
+                cervStreamDataEsForwarding             TruthValue,
+                cervStreamDataEsContinuityErrCnt       Counter32
+            }
+
+            cervStreamDataEsTsMibIndex   OBJECT-TYPE
+                SYNTAX      CerTransportStreamIndex
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The unique index that identifies the Transport Stream 
+                     containing this Program."
+                ::= { cerVideoStreamDataEsEntry 1 }
+
+            cervStreamDataEsPidIndex   OBJECT-TYPE
+                SYNTAX      CerPID
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The MPEG PID used for this Elementary Stream."
+                ::= { cerVideoStreamDataEsEntry 2 }
+
+            cervStreamDataEsIsGhostPid   OBJECT-TYPE
+                SYNTAX      TruthValue
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "True if this is a ghost PID. False if it is an si-stream PID (not supported yet)."
+                ::= { cerVideoStreamDataEsEntry 3 }
+
+            cervStreamDataEsForwarding   OBJECT-TYPE
+                SYNTAX      TruthValue
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "True is we are forwarding this PID. False if we are dropping it."
+                ::= { cerVideoStreamDataEsEntry 4 }
+
+             cervStreamDataEsContinuityErrCnt    OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The continuity-counter errors seen on this PID."
+                ::= { cerVideoStreamDataEsEntry 5 }
+                                
+   cerVideoStreamDescTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerVideoStreamDescEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table stores MPEG Descriptors for each Elementary Stream
+                 and Program known to the E6000. The PMT PID is used to index
+                 Program Descriptors while the Elementary Stream PID is used
+                 when indexing ES Descriptors."
+        ::= { cerVideoObjects 12 }
+
+        cerVideoStreamDescEntry OBJECT-TYPE
+            SYNTAX     CerVideoStreamDescEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Video stream descriptor table"
+            INDEX { cervStreamDescTsMibIndex, cervStreamDescPidIndex, cervStreamDescIndex }
+            ::= { cerVideoStreamDescTable 1 }
+
+            CerVideoStreamDescEntry ::= SEQUENCE {
+                cervStreamDescTsMibIndex           CerTransportStreamIndex,
+                cervStreamDescPidIndex             CerPID,
+                cervStreamDescIndex                CerDescriptorIndex,
+                cervStreamDescTag                  CerDescriptorTag,
+                cervStreamDescLen                  Integer32,
+                cervStreamDescData                 CerDescriptorBuffer
+                }
+
+            cervStreamDescTsMibIndex   OBJECT-TYPE
+                SYNTAX      CerTransportStreamIndex
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The unique index that identifies the Transport Stream
+                     containing this Descriptor."
+                ::= { cerVideoStreamDescEntry 1 }
+
+            cervStreamDescPidIndex   OBJECT-TYPE
+                SYNTAX      CerPID
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The MPEG PID used for this Elementary Stream."
+                ::= { cerVideoStreamDescEntry 2 }
+
+            cervStreamDescIndex   OBJECT-TYPE
+                SYNTAX      CerDescriptorIndex
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The Descriptor index."
+                ::= { cerVideoStreamDescEntry 3 }
+
+            cervStreamDescTag   OBJECT-TYPE
+                SYNTAX      CerDescriptorTag
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The Descriptor tag."
+                ::= { cerVideoStreamDescEntry 4 }
+
+            cervStreamDescLen   OBJECT-TYPE
+                SYNTAX      Integer32 ( 1..255)
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The Descriptor length."
+                ::= { cerVideoStreamDescEntry 5 }
+
+            cervStreamDescData   OBJECT-TYPE
+                SYNTAX      CerDescriptorBuffer
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The Descriptor data."
+                ::= { cerVideoStreamDescEntry 6 }
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- QAM jitter status table
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    cerVideoQamJitterStatusTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerVideoQamJitterStatusEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This Table contains status information about the QAM dejitter
+                 buffers on a per-program basis. Entries in this table only
+                 persist for the life-time of the active programs, and are
+                 created & deleted on the fly as programs are shutdown &
+                 restarted."
+        ::= { cerVideoObjects 13 }
+   
+        cerVideoQamJitterStatusEntry OBJECT-TYPE
+            SYNTAX     CerVideoQamJitterStatusEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Video Qam Jitter Status table"
+            INDEX { cervQamJitterStatusIfIndex, cervQamJitterStatusProgNumber }
+            ::= { cerVideoQamJitterStatusTable 1 }
+
+            CerVideoQamJitterStatusEntry ::= SEQUENCE {
+                    cervQamJitterStatusIfIndex             InterfaceIndex,
+                    cervQamJitterStatusProgNumber          CerProgram,
+                    cervQamJitterStatusCurrStatus          INTEGER,
+                    cervQamJitterStatusUnderflowCnt        Counter32,
+                    cervQamJitterStatusOverflowCnt         Counter32,
+                    cervQamJitterStatusBufLength           Gauge32,
+                    cervQamJitterStatusPcrJitter           Gauge32,
+                    cervQamJitterStatusPcrCnt              Counter32,
+                    cervQamJitterStatusPcrDiscontinuityCnt Counter32,
+                    cervQamJitterStatusBufDepth            Unsigned32
+                }
+
+            cervQamJitterStatusIfIndex   OBJECT-TYPE
+                SYNTAX      InterfaceIndex
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The ifIndex of the QAM channel associated with this entry."
+                ::= { cerVideoQamJitterStatusEntry 1 }
+
+            cervQamJitterStatusProgNumber   OBJECT-TYPE
+                SYNTAX      CerProgram
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The output program number associated with this entry."
+                ::= { cerVideoQamJitterStatusEntry 2 }
+
+            cervQamJitterStatusCurrStatus   OBJECT-TYPE
+                SYNTAX      INTEGER {
+                                      idle(1),
+                                      init(2),
+                                      active(3),
+                                      freeRunning(4)
+                                    }
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The status of the jitter buffer for this program.
+                        idle        - waiting for input TS packets
+                        init        - transmitting TS packets at nominal rate, not locked to incoming PCR
+                        active      - normal passing traffic, locked to incoming PCR
+                        freeRunning - normal passing traffic, no PCR to lock to
+                    "
+                ::= { cerVideoQamJitterStatusEntry 3 }
+
+            cervQamJitterStatusUnderflowCnt   OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Number of times the jitter buffer has underflowed during
+                     the lifetime of this program."
+                ::= { cerVideoQamJitterStatusEntry 4 }
+
+            cervQamJitterStatusOverflowCnt   OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Number of times the jitter buffer has overflowed during
+                     the lifetime of this program."
+                ::= { cerVideoQamJitterStatusEntry 5 }
+
+            cervQamJitterStatusBufLength   OBJECT-TYPE
+                SYNTAX      Gauge32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The current size of the jitter buffer for this program in
+                     milliseconds."
+                ::= { cerVideoQamJitterStatusEntry 6 }
+
+            cervQamJitterStatusPcrJitter   OBJECT-TYPE
+                SYNTAX      Gauge32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The estimate of the current network jitter."
+                ::= { cerVideoQamJitterStatusEntry 7 }
+
+            cervQamJitterStatusPcrCnt   OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The total number of PCR samples processed in this program."
+                ::= { cerVideoQamJitterStatusEntry 8 }
+
+            cervQamJitterStatusPcrDiscontinuityCnt   OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The total number of PCR discontinuities observed in this program."
+                ::= { cerVideoQamJitterStatusEntry 9 }
+
+            cervQamJitterStatusBufDepth    OBJECT-TYPE
+                SYNTAX      Unsigned32 (0..500)
+                UNITS       "milliseconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The initial jitter-buffer depth in milliseconds for
+                     this program stream. May have been dynamically set via R6
+                     NGOD interface."
+                ::= { cerVideoQamJitterStatusEntry 10 }
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- Tables of per udp/ip PID/PROG remappings to particular QAMs
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    cerVideoProgRemapTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerVideoProgRemapEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table displays the active Program mappings for Transport
+                 Streams. It is indexed using udp/ip/ip/inProg/qamIfIndex to
+                 support multiple output programs for each input program."
+        ::= { cerVideoObjects 14 }
+
+        cerVideoProgRemapEntry OBJECT-TYPE
+            SYNTAX     CerVideoProgRemapEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Program to transport stream mapping table"
+            INDEX { cervProgRemapTsMibIndex,
+                    cervProgRemapInProgIndex,
+                    cervProgRemapActiveQamIfIndex, 
+                    cervProgRemapOutProg
+                  }
+            ::= { cerVideoProgRemapTable 1 }
+
+            CerVideoProgRemapEntry ::= SEQUENCE {
+                cervProgRemapTsMibIndex         CerTransportStreamIndex,
+                cervProgRemapInProgIndex        CerProgram,
+                cervProgRemapActiveQamIfIndex   InterfaceIndex,
+                cervProgRemapOutProg            CerProgram,
+                cervProgRemapTimeActivated      TimeStamp,
+                cervProgRemapTimeActive         Unsigned32
+                }
+
+            cervProgRemapTsMibIndex   OBJECT-TYPE
+                SYNTAX      CerTransportStreamIndex
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The TS Mib Index of the incoming TS."
+                ::= { cerVideoProgRemapEntry 1 }
+
+            cervProgRemapInProgIndex   OBJECT-TYPE
+                SYNTAX      CerProgram
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The incoming Program value related to this Program
+                     remapping."
+                ::= { cerVideoProgRemapEntry 2 }
+
+            cervProgRemapActiveQamIfIndex   OBJECT-TYPE
+                SYNTAX      InterfaceIndex
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The ifIndex of the QAM channel that this Program remapping
+                     applies to."
+                ::= { cerVideoProgRemapEntry 3 }
+
+            cervProgRemapOutProg   OBJECT-TYPE
+                SYNTAX      CerProgram
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The output Program value related to this Program mapping
+                     rule."
+                ::= { cerVideoProgRemapEntry 4 }
+
+           cervProgRemapTimeActivated  OBJECT-TYPE
+                SYNTAX      TimeStamp
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The value of sysUpTime when this Program was last
+                     activated.  Zero if not-applicable."
+                ::= { cerVideoProgRemapEntry 5 }
+
+            cervProgRemapTimeActive OBJECT-TYPE
+                SYNTAX          Unsigned32
+                UNITS           "seconds"
+                MAX-ACCESS      read-only
+                STATUS          current
+                DESCRIPTION
+                    "The total time that the Program has been active."
+                ::= { cerVideoProgRemapEntry 6 }
+
+    cerVideoPidRemapTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerVideoPidRemapEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table displays the active PID mappings for Transport
+                 Streams. It is indexed using udp/ip/ip/inPid/qamIfIndex to
+                 support multiple output programs for each input program."
+        ::= { cerVideoObjects 15 }
+
+        cerVideoPidRemapEntry OBJECT-TYPE
+            SYNTAX     CerVideoPidRemapEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "PID to transport stream mapping table"
+            INDEX { cervPidRemapTsMibIndex, 
+                    cervPidRemapInPidIndex,
+                    cervPidRemapActiveQamIfIndex, 
+                    cervPidRemapOutPid
+                  }
+            ::= { cerVideoPidRemapTable 1 }
+
+            CerVideoPidRemapEntry ::= SEQUENCE {
+                cervPidRemapTsMibIndex         CerTransportStreamIndex,
+                cervPidRemapInPidIndex         CerPID,
+                cervPidRemapActiveQamIfIndex   InterfaceIndex,
+                cervPidRemapOutPid             CerPID,
+                cervPidRemapActivePidType      CerPidType,
+                cervPidRemapTimeActivated      TimeStamp,
+                cervPidRemapTimeActive         Unsigned32
+                }
+
+            cervPidRemapTsMibIndex   OBJECT-TYPE
+                SYNTAX      CerTransportStreamIndex
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The TS Mib Index of the incoming TS."
+                ::= { cerVideoPidRemapEntry 1 }
+
+            cervPidRemapInPidIndex   OBJECT-TYPE
+                SYNTAX      CerPID
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The incoming PID value related to this PID remapping."
+                ::= { cerVideoPidRemapEntry 2 }
+
+            cervPidRemapActiveQamIfIndex   OBJECT-TYPE
+                SYNTAX      InterfaceIndex
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The ifIndex of the QAM channel that this PID remapping
+                     applies to."
+                ::= { cerVideoPidRemapEntry 3 }
+
+            cervPidRemapOutPid   OBJECT-TYPE
+                SYNTAX      CerPID
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "The output PID value related to this PID mapping rule."
+                ::= { cerVideoPidRemapEntry 4 }
+
+            cervPidRemapActivePidType  OBJECT-TYPE
+                SYNTAX      CerPidType
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The type of PID whether PSI or Elementary stream."
+                ::= { cerVideoPidRemapEntry 5 }
+
+            cervPidRemapTimeActivated  OBJECT-TYPE
+                SYNTAX      TimeStamp
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The value of sysUpTime when this PID was last activated.
+                           Zero if not-applicable."
+                ::= { cerVideoPidRemapEntry 6 }
+
+            cervPidRemapTimeActive OBJECT-TYPE
+                SYNTAX          Unsigned32
+                UNITS           "seconds"
+                MAX-ACCESS      read-only
+                STATUS          current
+                DESCRIPTION    "The total time that the PID has been active."
+                ::= { cerVideoPidRemapEntry 7 }
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- Index Lookup tables
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+
+    cerVideoLookupTsMibIndexToIfIndexTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerVideoLookupTsMibIndexToIfIndexEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table maps the TsIndex of an outgoing Transport Stream on
+                 a QAM channel to the ifIndex for that channel. The Transport
+                 Stream is assumed to be an 'outgoing' one."
+        ::= { cerVideoObjects 17 }
+
+        cerVideoLookupTsMibIndexToIfIndexEntry OBJECT-TYPE
+            SYNTAX     CerVideoLookupTsMibIndexToIfIndexEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "TSID to QAM channel mapping table"
+            INDEX { cervQamTsMibIndex}
+            ::= { cerVideoLookupTsMibIndexToIfIndexTable 1 }
+
+            CerVideoLookupTsMibIndexToIfIndexEntry ::= SEQUENCE {
+                cervLookupTsIndexIfIndex             InterfaceIndex
+                }
+
+            cervLookupTsIndexIfIndex   OBJECT-TYPE
+                SYNTAX      InterfaceIndex
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The ifIndex for the QAM channel transmitting this
+                     TransportStreamIndex."
+                ::= { cerVideoLookupTsMibIndexToIfIndexEntry 1 }
+
+    cerVideoLookupQamTsMibIndexToInTsMibIndexTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerVideoLookupQamTsMibIndexToInTsMibIndexEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table maps the TransportStreamIndex of a Transport Stream
+                on a QAM channel to the corresponding incoming
+                TransportStreamIndexes.
+                  cervTsMibIndex   - an outgoing Transport Stream
+                  cervInTsMibIndex - the corresponding incoming Transport
+                                    Stream."
+        ::= { cerVideoObjects 18 }
+
+        cerVideoLookupQamTsMibIndexToInTsMibIndexEntry OBJECT-TYPE
+            SYNTAX     CerVideoLookupQamTsMibIndexToInTsMibIndexEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "TSID to incoming transport stream mapping table"
+            INDEX { cervQamTsMibIndex, cervLookupInTsMibIndex }
+            ::= { cerVideoLookupQamTsMibIndexToInTsMibIndexTable 1 }
+
+            CerVideoLookupQamTsMibIndexToInTsMibIndexEntry ::= SEQUENCE {
+                    cervLookupInTsMibIndex   CerTransportStreamIndex
+                }
+
+            cervLookupInTsMibIndex   OBJECT-TYPE
+                SYNTAX      CerTransportStreamIndex
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "MIB TsIndex for an incoming transport stream(IP)."
+                ::= { cerVideoLookupQamTsMibIndexToInTsMibIndexEntry 1 }
+
+    cerVideoLookupTsMibIndexToUdpIpTable  OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerVideoLookupTsMibIndexToUdpIpEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table maps the TransportStreamIndex of an incoming
+                 Transport Stream to the IP address and UDP port for that
+                 Transport Stream."
+        ::= { cerVideoObjects 19 }
+
+        cerVideoLookupTsMibIndexToUdpIpEntry OBJECT-TYPE
+            SYNTAX     CerVideoLookupTsMibIndexToUdpIpEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "TSID to IP address and port mapping table"
+            INDEX { cervUdpIpTsMibIndex}
+            ::= { cerVideoLookupTsMibIndexToUdpIpTable 1 }
+
+            CerVideoLookupTsMibIndexToUdpIpEntry ::= SEQUENCE {
+                cervLookupTsMibIndexUdpPort               Unsigned32,
+                cervLookupTsMibIndexIpAddrDest            InetAddressIPv4or6,
+                cervLookupTsMibIndexIpAddrSrc             InetAddressIPv4or6,
+                cervLookupTsMibIndexAddrType              InetAddressType,
+                cervLookupTsMibIndexVe                    CerVirtualEdgeIndexType
+                }
+
+            cervLookupTsMibIndexUdpPort   OBJECT-TYPE
+                SYNTAX      Unsigned32 (1..65535)
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The UDP receiving the Transport Stream for
+                     TransportStreamIndex."
+                ::= { cerVideoLookupTsMibIndexToUdpIpEntry 1 }
+
+            cervLookupTsMibIndexIpAddrDest   OBJECT-TYPE
+                SYNTAX      InetAddressIPv4or6
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The DEST IP address receiving the Transport Stream for
+                     TransportStreamIndex."
+                ::= { cerVideoLookupTsMibIndexToUdpIpEntry 2 }
+
+            cervLookupTsMibIndexIpAddrSrc   OBJECT-TYPE
+                SYNTAX      InetAddressIPv4or6
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The SRC IP address receiving the Transport Stream for
+                     TransportStreamIndex."
+                ::= { cerVideoLookupTsMibIndexToUdpIpEntry 3 }
+
+
+            cervLookupTsMibIndexAddrType OBJECT-TYPE
+                SYNTAX InetAddressType
+                MAX-ACCESS read-only
+                STATUS current
+                DESCRIPTION
+                    "Type of IP address."
+                DEFVAL { ipv4 }
+                ::= { cerVideoLookupTsMibIndexToUdpIpEntry 4 }
+
+            cervLookupTsMibIndexVe OBJECT-TYPE
+                SYNTAX CerVirtualEdgeIndexType
+                MAX-ACCESS read-only
+                STATUS current
+                DESCRIPTION
+                    "The VE for this TsMibIndex."
+                ::= { cerVideoLookupTsMibIndexToUdpIpEntry 5 }
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- Virtual Edge tables
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    cerVirtualEdgeTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerVirtualEdgeEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table stores parameters for each Virtual Edge video object."
+        ::= { cerVideoObjects 20 }
+
+        cerVirtualEdgeEntry OBJECT-TYPE
+            SYNTAX     CerVirtualEdgeEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Virtual Edge configuration parameter table"
+            INDEX { cerveIndex }
+            ::= { cerVirtualEdgeTable 1 }
+
+            CerVirtualEdgeEntry ::= SEQUENCE {
+                cerveIndex          CerVirtualEdgeIndexType,
+                cerveName           DisplayString,
+                cervePortMap        CerUdpPortMapType,
+                cerveSzIndex        Unsigned32,
+                cerveGlobal         TruthValue,
+                cerveAdminState     AdminState,
+                cerveRowStatus      RowStatus
+            }
+
+            cerveIndex  OBJECT-TYPE
+                SYNTAX      CerVirtualEdgeIndexType
+                MAX-ACCESS  accessible-for-notify
+                STATUS      current
+                DESCRIPTION
+                    "The index of the Virtual Edge. Although not officially supported, allow a VE for each
+                     of 12 DCAMs."
+                ::= { cerVirtualEdgeEntry 1 }
+
+            cerveName OBJECT-TYPE
+                SYNTAX      DisplayString (SIZE(0..64))
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                     "This is the name of the Virtual Edge."
+                DEFVAL { "" }
+                ::= { cerVirtualEdgeEntry 2 }
+
+            cervePortMap OBJECT-TYPE
+                SYNTAX      CerUdpPortMapType
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "Only 8x8 and session is currently supported. Ignored for sdv-only channels.
+                     Manual mapping, where individual streams manually configured
+                     to map to channela in this VE are forwarded, may in the 
+                     future be supported in addition to those allowed by this element."
+                DEFVAL { map8x8  }
+                ::= { cerVirtualEdgeEntry 3 }
+
+            cerveSzIndex OBJECT-TYPE
+                SYNTAX       Unsigned32 (0..7)
+                MAX-ACCESS   read-create
+                STATUS       current
+                DESCRIPTION
+                     "Index of Streaming Zone used by this Virtual Edge. Multiple Virtual
+                      Edges may have the same SZ. Zero means unassigned."
+                DEFVAL { 0 }
+                ::= { cerVirtualEdgeEntry 4 }
+
+            cerveGlobal OBJECT-TYPE
+                SYNTAX  TruthValue
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "Whether or not this VE spans all DCAMs. Can only be set when the row is created."
+                DEFVAL { false }
+                ::= { cerVirtualEdgeEntry 5 }
+
+            cerveAdminState OBJECT-TYPE
+                SYNTAX  AdminState
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "Setting the VE AdminState to down blocks all video traffic to all video channels
+                     in the VE. It also takes down any ERM connection to the VE. It does not change
+                     the channel state of the channels in the VE."
+                DEFVAL { down }
+                ::= { cerVirtualEdgeEntry 6 }
+
+            cerveRowStatus   OBJECT-TYPE
+                SYNTAX      RowStatus
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "The RowStatus for controlling entries in this table. 
+                     Allowed values are createAndGo, destroy, and active."
+                ::= { cerVirtualEdgeEntry 7 }
+
+   cerveStatusTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerveStatusEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table stores statistics for each Virtual Edge video object."
+        ::= { cerVideoObjects 21 }
+
+        cerveStatusEntry OBJECT-TYPE
+            SYNTAX     CerveStatusEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Virtual Edge statistics table."
+            AUGMENTS { cerVirtualEdgeEntry }
+            ::= { cerveStatusTable 1 }
+
+            CerveStatusEntry ::= SEQUENCE {
+                cerveStatusDroppedPkts          Counter32,
+                cerveStatusBlockedPkts          Counter32,
+                cerveStatusFragmentedPkts       Counter32,
+                cerveStatusOperStatus           INTEGER
+            }
+
+            cerveStatusDroppedPkts OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                     "Number of incoming UDP packets to one of this VE's data plane
+                      addresses whose DPORT was not currently valid and was therefore
+                      dropped by the NPU."
+                ::= { cerveStatusEntry 2 } 
+
+            cerveStatusBlockedPkts OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                     "Number of incoming UDP packets whose DPORT was in the valid subrange, 
+                      but whose DPORT was on the blocked list, so the packet was dropped by the NPU."
+                ::= { cerveStatusEntry 3 } 
+
+            cerveStatusFragmentedPkts OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                     "Number of incoming UDP packets with a valid DIP and DPORT, but
+                      were dropped by the NPU because they were fragmented."
+                ::= { cerveStatusEntry 4 }
+
+            cerveStatusOperStatus OBJECT-TYPE
+                SYNTAX INTEGER {
+                     is(1),
+                     oos(2)
+                }
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                     "Whether the VE is operationally IS or OOS. It is IS if any
+                      channel in the VE is IS."
+                ::= { cerveStatusEntry 7 } 
+
+    cerveErmSrvDiscTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerveErmSrvDiscEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table stores parameters for each Virtual Edge video ERM object, if defined."
+        ::= { cerVideoObjects 22 }
+
+        cerveErmSrvDiscEntry OBJECT-TYPE
+            SYNTAX     CerveErmSrvDiscEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Virtual Edge ERM configuration parameter table"
+            INDEX { cerveIndex }
+            ::= { cerveErmSrvDiscTable 1 }
+
+            CerveErmSrvDiscEntry ::= SEQUENCE {
+                cerveErmSrvDiscErmIndex       Integer32,
+                cerveErmSrvDiscComponentName  DisplayString,
+                cerveErmSrvDiscAdminState     AdminState,
+                cerveErmSrvDiscControlIpAddr  InetAddressIPv4or6,
+                cerveErmSrvDiscAddrType       InetAddressType,
+                cerveErmSrvDiscControlIfIndex InterfaceIndexOrZero,
+                cerveErmSrvDiscRowStatus      RowStatus
+            }
+
+            cerveErmSrvDiscErmIndex OBJECT-TYPE
+                SYNTAX      Integer32 (0..7)
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                     "This is the ERM used for this Virtual Edge. Multiple VEs may use same ERM.
+                      Zero means unassigned."
+                DEFVAL { 0 }
+                ::= { cerveErmSrvDiscEntry 2 } 
+
+            cerveErmSrvDiscComponentName OBJECT-TYPE
+                SYNTAX      DisplayString (SIZE(0..64))
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                     "The ERM component name used on the service discovery interface, which is unique per VE."
+                DEFVAL { "" }
+                ::= { cerveErmSrvDiscEntry 3 }
+
+            cerveErmSrvDiscAdminState OBJECT-TYPE
+                SYNTAX  AdminState
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "Whether or not the VE servicediscovery interface is enabled."
+                DEFVAL { down }
+                ::= { cerveErmSrvDiscEntry 4 }
+
+            cerveErmSrvDiscControlIpAddr OBJECT-TYPE
+                SYNTAX      InetAddressIPv4or6
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                     "This is the source loopback address used when communicating with the ERM and
+                      for receiving messages from the ERM."
+                DEFVAL { '00000000'H }
+                ::= { cerveErmSrvDiscEntry 5 }
+
+            cerveErmSrvDiscAddrType OBJECT-TYPE
+                SYNTAX InetAddressType
+                MAX-ACCESS read-only
+                STATUS      current
+                DESCRIPTION
+                    "Type of IP address."
+                DEFVAL { ipv4 }
+                ::= { cerveErmSrvDiscEntry 6}
+
+            cerveErmSrvDiscControlIfIndex OBJECT-TYPE
+                SYNTAX      InterfaceIndexOrZero
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                     "The ifIndex of the loopback interface for communicating with an ERM."
+                DEFVAL { 0 }
+                ::= { cerveErmSrvDiscEntry 7 }
+
+            cerveErmSrvDiscRowStatus   OBJECT-TYPE
+                SYNTAX      RowStatus
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "The RowStatus for controlling entries in this table. 
+                     Allowed values are createAndGo, destroy, and active."
+                ::= { cerveErmSrvDiscEntry 8 }
+
+    cerveErmD6StatTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerveErmD6StatEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table stores ERM NGOD D6 statistics for each Virtual Edge video object.
+                 A row in this table is autocreated when a row in the cerveErmSvcDiscTable is
+                 Created and cervErmProtocol is set to ngod. Another status table would be
+                 added in the future when we support cervErmProtocol nmi."
+        ::= { cerVideoObjects 23 }
+
+        cerveErmD6StatEntry OBJECT-TYPE
+            SYNTAX     CerveErmD6StatEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Virtual Edge ERM statistics table."
+            INDEX { cerveIndex }
+            ::= { cerveErmD6StatTable 1 }
+
+            CerveErmD6StatEntry ::= SEQUENCE {
+                cerveErmD6StatTcpConnSuccess      Counter32,
+                cerveErmD6StatTcpConnFail         Counter32,
+                cerveErmD6StatVrepEstablishTime   TimeStamp,
+                cerveErmD6StatVrepOpenSent        Counter32,
+                cerveErmD6StatVrepOpenRcvd        Counter32,
+                cerveErmD6StatUpdsSent            Counter32,
+                cerveErmD6StatUpdsRcvd            Counter32,
+                cerveErmD6StatVrepKeepAliveSent   Counter32,
+                cerveErmD6StatVrepKeepAliveRcvd   Counter32,
+                cerveErmD6StatRemoteSzName        DisplayString,
+                cerveErmD6StatRemoteCompName      DisplayString,
+                cerveErmD6StatRemoteVrepId        Unsigned32,
+                cerveErmD6StatRemoteVrepVersion   Unsigned32,
+                cerveErmD6StatRemoteVrepRoutes    Gauge32,
+                cerveErmD6StatRemoteHoldTime      Unsigned32,
+                cerveErmD6StatVrepStatus          INTEGER
+            }
+
+            cerveErmD6StatTcpConnSuccess OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                     "Number of successful TCP connections to ERM."
+                ::= { cerveErmD6StatEntry 2 } 
+
+            cerveErmD6StatTcpConnFail OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                     "Number of failed attempts to create a TCP connection to the ERM."
+                ::= { cerveErmD6StatEntry 3 } 
+
+            cerveErmD6StatVrepEstablishTime OBJECT-TYPE
+                SYNTAX      TimeStamp
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                     "Timestamp when last VREP Establish state was reached with ERM."
+                ::= { cerveErmD6StatEntry 4 } 
+
+            cerveErmD6StatVrepOpenSent OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                     "Number of VREP OPEN messages sent to ERM"
+                ::= { cerveErmD6StatEntry 5 } 
+
+            cerveErmD6StatVrepOpenRcvd OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                     "Number of VREP OPEN messages received from ERM"
+                ::= { cerveErmD6StatEntry 6 } 
+
+            cerveErmD6StatUpdsSent OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                     "Number of VREP UPDATE messages sent to ERM."
+                ::= { cerveErmD6StatEntry 7 } 
+
+            cerveErmD6StatUpdsRcvd OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                     "Number of VREP UPDATE messages received from ERM."
+                ::= { cerveErmD6StatEntry 8 } 
+
+            cerveErmD6StatVrepKeepAliveSent OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                     "Number of Keep Alive messages sent to ERM."
+                ::= { cerveErmD6StatEntry 9 } 
+
+            cerveErmD6StatVrepKeepAliveRcvd OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                     "Number of Keep Alive messages received from ERM."
+                ::= { cerveErmD6StatEntry 10 } 
+
+            cerveErmD6StatRemoteSzName OBJECT-TYPE
+                SYNTAX       DisplayString
+                MAX-ACCESS  read-only
+                STATUS       current
+                DESCRIPTION
+                    "Contains the Streaming Zone name from the ERM."
+               ::= { cerveErmD6StatEntry 11 }
+
+            cerveErmD6StatRemoteCompName OBJECT-TYPE
+                SYNTAX       DisplayString
+                MAX-ACCESS  read-only
+                STATUS       current
+                DESCRIPTION
+                    "Contains the component name from the ERM."
+               ::= { cerveErmD6StatEntry 12 }
+
+            cerveErmD6StatRemoteVrepId OBJECT-TYPE
+                SYNTAX Unsigned32
+                MAX-ACCESS  read-only
+                STATUS       current
+                DESCRIPTION
+                    "Contains VREP ID at the ERM."
+               ::= { cerveErmD6StatEntry 13 }
+
+            cerveErmD6StatRemoteVrepVersion OBJECT-TYPE
+                SYNTAX Unsigned32
+                MAX-ACCESS  read-only
+                STATUS       current
+                DESCRIPTION
+                    "Contains VREP version at the ERM."
+               ::= { cerveErmD6StatEntry 14 }
+
+            cerveErmD6StatRemoteVrepRoutes OBJECT-TYPE
+                SYNTAX Gauge32
+                MAX-ACCESS  read-only
+                STATUS       current
+                DESCRIPTION
+                    "Contains the number of active routes from the ERM for this VE."
+               ::= { cerveErmD6StatEntry 15 }
+
+            cerveErmD6StatRemoteHoldTime OBJECT-TYPE
+                SYNTAX Unsigned32 ( 0..65535 )
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS       current
+                DESCRIPTION
+                    "Contains VREP/DRRP hold-time in seconds from the ERM for 
+                     connection timeout. Zero means do not time-out."
+                ::= { cerveErmD6StatEntry 16 }
+
+            cerveErmD6StatVrepStatus OBJECT-TYPE
+                SYNTAX INTEGER {
+                                idle(1),
+                                connect(2),
+                                active(3),
+                                opensent(4),
+                                openconfirm(5),
+                                established(6)
+                               }
+                MAX-ACCESS  read-only
+                STATUS       current
+                DESCRIPTION
+                    "The current state of the VREP state machine (the D6 TCP connection to the ERM)."
+                ::= { cerveErmD6StatEntry 17 }
+
+    cerveDataAddrMapTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerveDataAddrMapEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table contains the data plane addresses for the VE objects."
+        ::= { cerVideoObjects 24 }
+
+        cerveDataAddrMapEntry OBJECT-TYPE
+            SYNTAX     CerveDataAddrMapEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Dataplane IP addresses to virtual edge mapping table"
+            INDEX { cerveIndex, cerveDataAddrMapIpAddr }
+            ::= { cerveDataAddrMapTable 1 }
+
+            CerveDataAddrMapEntry ::= SEQUENCE {
+                cerveDataAddrMapIpAddr       InetAddressIPv4or6,
+                cerveDataAddrMapAddrType     InetAddressType,
+                cerveDataAddrMapIfIndex      InterfaceIndexOrZero,
+                cerveDataAddrMapEdgeInputGrp DisplayString,
+                cerveDataAddrMapErmInputPort Unsigned32,
+                cerveDataAddrMapRowStatus    RowStatus
+            }
+
+            cerveDataAddrMapIpAddr OBJECT-TYPE
+                SYNTAX      InetAddressIPv4or6
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                     "This a data plane address for the VE. All UDP packets to this address are port-mapped."
+                ::= { cerveDataAddrMapEntry 2 }
+
+            cerveDataAddrMapAddrType OBJECT-TYPE
+                SYNTAX InetAddressType
+                MAX-ACCESS read-create
+                STATUS current
+                DESCRIPTION
+                    "Type of IP address."
+                DEFVAL { ipv4 }
+                ::= { cerveDataAddrMapEntry 3}
+
+            cerveDataAddrMapIfIndex OBJECT-TYPE
+                SYNTAX      InterfaceIndexOrZero
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                     "The ifIndex of the loopback interface used to assign the dataplane address."
+                DEFVAL { 0 }
+                ::= { cerveDataAddrMapEntry 4 }
+
+            cerveDataAddrMapEdgeInputGrp    OBJECT-TYPE
+                SYNTAX      DisplayString
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "The edge input group for reporting to RAMSDEN."
+                DEFVAL { "PURPLE" }
+                ::= { cerveDataAddrMapEntry 5 }
+
+            cerveDataAddrMapErmInputPort OBJECT-TYPE
+               SYNTAX Unsigned32 ( 0..6 )
+               MAX-ACCESS  read-create
+               STATUS       current
+               DESCRIPTION
+                    "The input port number used by the ERM for session-based VOD port mapping.
+                     Zero means no value is set."
+               DEFVAL { 0 }
+               ::= { cerveDataAddrMapEntry 6 }
+
+            cerveDataAddrMapRowStatus   OBJECT-TYPE
+                SYNTAX      RowStatus
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "The RowStatus for controlling entries in this table.
+                     Allowed values are createAndGo, destroy, and active."
+                ::= { cerveDataAddrMapEntry 7 }
+
+    cerveInputPortTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerveInputPortEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table maps the session-based VOD input port number to a dataplane address."
+        ::= { cerVideoObjects 25 }
+
+        cerveInputPortEntry OBJECT-TYPE
+            SYNTAX     CerveInputPortEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Input port number to a dataplane address mapping table"
+            INDEX { cerveIndex, cerveInputPortErmInputPort }
+            ::= { cerveInputPortTable 1 }
+
+            CerveInputPortEntry ::= SEQUENCE {
+                cerveInputPortErmInputPort Unsigned32,
+                cerveInputPortIpAddr       InetAddressIPv4or6,
+                cerveInputPortAddrType     InetAddressType
+            }
+
+            cerveInputPortErmInputPort OBJECT-TYPE
+               SYNTAX Unsigned32 ( 0..20 )
+               MAX-ACCESS  not-accessible
+               STATUS       current
+               DESCRIPTION
+                    "The input port number used by the ERM for session-based VOD port mapping.
+                     Zero means no value is set."
+               DEFVAL { 0 }
+               ::= { cerveInputPortEntry 2 }
+
+            cerveInputPortIpAddr OBJECT-TYPE
+                SYNTAX      InetAddressIPv4or6
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                     "This a data plane address for the VE. All UDP packets to this address are port-mapped."
+                DEFVAL { '00000000'H }
+                ::= { cerveInputPortEntry 3 }
+
+            cerveInputPortAddrType OBJECT-TYPE
+                SYNTAX InetAddressType
+                MAX-ACCESS read-only
+                STATUS current
+                DESCRIPTION
+                    "Type of IP address."
+                DEFVAL { ipv4 }
+                ::= { cerveInputPortEntry 4}
+
+    cerveUdpPortMapTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerveUdpPortMapEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table contains the blocks of UDP ports in a VE that are currently mapped to a 
+                 Qam channel. This table is only used when cervePortMap is set to 8x8 or 10x6."
+        ::= { cerVideoObjects 26 }
+
+        cerveUdpPortMapEntry OBJECT-TYPE
+            SYNTAX     CerveUdpPortMapEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "UDP port to QAM channel mapping table"
+            INDEX { cerveIndex, cerveUdpPortMapUdpBasePort }
+            ::= { cerveUdpPortMapTable 1 }
+
+            CerveUdpPortMapEntry ::= SEQUENCE {
+                cerveUdpPortMapUdpBasePort  Unsigned32,
+                cerveUdpPortMapQamIfIndex   InterfaceIndex
+            }
+
+            cerveUdpPortMapUdpBasePort OBJECT-TYPE
+                SYNTAX Unsigned32 (0..65535)
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                     "This is the lowest port number in the block of UDP ports mapped
+                      to this QAM channel. The total number of UDP ports in this block
+                      depends on the type of port map used for this VE; if the map is
+                      type map8x8, then there are 256 ports in the block and the upper
+                      eight bits are the UDP block ID. If it is type
+                      type map10x6, then there are 64 ports in the block, and the upper
+                      six bits are the block ID."
+                ::= { cerveUdpPortMapEntry 2 }
+
+            cerveUdpPortMapQamIfIndex    OBJECT-TYPE
+                SYNTAX      InterfaceIndex
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                     "This is the ifIndex of the QAM channel to which this block of UDP ports maps.
+                        Is unique among all rows in the table."
+                ::= { cerveUdpPortMapEntry 3 }
+
+    cerveBandwidthTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerveBandwidthEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "This table describes the bandwidth on NSI links belonging to this virtual edge 
+                 (for reporting To an ERM)."
+        ::= { cerVideoObjects 27 }
+
+        cerveBandwidthEntry OBJECT-TYPE
+            SYNTAX     CerveBandwidthEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Bandwidth allocation configuration for a virtual edge"
+            INDEX { cerveIndex, cerveBandIpAddr, cerveBandIfIndex  }
+            ::= { cerveBandwidthTable 1 }
+
+            CerveBandwidthEntry ::= SEQUENCE {
+                cerveBandIpAddr     InetAddressIPv4or6,
+                cerveBandIfIndex    InterfaceIndex,
+                cerveBandAllocation Unsigned32,
+                cerveBandAddrType   InetAddressType,
+                cerveBandRowStatus  RowStatus
+            }
+
+            cerveBandIpAddr OBJECT-TYPE
+                SYNTAX      InetAddressIPv4or6
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                     "This a data plane address for the Virtual Edge being assigned
+                        this bandwidth. Must be an address already assigned to the VE."
+                ::= { cerveBandwidthEntry 2 }
+
+            cerveBandIfIndex OBJECT-TYPE
+                SYNTAX      InterfaceIndex
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                     "This is the ifIndex of the ethernet or link-aggregate interface for the
+                      interface whose bandwidth is being assigned to this VE."
+                ::= { cerveBandwidthEntry 3 }
+
+            cerveBandAllocation OBJECT-TYPE
+                SYNTAX      Unsigned32 (0..100000000)
+                UNITS       "Kbps"
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "The amount of bandwidth in Kbps of the NSI interface to be reported for the VE over 
+                     the service discovery ERM connection."
+                DEFVAL { 0 }
+                ::= { cerveBandwidthEntry 4 }
+
+            cerveBandAddrType OBJECT-TYPE
+                SYNTAX InetAddressType
+                MAX-ACCESS read-only
+                STATUS current
+                DESCRIPTION
+                    "Type of IP address."
+                DEFVAL { ipv4 }
+                ::= { cerveBandwidthEntry 5 }
+
+            cerveBandRowStatus   OBJECT-TYPE
+                SYNTAX      RowStatus
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "The RowStatus for controlling entries in this table."
+                ::= { cerveBandwidthEntry 6 }
+
+    cerveUdpBlockedPortTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerveUdpBlockedPortEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "A row in this table contains the a range of one or more UDP ports, where any ingress
+                 UDP stream with a port in this range to any of the VE dataplane addresses must be 
+                 dropped. This table only applies to table-based VOD streams."
+        ::= { cerVideoObjects 28 }
+
+        cerveUdpBlockedPortEntry OBJECT-TYPE
+            SYNTAX     CerveUdpBlockedPortEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Blocked UDP port mapping for a virtual edge"
+            INDEX { cerveIndex, cerveUdpBlockedPortIpAddr, cerveUdpBlockedPortLowPort }
+            ::= { cerveUdpBlockedPortTable 1 }
+
+            CerveUdpBlockedPortEntry ::= SEQUENCE {
+                cerveUdpBlockedPortIpAddr    InetAddressIPv4or6,
+                cerveUdpBlockedPortLowPort   Unsigned32,
+                cerveUdpBlockedPortHighPort  Unsigned32,
+                cerveUdpBlockedPortAddrType  InetAddressType,
+                cerveUdpBlockedPortRowStatus RowStatus
+            }
+
+            cerveUdpBlockedPortIpAddr OBJECT-TYPE
+                SYNTAX      InetAddressIPv4or6
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                     "This a data plane address for the Virtual Edge where the UDP is being
+                      blocked. Must be an address already assigned to the VE or 0.0.0.0, which
+                      means that the port is blocked for every VE dataplane address."
+                ::= { cerveUdpBlockedPortEntry 2 }
+
+            cerveUdpBlockedPortLowPort OBJECT-TYPE
+                SYNTAX      Unsigned32 (1..65535)
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                     "This is the low port number to be blocked for the VE."
+                ::= { cerveUdpBlockedPortEntry 3 }
+
+            cerveUdpBlockedPortHighPort OBJECT-TYPE
+                SYNTAX      Unsigned32 (1..65535)
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                     "This is the high port number to be blocked. Is same as low port if only a one 
+                      port range."
+                ::= { cerveUdpBlockedPortEntry 4 }
+
+            cerveUdpBlockedPortAddrType OBJECT-TYPE
+                SYNTAX InetAddressType
+                MAX-ACCESS read-create
+                STATUS current
+                DESCRIPTION
+                    "Type of IP address."
+                DEFVAL { ipv4 }
+                ::= { cerveUdpBlockedPortEntry 5}
+
+            cerveUdpBlockedPortRowStatus   OBJECT-TYPE
+                SYNTAX      RowStatus
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "The RowStatus for controlling entries in this table.
+                     Allowed values are createAndGo, destroy, and active."
+                ::= { cerveUdpBlockedPortEntry 6 }
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- ERM configuration
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    cerErmSrvDiscTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CerErmSrvDiscEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table describes the configuration parameters 
+            associated with remote Edge Resource Manager (ERM)
+            devices. Use of multiple entries within this table
+            enables the logical separation of the Cer to multiple
+            ERMs."
+        ::= { cerVideoObjects 29 }
+
+        cerErmSrvDiscEntry OBJECT-TYPE
+            SYNTAX      CerErmSrvDiscEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "An entry corresponds to an individual ERM configuration."
+            INDEX { cerErmSrvDiscIndex }
+            ::= { cerErmSrvDiscTable 1 }
+
+            CerErmSrvDiscEntry ::= SEQUENCE {
+                cerErmSrvDiscIndex                 Integer32,
+                cerErmSrvDiscName                  DisplayString,
+                cerErmSrvDiscDescription           DisplayString,
+                cerErmSrvDiscAddrType              InetAddressType,
+                cerErmSrvDiscRemoteIpAddr          InetAddress,
+                cerErmSrvDiscRemoteFqdnIpAddr      InetAddressIPv4or6,
+                cerErmSrvDiscPort                  Unsigned32,
+                cerErmSrvDiscHoldTime              Unsigned32,
+                cerErmSrvDiscKeepAliveTime         Unsigned32,
+                cerErmSrvDiscBwInterval            Unsigned32,
+                cerErmSrvDiscBwThreshold           Unsigned32,
+                cerErmSrvDiscCost                  Unsigned32,
+                cerErmSrvDiscConnRetryTimeout      Unsigned32,
+                cerErmSrvDiscRowStatus             RowStatus
+            }
+
+            cerErmSrvDiscIndex OBJECT-TYPE
+               SYNTAX       Integer32 ( 1..7 )
+               MAX-ACCESS   accessible-for-notify
+               STATUS       current
+               DESCRIPTION
+                    "Index of ERM configuration entry."
+               ::= { cerErmSrvDiscEntry 1 }
+
+            cerErmSrvDiscName OBJECT-TYPE
+               SYNTAX       DisplayString
+               MAX-ACCESS   read-create
+               STATUS       current
+               DESCRIPTION
+                    "Name of ERM configuration entry."
+               DEFVAL { "" }
+               ::= { cerErmSrvDiscEntry 2 }
+
+            cerErmSrvDiscDescription OBJECT-TYPE 
+               SYNTAX       DisplayString
+               MAX-ACCESS   read-create
+               STATUS       current
+               DESCRIPTION
+                    "Contains text description of the ERM configuration."
+               DEFVAL { "" }
+               ::= { cerErmSrvDiscEntry 3 }
+
+            cerErmSrvDiscAddrType OBJECT-TYPE
+               SYNTAX InetAddressType
+               MAX-ACCESS read-create
+               STATUS       current
+               DESCRIPTION
+                    "Type of IP address."
+               DEFVAL { ipv4 }
+                ::= { cerErmSrvDiscEntry 4}
+
+            cerErmSrvDiscRemoteIpAddr OBJECT-TYPE
+               SYNTAX       InetAddress
+               MAX-ACCESS   read-create
+               STATUS       current
+               DESCRIPTION
+                    "The ERM remote address. An IPv4 address or hostname is acceptable
+                     as an address."
+               DEFVAL { '00000000'H }
+               ::= { cerErmSrvDiscEntry 5 }
+
+            cerErmSrvDiscRemoteFqdnIpAddr OBJECT-TYPE
+               SYNTAX       InetAddressIPv4or6
+               MAX-ACCESS   read-only
+               STATUS       current
+               DESCRIPTION
+                    "The IP address for an FQDN in cerErmRemoteIpName. This is 0.0.0.0 if
+                     cerErmSrvDiscRemoteIpAddr is an IPv4 address."
+               DEFVAL { '00000000'H }
+               ::= { cerErmSrvDiscEntry 6 }
+
+            cerErmSrvDiscPort OBJECT-TYPE
+               SYNTAX Unsigned32 ( 1024..65535 )
+               MAX-ACCESS   read-create
+               STATUS       current
+               DESCRIPTION
+                    "Contains TCP port value used for DRRP listener/connections."
+               DEFVAL { 8665 }
+               ::= { cerErmSrvDiscEntry 7 }
+
+            cerErmSrvDiscHoldTime OBJECT-TYPE
+               SYNTAX Unsigned32 ( 4..65535 )
+               MAX-ACCESS   read-create
+               STATUS       current
+               DESCRIPTION
+                    "Contains VREP/DRRP hold-time in seconds for connection timeout"
+               DEFVAL { 180 }
+               ::= { cerErmSrvDiscEntry 8 }
+
+            cerErmSrvDiscKeepAliveTime OBJECT-TYPE
+               SYNTAX Unsigned32 ( 3..65535 )
+               MAX-ACCESS   read-create
+               STATUS       current
+               DESCRIPTION
+                    "Contains VREP/DRRP interval in seconds for sending keep-alive messages.
+                     Must be less than cerErmHoldTime."
+               DEFVAL { 60 }
+               ::= { cerErmSrvDiscEntry 9 }
+
+            cerErmSrvDiscBwInterval OBJECT-TYPE
+               SYNTAX Unsigned32 ( 0..65535 )
+               UNITS        "seconds"
+               MAX-ACCESS   read-create
+               STATUS       current
+               DESCRIPTION
+                    "Interval in seconds to send AvailableBandwidth UDPATE messages.
+                     Zero means no reporting of bandwidth."
+               DEFVAL { 10 }
+               ::= { cerErmSrvDiscEntry 10 }
+
+            cerErmSrvDiscBwThreshold OBJECT-TYPE
+               SYNTAX Unsigned32 ( 50..65535 )
+               MAX-ACCESS   read-create
+               STATUS       current
+               DESCRIPTION
+                    "Change in bandwith utilisation in Kbps required to trigger an 
+                     AvailableBandwidth UDPATE messages."
+               DEFVAL { 1000 }
+               ::= { cerErmSrvDiscEntry 11 } 
+
+            cerErmSrvDiscCost OBJECT-TYPE
+               SYNTAX Unsigned32 ( 0..65535 )
+               MAX-ACCESS   read-create
+               STATUS       current
+               DESCRIPTION
+                    "Cost to advertise in VREP OPEN message."
+               DEFVAL { 1 }
+               ::= { cerErmSrvDiscEntry 12 }
+
+            cerErmSrvDiscConnRetryTimeout OBJECT-TYPE
+                SYNTAX  Unsigned32 ( 30..600 )
+                UNITS       "seconds"
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "The maximum time to wait before retrying establishing the ERM connection."
+                DEFVAL { 120 }
+                ::= { cerErmSrvDiscEntry 13 }
+
+            cerErmSrvDiscRowStatus OBJECT-TYPE
+               SYNTAX RowStatus
+               MAX-ACCESS read-create
+               STATUS current
+               DESCRIPTION
+                    "The values that control the creation/deletion of ERMs on 
+                    the CER."
+               ::= { cerErmSrvDiscEntry 14 }
+
+    cerStreamingZoneTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerStreamingZoneEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "Table mapping a streaming zone index to a streaming zone name.
+                 Duplicate TSIDs must be in different SZs. Each VE is in one SZ."
+        ::= { cerVideoObjects 30 }
+
+        cerStreamingZoneEntry OBJECT-TYPE
+            SYNTAX     CerStreamingZoneEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                    "Table mapping a streaming zone index to a streaming zone name."
+            INDEX { cervSzIndex }
+            ::= { cerStreamingZoneTable 1 }
+
+            CerStreamingZoneEntry ::= SEQUENCE {
+                  cervSzIndex          Unsigned32,
+                  cervSzQamNetworkId   Unsigned32,
+                  cervSzName           OCTET STRING,
+                  cervSzVpmeSdIndex    Unsigned32,
+                  cervSzRowStatus      RowStatus
+            }
+
+            cervSzIndex         OBJECT-TYPE
+                SYNTAX      Unsigned32 (1..7)
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "MIB Index for a streaming zone."
+                ::= { cerStreamingZoneEntry 1 }
+
+            cervSzQamNetworkId         OBJECT-TYPE
+                SYNTAX      Unsigned32 (0..65535)
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "Network ID for a streaming zone. Must be unique for all streaming zones.
+                     Zero means not set."
+                DEFVAL { 0 }
+                ::= { cerStreamingZoneEntry 2 }
+
+            cervSzName    OBJECT-TYPE
+                SYNTAX      OCTET STRING (SIZE(0..32))
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "Configured name of the streaming zone."
+                DEFVAL { "" }
+                ::= { cerStreamingZoneEntry 3 }
+
+            cervSzVpmeSdIndex OBJECT-TYPE
+                SYNTAX        Unsigned32 (0..7)
+                MAX-ACCESS    read-create
+                STATUS        current
+                DESCRIPTION
+                    "The security-domain instance number uniquely identifies
+                     the VPME instance for the E6000.  Zero means no SD is assigned."
+                DEFVAL { 0 }
+                ::= { cerStreamingZoneEntry 4 }
+
+            cervSzRowStatus OBJECT-TYPE
+                SYNTAX RowStatus
+                MAX-ACCESS read-create
+                STATUS current
+                DESCRIPTION
+                    "The values that control the creation/deletion of 
+                     streaming zones on the CER."
+                ::= { cerStreamingZoneEntry 5 }
+
+    cerVideoCountsTable OBJECT-TYPE
+        SYNTAX     SEQUENCE OF CerVideoCountsEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "This table stores IEQ video counts for each DCAM."
+        ::= { cerVideoObjects 31 }
+
+        cerVideoCountsEntry OBJECT-TYPE
+            SYNTAX     CerVideoCountsEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                "IEQ Video counts per DCAM."
+            INDEX { cerVideoCountsCardId }
+            ::= { cerVideoCountsTable 1 }
+
+            CerVideoCountsEntry ::= SEQUENCE {
+                cerVideoCountsCardId           Integer32,        
+                cerVideoCountsBadSyncPkts      Counter32,
+                cerVideoCountsDroppedPkts      Counter32,
+                cerVideoCountsFragments        Counter32
+            }
+
+            cerVideoCountsCardId OBJECT-TYPE
+                SYNTAX      Integer32 (1..6 | 9..14)
+                MAX-ACCESS  not-accessible
+                STATUS      current
+                DESCRIPTION
+                    "This the slot number of DCAM doing the counts."
+                ::= { cerVideoCountsEntry 1 }
+
+            cerVideoCountsBadSyncPkts OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Number of incoming port-mapped UDP packets dropped because of not containing valid MPEG."
+                ::= { cerVideoCountsEntry 2 } 
+
+            cerVideoCountsDroppedPkts OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Number of valid incoming MPEG packets that were
+                    were dropped by the DCAM because of a program number conflict,
+                    oversubscription condition, or MPTS pass-thru conflict."
+                ::= { cerVideoCountsEntry 3 } 
+
+            cerVideoCountsFragments OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                     "Number of multicast packet fragments dropped in the DCAM."
+                ::= { cerVideoCountsEntry 4 } 
+
+-- ---------------------------------------------------------------------------------  
+-- cerVideoTraps
+-- ---------------------------------------------------------------------------------
+    cerVideoTrapsInfo OBJECT IDENTIFIER ::= { cerVideoObjects 32 }
+
+    cerVideoStatus             OBJECT-TYPE
+        SYNTAX  INTEGER {
+            idle(1),
+            connect(2),
+            active(3),
+            opensent(4),
+            openconfirm(5),
+            established(6)
+        }
+        MAX-ACCESS               accessible-for-notify
+        STATUS                   current
+        DESCRIPTION
+            " ERM connection status of E6000. "
+        DEFVAL { idle }
+        ::= {  cerVideoTrapsInfo 1 }
+
+    cerVideoErrorStr           OBJECT-TYPE
+        SYNTAX                   DisplayString (SIZE(0..100))
+        MAX-ACCESS               accessible-for-notify
+        STATUS                   current
+        DESCRIPTION
+            " Description of error encountered on the ERM interface. "
+        ::= {  cerVideoTrapsInfo 2 }
+
+
+    cerVideoNotifs OBJECT IDENTIFIER ::= { cerVideoObjects 33 }
+    cerVideoTraps  OBJECT IDENTIFIER ::= { cerVideoNotifs 0 }
+
+    cerVideoSrvDiscErmConnection         NOTIFICATION-TYPE
+        OBJECTS                  { trapCounter, trapSeverity, 
+                                   cerveIndex, cerErmSrvDiscIndex, 
+                                   cerErmSrvDiscRemoteIpAddr,
+                                   cerErmSrvDiscPort, 
+                                   cerVideoErrorStr, cerVideoStatus }
+        STATUS                   current
+        DESCRIPTION
+             "This trap is sent when the Service Discovery ERM connection fails. 
+              This can occur for a number of reasons, the Virtual Edge may not be
+            able to successfully establish the connection, the OPEN
+            message negotiation may fail, the ERM may closed the 
+            connection, the Hold Time may expire, a NOTIFICATION message 
+            may be received, etc."
+        ::= { cerVideoTraps 1 }
+
+    cerVideoStreamFailure         NOTIFICATION-TYPE
+        OBJECTS                  { trapCounter, trapSeverity, 
+                                   cerveIndex, cervUdpIpDestUdpPort, cervUdpIpDestIpAddr, cervUdpIpSrcIpAddr, 
+                                   cerVideoErrorStr }
+        STATUS                   current
+        DESCRIPTION
+            " This trap is sent when the E6000 detects a problem with
+              the incoming video stream. This can be a problem parsing a 
+              PAT or PMT in the stream, a jitter buffer underflow or overflow,
+              non-MPEG data on the stream."
+        ::= { cerVideoTraps 2 }
+    
+    cerVideoServiceFailure        NOTIFICATION-TYPE
+        OBJECTS                  { trapCounter, trapSeverity, 
+                                   cerveIndex, cervUdpIpDestUdpPort, cervUdpIpDestIpAddr, cervUdpIpSrcIpAddr, 
+                                   cervStreamProgIndex, cerVideoErrorStr }
+        STATUS                   current
+        DESCRIPTION
+            " This trap is sent when the E6000 detects a problem with
+              forwarding an incoming stream to a QAM channel. This can 
+              be as a result of the UDP port being blocked, there is no 
+              matching UDP port on an IS QAM channel, the potential 
+              of creating a program number conflict on the QAM channel, 
+              the program number limit has been reached on the QAM 
+              channel, etc."
+        ::= { cerVideoTraps 3 }
+    
+    cerVideoQamOversubscription   NOTIFICATION-TYPE
+        OBJECTS                  { trapCounter, trapSeverity, 
+                                   cerveIndex, ifIndex,
+                                   cerVideoErrorStr }
+        STATUS                   current
+        DESCRIPTION
+            " This trap is sent when the E6000 detects oversubscription
+              on a QAM channel and has taken corrective action."
+    ::= { cerVideoTraps 4 }
+    
+END

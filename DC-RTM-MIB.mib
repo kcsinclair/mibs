@@ -1,0 +1,3926 @@
+
+  DC-RTM-MIB DEFINITIONS ::= BEGIN
+
+  -- PRODUCT-SHORT-NAME rtm
+
+  IMPORTS
+      MODULE-IDENTITY,
+      OBJECT-TYPE,
+      NOTIFICATION-TYPE,
+      Integer32,
+      Unsigned32,
+      IpAddress
+                                        FROM SNMPv2-SMI
+
+   MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+      FROM SNMPv2-CONF
+
+      TEXTUAL-CONVENTION,
+      RowStatus,
+      TruthValue
+                                        FROM SNMPv2-TC
+
+      IANAipRouteProtocol               FROM IANA-RTPROTO-MIB
+
+      InetAddressType,
+      InetAddress
+                                        FROM INET-ADDRESS-MIB
+
+      AdminStatus,
+      OperStatus,
+      RouteAction,
+      AdminDistance,
+      PathType,
+      InetSubAddressType,
+      BfdSessionStatus,
+      NumericIndexOrZero
+                                        FROM DC-MASTER-TC
+
+-- Arris change to define locally because of import errors when
+-- building oamp
+--    MplsIndexType                     FROM MPLS-LSR-STD-MIB
+      ;
+
+  rtmMib MODULE-IDENTITY
+      LAST-UPDATED "201404170000Z" -- Thur April 17 00:00:00 GMT 2014
+      ORGANIZATION "Data Connection Ltd."
+      CONTACT-INFO
+                   "Postal: Data Connection Ltd.
+                            100 Church Street
+                            Enfield
+                            Middlesex EN2 6BQ
+                            United Kingdom
+                    Tel:    +44 20 83661177
+                    E-mail: dcospf@dataconnection.com"
+      DESCRIPTION  "The MIB module for management of the DC-RTM
+                    product."
+      REVISION "201404170000Z" -- Thur April 17 00:00:00 GMT 2014
+      DESCRIPTION  "Arris changes to DCL June 2013 Release"
+
+  ::= { iso member-body(2) gb(826) national(0) eng-ltd(1)
+        dataConnectionLtd(1578918) adg(5) cipr(61) 1 }
+
+  rtmObjects OBJECT IDENTIFIER ::= { rtmMib 1 } -- tables
+  rtmTrap    OBJECT IDENTIFIER ::= { rtmMib 2 } -- traps
+
+-- Textual conventions
+-- Arris change to define here rather than from MPLS-LSR-STD-MIB
+  MplsIndexType ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION "An index that can be used as a table
+                   index in cases where a large addressable space is
+                   required such as on an LSR where many applications
+                   may be provisioning labels."
+      SYNTAX      Integer32 (0..2147483647)
+
+  FteIndex ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION "The index value identifying a fault tolerant entity."
+      SYNTAX      Unsigned32
+
+  OspfTag ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION "An OSPF Tag."
+      SYNTAX      Unsigned32 (0..'FFFFFFFF'h)
+
+  RtmMjStatus ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION "The status of a master join."
+      SYNTAX     INTEGER {
+                  mjNotJoined(1),        -- initial state of join
+                  mjSentAddJoin(2),      -- sent ATG_FT_ADD_JOIN to slave
+                  mjSentRegister(3),     -- sent registration signal to slave
+                  mjJoinActive(4),       -- join is active
+                  mjSentDelJoin(5),      -- sent ATG_FT_DELETE_JOIN to slave
+                  mjSentUnregister(6),   -- sent unregistration signal to slave
+                  mjJoinGone(7),         -- join has been deleted
+                  mjFailedToRegister(8), -- slave rejected registration message
+                  mjFailingOver(9),      -- slave is failing over
+                  mjFailed(10)           -- join has permanently failed
+                }
+
+  RtmSjStatus ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION "The status of a slave join."
+      SYNTAX     INTEGER {
+                  sjNotJoined(1),        -- initial state of join
+                  sjJoined(2),           -- master has sent an ATG_FT_ADD_JOIN
+                  sjJoinActive(3),       -- master has registered the join
+                  sjJoinUnreg(4),        -- master has unregistered the join
+                  sjJoinGone(5),         -- master has deleted the join
+                  sjFailingOver(6),      -- master is failing over
+                  sjFailed(7)            -- join has permanently failed
+                }
+
+  InterfaceType ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION "The type of interface to which a join applies."
+      SYNTAX     INTEGER {
+                  ifActiveRoutes(1),       -- Active Routes
+                  ifRteProtInput(2)        -- Routing Protocol Input
+                }
+
+  AriPrtnrType ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION "The type of slave partner to join to over the Active
+                   Routes Interface."
+      SYNTAX      INTEGER {
+                  ariPrtnrFt(1),    -- Forwarding Table Stub
+                  ariPrtnrLdf(2),   -- Labelled Data Forwarding Table Stub
+                  ariPrtnrRsm(3),   -- Route Selection Manager
+                  ariPrtnrBgp(4),   -- BGP Protocol Manager
+                  ariPrtnrPim(5)    -- PIM Protocol Manager
+                }
+
+  RdstSetFieldType ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION "The type of action a Set Field entry performs."
+      SYNTAX      INTEGER {
+                  rdstSetBgpComm(1),    -- Set BGP Community
+                  rdstSetBgpExtComm(2)  -- Set BGP Extended Community
+                }
+
+  EqualCostRouteOpts ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION
+           "The method used to determine how to choose which equal cost
+           routes for a given destination to give to the active routing
+           information consumers, if there is more than one route.  This value
+           is used in building responses to ATG_QCAR_GET_ROUTES and
+           ATG_QCAR_QUERY_ROUTE signals, and also in building
+           ATG_QCAR_ROUTE_UPDATE and ATG_QCAR_ROUTE_IND signals for consumers
+           that require them.
+
+           The permitted values for this field are as follows.
+
+           all:
+             All equal cost routes should be given to the active routing
+             information consumers.
+
+           one:
+             DC-RTM picks one as soon as it can, and only tells the active
+             routing information consumers about that one route.
+             It only switches to another route if the chosen one is deleted,
+             or if the chosen one no longer has the lowest administrative
+             distance among routes to this destination (for example if a new
+             route is added with a lower adminstrative distance)."
+      SYNTAX     INTEGER {
+                  equalCostAll(1),  -- all routes
+                  equalCostOne(2)   -- one route
+                }
+
+  MetricConversion ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION
+           "How to convert the metric in the source routing information to
+           a new metric in the destination routing information.
+
+           Possible actions are
+
+           same:
+             Use the supplied metric value
+
+           constant:
+             Ignore the supplied metric and use the constant value given in
+             the metric numeric parameter field
+
+           inverse:
+             Map high values onto low ones, and vice-versa, by subtracting the
+             supplied metric from 0xffffffff.
+
+           scale up:
+             Use the supplied metric multiplied by the value given in the
+             metric numeric parameter field, or 0xffffffff if this is smaller.
+
+           scale down:
+             Use the supplied metric divided by the value given in the metric
+             numeric parameter field (which must not be zero), rounding down
+             to the next whole number.
+
+           truncate:
+             Use the smaller of the supplied metric or the metric numeric
+             parameter field."
+      SYNTAX     INTEGER {
+                  metricConvSame(1),      -- same
+                  metricConvConstant(2),  -- constant
+                  metricConvInverse(3),   -- inverse
+                  metricConvScaleUp(4),   -- scale up
+                  metricConvScaleDown(5), -- scale down
+                  metricConvTruncate(6)   -- truncate
+                }
+
+  InfoSourceDest ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION
+           "A source of, or destination for, routing information.  These
+           values are used when redistributing routing information."
+      SYNTAX     INTEGER {
+                  infoSourceAll(0),              -- all values excluding connected
+                  infoSourceAllInclConnected(1), -- all values including connected
+                  infoSourceOther(65536),        -- not specified
+                  infoSourceConnected(131072),   -- directly connected network
+                  infoSourceStatic(196608),      -- static route
+                  infoSourceIcmp(262144),        -- ICMP redirect
+                  infoSourceEgp(327680),         -- Exterior Gateway Protocol
+                  infoSourcePd(393216),          -- Prefix Delegation
+                  infoSourceHello(458752),       -- FuzzBall HelloSpeak
+                  infoSourceRip(524288),         -- RIP
+                  infoSourceIsis(589824),        -- IS-IS
+                  infoSourceEsis(655360),        -- ISO 9542
+                  infoSourceIgrp(720896),        -- IGRP
+                  infoSourceBbnSpfIgp(786432),   -- BBN SPF IGP
+                  infoSourceOspf(851968),        -- OSPF
+                  infoSourceBgp(917504),         -- BGP
+                  infoSourceIdpr(983040),        -- InterDomain Policy Routing
+                  infoSourceEigrp(1048576),      -- EIGRP
+                  infoSourceDvmrp(1114112),      -- DVMRP
+                  infoSourceEnni(1179648)        -- E-NNI Routing
+                }
+
+  BgpOriginCode ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION "A BGP origin code."
+      SYNTAX     INTEGER {
+                bgpOriginIgp(0),        -- path interior to originating AS
+                bgpOriginEgp(1),        -- path learned via EGP protocol
+                bgpOriginIncomplete(2)  -- path was learned by some other means
+              }
+
+  BgpCommunity ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION "The representation of a BGP Community."
+    SYNTAX OCTET STRING (SIZE(4))
+
+  BgpExtendedCommunity ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION "The representation of a BGP Extended Community."
+    SYNTAX OCTET STRING (SIZE(8))
+
+  RouteInfo ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION "A Routing Protocol Information Type.
+
+                   For OSPF, this is an integer representation of the OID which
+                   is required by RFC 2096.  The RFCs which define the OIDs,
+                   and the represented OIDs, are show here.  OSPF - RFC 1850.
+
+                   For ISIS, this is an integer representation of the types of
+                   route to IP reachable addresses."
+      SYNTAX     INTEGER {
+                none(0),
+                ospfIntraArea(1),       -- { ospfRouteGroup 1 }
+                ospfInterArea(2),       -- { ospfRouteGroup 2 }
+                ospfExternalType1(3),   -- { ospfRouteGroup 3 }
+                ospfExternalType2(4),   -- { ospfRouteGroup 4 }
+                isisL1Internal(5),      -- L1 route with internal metric and
+                                        --  up/down bit set to 0
+                isisL2Internal(6),      -- L2 route with internal metric
+                isisL1InternalDown(7),  -- L1 route with internal metric and
+                                        --  up/down bit set to 1
+                isisL1External(8),      -- L1 route with external metric and
+                                        --  up/down bit set to 0
+                isisL2External(9),      -- L2 route with external metric
+                isisL1ExternalDown(10)  -- L1 route with external metric and
+                                        --  up/down bit set to 1
+              }
+
+  RouteType ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION "Routing Type."
+      SYNTAX     INTEGER {
+                other(1),               -- not specified by this MIB
+                reject(2),              -- route which discards traffic
+                local(3),               -- local interface
+                remote(4)               -- remote destination
+              }
+
+  RtmBfdSupport ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION "BFD support level."
+      SYNTAX     INTEGER {
+                none(1),                -- no BFD
+                desired(2),             -- use BFD, but do not assume that
+                                        --  the peer necessarily supports
+                                        --  BFD
+                required(3)             -- use BFD, and assume that the peer
+                                        --  also supports BFD
+              }
+
+-------------------------------------------------------------------------------
+
+-- DC-RTM Entity Table
+-- This table is used to create and manage DC-RTM entities.
+
+  rtmEntityTable OBJECT-TYPE
+  -- FAMILY-SHORT-NAME qcr_ent
+       SYNTAX      SEQUENCE OF RtmEntityEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+          "The table of DC-RTM entities."
+       ::= { rtmObjects 1 }
+
+  rtmEntityEntry OBJECT-TYPE
+       SYNTAX      RtmEntityEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+          "Each entry represents an instance of the DC-RTM entity."
+       INDEX { rtmEntityFteIndex }
+       ::= { rtmEntityTable 1 }
+
+  RtmEntityEntry ::= SEQUENCE {
+         rtmEntityFteIndex        FteIndex,
+         rtmEntityRowStatus       RowStatus,
+         rtmEntityAdminStat       AdminStatus,
+         rtmEntityOperStatus      OperStatus,
+         rtmEntityDsConnctd       AdminDistance,
+         rtmEntityDsStatDf        AdminDistance,
+         rtmEntityDsOspfInt       AdminDistance,
+         rtmEntityDsOspfExt       AdminDistance,
+         rtmEntityDsIntBgp        AdminDistance,
+         rtmEntityDsExtBgp        AdminDistance,
+         rtmEntityDsIsisInt1      AdminDistance,
+         rtmEntityDsIsisInt2      AdminDistance,
+         rtmEntityDsIsisExt1      AdminDistance,
+         rtmEntityDsIsisExt2      AdminDistance,
+         rtmEntityDsRip           AdminDistance,
+         rtmEntityDsEgp           AdminDistance,
+         rtmEntityDsPd            AdminDistance,
+         rtmEntityDsHello         AdminDistance,
+         rtmEntityDsEsis          AdminDistance,
+         rtmEntityDsBbnspfigp     AdminDistance,
+         rtmEntityDsIdpr          AdminDistance,
+         rtmEntityDsIgrp          AdminDistance,
+         rtmEntityDsEigrpSmm      AdminDistance,
+         rtmEntityDsIntEigrp      AdminDistance,
+         rtmEntityDsEigrpExt      AdminDistance,
+         rtmEntityDsUnknown       AdminDistance,
+         rtmEntityEqlCostOpt      EqualCostRouteOpts,
+         rtmEntityDelDeadRte      TruthValue,
+         rtmEntityDeadRpmTmr      Integer32,
+         rtmEntityRouteNumber     Integer32,
+         rtmEntityAddressFamily   InetAddressType,
+         rtmEntityDsDvmrp         AdminDistance,
+         rtmEntityI3Index         FteIndex,
+         rtmEntityI3JoinStatus    RtmMjStatus,
+         rtmEntityPartnerWaitTime Integer32,
+         rtmEntityStartupTime     Integer32,
+         rtmEntityRestartTime     Integer32,
+         rtmEntityFtStateRetained TruthValue,
+         rtmEntityUseUnidirectionalLinks TruthValue,
+         rtmEntityBfdIndex        NumericIndexOrZero,
+         rtmEntityBfdJoinStatus   RtmMjStatus,
+         rtmEntityEnableTrapSupport TruthValue
+       }
+
+  rtmEntityFteIndex OBJECT-TYPE
+       SYNTAX       FteIndex
+       MAX-ACCESS   not-accessible
+       STATUS       current
+       DESCRIPTION
+          "The index of this rtmEntityEntry.  This is the HAF entity index
+          passed on the entity create parameters."
+       ::= { rtmEntityEntry 1 }
+
+  rtmEntityRowStatus OBJECT-TYPE
+       SYNTAX       RowStatus
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Used to create and delete a DC-RTM fault tolerant entity."
+       ::= { rtmEntityEntry 2 }
+
+  rtmEntityAdminStat OBJECT-TYPE
+       SYNTAX       AdminStatus
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The desired administrative state of the DC-RTM entity."
+       DEFVAL { adminStatusDown }
+       ::= { rtmEntityEntry 3 }
+
+  rtmEntityOperStatus OBJECT-TYPE
+       SYNTAX       OperStatus
+       MAX-ACCESS   read-only
+       STATUS       current
+       DESCRIPTION
+          "The current operational state of the DC-RTM entity."
+       ::= { rtmEntityEntry 4 }
+
+  rtmEntityDsConnctd OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for directly connected
+           routes.  The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 0 }
+       ::= { rtmEntityEntry 5 }
+
+  rtmEntityDsStatDf OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The default administrative distance used for statically
+           defined routes in the static routes MIB table.  It can be
+           overridden for individual static routes.  The lower the
+           distance for a given route, the more likely that route is to
+           be used by DC-RTM as the active route for the given
+           destination.  See the DC-RTM Architecture Guide for more
+           information about the use of administrative distances."
+       DEFVAL { 1 }
+       ::= { rtmEntityEntry 6 }
+
+  rtmEntityDsOspfInt OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for OSPF internal routes.
+           The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 30 }
+       ::= { rtmEntityEntry 7 }
+
+  rtmEntityDsOspfExt OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for OSPF Autonomous System
+           external routes.  The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 110 }
+       ::= { rtmEntityEntry 8 }
+
+  rtmEntityDsIntBgp OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for internal and VPN BGP routes.
+           The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 200 }
+       ::= { rtmEntityEntry 9 }
+
+  rtmEntityDsExtBgp OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for external BGP routes.
+           The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 20 }
+       ::= { rtmEntityEntry 10 }
+
+  rtmEntityDsIsisInt1 OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for IS-IS level 1 internal routes.
+           The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 115 }
+       ::= { rtmEntityEntry 11 }
+
+  rtmEntityDsIsisInt2 OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for IS-IS level 2 internal routes.
+           The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 116 }
+       ::= { rtmEntityEntry 12 }
+
+  rtmEntityDsIsisExt1 OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for IS-IS level 1 external routes.
+           The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 117 }
+       ::= { rtmEntityEntry 13 }
+
+  rtmEntityDsIsisExt2 OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for IS-IS level 2 external routes.
+           The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 118 }
+       ::= { rtmEntityEntry 14 }
+
+  rtmEntityDsRip OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for RIP routes.
+           The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 120 }
+       ::= { rtmEntityEntry 15 }
+
+  rtmEntityDsEgp OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for Exterior Gateway Protocol
+           routes.  The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 205 }
+       ::= { rtmEntityEntry 16 }
+
+  rtmEntityDsPd OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for routes injected using
+           DHCPv6 prefix delegation protocol.
+           The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by RTM
+           as the active route for the given destination."
+       DEFVAL { 2 }
+       ::= { rtmEntityEntry 17 }
+
+  rtmEntityDsHello OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for FuzzBall HelloSpeak routes.
+           The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 215 }
+       ::= { rtmEntityEntry 18 }
+
+  rtmEntityDsEsis OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for ISO 9542 routes.
+           The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 225 }
+       ::= { rtmEntityEntry 19 }
+
+  rtmEntityDsBbnspfigp OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for BBN SPF IGP routes.
+           The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 225 }
+       ::= { rtmEntityEntry 20 }
+
+  rtmEntityDsIdpr OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for InterDomain Policy Routing
+           routes.  The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 225 }
+       ::= { rtmEntityEntry 21 }
+
+  rtmEntityDsIgrp OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for IGRP routes.
+           The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 100 }
+       ::= { rtmEntityEntry 22 }
+
+  rtmEntityDsEigrpSmm OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for enhanced IGRP summary routes.
+           The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 5 }
+       ::= { rtmEntityEntry 23 }
+
+  rtmEntityDsIntEigrp OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for internal enhanced IGRP routes.
+           The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 90 }
+       ::= { rtmEntityEntry 24 }
+
+  rtmEntityDsEigrpExt OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for enhanced IGRP external routes.
+           The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 170 }
+       ::= { rtmEntityEntry 25 }
+
+  rtmEntityDsUnknown OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for routes which come from
+           an unrecognized routing protocol.  The lower the distance for a
+           given type of route, the more likely a route of this type is to
+           be used by DC-RTM as the active route for the given destination.
+           See the DC-RTM Architecture Guide for more information about the
+           use of administrative distances."
+       DEFVAL { 255 }
+       ::= { rtmEntityEntry 26 }
+
+  rtmEntityEqlCostOpt OBJECT-TYPE
+       SYNTAX       EqualCostRouteOpts
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "How to select which equal cost routes to give to an active
+           routing information consumer, if there is more than one
+           route to a given destination with the lowest administrative
+           distance.  This parameter is used in building responses to
+           ATG_QCAR_GET_ROUTES and ATG_QCAR_QUERY_ROUTE signals, and
+           also in building ATG_QCAR_ROUTE_UPDATE and
+           ATG_QCAR_ROUTE_IND signals for consumers that require them.
+
+           The value of this field must not be changed while the row
+           status of this MIB is AMB_ROW_STATUS_ACTIVE and the admin
+           status is AMB_ADMIN_STATUS_UP.
+
+           If you want to use IGP shortcuts for any routes then this field
+           must be set to 'equalCostAll'."
+       DEFVAL       { equalCostAll }
+       ::= { rtmEntityEntry 27 }
+
+  rtmEntityDelDeadRte OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+           "Whether to delete routes from a Routing Protocol Manager (RPM)
+           whose join to DC-RTM goes down.  If this is set to TRUE then the
+           routes are deleted after the time specified in the 'dead RPM timer'
+           parameter.
+
+           If the join between an RPM and DC-RTM goes down, typically because
+           the RPM is no longer running, then the routes received from that
+           RPM gradually become out of date.  This parameter allows DC-RTM to
+           continue to use these routes regardless of whether the RPM ever
+           restarts, or to stop using them after a period of time.  This
+           period of time should represent the maximum amount of time for
+           which the RPM would be down if this were only a temporary state
+           of affairs.
+
+           The value of this field must not be changed while the row
+           status of this MIB is AMB_ROW_STATUS_ACTIVE and the admin
+           status is AMB_ADMIN_STATUS_UP."
+       DEFVAL       { true }
+       ::= { rtmEntityEntry 28 }
+
+  rtmEntityDeadRpmTmr OBJECT-TYPE
+       SYNTAX       Integer32
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+           "Only used if the option is set to TRUE to delete routes
+           from an RPM which DC-RTM can no longer see.  This field
+           defines the period of time that the join to an RPM can be
+           down before its routes are deleted.  This period of time
+           should represent the maximum amount of time for which the
+           RPM would be down if this were only a temporary state of
+           affairs.
+
+           The units for this field are minutes by default.
+
+           The value of this field must not be changed while the row
+           status of this MIB is AMB_ROW_STATUS_ACTIVE and the admin
+           status is AMB_ADMIN_STATUS_UP."
+
+       DEFVAL { 0 }
+       ::= { rtmEntityEntry 29 }
+
+  rtmEntityRouteNumber OBJECT-TYPE
+       SYNTAX       Integer32
+       MAX-ACCESS   read-only
+       STATUS       current
+       DESCRIPTION
+           "The number of destination prefixes to which DC-RTM
+            currently has a route.  This is the same as the number of
+            rows in the rtmRouteTable if the following are both true.
+
+           -  Either rtmEntityEqlCostOpt is set to 'one', or DC-RTM knows
+              of at most one route to each destination prefix.  This
+              means that there is at most one route in rtmRouteTable for
+              each destination prefix included in rtmEntityRouteNumber.
+
+           -  None of the routes which DC-RTM has learned about are loose
+              next hops that cannot be resolved.  This means that there
+              is at least one route in rtmRouteTable per destination
+              prefix included in rtmEntityRouteNumber."
+       DEFVAL { 0 }
+       ::= { rtmEntityEntry 30 }
+
+  rtmEntityAddressFamily OBJECT-TYPE
+       SYNTAX       InetAddressType
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+           "The address family that this instance of DC-RTM supports.
+
+            The value of this field must not be changed while the row
+            status of this MIB is AMB_ROW_STATUS_ACTIVE and the admin
+            status is AMB_ADMIN_STATUS_UP."
+       DEFVAL { ipv4 }
+       ::= { rtmEntityEntry 31 }
+
+  rtmEntityDsDvmrp OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance used for DVMRP routes.
+           The lower the distance for a given type of route,
+           the more likely a route of this type is to be used by DC-RTM
+           as the active route for the given destination.  See the
+           DC-RTM Architecture Guide for more information about the use
+           of administrative distances."
+       DEFVAL { 225 }
+       ::= { rtmEntityEntry 32 }
+
+  rtmEntityI3Index OBJECT-TYPE
+       SYNTAX       FteIndex
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The entity index of the instance of the I3 stub to which this
+           instance of DC-RTM should join.
+
+           The value of this field must not be changed while the row
+           status of this MIB is AMB_ROW_STATUS_ACTIVE and the admin
+           status is AMB_ADMIN_STATUS_UP."
+       DEFVAL { 1 }
+       ::= { rtmEntityEntry 33 }
+
+  rtmEntityI3JoinStatus OBJECT-TYPE
+       SYNTAX      RtmMjStatus
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+          "The status of the I3 master join."
+       ::= { rtmEntityEntry 34 }
+
+  rtmEntityPartnerWaitTime OBJECT-TYPE
+       SYNTAX      Integer32
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+          "The period that DC-RTM waits for joins from Routing
+           Protocol Managers (RPMs) to be reestablished when DC-RTM
+           is activated.  DC-RTM checks for routing table convergence
+           by waiting for a complete set of routes from all joins
+           from RPMs that are established within this period.
+
+           The partner wait timer duration effectively acts as the
+           minimum restart interval.
+
+           The value should be set to zero if the forwarding table
+           does not maintain routing state when DC-RTM restarts."
+       DEFVAL { 30000 }
+       ::= { rtmEntityEntry 35 }
+
+  rtmEntityStartupTime OBJECT-TYPE
+       SYNTAX      Integer32
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+          "This is the startup timer duration that is used when
+           DC-RTM is activated and no routing state has been retained
+           by the forwarding table as part of graceful restart
+           procedures.  This timer duration is used when
+           rtmEntityFtStateRetained is 'false'.
+
+           It determines the maximum length of time before DC-RTM
+           deems that routing table convergence is complete and hence
+           the maximum length of time before DC-RTM sends routing
+           updates to the forwarding table.
+
+           This is typically set to a small value to ensure that the
+           forwarding table is populated in a timely manner. 
+           Time is in miliseconds"
+       DEFVAL { 5000 }
+       ::= { rtmEntityEntry 36 }
+
+  rtmEntityRestartTime OBJECT-TYPE
+       SYNTAX       Integer32
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "This is the startup timer duration that is used when
+           DC-RTM is activated and routing state has been retained by
+           the forwarding table as part of graceful restart
+           procedures.  This timer duration is used when
+           rtmEntityFtStateRetained is 'true'.
+
+           It determines the maximum length of time before DC-RTM
+           deems that routing table convergence is complete and hence
+           the maximum length of time before DC-RTM sends routing
+           updates to the forwarding table.
+
+           This is typically set to a value greater than the restart
+           timer duration of each routing protocol, so that the
+           routing table can converge before the forwarding table is
+           updated."
+       DEFVAL { 180000 }
+       ::= { rtmEntityEntry 37 }
+
+  rtmEntityFtStateRetained OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Whether state has been maintained by the forwarding table
+           during a restart of DC-RTM.
+
+           This indicates which startup timer duration DC-RTM should
+           uses.  Setting this to 'true' causes DC-RTM to use the
+           value of rtmEntityRestartTime as the startup timer
+           duration.  Setting this to 'false' causes DC-RTM to use
+           the value of rtmEntityStartupTime as the startup timer
+           duration."
+       DEFVAL { false }
+       ::= { rtmEntityEntry 38 }
+
+  rtmEntityUseUnidirectionalLinks OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Are unidirectional links usable for the FIB maintained by
+           this instance of DC-RTM?
+
+           If set to 'false' then unidirectional interfaces reported
+           over the I3 and IGP shortcuts reported over the RPI are
+           discarded.
+
+           If set to 'true' then unidirectional interfaces can be
+           used for next hops reported over the Active Routes
+           Interface.  Note in particular that IGP shortcuts through
+           TE-tunnel next hops are reported over the Active Routes
+           Interface in addition to native adjacency next hops.
+
+           If the active route consumers of this FIB cannot use
+           unidirectional links then this field should be set to
+           'false'.  An example of such an active route consumer is
+           DC-PIM.  Because DC-PIM uses paths for Reverse Path
+           Forwarding, it cannot use unidirectional links.
+
+           If this field is changed while DC-RTM is active, DC-RTM
+           deactivates and then reactivates in order to refresh all
+           routing information."
+       DEFVAL { true }
+       ::= { rtmEntityEntry 39 }
+
+  rtmEntityBfdIndex OBJECT-TYPE
+       SYNTAX       NumericIndexOrZero
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The entity index of the instance of the BFD stub to which this
+           instance of DC-RTM should join.
+
+           A value of zero indicates that no BFD join is required.
+
+           If a non-zero value is specified then DC-RTM can only be active
+           if the corresponding BFD stub is active."
+       DEFVAL { 0 }
+       ::= { rtmEntityEntry 40 }
+
+  rtmEntityBfdJoinStatus OBJECT-TYPE
+       SYNTAX      RtmMjStatus
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+          "The status of the BFD master join."
+       ::= { rtmEntityEntry 41 }
+
+  rtmEntityEnableTrapSupport OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Set this object to 'true' to enable trap support in
+           DC-RTM.
+
+           When this field is set to 'true', DC-RTM will generate the
+           rtmOperStateChange, rtmStaticRouteChange and rtmPathActivityChange
+           traps."
+       DEFVAL { false }
+       ::= { rtmEntityEntry 42 }
+
+-------------------------------------------------------------------------------
+
+-- DC-RTM Redistribution Table
+-- This table is used to determine how routing information is redistributed to
+-- routing protocol managers (RPMs) using DC-RTM's Routing Protocol Input
+-- interface.  The RPM to which the information may be redistributed is
+-- called the destination RPM.
+-- Routing information is received from RPMs and from the MIB (for static
+-- routes); these are referred to as the routing information source.
+-- There are two key aspects to an entry in this table.
+-- Firstly, it contains a set of filters which determine whether or not the
+-- entry applies to a given pairing of a given set of routing information and
+-- a given destination RPM.  There is a filter priority to determine which
+-- entry to use if there are multiple entries whose filters match a given
+-- pairing.
+-- Secondly, it contains parameters to use when redistributing the routing
+-- information to the destination RPM, including a flag which determines
+-- whether or not to redistribute at all.
+
+  rtmRedistTable OBJECT-TYPE
+  -- FAMILY-SHORT-NAME qcr_rds
+       SYNTAX      SEQUENCE OF RtmRedistEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+          "The table of DC-RTM redistribution information entries.
+          This table is used to determine how routing information is
+          redistributed to routing protocol managers (RPMs) using DC-RTM's
+          Routing Protocol Input interface.  The RPM to which the information
+          may be redistributed is called the destination RPM.  Routing
+          information is received from RPMs and from the MIB (for static
+          routes); these are referred to as the routing information source.
+
+          In general, DC-RTM will not redistribute a route from an RPM
+          back to the same RPM.  The one exception to this is if it is
+          explicitly configured to do so - in other words, if it is
+          configured with a redistribution rule where the source and
+          destination filters both indicate the same RPM instance.
+
+          One example use for this is to inform an instance of BGP
+          which of its routes are active - see the definition of
+          bgpRmAfiSafiAdvertiseInactive in the BGP MIB for more
+          details."
+       ::= { rtmObjects 2 }
+
+  rtmRedistEntry OBJECT-TYPE
+       SYNTAX      RtmRedistEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+          "Information defining how routing information is redistributed
+          to routing protocol managers (RPMs)by DC-RTM on its Routing
+          Protocol Input interface.
+
+          There are two key aspects to an entry in this table.
+
+          Firstly, it contains a set of filters which determine whether or not
+          the entry applies to a given pairing of a given set of routing
+          information and a given destination RPM.  There is a filter priority
+          to determine which entry to use if there are multiple entries whose
+          filters match a given pairing.
+
+          Secondly, it contains parameters to use when redistributing the
+          routing information to the destination RPM, including a flag which
+          determines whether or not to redistribute at all."
+        INDEX {
+                rtmRedistFteIndex,
+                rtmRedistEntryId
+              }
+       ::= { rtmRedistTable 1 }
+
+  RtmRedistEntry ::= SEQUENCE {
+         rtmRedistFteIndex               FteIndex,
+         rtmRedistEntryId                Unsigned32,
+         rtmRedistRowStatus              RowStatus,
+         rtmRedistAdminStat              AdminStatus,
+         rtmRedistPriority               Integer32,
+         rtmRedistInfoSrc                InfoSourceDest,
+         rtmRedistSrcInstFlt             TruthValue,
+         rtmRedistSrcInst                FteIndex,
+         rtmRedistInfoDest               InfoSourceDest,
+         rtmRedistDestInstFlt            TruthValue,
+         rtmRedistDestInst               FteIndex,
+         rtmRedistAddrFilterType         InetAddressType,
+         rtmRedistAddrFilter             InetAddress,
+         rtmRedistAddrFltLen             Integer32,
+         rtmRedistHopFltValType          InetAddressType,
+         rtmRedistHopFltVal              InetAddress,
+         rtmRedistHopFltLen              Integer32,
+         rtmRedistIfIndexFlt             TruthValue,
+         rtmRedistIfIndex                Integer32,
+         rtmRedistPathTypeFlt            TruthValue,
+         rtmRedistPathType               PathType,
+         rtmRedistOspfAreaFlt            TruthValue,
+         rtmRedistOspfArea               IpAddress,
+         rtmRedistOspfTagFlt             TruthValue,
+         rtmRedistOspfTag                OspfTag,
+         rtmRedistCommunityFlt           TruthValue,
+         rtmRedistCommunity              BgpCommunity,
+         rtmRedistExtCommFlt             TruthValue,
+         rtmRedistExtComm                BgpExtendedCommunity,
+         rtmRedistRedistFlag             TruthValue,
+         rtmRedistMetricConv             MetricConversion,
+         rtmRedistMetricValue            Unsigned32,
+         rtmRedistNwPathType             PathType,
+         rtmRedistNwOspfTag              OspfTag,
+         rtmRedistOspfPropagate          TruthValue,
+         rtmRedistAddCommunity           TruthValue,
+         rtmRedistNwCommunity            BgpCommunity,
+         rtmRedistAddExtComm             TruthValue,
+         rtmRedistNwExtComm              BgpExtendedCommunity,
+         rtmRedistNwOrigin               BgpOriginCode,
+         rtmRedistAddMed                 TruthValue,
+         rtmRedistNwMed                  Integer32,
+         rtmRedistAddLocalPref           TruthValue,
+         rtmRedistNwLocalPref            Integer32,
+         rtmRedistSetListId              Unsigned32,
+         rtmRedistAddAsLimUpper          TruthValue,
+         rtmRedistNwAsLimUpper           Unsigned32,
+         rtmRedistOspfVpnPeCeSupport     TruthValue
+       }
+
+  rtmRedistFteIndex OBJECT-TYPE
+       SYNTAX       FteIndex
+       MAX-ACCESS   not-accessible
+       STATUS       current
+       DESCRIPTION
+          "The HAF entity index identifying the instance of DC-RTM to which
+          this redistribution table entry applies."
+       ::= { rtmRedistEntry 1 }
+
+  rtmRedistEntryId OBJECT-TYPE
+       SYNTAX       Unsigned32
+       MAX-ACCESS   not-accessible
+       STATUS       current
+       DESCRIPTION
+          "The index of this DC-RTM redistribution table entry within the
+          DC-RTM entity.  This is an arbitrarily selected identifier."
+       ::= { rtmRedistEntry 2 }
+
+  rtmRedistRowStatus OBJECT-TYPE
+       SYNTAX       RowStatus
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Used to create and delete a DC-RTM redistribution table entry."
+       ::= { rtmRedistEntry 3 }
+
+  rtmRedistAdminStat OBJECT-TYPE
+       SYNTAX       AdminStatus
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative state of the redistribution table entry.
+          The row status by itself does not indicate whether the redistribution
+          is currently active.  The row must be defined and the administrative
+          status must be up.  This enables a MIB agent to turn off a
+          particular redistribution without deleting it from the table
+          altogether."
+       DEFVAL { adminStatusDown }
+       ::= { rtmRedistEntry 4 }
+
+  rtmRedistPriority OBJECT-TYPE
+       SYNTAX       Integer32
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The priority assigned to this table entry.  The lower this value
+          takes, the higher the priority of the entry.
+
+          The priority takes effect when there is more than one entry in the
+          table whose filters match a pairing of routing information and
+          destination RPM."
+       DEFVAL { '7FFFFFFF'h }
+       ::= { rtmRedistEntry 5 }
+
+  rtmRedistInfoSrc OBJECT-TYPE
+       SYNTAX       InfoSourceDest
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The source of the routing information.  This is one of:
+
+           -  an RPM, joined to DC-RTM on the Routing Protocol Input
+              interface
+
+           -  'static' for statically defined routes, defined in the
+              static routes table with path type ATG_QC_PATH_STATIC
+
+           -  'connected' for routes to local IP addresses and directly
+              connected IP addresses and subnets, learned via the I3
+              interface, or defined in the static route table with path
+              type ATG_QC_PATH_CONNECTED
+
+           -  'all', meaning that this entry applies to routes from all
+              RPMs and static routes, but not routes learnt via the I3
+              interface
+
+           -  'all-incl-connected', meaning that this entry applies to
+              routes from  all RPMs, static routes, and routes learnt via
+              the I3 interface."
+       DEFVAL       { infoSourceAll }
+       ::= { rtmRedistEntry 6 }
+
+  rtmRedistSrcInstFlt OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Specifies whether or not a source instance filter is in use.  If
+          it is not in use then this entry applies to all instances of the
+          source RPM.
+
+          The purpose of this filter is to allow an entry to apply to only one
+          instance of the source RPM if more than one instance is active.
+
+          The filter must always be off if the routing information
+          source is set to 'all' or 'all-incl-connected'."
+       DEFVAL       { false }
+       ::= { rtmRedistEntry 7 }
+
+  rtmRedistSrcInst OBJECT-TYPE
+       SYNTAX       FteIndex
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Value of the source instance filter, if in use.  If the filter
+          is in use then do not match the source routing information to
+          this entry if this filter value does not match the fault tolerant
+          entity index of the RPM instance specified as the
+          routing information source."
+       DEFVAL { 0 }
+       ::= { rtmRedistEntry 8 }
+
+  rtmRedistInfoDest OBJECT-TYPE
+       SYNTAX       InfoSourceDest
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The destination of the routing information.  This is usually an
+          RPM, joined to DC-RTM on the Routing Protocol Input
+          interface.  It can also be set to 'all' or 'all-incl-connected',
+          meaning that this entry applies to all routing information
+          destinations."
+       DEFVAL       { infoSourceAll }
+       ::= { rtmRedistEntry 9 }
+
+  rtmRedistDestInstFlt OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Specifies whether or not a destination instance filter is in use.
+          If it is not in use then this entry applies to all instances of the
+          destination RPM.
+
+          The purpose of this filter is to allow an entry to apply to only one
+          instance of the destination RPM if more than one instance is active.
+
+          The filter must always be off if the routing information
+          destination is 'all' or 'all-incl-connected'."
+       DEFVAL       { false }
+       ::= { rtmRedistEntry 10 }
+
+  rtmRedistDestInst OBJECT-TYPE
+       SYNTAX       FteIndex
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Value of the destination instance filter, if in use.  If the filter
+          is in use then do not redistribute this routing information to a
+          given instance of an RPM if this filter value does not
+          match the fault tolerant entity index of the RPM instance."
+       DEFVAL { 0 }
+       ::= { rtmRedistEntry 11 }
+
+  rtmRedistAddrFilterType OBJECT-TYPE
+       SYNTAX       InetAddressType
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The type of the address used as the destination address filter.
+
+           This object must be set to the same value as
+           rtmEntityAddressFamily, and this is its default value."
+       ::= { rtmRedistEntry 12 }
+
+  rtmRedistAddrFilter OBJECT-TYPE
+       SYNTAX       InetAddress (SIZE(4|16))
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Destination IP address filter.  Do not match the source routing
+          information to this entry if one of these fails:
+
+          -  the destination IP address in the source routing information,
+             with the IP address filter prefix length applied, matches the
+             IP address filter with the IP address filter prefix length
+             applied
+
+          -  the destination IP address prefix length is greater than or equal
+             to the IP address filter prefix length.
+
+          The IP address filter prefix length is given by the
+          rtmRedistAddrFltLen object.  Applying the prefix length to an
+          address means taking the first rtmRedistAddrFltLen bits of the
+          address.
+
+          To avoid having any destination IP address filtering, set the IP
+          address filter to all zeroes and the IP address filter prefix
+          length to zero.
+
+          The length of this IP address must be the address length for the
+          family given by rtmEntityAddressFamily."
+       DEFVAL { '00000000'H }
+       ::= { rtmRedistEntry 13 }
+
+  rtmRedistAddrFltLen OBJECT-TYPE
+       SYNTAX       Integer32
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Destination IP address filter prefix length (in bits).  Do not
+          match the source routing information to this entry if one of these
+          fails:
+
+          -  the destination IP address in the source routing information,
+             with the IP address filter prefix length applied, matches the
+             IP address filter with the IP address filter prefix length
+             applied
+
+          -  the destination IP address prefix length is greater than or equal
+             to the IP address filter prefix length.
+
+          If the IP address filter prefix length is L, then applying the
+          length to an address means taking the first L bits of the address.
+
+          To avoid having any destination IP address filtering, set the IP
+          address filter to all zeroes and the IP address filter prefix length
+          to zero."
+       DEFVAL { 0 }
+       ::= { rtmRedistEntry 14 }
+
+  rtmRedistHopFltValType OBJECT-TYPE
+       SYNTAX       InetAddressType
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The type of the address used as the next hop address filter.
+
+           This object must be set to the same value as
+           rtmEntityAddressFamily, and this is its default value."
+       ::= { rtmRedistEntry 15 }
+
+  rtmRedistHopFltVal OBJECT-TYPE
+       SYNTAX       InetAddress (SIZE(4|16))
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Value of next hop filter.  Do not match the source routing
+          information to this entry if none of the next hop values in the
+          source routing information, with the next hop filter prefix length
+          applied, matches the next hop filter value with the next hop filter
+          prefix length applied.
+
+          The next hop filter prefix length is given by the
+          rtmRedistHopFltLen object.  Applying the prefix length to an address
+          means taking the first rtmRedistHopFltLen bits of the address.
+
+          To avoid having any next hop filtering, set the next hop filter to
+          all zeroes and the next hop filter prefix length to zero.
+
+          The length of this next hop filter must be the address
+          length for the family given by rtmEntityAddressFamily."
+       DEFVAL { '00000000'H }
+       ::= { rtmRedistEntry 16 }
+
+  rtmRedistHopFltLen OBJECT-TYPE
+       SYNTAX       Integer32
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Next hop filter prefix length.  Do not match the source routing
+          information to this entry if none of the next hop values in the
+          source routing information, with the next hop filter prefix length
+          applied, matches the next hop filter value with the next hop filter
+          prefix length applied.
+
+          If the next hop filter prefix length is L, then applying the
+          length to an address means taking the first L bits of the address.
+
+          To avoid having any next hop filtering, set the next hop filter to
+          all zeroes and the next hop filter prefix length to zero."
+       DEFVAL { 0 }
+       ::= { rtmRedistEntry 17 }
+
+  rtmRedistIfIndexFlt OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Specifies whether or not an output network interface index filter
+          is in use."
+       DEFVAL       { false }
+       ::= { rtmRedistEntry 18 }
+
+  rtmRedistIfIndex OBJECT-TYPE
+       SYNTAX       Integer32
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Value of output network interface index filter, if in use.
+          If the filter is in use then do not match the source routing
+          information to this entry if none of the output network interface
+          indexes in the source routing information matches this filter value."
+       DEFVAL { 0 }
+       ::= { rtmRedistEntry 19 }
+
+  rtmRedistPathTypeFlt OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Specifies whether or not a path type filter is in use.  If it is
+          not in use then this entry applies to all path type values.
+
+          A path type filter can only be used if the routing information
+          source filter _info_src_ is not set to 'all' or 'all-incl-connected'.
+
+          The value of the path type filter, if used, must be one of the path
+          types which matches the routing information source. For example, a
+          path type filter of 'OSPF external type 1' can only be used if the
+          routing information source filter is set to OSPF."
+       DEFVAL       { false }
+       ::= { rtmRedistEntry 20 }
+
+  rtmRedistPathType OBJECT-TYPE
+       SYNTAX       PathType
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Value of path type filter, if in use.  If the filter is in use
+          then do not match the source routing information to this entry
+          if the path type in the source routing information does not
+          match this filter value.  A path type filter can only be used if the
+          routing information source filter _info_src_ is not set to 'all' or
+          'all-incl-connected'.
+
+          The value of the path type filter, if used, must be one of the path
+          types which matches the routing information source. For example, a
+          path type filter of 'OSPF external type 1' can only be used if the
+          routing information source filter is set to OSPF."
+       DEFVAL { pathTypeNone }
+       ::= { rtmRedistEntry 21 }
+
+  rtmRedistOspfAreaFlt OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Specifies whether or not an OSPF area filter is in use.
+          The filter can only be on if the routing information source
+          field is OSPF."
+       DEFVAL       { false }
+       ::= { rtmRedistEntry 22 }
+
+  rtmRedistOspfArea OBJECT-TYPE
+       SYNTAX       IpAddress
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Value of OSPF area filter, if in use.  If the filter is in use
+          then do not match the source routing information to this entry
+          if the OSPF area ID in the information does not match this area ID."
+       DEFVAL { '00000000'H }  -- 0.0.0.0
+       ::= { rtmRedistEntry 23 }
+
+  rtmRedistOspfTagFlt  OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Specifies whether or not an OSPF tag filter is in use.
+          The filter can only be on if the routing information source
+          field is OSPF."
+       DEFVAL       { false }
+       ::= { rtmRedistEntry 24 }
+
+  rtmRedistOspfTag OBJECT-TYPE
+       SYNTAX       OspfTag
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Value of OSPF tag filter, if in use.  If the filter is in use
+          then do not match the source routing information to this entry
+          if the tag in the information does not match this tag."
+       DEFVAL { 0 }
+       ::= { rtmRedistEntry 25 }
+
+  rtmRedistCommunityFlt OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Specifies whether or not a BGP community number filter is in use.
+          The filter can only be on if the routing information source
+          field is BGP."
+       DEFVAL       { false }
+       ::= { rtmRedistEntry 26 }
+
+  rtmRedistCommunity OBJECT-TYPE
+       SYNTAX       BgpCommunity
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Value of BGP community number filter, if in use.  If the filter
+          is in use then do not match the source routing information to this
+          entry if there is no match between one of the community numbers
+          in the source routing information and the value of this filter."
+       DEFVAL { '00000000'h }
+       ::= { rtmRedistEntry 27 }
+
+  rtmRedistExtCommFlt OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Specifies whether or not a BGP extended community number filter
+          is in use.  The filter can only be on if the routing information
+          source field is BGP."
+       DEFVAL       { false }
+       ::= { rtmRedistEntry 28 }
+
+  rtmRedistExtComm OBJECT-TYPE
+       SYNTAX       BgpExtendedCommunity
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Value of BGP extended community number filter, if in use.  If
+          the filter is in use then do not match the source routing
+          information to this entry if there is no match between one of the
+          extended community numbers in the source routing information and
+          the value of this filter."
+       DEFVAL { '0000000000000000'h }
+       ::= { rtmRedistEntry 29 }
+
+  rtmRedistRedistFlag OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Flag determining whether or not DC-RTM redistributes routing
+          information from the given source to the given destination."
+       DEFVAL       { false }
+       ::= { rtmRedistEntry 30 }
+
+  rtmRedistMetricConv OBJECT-TYPE
+       SYNTAX       MetricConversion
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "How to act on the value of the metric in the routing information
+          received from the source to create a value for the metric in the
+          routing information sent to the destination.
+
+          This field is only used if the redistribution flag is TRUE."
+       DEFVAL { metricConvSame }
+       ::= { rtmRedistEntry 31 }
+
+  rtmRedistMetricValue OBJECT-TYPE
+       SYNTAX       Unsigned32
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Numerical parameter to use when creating a value for the metric
+          in the routing information sent to the destination based on the
+          supplied metric in the routing information received from the source.
+
+          This field is only used if the redistribution flag is TRUE
+          and the metric conversion field is set to 'constant', 'scale up',
+          'scale down' or 'truncate'.
+
+          If the metric conversion field is 'constant' then the new metric
+          value is just the value of the numerical parameter.
+
+          If the metric conversion field is 'scale up' then the new metric
+          value is the supplied metric multiplied by the value of the
+          numerical parameter (or 0xffffffff if this is smaller).
+
+          If the metric conversion method is 'scale down' then the new metric
+          value is the supplied metric divided by the value of the
+          numerical parameter (rounded down to the next integer).  The
+          numerical parameter cannot be zero in this case.
+
+          If the metric conversion field is 'truncate' then the new metric
+          value is the lower value of the supplied metric value and the
+          numerical parameter."
+       DEFVAL { 1 }
+       ::= { rtmRedistEntry 32 }
+
+  rtmRedistNwPathType OBJECT-TYPE
+       SYNTAX       PathType
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Type of path to set in routing information sent to
+          destination.
+
+          This field is only used if the redistribution flag is TRUE.
+
+          If the information destination filter _info_dest_ is set to 'all' or
+          'all-incl-connected', the new path type must be set to 'none'.
+          Otherwise it must be set either to 'none' or to a path type which
+          matches the routing information destination filter. For example, a
+          new path type of 'OSPF external type 1' can only be used if the
+          routing information destination filter is set to OSPF."
+       DEFVAL { pathTypeNone }
+       ::= { rtmRedistEntry 33 }
+
+  rtmRedistNwOspfTag OBJECT-TYPE
+       SYNTAX       OspfTag
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Value of OSPF tag to set in routing information sent to
+          destination.
+
+          This field is only used if the redistribution flag is TRUE and
+          the destination for the routing information is OSPF or 'all' or
+          'all-incl-connected'."
+       DEFVAL { 0 }
+       ::= { rtmRedistEntry 34 }
+
+  rtmRedistOspfPropagate OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Value of OSPF propagate flag to set in routing information
+          sent to destination.
+
+          This field is only used if the redistribution flag is TRUE and
+          the destination for the routing information is OSPF or 'all' or
+          'all-incl-connected'."
+       DEFVAL       { true }
+       ::= { rtmRedistEntry 35 }
+
+  rtmRedistAddCommunity OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       obsolete
+       DESCRIPTION
+          "Flag determining whether or not DC-RTM adds a BGP community value
+          in routing information sent to the destination.
+
+          This field is only used if the redistribution flag is TRUE and
+          the destination for the routing information is BGP or 'all' or
+          'all-incl-connected'."
+       DEFVAL       { false }
+       ::= { rtmRedistEntry 36 }
+
+  rtmRedistNwCommunity OBJECT-TYPE
+       SYNTAX       BgpCommunity
+       MAX-ACCESS   read-create
+       STATUS       obsolete
+       DESCRIPTION
+          "Value to use for BGP community number in routing information
+           sent to the destination if the add community flag is TRUE.
+
+          This field is only used if the redistribution flag is TRUE and
+          the destination for the routing information is BGP or 'all' or
+          'all-incl-connected'."
+       DEFVAL { '00000000'h }
+       ::= { rtmRedistEntry 37 }
+
+  rtmRedistAddExtComm OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       obsolete
+       DESCRIPTION
+          "Flag determining whether or not DC-RTM adds a BGP extended
+          community value in routing information sent to the destination.
+
+          This field is only used if the redistribution flag is TRUE and
+          the destination for the routing information is BGP or 'all' or
+          'all-incl-connected'."
+       DEFVAL       { false }
+       ::= { rtmRedistEntry 38 }
+
+  rtmRedistNwExtComm OBJECT-TYPE
+       SYNTAX       BgpExtendedCommunity
+       MAX-ACCESS   read-create
+       STATUS       obsolete
+       DESCRIPTION
+          "Value to use for BGP extended community number in routing
+          information sent to destination if the add extended community
+          flag is TRUE.
+
+          This field is only used if the redistribution flag is TRUE and
+          the destination for the routing information is BGP or 'all' or
+          'all-incl-connected'."
+       DEFVAL { '0000000000000000'h }
+       ::= { rtmRedistEntry 39 }
+
+  rtmRedistNwOrigin OBJECT-TYPE
+       SYNTAX       BgpOriginCode
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Value to use for the BGP origin code in the routing information
+          sent to the destination.
+
+          This field is only used if the redistribution flag is TRUE and
+          the destination for the routing information is BGP or 'all' or
+          'all-incl-connected'."
+       DEFVAL { bgpOriginIncomplete }
+       ::= { rtmRedistEntry 40 }
+
+  rtmRedistAddMed OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Flag determining whether or not DC-RTM adds a BGP Multi-Exit
+          Discriminator value in routing information sent to the destination.
+
+          This field is only used if the redistribution flag is TRUE and
+          the destination for the routing information is BGP or 'all' or
+          'all-incl-connected'."
+       DEFVAL       { false }
+       ::= { rtmRedistEntry 41 }
+
+  rtmRedistNwMed OBJECT-TYPE
+       SYNTAX       Integer32
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Value to use for the BGP Multi-Exit Discriminator in the routing
+          information sent to the destination of the add MED flag is TRUE.
+
+          This field is only used if the redistribution flag is TRUE and
+          the destination for the routing information is BGP or 'all' or
+          'all-incl-connected'."
+       DEFVAL { 0 }
+       ::= { rtmRedistEntry 42 }
+
+  rtmRedistAddLocalPref OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Flag determining whether or not DC-RTM adds a BGP Local Preference
+          value in routing information sent to the destination.
+
+          This field is only used if the redistribution flag is TRUE and
+          the destination for the routing information is BGP or 'all' or
+          'all-incl-connected'."
+       DEFVAL       { false }
+       ::= { rtmRedistEntry 43 }
+
+  rtmRedistNwLocalPref OBJECT-TYPE
+       SYNTAX       Integer32
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Value to use for the BGP Local Preference in the routing
+          information sent to the destination if the add local pref flag is
+          TRUE.
+
+          This field is only used if the redistribution flag is TRUE and
+          the destination for the routing information is BGP or 'all' or
+          'all-incl-connected'."
+       DEFVAL { 0 }
+       ::= { rtmRedistEntry 44 }
+
+  rtmRedistSetListId OBJECT-TYPE
+       SYNTAX       Unsigned32
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "List identifier for the list of set actions to apply.  The list
+           of set actions are defined in the rtmRdstSetFieldTable, and are
+           the group of entries in that table with the
+           rtmRdstSetFieldListId field equal to the list identifier
+           specified here.
+
+           This field is only used if the redistribution flag is TRUE.
+           A value of 0 indicates no list is specified."
+       DEFVAL { 0 }
+       ::= { rtmRedistEntry 45 }
+
+  rtmRedistAddAsLimUpper OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Flag determining whether or not DC-RTM adds a BGP AS_PATHLIMIT
+           attribute upper bound value to routing information sent to the
+           destination.  The destination will automatically add the AS number
+           part of the attribute.
+
+           This field is only used if the redistribution flag is TRUE and
+           the destination for the routing information is BGP or 'all' or
+          'all-incl-connected'."
+       DEFVAL       { false }
+       ::= { rtmRedistEntry 46 }
+
+  rtmRedistNwAsLimUpper OBJECT-TYPE
+       SYNTAX       Unsigned32 (0..255)
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Value to use for the BGP AS_PATHLIMIT upper bound in the routing
+          information sent to the destination if the rtmRedistAddAsLimUpper
+          flag is TRUE.
+
+          This field is only used if the redistribution flag is TRUE and
+          the destination for the routing information is BGP or 'all' or
+          'all-incl-connected'."
+       DEFVAL { 1 }
+       ::= { rtmRedistEntry 47 }
+
+  rtmRedistOspfVpnPeCeSupport OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Flag determining whether or not DC-RTM translates between
+           OSPF routes and BGP routes in order to facilitate use of
+           OSPF between provider edge (PE) routers and customer edge
+           (CE) routers in a BGP/MPLS IP VPN.
+
+           Setting this field to true enables translation between OSPF
+           routes and BGP routes as described in RFC 4577 and
+           draft-ietf-l3vpn-ospfv3-pece-07.
+
+           This function should only be enabled for OSPF instances for
+           customer VPNs on PE routers.  It should be disabled for CE
+           routers, and on PE routers it should be disabled for any
+           OSPF instances for the provider backbone network.
+
+           The translation between OSPF routes and BGP routes can be
+           overridden by other fields in the redistribution table
+           entry, including rtmRedistNwPathType, rtmRedistMetricConv,
+           rtmRedistMetricValue, rtmRedistAddMed and rtmRedistNwMed.
+
+           The translation between OSPF routes and BGP routes also
+           depends on route translation performed by OSPF according to
+           the OSPF Domain ID configuration.
+
+           This field is only used if the redistribution flag is
+           TRUE and the source or destination for the routing
+           information include OSPF and BGP."
+       DEFVAL       { false }
+       ::= { rtmRedistEntry 48 }
+
+-------------------------------------------------------------------------------
+
+-- DC-RTM Static routes Table
+-- This table is used to create and manage DC-RTM static routes.
+
+  rtmStaticRtTable OBJECT-TYPE
+  -- FAMILY-SHORT-NAME qcr_strt
+       SYNTAX      SEQUENCE OF RtmStaticRtEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+          "The table of DC-RTM static routes."
+       ::= { rtmObjects 3 }
+
+  rtmStaticRtEntry OBJECT-TYPE
+       SYNTAX      RtmStaticRtEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+          "Information about static routes, containing next hop information
+          or instruction to discard/reject matching packets."
+        INDEX {
+           rtmStaticRtFteIndex,
+           rtmStaticRtPathType,
+           rtmStaticRtDestAddrType,
+           rtmStaticRtDestAddr,
+           rtmStaticRtDestLen,
+           rtmStaticRtNextHopType,
+           rtmStaticRtNextHop,
+           rtmStaticRtIfIndex
+           }
+       ::= { rtmStaticRtTable 1 }
+
+  RtmStaticRtEntry ::= SEQUENCE {
+         rtmStaticRtFteIndex        FteIndex,
+         rtmStaticRtDestAddrType    InetAddressType,
+         rtmStaticRtDestAddr        InetAddress,
+         rtmStaticRtDestLen         Integer32,
+         rtmStaticRtNextHopType     InetAddressType,
+         rtmStaticRtNextHop         InetAddress,
+         rtmStaticRtIfIndex         Integer32,
+         rtmStaticRtOutIfIndex      Integer32,
+         rtmStaticRtRowStatus       RowStatus,
+         rtmStaticRtAdminStat       AdminStatus,
+         rtmStaticRtOverride        TruthValue,
+         rtmStaticRtAdminDist       AdminDistance,
+         rtmStaticRtAction          RouteAction,
+         rtmStaticRtFwdAddrType     InetAddressType,
+         rtmStaticRtForwardingAddr  InetAddress,
+         rtmStaticRtPathType        PathType,
+         rtmStaticRtUsePathCost     TruthValue,
+         rtmStaticRtPathCost        Integer32,
+         rtmStaticRtUserData        OCTET STRING,
+         rtmStaticRtLooseNextHop    TruthValue,
+         rtmStaticRtBfdSupport      RtmBfdSupport,
+         rtmStaticRtBfdStatus       BfdSessionStatus
+       }
+
+  rtmStaticRtFteIndex OBJECT-TYPE
+       SYNTAX       FteIndex
+       MAX-ACCESS   not-accessible
+       STATUS       current
+       DESCRIPTION
+          "The HAF entity index identifying the instance of DC-RTM to which
+           this static route entry applies."
+       ::= { rtmStaticRtEntry 1 }
+
+  rtmStaticRtDestAddrType OBJECT-TYPE
+       SYNTAX       InetAddressType
+       MAX-ACCESS   not-accessible
+       STATUS       current
+       DESCRIPTION
+          "The type of the address used as the destination
+           internetwork address or subnet address.
+
+           This object must be set to the same value as
+           rtmEntityAddressFamily."
+       ::= { rtmStaticRtEntry 2 }
+
+  rtmStaticRtDestAddr OBJECT-TYPE
+       SYNTAX       InetAddress (SIZE(4|16))
+       MAX-ACCESS   not-accessible
+       STATUS       current
+       DESCRIPTION
+          "Destination internetwork address or subnet address.  The
+           destination prefix length is applied to this value, and to a
+           particular destination address, to determine whether the route
+           applies to the particular address.
+
+           If the prefix length is L, then applying the length to an address
+           means taking the first L bits of the address."
+       ::= { rtmStaticRtEntry 3 }
+
+  rtmStaticRtDestLen OBJECT-TYPE
+       SYNTAX       Integer32 (0..128)
+       MAX-ACCESS   not-accessible
+       STATUS       current
+       DESCRIPTION
+          "Prefix length (in bits) to apply to the destination internetwork
+           address or subnet address, to obtain the set of addresses to which
+           this route applies.
+
+           If the prefix length is L, then applying the length to an address
+           means taking the first L bits of the address."
+       ::= { rtmStaticRtEntry 4 }
+
+  rtmStaticRtNextHopType OBJECT-TYPE
+       SYNTAX       InetAddressType
+       MAX-ACCESS   not-accessible
+       STATUS       current
+       DESCRIPTION
+          "The type of the address used as the next-hop address
+           for this route.
+
+           This object must be set to the same value as
+           rtmEntityAddressFamily, even if the rtmStaticRtNextHop object
+           is set to all zeroes."
+       ::= { rtmStaticRtEntry 5 }
+
+  rtmStaticRtNextHop OBJECT-TYPE
+      SYNTAX        InetAddress (SIZE(4|16))
+       MAX-ACCESS   not-accessible
+       STATUS       current
+       DESCRIPTION
+          "The next-hop IP address, if any.
+
+           If rtmStaticRtAction is 'forward', there may or may not be
+           a next-hop IP address.
+
+           A next-hop IP address is not required if an output interface
+           index is specified (in other words, if rtmStaticRtIfIndex is
+           non-zero).
+
+           It is possible to supply a next-hop IP address, but to set the
+           output interface index (rtmStaticRtIfIndex) to zero.  In this
+           case
+
+           -  the next hop is referred to as a loose next hop
+           -  the next-hop address does not need to be on a directly
+              connected device
+           -  if DC-RTM cannot find a route to the specified next-hop
+              address, it does not return the static route on the
+              rtmRouteTable, it does not redistribute the static route
+              to routing protocol managers, and it does not
+              program the static route to a forwarding table (unless the
+              forwarding table has registered to receive loose next hops)
+              or to a partner that is querying route information (such as
+              BGP or PIM).
+
+           If rtmStaticRtAction is not 'forward', there is no next-hop
+           IP address.
+
+           If there is no next-hop IP address, the rtmStaticRtNextHop
+           object is set to all zeroes."
+       ::= { rtmStaticRtEntry 6 }
+
+  rtmStaticRtIfIndex OBJECT-TYPE
+       SYNTAX       Integer32 (0..2147483647)
+       MAX-ACCESS   not-accessible
+       STATUS       current
+       DESCRIPTION
+          "This field contains the network interface index of the
+           interface configured to reach the next hop. If 0, then
+           the rtmStaticRtOutIfIndex is determined by a subnet match
+           of the configured next hop IP address. Otherwise, the
+           rtmStaticRtOutIfIndex is equal to this value."
+       ::= { rtmStaticRtEntry 7 }
+
+  rtmStaticRtOutIfIndex OBJECT-TYPE
+       SYNTAX       Integer32 (0..2147483647)
+       MAX-ACCESS   read-only
+       STATUS       current
+       DESCRIPTION
+          "If the action to perform is to forward the packet, this field
+          contains the network interface index of the output network
+          interface used to reach the next hop.  It is not defined for other
+          action values."
+       ::= { rtmStaticRtEntry 8 }
+
+  rtmStaticRtRowStatus OBJECT-TYPE
+       SYNTAX       RowStatus
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Used to create and delete a DC-RTM static route."
+       ::= { rtmStaticRtEntry 9 }
+
+  rtmStaticRtAdminStat OBJECT-TYPE
+       SYNTAX       AdminStatus
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative state of the static route.  The row status by
+          itself does not indicate whether the static route definition
+          is currently active.  The row must be defined and the administrative
+          status must be up.  This enables a MIB agent to turn off a
+          particular static route without deleting it from the table
+          altogether."
+       DEFVAL { adminStatusDown }
+       ::= { rtmStaticRtEntry 10 }
+
+  rtmStaticRtOverride OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The administrative distance for this route is by default taken to be
+           the administrative distance configured in the DC-RTM entity table
+           associated with the route's path type (rtmStaticRtPathType).  If
+           rtmStaticRtOverride is set to AMB_TRUE, this admin distance is
+           overridden and we use the rtmStaticRtAdminDist instead.
+
+           The lower the administrative distance for a given route, the
+           more likely that route is to be used by DC-RTM as the active
+           route for the given destination.  See the DC-RTM Architecture
+           Guide for more information about the use of administrative
+           distances."
+       DEFVAL       { false }
+       ::= { rtmStaticRtEntry 11 }
+
+  rtmStaticRtAdminDist OBJECT-TYPE
+       SYNTAX       AdminDistance
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Administrative distance for static route, if overriding the
+           default administrative distance for this route given in the
+           DC-RTM entity table.  This field is not defined if overriding is
+           not being performed.
+
+           The lower the administrative distance for a given route, the
+           more likely that route is to be used by DC-RTM as the active
+           route for the given destination.  See the DC-RTM Architecture
+           Guide for more information about the use of administrative
+           distances."
+       DEFVAL { 1 }
+       ::= { rtmStaticRtEntry 12 }
+
+  rtmStaticRtAction OBJECT-TYPE
+       SYNTAX       RouteAction
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The action to perform on receipt of a packet to the specified
+           destination.
+
+           If the action type is 'forward', one or both of the
+           rtmStaticRtNextHop and rtmStaticRtIfIndex objects must be
+           set to a non-zero value.
+
+           If the action type is not 'forward', the rtmStaticRtNextHop and
+           rtmStaticRtIfIndex objects must both be set to zero.
+
+           The action type cannot be set to 'tunnel' for a static route.
+
+           The value of this field must not be changed while the row
+           status of this MIB is AMB_ROW_STATUS_ACTIVE."
+       DEFVAL { routeActionForward }
+       ::= { rtmStaticRtEntry 13 }
+
+  rtmStaticRtFwdAddrType OBJECT-TYPE
+       SYNTAX       InetAddressType
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The type of the address used as the forwarding address
+           for this route.
+
+           This object must be set to the same value as
+           rtmEntityAddressFamily."
+       DEFVAL { ipv4 }
+       ::= { rtmStaticRtEntry 14 }
+
+  rtmStaticRtForwardingAddr OBJECT-TYPE
+      SYNTAX        InetAddress (SIZE(4|16))
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Forwarding address to advertise for this route.
+
+           The value of this field must not be changed while the row
+           status of this MIB is AMB_ROW_STATUS_ACTIVE."
+       DEFVAL { '00000000'H }
+       ::= { rtmStaticRtEntry 15 }
+
+  rtmStaticRtPathType OBJECT-TYPE
+       SYNTAX       PathType
+       MAX-ACCESS   not-accessible
+       STATUS       current
+       DESCRIPTION
+          "Type of path associated with this route."
+       ::= { rtmStaticRtEntry 16 }
+
+  rtmStaticRtUsePathCost OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Used to enable/disable the usage of the path cost metric
+           for this route"
+       DEFVAL { true }
+       ::= { rtmStaticRtEntry 17 }
+
+  rtmStaticRtPathCost OBJECT-TYPE
+       SYNTAX       Integer32
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Path cost for this static route, if overriding the default
+           setting.  This field is not used if rtmStaticRtUsePathCost
+           is set to AMB_FALSE.
+
+           When deciding which path for a given route should be marked as
+           active, the administrative distance is considered first.  If
+           multiple paths have the same administrative distance, the path
+           with the lowest path cost is chosen as the active path.  If
+           multiple paths have the same path cost, one or more paths may
+           be marked as active depending on the value of
+           rtmEntityEqlCostOpt."
+       DEFVAL { 0 }
+       ::= { rtmStaticRtEntry 18 }
+
+  rtmStaticRtUserData OBJECT-TYPE
+       SYNTAX       OCTET STRING(SIZE (8))
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "User data for this static route.  This user data is passed to the
+           QCRT_USER_STATIC_RT_EVENT user exit."
+      ::= { rtmStaticRtEntry 19 }
+
+  rtmStaticRtLooseNextHop OBJECT-TYPE
+       SYNTAX       TruthValue
+       MAX-ACCESS   read-only
+       STATUS       current
+       DESCRIPTION
+          "This object indicates whether this static route contains a loose
+           next hop (see rtmStaticRtNextHop for details)."
+       ::= { rtmStaticRtEntry 20 }
+
+  rtmStaticRtBfdSupport OBJECT-TYPE
+       SYNTAX       RtmBfdSupport
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "This object indicates whether DC-RTM should use BFD to check IP
+           reachability to the static route's next hop.
+
+           DC-RTM will only attempt to use BFD if rtmEntityBfdIndex is non-zero
+           and the static route has rtmStaticRtAction set to 'forward'
+           and rtmStaticRtNextHop set to a non-null IP address.
+
+           This object should be set as follows.
+
+           -  Set to 'none' if BFD is not required for this static route.
+
+           -  Set to 'desired' if it is not known whether the next hop
+              router supports BFD.  DC-RTM will use BFD for reachability
+              checking if BFD is able to contact the next hop router.  If the
+              BFD session fails, the static route will be removed from the
+              forwarding table and will not be used for redistribution.
+
+           -  Set to 'required' if it is known that the next hop router
+              supports BFD.  DC-RTM will use BFD to check reachability of the
+              next hop.  If BFD is unable to contact the next hop router or if
+              the BFD session fails, the static route will be removed from the
+              forwarding table and will not be used for redistribution.
+
+           The current state of the BFD session is indicated by
+           rtmStaticRtBfdStatus."
+       DEFVAL       { desired }
+       ::= { rtmStaticRtEntry 21 }
+
+   rtmStaticRtBfdStatus OBJECT-TYPE
+        SYNTAX      BfdSessionStatus
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "The current BFD session state for this static route."
+       ::= { rtmStaticRtEntry 22 }
+
+-------------------------------------------------------------------------------
+
+--
+-- DC-RTM Master Join Table.
+--
+-- This table determines which master joins a DC-RTM entity makes.
+-- There is a table entry for each slave entity to which an instance of DC-RTM
+-- should join.  At present, there are two distinct types of slave entity.
+-- Forwarding stub entities such as the IP Forwarding Stub, the Labelled
+-- Data Forwarding Stub and the Route Selection Manager receive route
+-- updates over the Active Routes Interface (ARI).  The second type of entity
+-- are Routing Protocol Managers who use the ARI for querying routing
+-- information, and this includes BGP and PIM.
+--
+
+  rtmMjTable OBJECT-TYPE
+  -- FAMILY-SHORT-NAME qrpm_mj
+       SYNTAX      SEQUENCE OF RtmMjEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+              "This table controls which entities DC-RTM should join to as
+              master.  Each join is represented by a row in this table.
+              The status of each join is represented by a read-only object
+              within each row."
+       ::= { rtmObjects 4 }
+
+  rtmMjEntry OBJECT-TYPE
+       SYNTAX      RtmMjEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION "Represents a join for which DC-RTM is master."
+       INDEX {
+       rtmMjRtmFteIndex,
+       rtmMjSlaveFteId,
+       rtmMjSlaveType
+       }
+       ::= { rtmMjTable 1 }
+
+  RtmMjEntry ::= SEQUENCE {
+      rtmMjRtmFteIndex              FteIndex,
+      rtmMjSlaveFteId               FteIndex,
+      rtmMjSlaveType                AriPrtnrType,
+      rtmMjIfType                   InterfaceType,
+      rtmMjRowStatus                RowStatus,
+      rtmMjAdminStatus              AdminStatus,
+      rtmMjOperStatus               OperStatus,
+      rtmMjJoinStatus               RtmMjStatus,
+      rtmMjSafi                     InetSubAddressType
+    }
+
+  rtmMjRtmFteIndex OBJECT-TYPE
+       SYNTAX      FteIndex
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+          "The HAF entity index identifying the instance of DC-RTM to which
+          this master join table entry applies."
+       ::= { rtmMjEntry 1 }
+
+  rtmMjSlaveFteId OBJECT-TYPE
+       SYNTAX      FteIndex
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+          "The HAF entity index identifying the instance of the slave entity
+          to which this master join table entry applies.
+
+          This index is used in the join user data, to enable FTI-specific
+          code within System Manager to select a suitable slave entity
+          instance."
+       ::= { rtmMjEntry 2 }
+
+  rtmMjSlaveType OBJECT-TYPE
+       SYNTAX      AriPrtnrType
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+          "The type of entity which the slave side of this join should be.
+
+           This value is used in the join user data, to enable
+           FTI-specific code within System Manager to select a suitable
+           slave entity instance."
+       ::= {rtmMjEntry 8 }
+
+  rtmMjIfType OBJECT-TYPE
+       SYNTAX      InterfaceType
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION "Identifies the interface type for this master join."
+       DEFVAL { ifActiveRoutes }
+       ::= { rtmMjEntry 3 }
+
+  rtmMjRowStatus OBJECT-TYPE
+       SYNTAX      RowStatus
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+            "The row status for this DC-RTM master join table
+            entry, used to create and destroy table entries."
+       ::= { rtmMjEntry 4 }
+
+  rtmMjAdminStatus OBJECT-TYPE
+       SYNTAX      AdminStatus
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+            "The administrative status of this master join, used to start
+            and stop the join."
+       DEFVAL { adminStatusUp }
+       ::= { rtmMjEntry 5 }
+
+  rtmMjOperStatus OBJECT-TYPE
+       SYNTAX      OperStatus
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION "The current operational status of this master join."
+       ::= { rtmMjEntry 6 }
+
+  rtmMjJoinStatus OBJECT-TYPE
+       SYNTAX      RtmMjStatus
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION "The status of the master join."
+       ::= { rtmMjEntry 7 }
+
+  rtmMjSafi OBJECT-TYPE
+       SYNTAX      InetSubAddressType
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION "Sub-address family indicating the type of routes that can
+                    be queried on the join.  This field is only relevant for
+                    joins to BGP or PIM.  Allowed values are none, unicast and
+                    multicast.
+
+                    An example use is where unicast and multicast topologies
+                    are different.  In this scenario the system requires
+                    separate RTM instances to hold the unicast and multicast
+                    routing tables.  In this case, ARI queries from PIM relate
+                    to the multicast routing table, but ARI queries from BGP
+                    could be either for the unicast or multicast routing table.
+
+                    If only a single sub-address family need be supported then
+                    this can be left with the default value of none.
+
+                    The value of this field must not be changed while the row
+                    status of this MIB is AMB_ROW_STATUS_ACTIVE and the admin
+                    status is AMB_ADMIN_STATUS_UP."
+       DEFVAL { none }
+       ::= { rtmMjEntry 9 }
+
+-------------------------------------------------------------------------------
+
+--
+-- DC-RTM Slave Join Table.
+--
+-- This is a read-only table.  It contains information on joins for which
+-- DC-RTM entities are acting as slaves.  Each row in this table
+-- represents one slave join in a particular DC-RTM entity.  At present
+-- the partner (master) entity on any slave join is a Routing Protocol
+-- Manager entity, and the interface is the Routing Protocol Input interface.
+--
+
+  rtmSjTable OBJECT-TYPE
+  -- FAMILY-SHORT-NAME qrpm_sj
+       SYNTAX      SEQUENCE OF RtmSjEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+       "This table contains information on joins for which DC-RTM
+       entities are acting as slaves.  Each row in this table
+       represents one slave join in a particular DC-RTM entity."
+       ::= { rtmObjects 5 }
+
+  rtmSjEntry OBJECT-TYPE
+       SYNTAX      RtmSjEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION "Represents a join for which DC-RTM is slave."
+       INDEX {
+          rtmSjRtmFteIndex,
+          rtmSjRtmRpmIndex
+       }
+       ::= { rtmSjTable 1 }
+
+  RtmSjEntry ::= SEQUENCE {
+      rtmSjRtmFteIndex            FteIndex,
+      rtmSjRtmRpmIndex            Integer32,
+      rtmSjIfType                 InterfaceType,
+      rtmSjMastFteType            Integer32,
+      rtmSjMastFteId              FteIndex,
+      rtmSjJoinStatus             RtmSjStatus
+    }
+
+  rtmSjRtmFteIndex OBJECT-TYPE
+       SYNTAX      FteIndex
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+          "The HAF entity index identifying the instance of DC-RTM to which
+          this slave join table entry applies."
+       ::= { rtmSjEntry 1 }
+
+  rtmSjRtmRpmIndex OBJECT-TYPE
+       SYNTAX      Integer32 (0..2147483647)
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+          "Internal index used by DC-RTM for this RPM."
+       ::= { rtmSjEntry 2 }
+
+  rtmSjIfType OBJECT-TYPE
+       SYNTAX      InterfaceType
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION "Identifies the interface type for this master join."
+       ::= { rtmSjEntry 3 }
+
+  rtmSjMastFteType OBJECT-TYPE
+       SYNTAX      Integer32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+          "Additional information about the type of master entity which
+          created the join, where this is not uniquely defined by the
+          interface type.
+
+          For joins to Routing Protocol Managers using the Routing Protocol
+          Input interface, this field contains the routing protocol type."
+       ::= { rtmSjEntry 4 }
+
+  rtmSjMastFteId OBJECT-TYPE
+       SYNTAX      FteIndex
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+          "The HAF entity index identifying the instance of the master
+          entity to which this slave join table entry applies."
+       ::= { rtmSjEntry 5 }
+
+  rtmSjJoinStatus OBJECT-TYPE
+       SYNTAX      RtmSjStatus
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION "The status of the slave join."
+       ::= { rtmSjEntry 6 }
+
+-------------------------------------------------------------------------------
+
+--  DC-RTM IP CIDR Route Table.  Based on IP CIDR Route Table from RFC 2096.
+
+  rtmRouteTable OBJECT-TYPE
+      SYNTAX   SEQUENCE OF RtmRouteEntry
+      MAX-ACCESS not-accessible
+      STATUS   current
+      DESCRIPTION
+         "This entity's IP Routing table.
+
+          A route is present in this table if and only if it has been
+          programmed to an Active Routes Interface consumer.  This may
+          be a consumer that asks for all route updates (such as a
+          forwarding table), or it may be a consumer that queries
+          information about specific routes (such as BGP or PIM)."
+      REFERENCE
+         "RFC 1213 Section 6.6, The IP Group"
+      ::= { rtmObjects 6 }
+
+  rtmRouteEntry OBJECT-TYPE
+      SYNTAX   RtmRouteEntry
+      MAX-ACCESS not-accessible
+      STATUS   current
+      DESCRIPTION
+         "A particular route to  a  particular  destina-
+         tion, under a particular policy."
+      INDEX {
+          rtmRouteFteIndex,
+          rtmRouteDestType,
+          rtmRouteDest,
+          rtmRouteDestLen,
+          rtmRouteTos,
+          rtmRouteNextHopType,
+          rtmRouteNextHop,
+          rtmRouteIfIndex
+          }
+      ::= { rtmRouteTable 1 }
+
+  RtmRouteEntry ::= SEQUENCE {
+          rtmRouteFteIndex          FteIndex,
+          rtmRouteStatus            RowStatus,
+          rtmRouteDestType          InetAddressType,
+          rtmRouteDest              InetAddress,
+          rtmRouteDestLen           Integer32,
+          rtmRouteTos               Integer32,
+          rtmRouteNextHopType       InetAddressType,
+          rtmRouteNextHop           InetAddress,
+          rtmRouteIfIndex           Integer32,
+          rtmRouteType              RouteType,
+          rtmRouteProto             IANAipRouteProtocol,
+          rtmRouteAge               Integer32,
+          rtmRouteInfo              RouteInfo,
+          rtmRouteNextHopAS         Integer32,
+          rtmRouteMetric1           Integer32,
+          rtmRouteMetric2           Integer32,
+          rtmRouteMetric3           Integer32,
+          rtmRouteMetric4           Integer32,
+          rtmRouteMetric5           Integer32,
+          rtmRouteConnected         TruthValue,
+          rtmRouteXCIndex           MplsIndexType,
+          rtmRouteLocalDestIfIndex  Integer32
+      }
+
+  rtmRouteFteIndex OBJECT-TYPE
+       SYNTAX      FteIndex
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+          "The HAF entity index identifying the instance of DC-RTM to which
+          this static route entry applies."
+       ::= { rtmRouteEntry 1 }
+
+  rtmRouteStatus OBJECT-TYPE
+      SYNTAX      RowStatus
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The row status variable, used according to
+         row installation and removal conventions."
+      ::= { rtmRouteEntry 2 }
+
+  rtmRouteDestType OBJECT-TYPE
+      SYNTAX       InetAddressType
+      MAX-ACCESS   not-accessible
+      STATUS       current
+      DESCRIPTION
+         "The type of the address used as the destination IP address
+          for this route."
+      ::= { rtmRouteEntry 3 }
+
+  rtmRouteDest OBJECT-TYPE
+      SYNTAX      InetAddress (SIZE(4|16))
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "Destination internetwork address or subnet address.  The
+          destination prefix length is applied to this value, and to a
+          particular destination address, to determine whether the route
+          applies to the particular address.
+
+          If the prefix length is L, then applying the length to an address
+          means taking the first L bits of the address."
+      ::= { rtmRouteEntry 4 }
+
+  rtmRouteDestLen OBJECT-TYPE
+      SYNTAX   Integer32  (0..128)
+      MAX-ACCESS not-accessible
+      STATUS   current
+      DESCRIPTION
+        "Prefix length (in bits) to apply to the rtmRouteDest object,
+         to obtain the set of addresses to which this route applies.
+
+         If the prefix length is L, then applying the length to an address
+         means taking the first L bits of the address."
+      ::= { rtmRouteEntry 5 }
+
+  -- The following convention is included for specification
+  -- of TOS Field contents.  At this time, the Host Requirements
+  -- and the Router Requirements documents disagree on the width
+  -- of the TOS field.  This mapping describes the Router
+  -- Requirements mapping, and leaves room to widen the TOS field
+  -- without impact to fielded systems.
+
+  rtmRouteTos OBJECT-TYPE
+      SYNTAX   Integer32 (0..15)
+      MAX-ACCESS not-accessible
+      STATUS   current
+      DESCRIPTION
+         "The policy specifier is the IP TOS Field.  The encoding
+         of IP TOS is as specified by the following convention.
+         Zero indicates the default path if no more specific
+         policy applies.
+
+         +=====+=====+=====+=====+=====+=====+=====+=====+
+         |                 |                       |     |
+         |   PRECEDENCE    |    TYPE OF SERVICE    |  0  |
+         |                 |                       |     |
+         +=====+=====+=====+=====+=====+=====+=====+=====+
+
+                  IP TOS                IP TOS
+             Field     Policy      Field     Policy
+             Contents    Code      Contents    Code
+             0 0 0 0  ==>   0      0 0 0 1  ==>   2
+             0 0 1 0  ==>   4      0 0 1 1  ==>   6
+             0 1 0 0  ==>   8      0 1 0 1  ==>  10
+             0 1 1 0  ==>  12      0 1 1 1  ==>  14
+             1 0 0 0  ==>  16      1 0 0 1  ==>  18
+             1 0 1 0  ==>  20      1 0 1 1  ==>  22
+             1 1 0 0  ==>  24      1 1 0 1  ==>  26
+             1 1 1 0  ==>  28      1 1 1 1  ==>  30
+
+         RTM always returns a default value of 0 for this field."
+      ::= { rtmRouteEntry 6 }
+
+  rtmRouteNextHopType OBJECT-TYPE
+      SYNTAX      InetAddressType
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The type of the address used as the next-hop address
+          for this route."
+      ::= { rtmRouteEntry 7 }
+
+  rtmRouteNextHop OBJECT-TYPE
+      SYNTAX     InetAddress (SIZE(4|16))
+      MAX-ACCESS not-accessible
+      STATUS     current
+      DESCRIPTION
+         "On remote routes, the address of the next system en route;
+         Otherwise, zero."
+      ::= { rtmRouteEntry 8 }
+
+  rtmRouteIfIndex OBJECT-TYPE
+      SYNTAX   Integer32 (0..2147483647)
+      MAX-ACCESS not-accessible
+      STATUS   current
+      DESCRIPTION
+         "The ifIndex value which identifies the local
+         interface through which the next hop of this
+         route should be reached."
+      ::= { rtmRouteEntry 9 }
+
+  rtmRouteType OBJECT-TYPE
+      SYNTAX   RouteType
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "The type of route.
+
+         local(3) refers to a route for which the destination is a
+         local IP address or for which the next hop is the final
+         destination.  This includes routes to local IP addresses
+         and routes to directly connected IP addresses or subnets.
+
+         remote(4) refers to a route for which the next hop is not
+         the final destination.
+
+         reject (2) refers to a route which, if matched, discards
+         the message as unreachable.  This is used in some
+         protocols as a means of correctly aggregating routes."
+      ::= { rtmRouteEntry 10 }
+
+  rtmRouteProto OBJECT-TYPE
+      SYNTAX   IANAipRouteProtocol
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "The routing mechanism via which this route was learned.  Inclusion
+         of values for gateway routing protocols is not intended to imply that
+         hosts should support those protocols."
+      ::= { rtmRouteEntry 11 }
+
+  rtmRouteAge OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "The number of seconds since this route was last updated or otherwise
+         determined to be correct.  Note that no semantics of 'too old' can
+         be implied except through knowledge of the routing protocol by which
+         the route was learned.
+
+         This age is only accurate for entries which are less that 49 days
+         old."
+      DEFVAL  { 0 }
+      ::= { rtmRouteEntry 12 }
+
+  rtmRouteInfo OBJECT-TYPE
+      SYNTAX   RouteInfo
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "A reference to MIB definitions specific to the particular routing
+         protocol which is responsible for this route, as determined by the
+         value specified in the route's rtmRouteProto value.
+
+         RTM returns the following.
+
+         - For OSPF, an integer representation of the OID which is required by
+           RFC 2096.
+
+         - For ISIS, an integer representation of the types of route to IP
+           reachable addresses."
+      DEFVAL { none }
+      ::= { rtmRouteEntry 13 }
+
+  rtmRouteNextHopAS OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "The Autonomous System Number of the Next Hop.
+         The semantics of this object are determined by
+         the routing-protocol specified in the route's
+         rtmRouteProto value. When this object is
+         unknown or not relevant its value should be set
+         to zero."
+      DEFVAL { 0 }
+      ::= { rtmRouteEntry 14 }
+
+  rtmRouteMetric1 OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "The primary routing metric for this route.
+         The semantics of this metric are determined by
+         the routing-protocol specified in the route's
+         rtmRouteProto value.  If this metric is not
+         used, its value should be set to -1."
+      DEFVAL { -1 }
+      ::= { rtmRouteEntry 15 }
+
+  rtmRouteMetric2 OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "An alternate routing metric for this route.
+         The semantics of this metric are determined by
+         the routing-protocol specified in the route's
+         rtmRouteProto value.  If this metric is not
+         used, its value should be set to -1."
+      DEFVAL { -1 }
+      ::= { rtmRouteEntry 16 }
+
+  rtmRouteMetric3 OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "An alternate routing metric for this route.
+         The semantics of this metric are determined by
+         the routing-protocol specified in the route's
+         rtmRouteProto value.  If this metric is not
+         used, its value should be set to -1."
+      DEFVAL { -1 }
+      ::= { rtmRouteEntry 17 }
+
+  rtmRouteMetric4 OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "An alternate routing metric for this route.
+         The semantics of this metric are determined by
+         the routing-protocol specified in the route's
+         rtmRouteProto value.  If this metric is not
+         used, its value should be set to -1."
+      DEFVAL { -1 }
+      ::= { rtmRouteEntry 18 }
+
+  rtmRouteMetric5 OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "An alternate routing metric for this route.
+         The semantics of this metric are determined by
+         the routing-protocol specified in the route's
+         rtmRouteProto value.  If this metric is not
+         used, its value should be set to -1."
+      DEFVAL { -1 }
+      ::= { rtmRouteEntry 19 }
+
+  rtmRouteConnected OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Indicates whether the route destination is directly
+                connected.
+
+                A directly connected route can be reached without going
+                through any IP routers.
+
+                Route destinations that are local IP addresses
+                are not considered to be directly connected.
+
+                This field can only be true if rtmRouteType is set to
+                'local'."
+    ::= { rtmRouteEntry 20 }
+
+  rtmRouteXCIndex OBJECT-TYPE
+    SYNTAX        MplsIndexType
+    MAX-ACCESS    read-only
+    STATUS        current
+    DESCRIPTION
+         "Index into mplsXCTable that identifies which cross- connect
+         entry is associated with this route entry by containing the
+         mplsXCIndex of that cross-connect entry.  This field is only
+         valid for a VPN BGP route where rtmRouteType is remote and
+         rtmRouteProto is bgp.
+
+         Where valid, a zero value for this field indicates that a label
+         stack is not associated with this route entry.  This can be the
+         case because the label bindings have not yet been established,
+         or because some change in the agent has removed them."
+    REFERENCE
+         "RFC 3813 - Multiprotocol Label Switching (MPLS) Label Switching
+          Router (LSR) Management Information base (MIB), C. Srinivasan,
+          A. Vishwanathan, and T. Nadeau, June 2004"
+    ::= { rtmRouteEntry 21 }
+
+  rtmRouteLocalDestIfIndex OBJECT-TYPE
+    SYNTAX        Integer32 (0..2147483647)
+    MAX-ACCESS    read-only
+    STATUS        current
+    DESCRIPTION
+         "If the route destination is a local IP address then this
+         is the interface index that the local IP address is
+         assigned to.  Otherwise this field is zero."
+    ::= { rtmRouteEntry 22 }
+
+-------------------------------------------------------------------------------
+
+--  DC-RTM RIB Table.
+--  This table is used to examine the routes known to DC-RTM.
+
+  rtmRibTable OBJECT-TYPE
+      SYNTAX   SEQUENCE OF RtmRibEntry
+      MAX-ACCESS not-accessible
+      STATUS   current
+      DESCRIPTION
+         "Read-only copy of this entity's Routing Information Base.
+         This is the complete set of routes known by DC-RTM and is a
+         superset of the routes accessible through the rtmRouteTable
+         (which accesses only the active routes from the Forwarding
+         Information Base)."
+      ::= { rtmObjects 7 }
+
+  rtmRibEntry OBJECT-TYPE
+      SYNTAX   RtmRibEntry
+      MAX-ACCESS not-accessible
+      STATUS   current
+      DESCRIPTION
+         "A particular entry in the Routing Information Base."
+      INDEX {
+          rtmRibFteIndex,
+          rtmRibDestType,
+          rtmRibDest,
+          rtmRibDestLen,
+          rtmRibTos,
+          rtmRibNextHopType,
+          rtmRibNextHop,
+          rtmRibIfIndex,
+          rtmRibProto,
+          rtmRibRpmIndex
+          }
+      ::= { rtmRibTable 1 }
+
+  RtmRibEntry ::= SEQUENCE {
+          rtmRibFteIndex          FteIndex,
+          rtmRibStatus            RowStatus,
+          rtmRibDestType          InetAddressType,
+          rtmRibDest              InetAddress,
+          rtmRibDestLen           Integer32,
+          rtmRibTos               Integer32,
+          rtmRibNextHopType       InetAddressType,
+          rtmRibNextHop           InetAddress,
+          rtmRibIfIndex           Integer32,
+          rtmRibType              RouteType,
+          rtmRibProto             IANAipRouteProtocol,
+          rtmRibAge               Integer32,
+          rtmRibInfo              RouteInfo,
+          rtmRibNextHopAS         Integer32,
+          rtmRibMetric1           Integer32,
+          rtmRibMetric2           Integer32,
+          rtmRibMetric3           Integer32,
+          rtmRibMetric4           Integer32,
+          rtmRibMetric5           Integer32,
+          rtmRibFibRoute          TruthValue,
+          rtmRibRpmIndex          Integer32,
+          rtmRibConnected         TruthValue,
+          rtmRibLooseNextHop      TruthValue,
+          rtmRibLocalDestIfIndex  Integer32
+      }
+
+  rtmRibFteIndex OBJECT-TYPE
+       SYNTAX      FteIndex
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+          "The HAF entity index identifying the instance of DC-RTM to which
+          this RIB entry applies."
+       ::= { rtmRibEntry 1 }
+
+  rtmRibStatus OBJECT-TYPE
+      SYNTAX   RowStatus
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "The row status variable, used according to
+         row installation and removal conventions."
+      ::= { rtmRibEntry 2 }
+
+  rtmRibDestType OBJECT-TYPE
+      SYNTAX      InetAddressType
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The type of the address used as the destination IP address
+          for this route."
+      ::= { rtmRibEntry 3 }
+
+  rtmRibDest OBJECT-TYPE
+      SYNTAX      InetAddress (SIZE(4|16))
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "Destination internetwork address or subnet address.  The
+          destination prefix length is applied to this value, and to a
+          particular destination address, to determine whether the route
+          applies to the particular address.
+
+          If the prefix length is L, then applying the length to an address
+          means taking the first L bits of the address."
+      ::= { rtmRibEntry 4 }
+
+  rtmRibDestLen OBJECT-TYPE
+      SYNTAX   Integer32  (0..128)
+      MAX-ACCESS not-accessible
+      STATUS   current
+      DESCRIPTION
+         "Prefix length (in bits) to apply to the rtmRibDest object,
+         to obtain the set of addresses to which this route applies.
+
+         If the prefix length is L, then applying the length to an address
+         means taking the first L bits of the address."
+      ::= { rtmRibEntry 5 }
+
+  -- The following convention is included for specification
+  -- of TOS Field contents.  At this time, the Host Requirements
+  -- and the Router Requirements documents disagree on the width
+  -- of the TOS field.  This mapping describes the Router
+  -- Requirements mapping, and leaves room to widen the TOS field
+  -- without impact to fielded systems.
+
+  rtmRibTos OBJECT-TYPE
+      SYNTAX   Integer32 (0..15)
+      MAX-ACCESS not-accessible
+      STATUS   current
+      DESCRIPTION
+         "The policy specifier is the IP TOS Field.  The encoding
+         of IP TOS is as specified by the following convention.
+         Zero indicates the default path if no more specific
+         policy applies.
+
+         +=====+=====+=====+=====+=====+=====+=====+=====+
+         |                 |                       |     |
+         |   PRECEDENCE    |    TYPE OF SERVICE    |  0  |
+         |                 |                       |     |
+         +=====+=====+=====+=====+=====+=====+=====+=====+
+
+                  IP TOS                IP TOS
+             Field     Policy      Field     Policy
+             Contents    Code      Contents    Code
+             0 0 0 0  ==>   0      0 0 0 1  ==>   2
+             0 0 1 0  ==>   4      0 0 1 1  ==>   6
+             0 1 0 0  ==>   8      0 1 0 1  ==>  10
+             0 1 1 0  ==>  12      0 1 1 1  ==>  14
+             1 0 0 0  ==>  16      1 0 0 1  ==>  18
+             1 0 1 0  ==>  20      1 0 1 1  ==>  22
+             1 1 0 0  ==>  24      1 1 0 1  ==>  26
+             1 1 1 0  ==>  28      1 1 1 1  ==>  30
+
+         RTM always returns a default value of 0 for this field."
+      ::= { rtmRibEntry 6 }
+
+  rtmRibNextHopType OBJECT-TYPE
+      SYNTAX     InetAddressType
+      MAX-ACCESS not-accessible
+      STATUS     current
+      DESCRIPTION
+         "The type of the address used as the next-hop address
+          for this route."
+      ::= { rtmRibEntry 7 }
+
+  rtmRibNextHop OBJECT-TYPE
+      SYNTAX     InetAddress (SIZE(4|16))
+      MAX-ACCESS not-accessible
+      STATUS     current
+      DESCRIPTION
+         "On remote routes, the address of the next system en route;
+         Otherwise, zero."
+      ::= { rtmRibEntry 8 }
+
+  rtmRibIfIndex OBJECT-TYPE
+      SYNTAX   Integer32 (0..2147483647)
+      MAX-ACCESS not-accessible
+      STATUS   current
+      DESCRIPTION
+         "The ifIndex value which identifies the local
+         interface through which the next hop of this
+         route should be reached."
+      ::= { rtmRibEntry 9 }
+
+  rtmRibType OBJECT-TYPE
+      SYNTAX   RouteType
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "The type of route.
+
+         local(3) refers to a route for which the destination is a
+         local IP address or for which the next hop is the final
+         destination.  This includes routes to local IP addresses
+         and routes to directly connected IP addresses or subnets.
+
+         remote(4) refers to a route for which the next hop is not
+         the final destination.
+
+         reject (2) refers to a route which, if matched, discards
+         the message as unreachable.  This is used in some
+         protocols as a means of correctly aggregating routes."
+      ::= { rtmRibEntry 10 }
+
+  rtmRibProto OBJECT-TYPE
+      SYNTAX   IANAipRouteProtocol
+      MAX-ACCESS not-accessible
+      STATUS   current
+      DESCRIPTION
+         "The routing mechanism via which this route was learned.  Inclusion
+         of values for gateway routing protocols is not intended to imply that
+         hosts should support those protocols."
+      ::= { rtmRibEntry 11 }
+
+  rtmRibAge OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "The number of seconds since this route was last updated or otherwise
+         determined to be correct.  Note that no semantics of 'too old' can
+         be implied except through knowledge of the routing protocol by which
+         the route was learned.
+
+         This age is only accurate for entries which are less that 49 days
+         old."
+      DEFVAL  { 0 }
+      ::= { rtmRibEntry 12 }
+
+  rtmRibInfo OBJECT-TYPE
+      SYNTAX   RouteInfo
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "A reference to MIB definitions specific to the particular routing
+         protocol which is responsible for this route, as determined by the
+         value specified  in the route's rtmRibProto value.
+
+         RTM returns the following.
+
+         - For OSPF, an integer representation of the OID which is required by
+           RFC 2096.
+
+         - For ISIS, an integer representation of the types of route to IP
+           reachable addresses."
+      DEFVAL { none }
+      ::= { rtmRibEntry 13 }
+
+  rtmRibNextHopAS OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "The Autonomous System Number of the Next Hop.
+         The semantics of this object are determined by
+         the routing-protocol specified in the route's
+         rtmRibProto value. When this object is unknown
+         or not relevant its value is returned as zero."
+      DEFVAL { 0 }
+      ::= { rtmRibEntry 14 }
+
+  rtmRibMetric1 OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "The primary routing metric for this route.
+         The semantics of this metric are determined by
+         the routing-protocol specified in the route's
+         rtmRibProto value.  If this metric is not used,
+         its value is returned as -1."
+      DEFVAL { -1 }
+      ::= { rtmRibEntry 15 }
+
+  rtmRibMetric2 OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "An alternate routing metric for this route.
+         The semantics of this metric are determined by
+         the routing-protocol specified in the route's
+         rtmRibProto value.  If this metric is not used,
+         its value is returned as -1."
+      DEFVAL { -1 }
+      ::= { rtmRibEntry 16 }
+
+  rtmRibMetric3 OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "An alternate routing metric for this route.
+         The semantics of this metric are determined by
+         the routing-protocol specified in the route's
+         rtmRibProto value.  If this metric is not used,
+         its value is returned as -1."
+      DEFVAL { -1 }
+      ::= { rtmRibEntry 17 }
+
+  rtmRibMetric4 OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "An alternate routing metric for this route.
+         The semantics of this metric are determined by
+         the routing-protocol specified in the route's
+         rtmRibProto value.  If this metric is not used,
+         its value is returned as -1."
+      DEFVAL { -1 }
+      ::= { rtmRibEntry 18 }
+
+  rtmRibMetric5 OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS read-only
+      STATUS   current
+      DESCRIPTION
+         "An alternate routing metric for this route.
+         The semantics of this metric are determined by
+         the routing-protocol specified in the route's
+         rtmRibProto value.  If this metric is not used,
+         its value is returned as -1."
+      DEFVAL { -1 }
+      ::= { rtmRibEntry 19 }
+
+  rtmRibFibRoute OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Flag indicating whether or not this route has been
+                 programmed either to a forwarding table, or to a partner
+                 that queries route information (such as BGP or PIM).
+
+                 If there is no forwarding table and no partners are
+                 querying route information then this object is set to
+                 'false' for every route.
+
+                 If this route has rtmRibLooseNextHop set to 'true', it is
+                 possible that RTM knows of more than one explicit next hop to
+                 the loose next hop address.  If so, RTM programs these
+                 explicit next hops separately to a forwarding table (unless
+                 the forwarding table registers to receive loose next hops)
+                 and to a partner that queries route information; in this
+                 case the rtmRibFibRoute flag is set to 'true' if and only
+                 if one or more of these explicit next hops has been
+                 programmed."
+    ::= { rtmRibEntry 20 }
+
+  rtmRibRpmIndex OBJECT-TYPE
+    SYNTAX      Integer32 (0..2147483647)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "The HAF entity index for the RPM that supplied this route,
+                or zero for static routes or automatically configured routes.
+                This is used to distinguish routes in the system where
+                multiple copies of a given protocol (for example BGP) are
+                providing routes to DC-RTM."
+    ::= { rtmRibEntry 21 }
+
+  rtmRibConnected OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Indicates whether the route destination is directly
+                connected.
+
+                A directly connected route can be reached without going
+                through any IP routers.
+
+                Route destinations that are local IP addresses
+                are not considered to be directly connected.
+
+                This field can only be true if rtmRibType is set to
+                'local'."
+    ::= { rtmRibEntry 22 }
+
+  rtmRibLooseNextHop OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "This flag indicates whether DC-RTM considers that the
+                 next-hop address for this route is a loose next hop.
+
+                 If DC-RTM sets this object to 'true' then
+                 -  it must also have set rtmRibType to 'remote'
+                 -  the next-hop address (rtmRibNextHop) may not
+                    be on a directly connected device
+                 -  if DC-RTM cannot find a route to the next-hop
+                    address, it does not return the route on the
+                    rtmRouteTable, it does not redistribute the
+                    route to routing protocol managers, and it does not
+                    program the route to a forwarding table (unless the
+                    forwarding table has registered to receive loose next
+                    hops) or to a partner that is querying route
+                    information (such as BGP or PIM)."
+    ::= { rtmRibEntry 23 }
+
+  rtmRibLocalDestIfIndex OBJECT-TYPE
+    SYNTAX        Integer32 (0..2147483647)
+    MAX-ACCESS    read-only
+    STATUS        current
+    DESCRIPTION
+         "If the route destination is a local IP address then this
+         is the interface index that the local IP address is
+         assigned to.  Otherwise this field is zero."
+    ::= { rtmRibEntry 24 }
+
+-------------------------------------------------------------------------------
+
+--  DC-RTM Redist Set Field Table.
+--  Table of actions which set fields for routes being redistributed.
+
+  rtmRdstSetFieldTable OBJECT-TYPE
+      SYNTAX   SEQUENCE OF RtmRdstSetFieldEntry
+      MAX-ACCESS not-accessible
+      STATUS   current
+      DESCRIPTION "This table defines route attributes which are to be set
+                   by redistribution filters.
+                   A list of set actions is made up of one or more entries
+                   in this table with the same list_id.  Actions in a list
+                   are applied in increasing set_number order.  Each list
+                   may be referenced by 0, 1 or more redistribution
+                   entries.  Only actions which are active at the point
+                   where the redistribution entry is being evaluated (i.e.
+                   at the point where the route is actually being
+                   redistributed) are applied.  Also, only those set
+                   actions which are relevant to the route being
+                   redistributed are applied, so BGP attributes will not
+                   be set for a route being redistributed to OSPF."
+      ::= { rtmObjects 8 }
+
+  rtmRdstSetFieldEntry OBJECT-TYPE
+      SYNTAX   RtmRdstSetFieldEntry
+      MAX-ACCESS not-accessible
+      STATUS   current
+      DESCRIPTION
+         "A particular entry in the Redistribution Set Field table."
+      INDEX {
+          rtmRdstSetFieldFteIndex,
+          rtmRdstSetFieldListId,
+          rtmRdstSetFieldNumber
+          }
+      ::= { rtmRdstSetFieldTable 1 }
+
+  RtmRdstSetFieldEntry ::= SEQUENCE {
+          rtmRdstSetFieldFteIndex          FteIndex,
+          rtmRdstSetFieldListId            Unsigned32,
+          rtmRdstSetFieldNumber            Unsigned32,
+          rtmRdstSetFieldRowStatus         RowStatus,
+          rtmRdstSetFieldType              RdstSetFieldType,
+          rtmRdstSetFieldValue             OCTET STRING
+      }
+
+  rtmRdstSetFieldFteIndex OBJECT-TYPE
+      SYNTAX      FteIndex
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The HAF entity index identifying the instance of DC-RTM to
+          which this set field entry applies."
+      ::= { rtmRdstSetFieldEntry 1 }
+
+  rtmRdstSetFieldListId OBJECT-TYPE
+      SYNTAX      Unsigned32 (1..4294967295)
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The index of the list of set actions which this action belongs
+          to.  It is this identifier which is referenced by the
+          redistribution table entry.  A value of 0 is not permitted."
+      ::= { rtmRdstSetFieldEntry 2 }
+
+  rtmRdstSetFieldNumber OBJECT-TYPE
+      SYNTAX      Unsigned32 (1..4294967295)
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "Identifies this set field entry's position in the list of set
+          field entries with the same list identifier."
+      ::= { rtmRdstSetFieldEntry 3 }
+
+  rtmRdstSetFieldRowStatus OBJECT-TYPE
+      SYNTAX   RowStatus
+      MAX-ACCESS read-create
+      STATUS   current
+      DESCRIPTION
+         "Used to create and delete a DC-RTM set field table entry."
+      ::= { rtmRdstSetFieldEntry 4 }
+
+  rtmRdstSetFieldType OBJECT-TYPE
+      SYNTAX   RdstSetFieldType
+      MAX-ACCESS read-create
+      STATUS   current
+      DESCRIPTION
+         "The type of field set by this set field entry."
+      ::= { rtmRdstSetFieldEntry 5 }
+
+  rtmRdstSetFieldValue OBJECT-TYPE
+      SYNTAX   OCTET STRING (SIZE (0..8))
+      MAX-ACCESS read-create
+      STATUS   current
+      DESCRIPTION
+         "The value set by this set field entry."
+      ::= { rtmRdstSetFieldEntry 6 }
+
+-- Conformance Information.
+
+  rtmConformance  OBJECT IDENTIFIER ::= { rtmMib 3 }
+
+  rtmCompliances  OBJECT IDENTIFIER ::= { rtmConformance 1 }
+  rtmGroups       OBJECT IDENTIFIER ::= { rtmConformance 2 }
+
+  rtmCompliance MODULE-COMPLIANCE
+    STATUS current
+    DESCRIPTION
+        "The compliance statement for the DC-RTM module."
+    MODULE
+
+    MANDATORY-GROUPS    {
+       rtmEntityMandatoryGroup,
+       rtmRedistMandatoryGroup,
+       rtmStaticRtMandatoryGroup,
+       rtmMjMandatoryGroup,
+       rtmSjMandatoryGroup,
+       rtmRdstSetFieldMandatoryGroup,
+       rtmNotificationObjectGroup,
+       rtmNotificationEventGroup
+    }
+
+    GROUP rtmEntityGroup
+    DESCRIPTION
+        "Optional objects for rtmEntityTable."
+
+    GROUP rtmRedistGroup
+    DESCRIPTION
+        "Optional objects for rtmRedistTable."
+
+    GROUP rtmStaticRtGroup
+    DESCRIPTION
+        "Optional objects for rtmStaticRtTable."
+
+    GROUP rtmMjGroup
+    DESCRIPTION
+        "Optional objects for rtmMjTable."
+
+    GROUP rtmSjGroup
+    DESCRIPTION
+        "Optional objects for rtmSjTable."
+
+    GROUP rtmRouteGroup
+    DESCRIPTION
+        "Optional objects for rtmRouteTable."
+
+    GROUP rtmRibGroup
+    DESCRIPTION
+        "Optional objects for rtmRibTable."
+
+    ::= { rtmCompliances 1 }
+
+-- Units of conformance (Groups).
+
+rtmEntityMandatoryGroup OBJECT-GROUP
+    OBJECTS {
+       rtmEntityRowStatus
+    }
+    STATUS  current
+    DESCRIPTION
+         "Mandatory objects for the rtmEntityTable."
+    ::= { rtmGroups 1 }
+
+
+rtmEntityGroup OBJECT-GROUP
+    OBJECTS {
+       rtmEntityAdminStat,
+       rtmEntityOperStatus,
+       rtmEntityDsConnctd,
+       rtmEntityDsStatDf,
+       rtmEntityDsOspfInt,
+       rtmEntityDsOspfExt,
+       rtmEntityDsIntBgp,
+       rtmEntityDsExtBgp,
+       rtmEntityDsIsisInt1,
+       rtmEntityDsIsisInt2,
+       rtmEntityDsIsisExt1,
+       rtmEntityDsIsisExt2,
+       rtmEntityDsRip,
+       rtmEntityDsEgp,
+       rtmEntityDsPd,
+       rtmEntityDsHello,
+       rtmEntityDsEsis,
+       rtmEntityDsBbnspfigp,
+       rtmEntityDsIdpr,
+       rtmEntityDsIgrp,
+       rtmEntityDsEigrpSmm,
+       rtmEntityDsIntEigrp,
+       rtmEntityDsEigrpExt,
+       rtmEntityDsUnknown,
+       rtmEntityEqlCostOpt,
+       rtmEntityDelDeadRte,
+       rtmEntityDeadRpmTmr,
+       rtmEntityRouteNumber,
+       rtmEntityAddressFamily,
+       rtmEntityDsDvmrp,
+       rtmEntityI3Index,
+       rtmEntityI3JoinStatus,
+       rtmEntityPartnerWaitTime,
+       rtmEntityStartupTime,
+       rtmEntityRestartTime,
+       rtmEntityFtStateRetained,
+       rtmEntityUseUnidirectionalLinks,
+       rtmEntityBfdIndex,
+       rtmEntityBfdJoinStatus,
+       rtmEntityEnableTrapSupport
+    }
+    STATUS  current
+    DESCRIPTION
+         "Optional objects for rtmEntityTable."
+    ::= { rtmGroups 2 }
+
+rtmRedistMandatoryGroup OBJECT-GROUP
+    OBJECTS  {
+         rtmRedistRowStatus
+    }
+    STATUS  current
+    DESCRIPTION
+         "Mandatory objects for rtmRedistTable."
+    ::= { rtmGroups 3 }
+
+rtmRedistGroup OBJECT-GROUP
+    OBJECTS  {
+         rtmRedistAdminStat,
+         rtmRedistPriority,
+         rtmRedistInfoSrc,
+         rtmRedistSrcInstFlt,
+         rtmRedistSrcInst,
+         rtmRedistInfoDest,
+         rtmRedistDestInstFlt,
+         rtmRedistDestInst,
+         rtmRedistAddrFilterType,
+         rtmRedistAddrFilter,
+         rtmRedistAddrFltLen,
+         rtmRedistHopFltValType,
+         rtmRedistHopFltVal,
+         rtmRedistHopFltLen,
+         rtmRedistIfIndexFlt,
+         rtmRedistIfIndex,
+         rtmRedistPathTypeFlt,
+         rtmRedistPathType,
+         rtmRedistOspfAreaFlt,
+         rtmRedistOspfArea,
+         rtmRedistOspfTagFlt,
+         rtmRedistOspfTag,
+         rtmRedistCommunityFlt,
+         rtmRedistCommunity,
+         rtmRedistExtCommFlt,
+         rtmRedistExtComm,
+         rtmRedistRedistFlag,
+         rtmRedistMetricConv,
+         rtmRedistMetricValue,
+         rtmRedistNwPathType,
+         rtmRedistNwOspfTag,
+         rtmRedistOspfPropagate,
+         rtmRedistNwOrigin,
+         rtmRedistAddMed,
+         rtmRedistNwMed,
+         rtmRedistAddLocalPref,
+         rtmRedistNwLocalPref,
+         rtmRedistSetListId,
+         rtmRedistAddAsLimUpper,
+         rtmRedistNwAsLimUpper,
+         rtmRedistOspfVpnPeCeSupport
+    }
+    STATUS  current
+    DESCRIPTION
+         "Optional objects for rtmRedistTable."
+    ::= { rtmGroups 4 }
+
+rtmStaticRtMandatoryGroup OBJECT-GROUP
+    OBJECTS  {
+         rtmStaticRtRowStatus
+    }
+    STATUS current
+    DESCRIPTION
+         "Mandatory objects for rtmStaticRtTable."
+    ::= { rtmGroups 5 }
+
+rtmStaticRtGroup OBJECT-GROUP
+    OBJECTS  {
+         rtmStaticRtAdminStat,
+         rtmStaticRtOverride,
+         rtmStaticRtAdminDist,
+         rtmStaticRtAction,
+         rtmStaticRtFwdAddrType,
+         rtmStaticRtForwardingAddr,
+         rtmStaticRtUsePathCost,
+         rtmStaticRtPathCost,
+         rtmStaticRtUserData,
+         rtmStaticRtLooseNextHop,
+         rtmStaticRtBfdSupport,
+         rtmStaticRtBfdStatus
+    }
+    STATUS  current
+    DESCRIPTION
+         "Optional objects for rtmStaticRtTable."
+    ::= { rtmGroups 6 }
+
+rtmMjMandatoryGroup OBJECT-GROUP
+    OBJECTS  {
+      rtmMjRowStatus
+    }
+    STATUS  current
+    DESCRIPTION
+         "Mandatory objects for rtmMjTable."
+    ::= { rtmGroups 7 }
+
+rtmMjGroup OBJECT-GROUP
+    OBJECTS  {
+      rtmMjIfType,
+      rtmMjAdminStatus,
+      rtmMjOperStatus,
+      rtmMjJoinStatus,
+      rtmMjSafi
+    }
+    STATUS  current
+    DESCRIPTION
+         "Optional objects for rtmMjTable."
+    ::= { rtmGroups 8 }
+
+rtmSjMandatoryGroup OBJECT-GROUP
+    OBJECTS  {
+      rtmSjIfType,
+      rtmSjMastFteType,
+      rtmSjMastFteId
+    }
+    STATUS  current
+    DESCRIPTION
+         "Mandatory objects for rtmSjTable."
+    ::= { rtmGroups 9 }
+
+rtmSjGroup OBJECT-GROUP
+    OBJECTS  {
+      rtmSjJoinStatus
+    }
+    STATUS  current
+    DESCRIPTION
+         "Optional objects for rtmSjTable."
+    ::= { rtmGroups 10 }
+
+rtmRouteGroup OBJECT-GROUP
+    OBJECTS   {
+          rtmRouteStatus,
+          rtmRouteType,
+          rtmRouteProto,
+          rtmRouteAge,
+          rtmRouteInfo,
+          rtmRouteNextHopAS,
+          rtmRouteMetric1,
+          rtmRouteMetric2,
+          rtmRouteMetric3,
+          rtmRouteMetric4,
+          rtmRouteMetric5,
+          rtmRouteConnected,
+          rtmRouteXCIndex,
+          rtmRouteLocalDestIfIndex
+     }
+     STATUS  current
+     DESCRIPTION
+          "Optional objects for rtmRouteTable."
+     ::= { rtmGroups 11 }
+
+rtmRibGroup OBJECT-GROUP
+    OBJECTS   {
+          rtmRibStatus,
+          rtmRibType,
+          rtmRibAge,
+          rtmRibInfo,
+          rtmRibNextHopAS,
+          rtmRibMetric1,
+          rtmRibMetric2,
+          rtmRibMetric3,
+          rtmRibMetric4,
+          rtmRibMetric5,
+          rtmRibFibRoute,
+          rtmRibConnected,
+          rtmRibLooseNextHop,
+          rtmRibLocalDestIfIndex
+     }
+     STATUS  current
+     DESCRIPTION
+          "Optional objects for rtmRibTable."
+     ::= { rtmGroups 12 }
+
+rtmObsoleteGroup OBJECT-GROUP
+     OBJECTS  {
+          rtmRedistAddCommunity,
+          rtmRedistNwCommunity,
+          rtmRedistAddExtComm,
+          rtmRedistNwExtComm
+     }
+     STATUS obsolete
+     DESCRIPTION
+          "This group contains obsolete objects."
+     ::= { rtmGroups 13 }
+
+rtmRdstSetFieldMandatoryGroup OBJECT-GROUP
+    OBJECTS  {
+         rtmRdstSetFieldRowStatus,
+         rtmRdstSetFieldType,
+         rtmRdstSetFieldValue
+    }
+    STATUS  current
+    DESCRIPTION
+         "Mandatory objects for rtmRdstSetFieldTable."
+    ::= { rtmGroups 14 }
+
+rtmNotificationObjectGroup OBJECT-GROUP
+    OBJECTS {
+         rtmStaticRtTrapReason,
+         rtmPathTrapReason,
+         rtmTrapEntityFteIndex,
+         rtmTrapStaticRtDestAddrType,
+         rtmTrapStaticRtDestAddr,
+         rtmTrapStaticRtDestLen,
+         rtmTrapStaticRtNextHopType,
+         rtmTrapStaticRtNextHop,
+         rtmTrapStaticRtIfIndex,
+         rtmTrapRibDestType,
+         rtmTrapRibDest,
+         rtmTrapRibDestLen,
+         rtmTrapRibTos,
+         rtmTrapRibNextHopType,
+         rtmTrapRibNextHop,
+         rtmTrapRibIfIndex,
+         rtmTrapRibProto,
+         rtmTrapRibRpmIndex
+  }
+    STATUS current
+    DESCRIPTION
+        "The objects used to record notification parameters."
+::= { rtmGroups 15 }
+
+
+--  Trap Support Objects
+
+   --  The following are support objects for the RTM traps.
+
+     rtmTraps OBJECT IDENTIFIER ::= { rtmTrap 0 }
+     rtmTrapControl OBJECT IDENTIFIER ::= { rtmTrap 1 }
+
+     rtmStaticRtTrapReason OBJECT-TYPE
+          SYNTAX       INTEGER {
+                          eligible (1),
+                          ineligible (2)
+                               }
+          MAX-ACCESS   read-only
+          STATUS   current
+          DESCRIPTION
+             "Event that caused the trap to be made.
+              Used by the rtmStaticRouteChange trap."
+          ::= { rtmTrapControl 1 }
+
+     rtmPathTrapReason OBJECT-TYPE
+          SYNTAX       INTEGER {
+                          active (1),
+                          inactive (2)
+                               }
+          MAX-ACCESS   read-only
+          STATUS   current
+          DESCRIPTION
+             "Event that caused the trap to be made.
+              Used by the rtmPathActivityChange trap."
+          ::= { rtmTrapControl 2 }
+
+     rtmTrapEntityFteIndex OBJECT-TYPE
+          SYNTAX       FteIndex
+          MAX-ACCESS   accessible-for-notify
+          STATUS       current
+          DESCRIPTION
+             "Version of rtmEntityFteIndex used for traps."
+          ::= { rtmTrapControl 3 }
+
+     rtmTrapStaticRtDestAddrType OBJECT-TYPE
+          SYNTAX       InetAddressType
+          MAX-ACCESS   accessible-for-notify
+          STATUS       current
+          DESCRIPTION
+             "Version of rtmStaticRtDestAddrType used for traps."
+          ::= { rtmTrapControl 4 }
+
+     rtmTrapStaticRtDestAddr OBJECT-TYPE
+          SYNTAX       InetAddress (SIZE(4|16))
+          MAX-ACCESS   accessible-for-notify
+          STATUS       current
+          DESCRIPTION
+             "Version of rtmStaticRtDestAddr used for traps."
+          ::= { rtmTrapControl 5 }
+
+     rtmTrapStaticRtDestLen OBJECT-TYPE
+          SYNTAX       Integer32 (0..128)
+          MAX-ACCESS   accessible-for-notify
+          STATUS       current
+          DESCRIPTION
+             "Version of rtmStaticRtDestLen used for traps."
+          ::= { rtmTrapControl 6 }
+
+     rtmTrapStaticRtNextHopType OBJECT-TYPE
+          SYNTAX       InetAddressType
+          MAX-ACCESS   accessible-for-notify
+          STATUS       current
+          DESCRIPTION
+             "Version of rtmStaticRtNextHopType used for traps."
+          ::= { rtmTrapControl 7 }
+
+     rtmTrapStaticRtNextHop OBJECT-TYPE
+         SYNTAX        InetAddress (SIZE(4|16))
+          MAX-ACCESS   accessible-for-notify
+          STATUS       current
+          DESCRIPTION
+             "Version of rtmStaticRtNextHop used for traps."
+          ::= { rtmTrapControl 8 }
+
+     rtmTrapStaticRtIfIndex OBJECT-TYPE
+          SYNTAX       Integer32 (0..2147483647)
+          MAX-ACCESS   accessible-for-notify
+          STATUS       current
+          DESCRIPTION
+             "Version of rtmStaticRtIfIndex used for traps."
+          ::= { rtmTrapControl 9 }
+
+     rtmTrapRibDestType OBJECT-TYPE
+         SYNTAX       InetAddressType
+         MAX-ACCESS   accessible-for-notify
+         STATUS       current
+         DESCRIPTION
+            "Version of rtmRibDestType used for traps."
+         ::= { rtmTrapControl 10 }
+
+     rtmTrapRibDest OBJECT-TYPE
+         SYNTAX      InetAddress (SIZE(4|16))
+         MAX-ACCESS  accessible-for-notify
+         STATUS      current
+         DESCRIPTION
+            "Version of rtmRibDest used for traps."
+         ::= { rtmTrapControl 11 }
+
+     rtmTrapRibDestLen OBJECT-TYPE
+         SYNTAX   Integer32  (0..128)
+         MAX-ACCESS accessible-for-notify
+         STATUS   current
+         DESCRIPTION
+           "Version of rtmRibDestLen used for traps."
+         ::= { rtmTrapControl 12 }
+
+     rtmTrapRibTos OBJECT-TYPE
+         SYNTAX   Integer32 (0..15)
+         MAX-ACCESS accessible-for-notify
+         STATUS   current
+         DESCRIPTION
+            "Version of rtmRibTos used for traps."
+         ::= { rtmTrapControl 13 }
+
+     rtmTrapRibNextHopType OBJECT-TYPE
+         SYNTAX      InetAddressType
+         MAX-ACCESS  accessible-for-notify
+         STATUS      current
+         DESCRIPTION
+            "Version of rtmRibNextHopType used for traps."
+         ::= { rtmTrapControl 14 }
+
+     rtmTrapRibNextHop OBJECT-TYPE
+         SYNTAX     InetAddress (SIZE(4|16))
+         MAX-ACCESS accessible-for-notify
+         STATUS     current
+         DESCRIPTION
+            "Version of rtmRibNextHop used for traps."
+         ::= { rtmTrapControl 15 }
+
+     rtmTrapRibIfIndex OBJECT-TYPE
+         SYNTAX   Integer32 (0..2147483647)
+         MAX-ACCESS accessible-for-notify
+         STATUS   current
+         DESCRIPTION
+            "Version of rtmRibIfIndex used for traps."
+         ::= { rtmTrapControl 16 }
+
+     rtmTrapRibProto OBJECT-TYPE
+         SYNTAX   IANAipRouteProtocol
+         MAX-ACCESS accessible-for-notify
+         STATUS   current
+         DESCRIPTION
+            "Version of rtmRibProto used for traps."
+         ::= { rtmTrapControl 17 }
+
+     rtmTrapRibRpmIndex OBJECT-TYPE
+         SYNTAX      Integer32 (0..2147483647)
+         MAX-ACCESS  accessible-for-notify
+         STATUS      current
+         DESCRIPTION
+            "Version of rtmRibRpmIndex used for traps."
+         ::= { rtmTrapControl 18 }
+
+--  Traps
+
+     rtmOperStateChange NOTIFICATION-TYPE
+          OBJECTS { rtmTrapEntityFteIndex,
+                    rtmEntityOperStatus
+                  }
+          STATUS       current
+          DESCRIPTION
+             "DC-RTM generates this trap when the operational state of RTM
+              enters 'up', 'down' or 'act_failed' state."
+          ::= { rtmTraps 1 }
+
+     rtmStaticRouteChange NOTIFICATION-TYPE
+          OBJECTS { rtmTrapEntityFteIndex,
+                    rtmTrapStaticRtDestAddrType,
+                    rtmTrapStaticRtDestAddr,
+                    rtmTrapStaticRtDestLen,
+                    rtmTrapStaticRtNextHopType,
+                    rtmTrapStaticRtNextHop,
+                    rtmTrapStaticRtIfIndex,
+                    rtmStaticRtTrapReason,
+                    rtmStaticRtBfdSupport,
+                    rtmStaticRtBfdStatus
+                  }
+          STATUS       current
+          DESCRIPTION
+             "DC-RTM generates this trap when a static route becomes
+              eligible or ineligible for installation in the FIB."
+          ::= { rtmTraps 2 }
+
+     rtmPathActivityChange NOTIFICATION-TYPE
+          OBJECTS { rtmTrapEntityFteIndex,
+                    rtmTrapRibDestType,
+                    rtmTrapRibDest,
+                    rtmTrapRibDestLen,
+                    rtmTrapRibTos,
+                    rtmTrapRibNextHopType,
+                    rtmTrapRibNextHop,
+                    rtmTrapRibIfIndex,
+                    rtmTrapRibProto,
+                    rtmTrapRibRpmIndex,
+                    rtmPathTrapReason
+                  }
+          STATUS       current
+          DESCRIPTION
+             "DC-RTM generates this trap when a path becomes active or
+              inactive."
+          ::= { rtmTraps 3 }
+
+     rtmNotificationEventGroup       NOTIFICATION-GROUP
+          NOTIFICATIONS {
+             rtmOperStateChange,
+             rtmStaticRouteChange,
+             rtmPathActivityChange
+             }
+
+          STATUS        current
+          DESCRIPTION
+             "A grouping of RTM trap events, as specified
+             in NOTIFICATION-TYPE constructs."
+          ::= { rtmGroups 16 }
+
+END

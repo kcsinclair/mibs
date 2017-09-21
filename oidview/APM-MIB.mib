@@ -1,0 +1,1519 @@
+-- extracted from draft-ietf-rmonmib-apm-mib-01.txt
+-- at Sat Jul 22 07:08:04 2000
+
+APM-MIB DEFINITIONS ::= BEGIN
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE,
+    NOTIFICATION-TYPE,
+    Counter32, Integer32, Unsigned32             FROM SNMPv2-SMI
+    RowStatus, TimeStamp, TruthValue,
+    DateAndTime                                  FROM SNMPv2-TC
+    MODULE-COMPLIANCE, OBJECT-GROUP,
+    NOTIFICATION-GROUP                           FROM SNMPv2-CONF
+    SnmpAdminString                              FROM SNMP-FRAMEWORK-MIB
+    rmon, OwnerString                            FROM RMON-MIB
+    DataSource,
+    protocolDirID, protocolDirParameters,
+    protocolDirLocalIndex                        FROM RMON2-MIB;
+
+--  Application Performance Measurement MIB
+
+apm MODULE-IDENTITY
+    LAST-UPDATED "200007121500Z"  -- July 12, 2000
+    ORGANIZATION "IETF RMON MIB Working Group"
+    CONTACT-INFO
+        "Steve Waldbusser
+
+        Phone: +1-650-948-6500
+        Fax:   +1-650-745-0671
+        Email: waldbusser@nextbeacon.com"
+    DESCRIPTION
+        "The MIB module for measuring application performance
+        as experienced by end-users. This MIB module
+        augments the original RMON MIB as specified in
+        RFC 1757 and the RMON2 MIB as specified in RFC 2021."
+
+    REVISION "200007121500Z"    -- July 12, 2000
+    DESCRIPTION
+        "The original version of this MIB, published as RFCXXXX."
+    ::= { rmon 23 }
+
+-- The protocol Directory Extensions Group
+
+protocolDirExtTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF ProtocolDirExtEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The APM MIB extensions to the RMON2 Protocol Directory."
+    ::= { apm 1 }
+
+protocolDirExtEntry OBJECT-TYPE
+    SYNTAX      ProtocolDirExtEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The APM MIB extensions to the RMON2 Protocol Directory. An
+        entry will exist in this table for all application protocols
+        for which application performance measuring is supported."
+    INDEX { protocolDirID, protocolDirParameters,
+            protocolDirExtApmResponsivenessType }
+    ::= { protocolDirExtTable 1 }
+
+ProtocolDirExtEntry ::= SEQUENCE {
+    protocolDirExtApmResponsivenessType       INTEGER,
+    protocolDirExtApmConfig                   INTEGER,
+    protocolDirExtApmResponsivenessBoundary1  Integer32,
+    protocolDirExtApmResponsivenessBoundary2  Integer32,
+    protocolDirExtApmResponsivenessBoundary3  Integer32,
+    protocolDirExtApmResponsivenessBoundary4  Integer32,
+    protocolDirExtApmResponsivenessBoundary5  Integer32,
+    protocolDirExtApmResponsivenessBoundary6  Integer32
+}
+
+protocolDirExtApmResponsivenessType OBJECT-TYPE
+    SYNTAX      INTEGER {
+                  transactionOriented(1),
+                  throughputOriented(2),
+                  streamingOriented(3)
+                }
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This object describes and configures the agent's support for
+        application performance measurement for this protocol. There
+        are 3 types of measurements for different types of protocols:
+
+        Transaction-Oriented protocols have a fairly constant workload
+        to perform for all transactions. The responsiveness metric for
+        transaction-oriented protocols is application response time
+        (from first request to final delivery of service) and is
+        measured in tenth's of seconds. This is commonly referred to
+        as end-user response time.
+
+        Throughput-Oriented protocols have widely varying workloads
+        based on the nature of the client request. In particular,
+        throughput-oriented protocols vary widely in the amount of
+        data that must be transported to satisfy the request. The
+        responsiveness metric for throughput-oriented protocols is
+        seconds per terabit. [Ref: 2Kbps= 500 Million, 1Gbps=1000].
+        The inverting of the popular bits per second is done so that
+        for all responsiveness metrics, lower values are better.
+
+        Streaming-Oriented protocols deliver data at a constant
+        metered rate of speed regardless of the responsiveness of the
+        networking and computing infrastructure. This constant rate of
+        speed is generally spec'ed to be below (sometimes well below)
+        the nominal capability of the infrastructure. However, when
+        the infrastructure's cannot deliver data at this speed,
+        interruption of service or degradation of service can
+        result. The responsiveness metric for streaming-oriented
+        protocols is the ratio of time that the service is degraded or
+        interrupted to the total service time. This metric is measured
+        in parts per million.
+
+        Note that for some protocols, measuring more than one
+        responsiveness type may be interesting. For agents that wish
+        to support more than one measurement for a protocol, they will
+        populate this table with 2 entries for that protocol, one for
+        each type."
+    ::= { protocolDirExtEntry 1 }
+
+protocolDirExtApmConfig OBJECT-TYPE
+    SYNTAX      INTEGER {
+                  notSupported(1),
+                  supportedOff(2),
+                  supportedOn(3)
+                }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object describes and configures support for
+        application performance measurement for this protocol. When the
+        agent creates entries in this table for all protocols that it
+        understands, it will set the entry to notSupported(1) if it
+        doesn't have the capability to measure application performance
+        for this protocol or if this protocol is not an
+        application-level protocol.
+
+        If the value of this object is notSupported(1), the agent
+        will not measure application performance metrics for this
+        protocol and shall not allow this object to be changed to any
+        other value. If the value of this object is supportedOn(3),
+        the agent supports measurement of application performance
+        metrics for this protocol and is configured to measure such
+        metrics for all APM MIB functions and all interfaces.
+        If the value of this object is supportedOff(2), the agent
+        supports measurement of application performance for this
+        protocol but is configured to not measure these metrics
+        for any APM MIB functions or interfaces.
+        Whenever this value changes from supportedOn(3) to
+        supportedOff(2), the agent shall delete all related entries in
+        all tables in this MIB."
+    ::= { protocolDirExtEntry 2 }
+
+protocolDirExtApmResponsivenessBoundary1 OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The boundary value between bucket1 and bucket 2. If this
+        value is modified, all entries in the apmReportTable must be
+        deleted."
+    ::= { protocolDirExtEntry 3 }
+
+protocolDirExtApmResponsivenessBoundary2 OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The boundary value between bucket2 and bucket 3. If this
+        value is modified, all entries in the apmReportTable must be
+        deleted."
+    ::= { protocolDirExtEntry 4 }
+
+protocolDirExtApmResponsivenessBoundary3 OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The boundary value between bucket3 and bucket 4. If this
+        value is modified, all entries in the apmReportTable must be
+        deleted."
+    ::= { protocolDirExtEntry 5 }
+
+protocolDirExtApmResponsivenessBoundary4 OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The boundary value between bucket4 and bucket 5. If this
+        value is modified, all entries in the apmReportTable must be
+        deleted."
+    ::= { protocolDirExtEntry 6 }
+
+protocolDirExtApmResponsivenessBoundary5 OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The boundary value between bucket5 and bucket 6. If this
+        value is modified, all entries in the apmReportTable must be
+        deleted."
+    ::= { protocolDirExtEntry 7 }
+
+protocolDirExtApmResponsivenessBoundary6 OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The boundary value between bucket6 and bucket 7. If this
+        value is modified, all entries in the apmReportTable must be
+        deleted."
+    ::= { protocolDirExtEntry 8 }
+
+-- APM HTTP Tracking Table
+
+-- The HTTP Tracking Table creates virtual protocols which measure the
+-- performance of certain web pages  or sets of web pages. Some
+-- circumstances where this is particularly useful are:
+--
+--      - An Intranet or ASP scenario where a business application is
+--        running on one or more web pages or scripts.
+--        (i.e. /expense/submit.cgi?employeeID=3426&...)
+--      - A web-hosting scenario where one wants to measure the
+--        service level for a particular customer
+--      - An e-commerce scenario where the performance of certain
+--        pages needs to be monitored more closely.
+--        (i.e. shopping cart, shipping, credit card authorization)
+
+apmHttpFilterTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF ApmHttpFilterEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table that creates virtual protocols which measure the
+        performance of certain web pages or sets of web pages."
+    ::= { apm 2 }
+
+apmHttpFilterEntry OBJECT-TYPE
+    SYNTAX      ApmHttpFilterEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A virtual protocol which measure the performance of certain
+        web pages or sets of web pages."
+    INDEX { apmHttpFilterIndex }
+    ::= { apmHttpFilterTable 1 }
+
+ApmHttpFilterEntry ::= SEQUENCE {
+    apmHttpFilterIndex          Integer32,
+    apmHttpFilterLocalIndex     Integer32,
+    apmHttpFilterServerProtocol Integer32,
+    apmHttpFilterServerAddress  OCTET STRING,
+    apmHttpFilterURLPath        OCTET STRING,
+    apmHttpFilterMatchType      INTEGER,
+    apmHttpFilterRowStatus      RowStatus
+}
+
+apmHttpFilterIndex OBJECT-TYPE
+    SYNTAX      Integer32 (0..65535)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "An index that uniquely identifies an entry in the
+        apmHttpFilterTable."
+    ::= { apmHttpFilterEntry 1 }
+
+apmHttpFilterLocalIndex OBJECT-TYPE
+    SYNTAX      Integer32 (1..2147483647)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The protocolDirLocalIndex that represents HTTP transactions
+        that match this entry.
+
+        This object is read-only. A value is created by the agent from
+        an unused protocolDirLocalIndex value when this
+        apmHttpFilterEntry is created. No entry in the
+        protocolDirTable will be created for the new
+        protocolDirLocalIndex."
+    ::= { apmHttpFilterEntry 2 }
+
+apmHttpFilterServerProtocol OBJECT-TYPE
+    SYNTAX      Integer32 (1..2147483647)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The network level protocol of the
+        apmHttpFilterServerAddress."
+    ::= { apmHttpFilterEntry 3 }
+
+apmHttpFilterServerAddress OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This entry will only represent transactions coming from the
+        network address specified in this object.
+
+        This is represented as an octet string with
+        specific semantics and length as identified
+        by the apmNameProtocolDirLocalIndex component of the index.
+
+        If this object is the zero-length string, then this entry will
+        match the associated apmHttpFilterURL from address."
+    ::= { apmHttpFilterEntry 4 }
+
+apmHttpFilterURLPath OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This entry will only represent HTTP transactions
+        whose URL path component matches this value.
+
+        Prior to the matching, the URL is stripped of any server
+        address or DNS name and consists solely of the path name on
+        that server.
+
+        The value of the associated apmHttpFilterMatchType dictates
+        the type of matching that will be attempted."
+    ::= { apmHttpFilterEntry 5 }
+
+apmHttpFilterMatchType OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    exact(1),
+                    prefix(2)
+                }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The matching algorithm used to compare the URL pathname.
+
+        If the value is exact(1), then the pathname component will be
+        compared with the associated apmHttpFilterURLPath and
+        will only be associated with this entry if it matches exactly.
+
+        If the value is prefix(2), then the pathname component will be
+        compared with the associated apmHttpFilterURLPath and will
+        only be associated with this entry if the beginning of the
+        pathname matches every octet of this value. Octets that extend
+        beyond the length of this value are ignored."
+    ::= { apmHttpFilterEntry 6 }
+
+apmHttpFilterRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The status of this apmHttpFilterEntry."
+    ::= { apmHttpFilterEntry 7 }
+
+apmHttpIgnoreUnregisteredURLs OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "When true, this agent will only monitor URLs registered in
+        the apmHttpFilterTable.
+
+        This will be used in environments that wish to monitor only
+        targeted URLs and to ignore large volumes of internet web
+        browsing traffic."
+    ::= { apm 3 }
+
+apmHttp404IsFailure OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "When true, this agent will recognize HTTP 404 Errors and will
+        treat them as unavailable transactions. When false or when
+        this object isn't supported, they will be treated as
+        successful transactions.
+
+        This object allows such error pages to be tracked at the
+        possible expense of having user typo's treated as poor service
+        on the part of the web server."
+    ::= { apm 4 }
+
+-- The APM User-Defined Protocol Table
+
+-- Many application protocols will never be registered with a
+-- standards body (and thus included in a protocol directory standard)
+-- because they are custom, in-house or proprietary
+-- applications. Nevertheless, implementation strategies exist for
+-- monitoring the end-user experience of these applications.
+--
+-- This read-only table provides a means for the agent to advertise
+-- which user-defined protocols it is monitoring and to associate each
+-- with a protocolDirLocalIndex value. It is an
+-- implementation-dependent matter as to how the agent learns how to
+-- monitor these protocols.
+apmUserDefinedProtTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF ApmUserDefinedProtEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table that advertises user-defined protocols that the agent
+        is measuring."
+    ::= { apm 5 }
+
+
+apmUserDefinedProtEntry OBJECT-TYPE
+    SYNTAX      ApmUserDefinedProtEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A user-defined protocol that the agent is measuring, along
+        with its protocolDirLocalIndex assignment."
+    INDEX { apmUserDefinedProtIndex }
+    ::= { apmUserDefinedProtTable 1 }
+
+ApmUserDefinedProtEntry ::= SEQUENCE {
+    apmUserDefinedProtIndex          Integer32,
+    apmUserDefinedProtParentIndex    Integer32,
+    apmUserDefinedProtApplication    SnmpAdminString
+}
+
+apmUserDefinedProtIndex OBJECT-TYPE
+    SYNTAX      Integer32 (1..2147483647)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The agent-assigned protocolDirLocalIndex value for this
+        user-defined protocol."
+    ::= { apmUserDefinedProtEntry 1 }
+
+apmUserDefinedProtParentIndex OBJECT-TYPE
+    SYNTAX      Integer32 (1..2147483647)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The protocolDirLocalIndex value of the highest-layer
+        protocol defined in the protocolDirectoryTable that this
+        protocol is a child of."
+    ::= { apmUserDefinedProtEntry 2 }
+
+apmUserDefinedProtApplication OBJECT-TYPE
+    SYNTAX      SnmpAdminString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "A human readable descriptive tag for this protocol."
+    ::= { apmUserDefinedProtEntry 3 }
+
+-- The APM Name Table
+
+apmNameTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF ApmNameEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A client machine may have multiple addresses during a period
+        of monitoring. The apmNameTable assigns a long-lived
+        identifier to a client and records what addresses were
+        assigned to that client for periods of time. Various
+        implementation techniques exist for tracking this mapping but
+        if an agent is unable to track client address mappings, it may
+        map client identifiers to client addresses rather than to
+        distinct client machines.
+
+        When available, the agent may also record the machine name
+        and/or user name which may be valuable for displaying to
+        humans."
+    ::= { apm 6 }
+
+apmNameEntry OBJECT-TYPE
+    SYNTAX      ApmNameEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "An entry in the APM name tale. An entry exists for each
+        period of time that a client has been associated with a
+        particular address."
+    INDEX { apmNameClientID,
+            apmNameProtocolDirLocalIndex,
+            apmNameClientAddress,
+            apmNameMappingStartTime }
+    ::= { apmNameTable 1 }
+
+ApmNameEntry ::= SEQUENCE {
+    apmNameClientID                  Unsigned32,
+    apmNameProtocolDirLocalIndex     Integer32,
+    apmNameClientAddress             OCTET STRING,
+    apmNameMappingStartTime          DateAndTime,
+    apmNameMachineName               SnmpAdminString,
+    apmNameUserName                  SnmpAdminString
+}
+
+apmNameClientID OBJECT-TYPE
+    SYNTAX      Unsigned32 (0..4294967295)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+         "A unique ID assigned to the machine represented by this
+         mapping. This ID is assigned by the agent using an
+         implementation-specific algorithm."
+    ::= { apmNameEntry 1 }
+
+apmNameProtocolDirLocalIndex OBJECT-TYPE
+    SYNTAX      Integer32 (1..2147483647)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The network level protocol of this client address."
+    ::= { apmNameEntry 2 }
+
+apmNameClientAddress OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The network client address for this client when this mapping
+        was active.
+
+        This is represented as an octet string with
+        specific semantics and length as identified
+        by the apmNameProtocolDirLocalIndex component of the index.
+
+        Since this object is an index variable, it is encoded in the
+        index according to the index encoding rules.  For example, if
+        the apmNameProtocolDirLocalIndex indicates an encapsulation of
+        ip, this object is encoded as a length octet of 4, followed by
+        the 4 octets of the ip address, in network byte order."
+    ::= { apmNameEntry 3 }
+
+apmNameMappingStartTime OBJECT-TYPE
+    SYNTAX      DateAndTime
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The time that the agent first discovered this mapping
+        as active."
+    ::= { apmNameEntry 4 }
+
+apmNameMachineName OBJECT-TYPE
+    SYNTAX      SnmpAdminString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The human readable name of the client machine.
+
+        If the client has no machine name or the agent is
+        unable to learn the machine name, this object will be
+        a zero-length string."
+    ::= { apmNameEntry 5 }
+
+apmNameUserName OBJECT-TYPE
+    SYNTAX      SnmpAdminString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The human readable name of a user using the client
+        machine.
+
+        If the client has no recorded user name or the agent is
+        unable to learn a user name, this object will be
+        a zero-length string."
+    ::= { apmNameEntry 6 }
+
+-- The APM Report Group
+
+apmReportControlTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF ApmReportControlEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Parameters that control the creation of a set of reports that
+        aggregate application performance."
+    ::= { apm 7 }
+
+apmReportControlEntry OBJECT-TYPE
+    SYNTAX      ApmReportControlEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the apmReportControlTable.
+
+        An example of the indexing of this table is
+        apmReportControlDuration.3"
+    INDEX { apmReportControlIndex }
+    ::= { apmReportControlTable 1 }
+
+ApmReportControlEntry ::= SEQUENCE {
+    apmReportControlIndex            Integer32,
+    apmReportControlDataSource       DataSource,
+    apmReportControlAggregationType  INTEGER,
+    apmReportControlInterval         Integer32,
+    apmReportControlRequestedSize    Integer32,
+    apmReportControlGrantedSize      Integer32,
+    apmReportControlRequestedReports Integer32,
+    apmReportControlGrantedReports   Integer32,
+    apmReportControlStartTime        TimeStamp,
+    apmReportControlReportNumber     Integer32,
+    apmReportControlInsertsDenied    Integer32,
+    apmReportControlDroppedFrames    Counter32,
+    apmReportControlOwner            OwnerString,
+    apmReportControlStatus           RowStatus
+}
+
+
+apmReportControlIndex OBJECT-TYPE
+    SYNTAX      Integer32 (1..65535)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "An index that uniquely identifies an entry in the
+        apmReportControlTable.  Each such entry defines a unique
+        report whose results are placed in the apmReportTable on
+        behalf of this apmReportControlEntry."
+    ::= { apmReportControlEntry 1 }
+
+apmReportControlDataSource OBJECT-TYPE
+    SYNTAX      DataSource
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The source of the data for APM Reports generated on
+        behalf of this apmReportControlEntry.
+
+        This object may not be modified if the associated
+        apmReportControlStatus object is equal to active(1)."
+    ::= { apmReportControlEntry 2 }
+
+apmReportControlAggregationType OBJECT-TYPE
+    SYNTAX     INTEGER {
+                 flows(1),    -- Least Aggregation
+                 clients(2),
+                 servers(3),
+                 protocols(4) -- Most Aggregation
+               }
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "The type of aggregation being performed for this set of
+        reports.
+
+        The metrics for a single transaction are the responsiveness of
+        the transaction and whether the transaction succeeded (a
+        boolean). When such metrics are aggregated in this MIB, these
+        metrics are replaced by averages and distributions of
+        responsiveness and availability. The metrics describing
+        aggregates are constant no matter which type of aggregation is
+        being performed. These metrics may be found in the
+        apmReportTable.
+
+        The flows(1) aggregation is the simplest. All transactions
+        that share common protocol/server/client 3-tuples are
+        aggregated together, resulting in a set of metrics for all
+        such unique 3-tuples.
+        The clients(2) aggregation results in somewhat more
+        aggregation (i.e. fewer resulting records). All transactions
+        that share common protocol/client tuples are aggregated
+        together, resulting in a set of metrics for all such unique
+        tuples.
+
+        The servers(3) aggregation usually results in still more
+        aggregation (i.e. fewer resulting records). All transactions
+        that share common protocol/server tuples are aggregated
+        together, resulting in a set of metrics for all such unique
+        tuples.
+
+        The protocols(4) aggregation results in the most
+        aggregation (i.e. the fewest resulting records). All
+        transactions that share a common protocol are aggregated
+        together, resulting in a set of metrics for all such unique
+        protocols.
+
+        Note that it is not meaningful to aggregate protocols, as
+        different protocols have widely varying characteristics. As a
+        result, this set of aggregations is complete.
+
+        This object may not be modified if the associated
+        apmReportControlStatus object is equal to active(1)."
+    ::= { apmReportControlEntry 3 }
+
+apmReportControlInterval OBJECT-TYPE
+    SYNTAX     Integer32 (1..86400)
+    UNITS      "Seconds"
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "The interval in seconds over which data is accumulated before
+        being aggregated into a report in the apmReportTable.  All
+        reports with the same apmReportControlIndex will be based on
+        the same interval.
+
+        This object may not be modified if the associated
+        apmReportControlStatus object is equal to active(1)."
+    DEFVAL { 3600 }
+    ::= { apmReportControlEntry 4 }
+
+apmReportControlRequestedSize OBJECT-TYPE
+    SYNTAX     Integer32 (0..2147483647)
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "The number of entries requested to be allocated for each
+        report generated on behalf of this entry."
+    ::= { apmReportControlEntry 5 }
+
+apmReportControlGrantedSize OBJECT-TYPE
+    SYNTAX     Integer32 (0..2147483647)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The number of entries per report the agent has allocated
+        based on the requested amount in apmReportControlRequestedSize.
+        Since multiple reports are saved, the total number of entries
+        allocated will be this number multiplied by the value of
+        apmReportControlGrantedReports, or 1 if that object doesn't
+        exist.
+
+        When the associated apmReportControlRequestedSize object is
+        created or modified, the agent should set this object as
+        closely to the requested value as is possible for the
+        particular implementation and available resources. When
+        considering resources available, the agent must consider its
+        ability to allocate this many entries for all reports.
+
+        Note that while the actual number of entries stored in the
+        reports may fluctuate due to changing conditions, the agent
+        must continue to have storage available to satisfy the full
+        report size for all reports when necessary. Further, the agent
+        must not lower this value except as a result of a set to the
+        associated apmReportControlRequestedSize object."
+    ::= { apmReportControlEntry 6 }
+
+apmReportControlRequestedReports OBJECT-TYPE
+    SYNTAX     Integer32 (0..65535)
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "The number of saved reports requested to be allocated on
+        behalf of this entry."
+    ::= { apmReportControlEntry 7 }
+
+apmReportControlGrantedReports OBJECT-TYPE
+    SYNTAX     Integer32 (0..65535)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The number of saved reports the agent has allocated
+        based on the requested amount in
+        apmReportControlRequestedReports. Since each report can have
+        many entries, the total number of entries allocated will be
+        this number multiplied by the value of
+        apmReportControlGrantedSize, or 1 if that object doesn't
+        exist.
+
+        When the associated apmReportControlRequestedReports object is
+        created or modified, the agent should set this object as
+        closely to the requested value as is possible for the
+        particular implementation and available resources. When
+        considering resources available, the agent must consider its
+        ability to allocate this many reports each with the number of
+        entries represented by apmReportControlGrantedSize, or 1 if
+        that object doesn't exist.
+
+        Note that while the storage required for each report may
+        fluctuate due to changing conditions, the agemt must continue
+        to have storage available to satisfy the full report size for
+        all reports when necessary. Further, the agent must not lower
+        this value except as a result of a set to the associated
+        apmReportControlRequestedSize object."
+    ::= { apmReportControlEntry 8 }
+
+apmReportControlStartTime OBJECT-TYPE
+    SYNTAX     TimeStamp
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The value of sysUpTime when the system began processing the
+        report in progress. Note that the report in progress is not
+        available.
+
+        This object may be used by the management station to figure
+        out the start time for all previous reports saved for this
+        apmReportControlEntry, as reports are started at fixed
+        intervals."
+    ::= { apmReportControlEntry 9 }
+
+apmReportControlReportNumber OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The number of the report in progress. When an
+        apmReportControlEntry is activated, the first report will be
+        numbered zero."
+    ::= { apmReportControlEntry 10 }
+
+apmReportControlInsertsDenied OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The number of failed attempts to add an entry to reports for
+        this apmReportControlEntry because the number of entries
+        would have exceeded apmReportControlGrantedSize.
+
+        This number is valuable in determining if enough entries have
+        been allocated for reports in light of fluctuating network
+        usage. Note that an entry that is denied will often be
+        attempted again, this number will not predict the exact number
+        of additional entries needed, but can be used to understand
+        the relative magnitude of the problem.
+
+        Also note that there is no ordering specified for the entries
+        in the report, thus there are no rules for which entries will
+        be omitted when not enough entries are available. As a
+        consequence, the agent is not required to delete 'least
+        valuable' entries first."
+    ::= { apmReportControlEntry 11 }
+
+apmReportControlDroppedFrames OBJECT-TYPE
+    SYNTAX     Counter32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The total number of frames which were received by the agent
+        and therefore not accounted for in the *StatsDropEvents, but
+        for which the agent chose not to count for this entry for
+        whatever reason.  Most often, this event occurs when the agent
+        is out of some resources and decides to shed load from this
+        collection.
+
+        This count does not include packets that were not counted
+        because they had MAC-layer errors.
+        Note that if the alMatrixTables are not implemented or are
+        inactive because no protocols are enabled in the protocol
+        directory, this value should be 0.
+
+        Note that, unlike the dropEvents counter, this number is the
+        exact number of frames dropped."
+    ::= { apmReportControlEntry 12 }
+
+apmReportControlOwner OBJECT-TYPE
+    SYNTAX     OwnerString
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "The entity that configured this entry and is
+        therefore using the resources assigned to it."
+    ::= { apmReportControlEntry 13 }
+
+apmReportControlStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "The status of this apmReportControlEntry.
+
+        An entry may not exist in the active state unless all
+        objects in the entry have an appropriate value.
+
+        If this object is not equal to active(1), all
+        associated entries in the apmReportTable shall be deleted
+        by the agent."
+    ::= { apmReportControlEntry 14 }
+
+-- The APM Report Table
+
+apmReportTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF ApmReportEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The data resulting from aggregated APM reports. Consult the
+        definition of apmReportControlAggregationType for the
+        definition of the various types of aggregations."
+    ::= { apm 8 }
+
+apmReportEntry OBJECT-TYPE
+    SYNTAX      ApmReportEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the apmReportTable.
+
+        The apmReportControlIndex value in the index identifies the
+        apmReportControlEntry on whose behalf this entry was created.
+        The apmReportIndex value in the index identifies which report
+        (in the series of reports) this entry is a part of.
+        The first protocolDirLocalIndex value in the index identifies
+        the application layer protocol of the transactions aggregated
+        in this entry.
+        The second protocolDirLocalIndex value in the index identifies
+        the network layer protocol of the apmReportServerAddress.
+        When the associated apmReportControlAggregationType value is
+        equal to protocol(4), this value will equal 0.
+        The apmReportServerAddress value in the index identifies the
+        network layer address of the server in transactions aggregated
+        in this entry.
+        The apmReportClientID value in the index identifies the
+        client in transactions aggregated in this entry. It is a
+        reference to the clientID recorded in the apmNameTable.
+        The apmReportResponsivenessType value in the index identifies
+        the type of responsiveness metric reported by this entry and
+        uniquely identifies this entry when more than one
+        responsiveness metric is measured for a flow.
+
+        Note that the order of protocolDirLocalIndex variables is
+        the opposite of that in the RMON2 MIB (application.network
+        instead of network.application) so that the report entries are
+        sorted by application first, server second and client third.
+
+        An example of the indexing of this entry is
+        apmReportTransactionCount.3.15.34.18.4.128.2.6.7.4.128.2.6.6.1"
+    INDEX { apmReportControlIndex, apmReportIndex,
+            protocolDirLocalIndex, protocolDirLocalIndex,
+            apmReportServerAddress, apmReportClientID,
+            apmReportResponsivenessType }
+    ::= { apmReportTable 1 }
+
+ApmReportEntry ::= SEQUENCE {
+    apmReportIndex                  Integer32,
+    apmReportServerAddress          OCTET STRING,
+    apmReportClientID               Unsigned32,
+    apmReportResponsivenessType     INTEGER,
+    apmReportTransactionCount       Integer32,
+    apmReportSuccessfulTransactions Integer32,
+    apmReportResponsivenessMean     Integer32,
+    apmReportResponsivenessMin      Integer32,
+    apmReportResponsivenessMax      Integer32,
+    apmReportResponsivenessB1       Integer32,
+    apmReportResponsivenessB2       Integer32,
+    apmReportResponsivenessB3       Integer32,
+    apmReportResponsivenessB4       Integer32,
+    apmReportResponsivenessB5       Integer32,
+    apmReportResponsivenessB6       Integer32,
+    apmReportResponsivenessB7       Integer32
+}
+
+apmReportIndex OBJECT-TYPE
+    SYNTAX      Integer32 (0..2147483647)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The value of apmReportControlReportNumber for the report to
+        which this entry belongs."
+    ::= { apmReportEntry 1 }
+
+apmReportServerAddress OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The network server address for this apmReportEntry.
+
+        This is represented as an octet string with
+        specific semantics and length as identified
+        by the second protocolDirLocalIndex component of the index.
+
+        Since this object is an index variable, it is encoded in the
+        index according to the index encoding rules.  For example, if
+        the protocolDirLocalIndex indicates an encapsulation of ip,
+        this object is encoded as a length octet of 4, followed by the
+        4 octets of the ip address, in network byte order.
+
+        If the associated apmReportControlAggregationType is equal to
+        protocol(4) or client(2), then this object will be a null
+        string and will be encoded simply as a length octet of 0."
+    ::= { apmReportEntry 2 }
+
+apmReportClientID OBJECT-TYPE
+    SYNTAX      Unsigned32 (0..4294967295)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The clientID for the client represented by this
+        apmReportEntry.
+
+        If the associated apmReportControlAggregationType is equal to
+        protocol(4) or server(3), then this object will be set to 0."
+    ::= { apmReportEntry 3 }
+
+apmReportResponsivenessType OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    transactionOriented(1),
+                    throughputOriented(2),
+                    streamingOriented(3)
+                }
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The type of measurement that this entry represents. Entries
+        will only exist for measurements configured by the
+        protocolDirExtApmResponsivenessType object."
+    ::= { apmReportEntry 4 }
+
+apmReportTransactionCount OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The total number of transactions aggregated into this record."
+    ::= { apmReportEntry 5 }
+
+apmReportSuccessfulTransactions OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The total number of successful transactions aggregated into
+        this record."
+    ::= { apmReportEntry 6 }
+
+apmReportResponsivenessMean OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The arithmetic mean of the responsiveness metrics for all
+        transactions aggregated into this record."
+    ::= { apmReportEntry 7 }
+
+apmReportResponsivenessMin OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum of the responsiveness metrics for all
+        transactions aggregated into this record."
+    ::= { apmReportEntry 8 }
+
+apmReportResponsivenessMax OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The maximum of the responsiveness metrics for all
+        transactions aggregated into this record."
+    ::= { apmReportEntry 9 }
+
+
+apmReportResponsivenessB1 OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of transactions aggregated into this record whose
+        responsiveness was less than boundary1 value for this
+        prococol."
+    ::= { apmReportEntry 10 }
+
+apmReportResponsivenessB2 OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of transactions aggregated into this record whose
+        responsiveness was greater than or equal to the boundary1
+        value for this protocol and less than the boundary2 value for
+        this prococol."
+    ::= { apmReportEntry 11 }
+
+apmReportResponsivenessB3 OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of transactions aggregated into this record whose
+        responsiveness was greater than or equal to the boundary2
+        value for this protocol and less than the boundary3 value for
+        this prococol."
+    ::= { apmReportEntry 12 }
+
+apmReportResponsivenessB4 OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of transactions aggregated into this record whose
+        responsiveness was greater than or equal to the boundary3
+        value for this protocol and less than the boundary4 value for
+        this prococol."
+    ::= { apmReportEntry 13 }
+
+apmReportResponsivenessB5 OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of transactions aggregated into this record whose
+        responsiveness was greater than or equal to the boundary4
+        value for this protocol and less than the boundary5 value for
+        this prococol."
+    ::= { apmReportEntry 14 }
+
+apmReportResponsivenessB6 OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of transactions aggregated into this record whose
+        responsiveness was greater than or equal to the boundary5
+        value for this protocol and less than the boundary6 value for
+        this prococol."
+    ::= { apmReportEntry 15 }
+
+apmReportResponsivenessB7 OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of transactions aggregated into this record whose
+        responsiveness was greater than or equal to the boundary6
+        value for this protocol."
+    ::= { apmReportEntry 16 }
+
+-- APM Current Transaction Table
+
+apmCurrentTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF ApmCurrentEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table contains all transactions that have been started
+        but have not yet finished."
+    ::= { apm 9 }
+
+apmCurrentEntry OBJECT-TYPE
+    SYNTAX      ApmCurrentEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the apmCurrentTable.
+
+        The first protocolDirLocalIndex value in the index identifies
+        the application layer protocol of the transactions represented
+        by this entry.
+        The second protocolDirLocalIndex value in the index identifies
+        the network layer protocol of the apmCurrentServerAddress and
+        apmCurrentClientAddress.
+        The apmCurrentServerAddress value in the index identifies the
+        network layer address of the server in the transaction
+        represented by this entry.
+        The apmCurrentClientID value in the index identifies the
+        client in the transaction represented by this entry.
+        The apmCurrentResponsivenessType value in the index identifies
+        the type of responsiveness metric reported by this entry and
+        uniquely identifies this entry when more than one
+        responsiveness metric is measured for a transaction.
+
+        Note that the order of protocolDirLocalIndex variables is
+        the opposite of that in the RMON2 MIB (application.network
+        instead of network.application) so that the report entries are
+        sorted by application first, server second and client third.
+
+        An example of the indexing of this entry is
+        apmCurrentTransactionCount.34.18.4.128.2.6.7.4.128.2.6.6.23698.1"
+    INDEX { protocolDirLocalIndex, protocolDirLocalIndex,
+            apmCurrentServerAddress, apmCurrentClientID,
+            apmCurrentTransactionID,
+            apmCurrentResponsivenessType }
+    ::= { apmCurrentTable 1 }
+
+ApmCurrentEntry ::= SEQUENCE {
+    apmCurrentServerAddress          OCTET STRING,
+    apmCurrentClientID               Unsigned32,
+    apmCurrentTransactionID          Integer32,
+    apmCurrentResponsivenessType     INTEGER,
+    apmCurrentResponsiveness         Integer32,
+    apmCurrentSuccess                TruthValue
+}
+
+apmCurrentServerAddress OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The network server address for this apmCurrentEntry.
+
+        This is represented as an octet string with
+        specific semantics and length as identified
+        by the second protocolDirLocalIndex component of the index.
+
+        For example, if the protocolDirLocalIndex indicates an
+        encapsulation of ip, this object is encoded as a length
+        octet of 4, followed by the 4 octets of the ip address,
+        in network byte order."
+    ::= { apmCurrentEntry 1 }
+
+apmCurrentClientID OBJECT-TYPE
+    SYNTAX      Unsigned32 (0..4294967295)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The clientID for the client in this apmCurrentEntry."
+    ::= { apmCurrentEntry 2 }
+
+apmCurrentTransactionID OBJECT-TYPE
+    SYNTAX      Integer32 (0..2147483647)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A unique value for this transaction amongst other
+        transactions sharing the same application layer protocol and
+        server and client addresses. Implementations may choose to use
+        the value of the client's source port, when possible."
+    ::= { apmCurrentEntry 3 }
+
+apmCurrentResponsivenessType OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    transactionOriented(1),
+                    throughputOriented(2),
+                    streamingOriented(3)
+                }
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The type of measurement that this entry represents. Entries
+        will only exist for measurements configured by the
+        protocolDirExtApmResponsivenessType object."
+    ::= { apmCurrentEntry 4 }
+
+apmCurrentResponsiveness OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The current value of the responsiveness metric for this
+        transaction.
+
+        Note that this value may change over the lifetime of the
+        transaction and it is the final value of this metric that is
+        recorded as the responsiveness of the transaction for use in
+        other APM MIB functions."
+    ::= { apmCurrentEntry 5 }
+
+apmCurrentSuccess OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The success of this transaction up to this time. A
+        transaction that has failed may exist in this table until it
+        is closed. Once a transaction has been marked as failed, it
+        cannot move back into the successful state."
+    ::= { apmCurrentEntry 6 }
+
+-- The APM exception table
+
+apmExceptionTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF ApmExceptionEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table creates filters so that a management station can
+        get immediate notification of a transaction that has had poor
+        availability or responsiveness.
+
+        Each apmExceptionEntry is associated with a particular type of
+        transaction and is applied to all transactions of that
+        type. Multiple apmExceptionEntries may be associated with a
+        particular type of transaction. A transaction type is
+        identified by the combination of protocolDirID and
+        protocolDirParameters specified in the index of the
+        apmExceptionEntry.
+
+        Because the quality of a transaction is not known until it is
+        completed, these thresholds are only applied after the
+        transaction has completed."
+    ::= { apm 10 }
+
+apmExceptionEntry OBJECT-TYPE
+    SYNTAX      ApmExceptionEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the apmExceptionTable."
+    INDEX { protocolDirID, protocolDirParameters,
+            protocolDirExtApmResponsivenessType, apmExceptionIndex }
+    ::= { apmExceptionTable 1 }
+
+ApmExceptionEntry ::= SEQUENCE {
+    apmExceptionIndex                       Integer32,
+    apmExceptionResponsivenessComparison    INTEGER,
+    apmExceptionResponsivenessThreshold     Integer32,
+    apmExceptionUnsuccessfulException       INTEGER,
+    apmExceptionOwner                       OwnerString,
+    apmExceptionStatus                      RowStatus
+}
+
+apmExceptionIndex OBJECT-TYPE
+    SYNTAX      Integer32 (1..65535)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "An index that uniquely identifies an entry in the
+        apmExceptionTable.  Each such entry sets up thresholds for a
+        particular measurement of a particular protocol.
+
+        Note that even though the index of the apmExceptionTable
+        contains other objects (e.g. protocolDirID) that may
+        disambiguate apmExceptionEntries, no two apmExceptionEntries
+        may have the same value of apmExceptionIndex."
+    ::= { apmExceptionEntry 1 }
+
+apmExceptionResponsivenessComparison OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    none(1),
+                    greater(2),
+                    less(3)
+                }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "If this value is greater(2) or less(3), the associated
+        apmExceptionResponsivenessThreshold will be compared to this
+        value and an exception will be created if the responsiveness
+        is greater than the threshold (greater(2)) or less than the
+        threshold (less(3))."
+    ::= { apmExceptionEntry 2 }
+
+apmExceptionResponsivenessThreshold OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The threshold that responsiveness metrics are compared to."
+    ::= { apmExceptionEntry 3 }
+
+apmExceptionUnsuccessfulException OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    off(1),
+                    on(2)
+                }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "If this value is on(2), an exception will be created if "
+    ::= { apmExceptionEntry 4 }
+
+apmExceptionOwner OBJECT-TYPE
+    SYNTAX     OwnerString
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "The entity that configured this entry and is
+        therefore using the resources assigned to it."
+    ::= { apmExceptionEntry 5 }
+
+apmExceptionStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "The status of this apmExceptionEntry."
+    ::= { apmExceptionEntry 6 }
+
+-- APM Notifications
+
+apmNotifications OBJECT IDENTIFIER ::= { apm 11 }
+
+apmTransactionResponsivenessAlarm NOTIFICATION-TYPE
+    OBJECTS     { apmExceptionResponsivenessThreshold,
+                  apmCurrentResponsiveness }
+    STATUS      current
+    DESCRIPTION
+        "Notification sent when a transaction exceeds a threshold
+        defined in the apmException table. The index of the
+        included apmExceptionResponsivenessThreshold object identifies
+        the apmExceptionEntry that specified the threshold. The
+        apmCurrentResponsiveness variable identifies the actual
+        transaction and its responsiveness."
+    ::= { apmNotifications 1 }
+
+apmTransactionUnsuccessfulAlarm NOTIFICATION-TYPE
+    OBJECTS     { apmExceptionResponsivenessThreshold }
+    STATUS      current
+    DESCRIPTION
+        "Notification sent when a transaction is unsuccessful.
+        The index of the included apmExceptionResponsivenessThreshold
+        object identifies both the type of the transaction that caused
+        this notification as well as the apmExceptionEntry that
+        specified the threshold."
+    ::= { apmNotifications 2 }
+
+    rmonConformance   OBJECT IDENTIFIER ::= { rmon 20 }
+    apmCompliances    OBJECT IDENTIFIER ::= { rmonConformance 11 }
+    apmGroups         OBJECT IDENTIFIER ::= { rmonConformance 12 }
+
+
+apmCompliance MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "Describes the requirements for conformance to
+        the APM MIB"
+    MODULE  -- this module
+        MANDATORY-GROUPS { apmProtocolDirectoryExtensionsGroup,
+                           apmReportGroup }
+    ::= { apmCompliances 1 }
+
+apmProtocolDirectoryExtensionsGroup OBJECT-GROUP
+    OBJECTS { protocolDirExtApmConfig,
+              protocolDirExtApmResponsivenessBoundary1,
+              protocolDirExtApmResponsivenessBoundary2,
+              protocolDirExtApmResponsivenessBoundary3,
+              protocolDirExtApmResponsivenessBoundary4,
+              protocolDirExtApmResponsivenessBoundary5,
+              protocolDirExtApmResponsivenessBoundary6,
+              apmNameMachineName,
+              apmNameUserName }
+    STATUS  current
+    DESCRIPTION
+        "The APM MIB extensions to the RMON2 Protocol Directory."
+    ::=  { apmGroups 1 }
+
+apmUserDefinedProtocolsGroup OBJECT-GROUP
+    OBJECTS {     apmHttpFilterLocalIndex,
+                  apmHttpFilterServerProtocol,
+                  apmHttpFilterServerAddress, apmHttpFilterURLPath,
+                  apmHttpFilterMatchType, apmHttpFilterRowStatus,
+                  apmHttpIgnoreUnregisteredURLs, apmHttp404IsFailure,
+                  apmUserDefinedProtParentIndex,
+                  apmUserDefinedProtApplication }
+    STATUS  current
+    DESCRIPTION
+        "Objects used for creating and managing user-defined
+        protocols."
+    ::= { apmGroups 2 }
+
+apmReportGroup OBJECT-GROUP
+    OBJECTS { apmReportControlDataSource,
+              apmReportControlAggregationType,
+              apmReportControlInterval,
+              apmReportControlRequestedSize,
+              apmReportControlGrantedSize,
+              apmReportControlRequestedReports,
+              apmReportControlGrantedReports,
+              apmReportControlStartTime,
+              apmReportControlReportNumber,
+              apmReportControlInsertsDenied,
+              apmReportControlDroppedFrames,
+              apmReportControlOwner,
+              apmReportControlStatus,
+              apmReportTransactionCount,
+              apmReportSuccessfulTransactions,
+              apmReportResponsivenessMean,
+              apmReportResponsivenessMin,
+              apmReportResponsivenessMax,
+              apmReportResponsivenessB1,
+              apmReportResponsivenessB2,
+              apmReportResponsivenessB3,
+              apmReportResponsivenessB4,
+              apmReportResponsivenessB5,
+              apmReportResponsivenessB6,
+              apmReportResponsivenessB7 }
+    STATUS  current
+    DESCRIPTION
+        "The apm report group controls the creation and retrieval of
+        reports that aggregate application performance."
+    ::=  { apmGroups 3 }
+
+apmCurrentTransactionGroup OBJECT-GROUP
+    OBJECTS { apmCurrentResponsiveness,
+              apmCurrentSuccess }
+    STATUS  current
+    DESCRIPTION
+        "The apm current transaction group contains statistics for
+        transactions that have not yet terminated."
+    ::=  { apmGroups 4 }
+
+apmExceptionGroup OBJECT-GROUP
+    OBJECTS { apmExceptionResponsivenessComparison,
+              apmExceptionResponsivenessThreshold,
+              apmExceptionUnsuccessfulException,
+              apmExceptionOwner,
+              apmExceptionStatus }
+    STATUS  current
+    DESCRIPTION
+        "The apm exception group causes notifications to be sent
+        whenever transactions are detected that had poor availability
+        or responsiveness."
+    ::=  { apmGroups 5 }
+
+apmNotificationGroup NOTIFICATION-GROUP
+    NOTIFICATIONS { apmTransactionResponsivenessAlarm,
+                    apmTransactionUnsuccessfulAlarm }
+    STATUS        current
+    DESCRIPTION
+        "Notifications sent by an APM MIB agent."
+    ::= { apmGroups 6 }
+
+END
+
+-- 
+-- Copyright (C) The Internet Society (2000). All Rights Reserved.
+-- 
+-- This document and translations of it may be copied and
+-- furnished to others, and derivative works that comment on or
+-- otherwise explain it or assist in its implementation may be
+-- prepared, copied, published and distributed, in whole or in
+-- part, without restriction of any kind, provided that the above
+-- copyright notice and this paragraph are included on all such
+-- copies and derivative works.  However, this document itself
+-- may not be modified in any way, such as by removing the
+-- copyright notice or references to the Internet Society or
+-- other Internet organizations, except as needed for the
+-- purpose of developing Internet standards in which case the
+-- procedures for copyrights defined in the Internet Standards
+-- process must be followed, or as required to translate it into
+-- languages other than English.
+-- 
+-- The limited permissions granted above are perpetual and will
+-- not be revoked by the Internet Society or its successors or
+-- assigns.
+-- 
+-- This document and the information contained herein is provided
+-- on an "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET
+-- ENGINEERING TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE
+-- USE OF THE INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR
+-- ANY IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A
+-- PARTICULAR PURPOSE.
+

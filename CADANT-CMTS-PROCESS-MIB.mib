@@ -1,0 +1,356 @@
+CADANT-CMTS-PROCESS-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    OBJECT-TYPE, 
+    MODULE-IDENTITY, 
+    NOTIFICATION-TYPE,
+    Integer32, 
+    Counter32, 
+    Unsigned32, 
+    Counter64
+        FROM SNMPv2-SMI
+    DisplayString, 
+    TEXTUAL-CONVENTION,
+    RowStatus, 
+    TimeInterval, 
+    TruthValue
+        FROM SNMPv2-TC
+    OBJECT-GROUP, 
+    MODULE-COMPLIANCE
+        FROM SNMPv2-CONF
+    cadSystem
+        FROM CADANT-PRODUCTS-MIB
+    trapCounter,
+    trapSeverity, 
+    cardNumber
+        FROM CADANT-CMTS-EQUIPMENT-MIB
+    CardId, 
+    OverloadStatus
+        FROM CADANT-TC;
+        
+cadProcessMib MODULE-IDENTITY
+    LAST-UPDATED "201307020000Z" -- July 2, 2013
+    ORGANIZATION 
+        "Arris International, Inc."
+    CONTACT-INFO 
+        "Arris Technical Support
+         Postal: ARRIS
+         E-Mail: support@arrisi.com"
+    DESCRIPTION 
+        " This MIB module contains information on the process
+          table and memory usage of the C4. "
+
+    REVISION "201307020000Z" -- July 2, 2013
+    DESCRIPTION 
+        "Add trapSeverity to Notification cardOverloadNotification and sysOverloadNotification"
+
+    REVISION "201105220000Z" -- May 22, 2011
+    DESCRIPTION 
+        "Add notification support for overload."
+    REVISION "201012200000Z" -- December 20, 2010
+    DESCRIPTION 
+        "Deprecate unused memory status."
+    REVISION "200510200000Z" -- October 20, 2005
+    DESCRIPTION 
+        "Add support for percentage idle time." 
+    REVISION "200303290000Z" -- March 29, 2003
+    DESCRIPTION 
+        "Promoted cadProcessMib from cadExperimental.7 to cadSystem.3"
+    REVISION "200303200000Z" -- March 20, 2003
+    DESCRIPTION 
+        "Add more support for card overload status and remove
+         support for the process table."
+    REVISION "200204230000Z" -- April 23, 2002
+    DESCRIPTION 
+        "Add support for card overload status."
+
+    ::= { cadSystem 3 }
+
+--=======================================================
+--=   SECTION 1: Process table definition               =
+--=======================================================
+
+cadProcessTraps OBJECT IDENTIFIER ::= { cadProcessMib 0 }
+
+cadProcessGroup OBJECT IDENTIFIER ::= { cadProcessMib 1 }
+
+cadCpu OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadCpuEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row containing information about the 
+         cpu and system statistics. "
+    ::= { cadProcessGroup 1 }
+
+cadCpuEntry OBJECT-TYPE
+    SYNTAX      CadCpuEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row containing information about the 
+         cpu and system statistics. "
+    INDEX       { cadCpuCardId }
+    ::= { cadCpu 1 }
+
+CadCpuEntry ::= SEQUENCE {
+    cadCpuCardId            CardId,
+    cadCpuRecentTime        Counter64,
+    cadCpuTotalTime         Counter64,
+    cadIdleCpuRecentTime    Counter64,
+    cadIdleCpuTotalTime     Counter64,
+    cadSwitchRecentCount    Counter64,
+    cadSwitchTotalCount     Counter64,
+    cadIdleCpuRecentPercent Integer32
+}
+
+cadCpuCardId OBJECT-TYPE
+    SYNTAX  CardId
+    MAX-ACCESS not-accessible
+    STATUS  current
+    DESCRIPTION
+	"Index of slot"
+    ::= { cadCpuEntry 1 }
+
+cadCpuRecentTime OBJECT-TYPE
+    SYNTAX  Counter64
+    UNITS "nanoseconds"
+    MAX-ACCESS read-only
+    STATUS  current
+    DESCRIPTION
+        "Total CPU time consumed in the last reporting cycle."
+    ::= { cadCpuEntry 2 }
+
+cadCpuTotalTime OBJECT-TYPE
+    SYNTAX  Counter64
+    UNITS "nanoseconds"
+    MAX-ACCESS read-only
+    STATUS  current
+    DESCRIPTION
+        "Total CPU time consumed since the card was initialized."
+    ::= { cadCpuEntry 3 }
+
+cadIdleCpuRecentTime OBJECT-TYPE
+    SYNTAX  Counter64
+    UNITS "nanoseconds"
+    MAX-ACCESS read-only
+    STATUS  current
+    DESCRIPTION
+        "CPU time consumed by non-critical tasks in the last reporting cycle."
+    ::= { cadCpuEntry 4 }
+
+cadIdleCpuTotalTime OBJECT-TYPE
+    SYNTAX  Counter64
+    UNITS "nanoseconds"
+    MAX-ACCESS read-only
+    STATUS  current
+    DESCRIPTION
+        "CPU time consumed by non-critical tasks since the card was initialized."
+    ::= { cadCpuEntry 5 }
+
+cadSwitchRecentCount OBJECT-TYPE
+    SYNTAX  Counter64
+    MAX-ACCESS read-only
+    STATUS  current
+    DESCRIPTION
+        "Number of task switches in the last reporting cycle."
+    ::= { cadCpuEntry 6 }
+
+cadSwitchTotalCount OBJECT-TYPE
+    SYNTAX  Counter64
+    MAX-ACCESS read-only
+    STATUS  current
+    DESCRIPTION
+        "Number of task switches since the card was initialized."
+    ::= { cadCpuEntry 7 }
+
+cadIdleCpuRecentPercent OBJECT-TYPE
+    SYNTAX  Integer32(0..100)
+    UNITS "percent"
+    MAX-ACCESS read-only
+    STATUS  current
+    DESCRIPTION
+        "Percentage of idle CPU time in last reporting cycle."
+    ::= { cadCpuEntry 8 }
+
+--==============Memory Table==========================
+--====================================================
+
+cadMemoryGroup  OBJECT IDENTIFIER ::= { cadProcessMib 2 }
+
+cadMemory OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadMemoryEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A table that contains information on the memory
+         present on the C4 line cards. "
+    ::= { cadMemoryGroup 1 }
+
+cadMemoryEntry OBJECT-TYPE
+    SYNTAX  CadMemoryEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A conceptual row containing information about processes 
+         and their configuration and operating parameters. "
+    INDEX   { cadMeCardId }
+    ::= { cadMemory 1 }
+
+CadMemoryEntry ::= SEQUENCE {
+    cadMeCardId           CardId,
+    cadMeHeapSize         Unsigned32,
+    cadMeHeapRemaining    Unsigned32
+}
+
+
+cadMeCardId OBJECT-TYPE
+    SYNTAX  CardId
+    MAX-ACCESS not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Index of slot"
+    ::= {  cadMemoryEntry 1 }
+
+cadMeHeapSize OBJECT-TYPE
+    SYNTAX  Unsigned32
+    UNITS "bytes"
+    MAX-ACCESS read-only
+    STATUS  current
+    DESCRIPTION
+        "Total size of the dynamic heap. "
+    ::= {  cadMemoryEntry 2 }
+
+cadMeHeapRemaining OBJECT-TYPE
+    SYNTAX  Unsigned32
+    UNITS "bytes"
+    MAX-ACCESS read-only
+    STATUS  current
+    DESCRIPTION
+        "Size of the dynamic currently unallocated."
+    ::= {  cadMemoryEntry 3 }
+
+--==============Overload Table==========================
+--====================================================
+
+cadOverloadGroup        OBJECT IDENTIFIER ::= { cadProcessMib 3 }
+
+cadOverload OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadOverloadEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+	"A table that contains information on the overload
+	 status of the C4 line cards. "
+    ::= { cadOverloadGroup 1 }
+
+cadOverloadEntry OBJECT-TYPE
+    SYNTAX  CadOverloadEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+	"A conceptual row containing information about processes 
+	 and their configuration and operating parameters. "
+    INDEX   { cadOvCardId }
+    ::= { cadOverload 1 }
+
+CadOverloadEntry ::= SEQUENCE {
+    cadOvCardId           CardId,
+    cadOvCpuStatus        OverloadStatus,
+    cadOvMemStatus        OverloadStatus
+}
+
+
+cadOvCardId OBJECT-TYPE
+    SYNTAX  CardId
+    MAX-ACCESS not-accessible
+    STATUS  current
+    DESCRIPTION
+        " Slot number of card "
+    ::= {  cadOverloadEntry 1 }
+
+cadOvCpuStatus OBJECT-TYPE
+    SYNTAX  OverloadStatus
+    MAX-ACCESS read-only
+    STATUS  current
+    DESCRIPTION
+        " Overload status of card "
+    DEFVAL { normal }
+    ::= {  cadOverloadEntry 2 }
+
+cadOvMemStatus OBJECT-TYPE
+    SYNTAX  OverloadStatus
+    MAX-ACCESS read-only
+    STATUS  deprecated
+    DESCRIPTION
+        " Memory Overload status of card "
+    DEFVAL { normal }
+    ::= {  cadOverloadEntry 3 }
+
+--
+-- Global overload status
+--
+cadOvSysCpuStatus OBJECT-TYPE
+    SYNTAX  OverloadStatus
+    MAX-ACCESS read-only
+    STATUS  current
+    DESCRIPTION
+        " Overload status of E6 "
+    DEFVAL { normal }
+    ::= {  cadOverloadGroup 2 }
+
+cadOvSysMemStatus OBJECT-TYPE
+    SYNTAX  OverloadStatus
+    MAX-ACCESS read-only
+    STATUS  current
+    DESCRIPTION
+	" Memory Overload status of card "
+    DEFVAL { normal }
+    ::= {  cadOverloadGroup 3 }
+
+--
+-- Overload Notifications
+--
+cadProcessTrapInfo OBJECT IDENTIFIER ::= { cadProcessMib 4 }
+
+cadProcessOverloadStatus OBJECT-TYPE
+    SYNTAX  OverloadStatus
+    MAX-ACCESS accessible-for-notify
+    STATUS  current
+    DESCRIPTION
+	" Overload status of C4 "
+    DEFVAL { normal }
+    ::= {  cadProcessTrapInfo 1 }
+
+cardOverloadNotification NOTIFICATION-TYPE
+        OBJECTS     { trapCounter, trapSeverity, cardNumber, cadProcessOverloadStatus }
+        STATUS current
+        DESCRIPTION
+            "This trap is sent when the card changes overload state 
+             (controlled by cardTrapInh)."
+        ::= { cadProcessTraps 1 }
+
+sysOverloadNotification NOTIFICATION-TYPE
+        OBJECTS     { trapCounter, trapSeverity, cadProcessOverloadStatus }
+        STATUS current
+        DESCRIPTION
+            "This trap is sent when the system changes overload state."
+        ::= { cadProcessTraps 2 }
+
+---
+--- Conformance information
+---
+cadProcessMibConformance OBJECT IDENTIFIER ::= { cadProcessMib 5 } 
+cadProcessCompliances OBJECT IDENTIFIER ::= { cadProcessMibConformance 1 } 
+cadProcessGroups OBJECT IDENTIFIER ::= { cadProcessMibConformance 2 } 
+
+cadProcessCompliance MODULE-COMPLIANCE
+    STATUS current
+    DESCRIPTION
+	" Compliance statement for entities implementing the Cadant
+	  Process Mib. "
+    MODULE -- this module
+    MANDATORY-GROUPS { cadProcessGroup, cadMemoryGroup, cadOverloadGroup }
+    ::= { cadProcessCompliances 1 }
+
+END

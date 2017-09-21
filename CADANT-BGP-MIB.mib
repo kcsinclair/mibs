@@ -1,0 +1,211 @@
+
+-- =====================================================================
+--
+-- Cadant Enterprise Specific MIB - Cadant BGP MIB
+-- 
+-- Copyright (c) 2004 Arris Inc.
+-- All rights reserved.
+--
+-- The contents of this document are subject to change without notice.
+--
+-- =====================================================================
+
+CADANT-BGP-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, Unsigned32
+        FROM SNMPv2-SMI
+    TruthValue,
+    RowStatus
+        FROM SNMPv2-TC
+    cadLayer3
+        FROM CADANT-PRODUCTS-MIB
+    bgpRmEntIndex, bgpRouteMapIndex, bgpRouteMapNumber, BgpIpMatchType
+        FROM DC-BGP-MIB
+	FteIndex
+        FROM DC-RTM-MIB;
+
+
+cadBgpMib MODULE-IDENTITY
+    LAST-UPDATED "200406080000Z"
+    ORGANIZATION "Arris Inc"
+    CONTACT-INFO
+           " Customer Support
+             Postal: Arris International Inc.
+             4343 Commerce Court
+             Lisle, IL 60532
+             Phone:  +1 630 281 3000
+             Email:  support@cadant.com "
+
+    DESCRIPTION
+           "The MIB module defined here represent Arris Cadant C4's
+            enterprise specific Border Gateway Protocol MIB."
+    REVISION "200406080000Z" 
+    DESCRIPTION " Removed original tables and add DCL related tables. "
+	::= { cadLayer3 9 }
+
+
+-- cadBgpMib 1 through 16 are deprecated.
+
+
+-- ================================================================
+--  Cadant BGP route map auxilary table
+-- ================================================================
+
+
+cadBgpRouteMapAuxTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadBgpRouteMapAuxEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "This table adds Cadant specific route map parameters."
+    ::= { cadBgpMib 17 }
+
+
+cadBgpRouteMapAuxEntry OBJECT-TYPE
+    SYNTAX      CadBgpRouteMapAuxEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "An entry that adds Cadant specific route map parameters
+                 using the DCL bgpRouteMapTable keys."
+    INDEX { bgpRmEntIndex,
+            bgpRouteMapIndex,
+            bgpRouteMapNumber }
+    ::= { cadBgpRouteMapAuxTable 1 }
+
+
+CadBgpRouteMapAuxEntry  ::=
+SEQUENCE {
+    cadBgpRouteMapAuxRouteMapName     OCTET STRING,
+    cadBgpRouteMapAuxPrefixListName   OCTET STRING,
+    cadBgpRouteMapAuxPreMatch         BgpIpMatchType,
+	cadBgpRouteMapAuxMaAddrName       OCTET STRING,
+    cadBgpRouteMapAuxMaNextName       OCTET STRING,
+    cadBgpRouteMapAuxMaSourceName     OCTET STRING
+}
+
+
+cadBgpRouteMapAuxRouteMapName OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE (0..32))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Field containg the name of the Route Map."
+    ::= { cadBgpRouteMapAuxEntry 1 }
+
+cadBgpRouteMapAuxPrefixListName OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE (0..32))
+    MAX-ACCESS  read-only
+    STATUS      obsolete
+    DESCRIPTION "Field containg the name of the Prefix List associated with
+                 this Route Map. It is used to match on cadPolicyPfxListName."
+    ::= { cadBgpRouteMapAuxEntry 2 }
+
+cadBgpRouteMapAuxPreMatch OBJECT-TYPE
+    SYNTAX      BgpIpMatchType
+    MAX-ACCESS  not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Field indicates which match command is used by the route map 
+	the prefix list is tied to."
+    ::= { cadBgpRouteMapAuxEntry 3 }
+
+cadBgpRouteMapAuxMaAddrName OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE (0..32))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Field containg the name of the Prefix List used to match
+                 the NLRI attribute against."
+    ::= { cadBgpRouteMapAuxEntry 4 }
+
+cadBgpRouteMapAuxMaNextName OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE (0..32))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Field containg the name of the Prefix List used to match
+                 the Next Hop attribute"
+    ::= { cadBgpRouteMapAuxEntry 5 }
+
+cadBgpRouteMapAuxMaSourceName OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE (0..32))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Field containg the name of the Prefix List used to match
+                 the source address"
+    ::= { cadBgpRouteMapAuxEntry 6 }
+
+-- ================================================================
+--  Cadant RTM Redistribution auxilary table
+-- ================================================================
+
+
+cadRtmRedistAuxTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadRtmRedistAuxEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "This table adds Cadant redistribution information entries."
+    ::= { cadBgpMib 18 }
+
+
+cadRtmRedistAuxEntry OBJECT-TYPE
+       SYNTAX    CadRtmRedistAuxEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+          "Cadant specific auxiliary information that parallels DC-RTM Redistribution Table"
+        INDEX {
+                rtmRedistFteIndex,
+                rtmRedistEntryId
+              }
+ 	    ::= { cadRtmRedistAuxTable 1 }
+
+CadRtmRedistAuxEntry ::=
+SEQUENCE {
+        rtmRedistFteIndex               FteIndex,
+        rtmRedistEntryId                Unsigned32,
+		cadRtmRedistAuxRowStatus        RowStatus,
+		cadRtmRedistAuxRouteMapIndex    Unsigned32,
+		cadRtmRedistAuxCommandLineMetric TruthValue
+}
+
+
+rtmRedistFteIndex OBJECT-TYPE
+       SYNTAX       FteIndex
+       MAX-ACCESS   not-accessible
+       STATUS       current
+       DESCRIPTION
+          "The HAF entity index identifying the instance of DC-RTM to which
+          this auxiliary table entry applies."
+       ::= { cadRtmRedistAuxEntry 1 }
+
+rtmRedistEntryId OBJECT-TYPE
+       SYNTAX       Unsigned32
+       MAX-ACCESS   not-accessible
+       STATUS       current
+       DESCRIPTION
+          "The index of the parallel DC-RTM redistribution table entry within the
+          DC-RTM entity.  This is an arbitrarily selected identifier."
+       ::= { cadRtmRedistAuxEntry 2 }
+
+cadRtmRedistAuxRowStatus OBJECT-TYPE
+       SYNTAX       RowStatus
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Used to create and delete a cadRtmRedistAuxTable entry."
+       ::= { cadRtmRedistAuxEntry 3 }
+
+cadRtmRedistAuxRouteMapIndex OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "The index of the bgpRouteMapEntry used by this route
+	             redistribution."
+	DEFVAL { 0 }
+    ::= { cadRtmRedistAuxEntry 4 }
+
+cadRtmRedistAuxCommandLineMetric OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "Whether of not metric values were set in the command line"
+	DEFVAL { false }
+    ::= { cadRtmRedistAuxEntry 5 }
+END

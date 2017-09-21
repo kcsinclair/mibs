@@ -1,0 +1,1702 @@
+-- ============================================================================
+-- Copyright (C) 2012 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description: The HUAWEI SHDSL MIB,extend based on HDSL2-SHDSL-LINE-MIB-rfc4319.mib.
+-- Reference:
+-- Version: V1.21
+-- ============================================================================
+
+    HUAWEI-SHDSL-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+        huaweiUtility
+            FROM HUAWEI-MIB
+        ifIndex
+            FROM IF-MIB
+        RowStatus, DateAndTime, TruthValue
+            FROM SNMPv2-TC
+        Integer32, Unsigned32, Gauge32, OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE
+            FROM SNMPv2-SMI
+        hwFrameIndex, hwSlotIndex,hwPortIndex,hwPortOperStatus,hwPortPrimaryStatus,
+        hwPortSecondaryStatus,hwConfigChangeIP
+            FROM HUAWEI-DEVICE-MIB
+        hwXdslProfName
+            FROM HUAWEI-XDSL-COMMON-MIB
+        hdsl2ShdslSpanStatusEntry, hdsl2ShdslSpanConfProfileEntry, hdsl2ShdslEndpointAlarmConfProfileEntry,
+        hdsl2ShdslSpanConfProfileName,hdsl2ShdslStatusActualLineRate, hdsl2ShdslInvIndex, hdsl2ShdslEndpointSide,
+        hdsl2ShdslEndpointWirePair, hdsl2Shdsl1DayIntervalNumber, hdsl2Shdsl15MinIntervalNumber,
+        Hdsl2ShdslPerfIntervalThreshold,hdsl2ShdslEndpointAlarmConfProfileName,hdsl2ShdslEndpointThreshSNRMargin, 
+        hdsl2ShdslEndpointCurrSnrMgn, hdsl2ShdslEndpointThreshLoopAttenuation, hdsl2ShdslEndpointCurrAtn, hdsl2ShdslEndpointThreshES, 
+        hdsl2ShdslEndpointCurr15MinES,hdsl2ShdslEndpointThreshSES, hdsl2ShdslEndpointCurr15MinSES, hdsl2ShdslEndpointThreshCRCanomalies, 
+        hdsl2ShdslEndpointCurr15MinCRCanomalies, hdsl2ShdslEndpointThreshLOSWS, hdsl2ShdslEndpointCurr15MinLOSWS,
+        hdsl2ShdslEndpointThreshUAS, hdsl2ShdslEndpointCurr15MinUAS
+            FROM HDSL2-SHDSL-LINE-MIB;
+
+        hwShdsl  MODULE-IDENTITY
+            LAST-UPDATED "201203270000Z"
+            ORGANIZATION
+                "Huawei Technologies Co.,Ltd."
+            CONTACT-INFO                                        
+                         "Huawei Industrial Base                
+                          Bantian, Longgang                     
+                          Shenzhen 518129                       
+                          People's Republic of China            
+                          Website: http://www.huawei.com        
+                          Email: support@huawei.com             
+                         "                                      
+            DESCRIPTION "The HUAWEI SHDSL MIB,extend based on HDSL2-SHDSL-LINE-MIB-rfc4319.mib."
+
+            --  Revision history
+            REVISION     "201203270000Z"
+            DESCRIPTION  "V1.21, modify the defination of the trap node hwShdslSnrExceedThreshUsAlarmTrap, hwShdslLoopAtteExceedThreshUsAlarmTrap, 
+                          hwShdslESSExceedThreshUsAlarmTrap, hwShdslSESSExceedThreshUsAlarmTrap, hwShdslCRCErrExceedThreshUsAlarmTrap, hwShdslLOSWExceedThreshUsAlarmTrap,
+                          hwShdslUASSExceedThreshUsAlarmTrap, hwShdslSnrExceedThreshDsAlarmTrap, hwShdslLoopAtteExceedThreshDsAlarmTrap, hwShdslESSExceedThreshDsAlarmTrap,
+                          hwShdslSESSExceedThreshDsAlarmTrap, hwShdslCRCErrExceedThreshDsAlarmTrap, hwShdslLOSWExceedThreshDsAlarmTrap, hwShdslUASSExceedThreshDsAlarmTrap.
+			  add leaf node hwhdsl2hwShdslSpanConfPerfMode in table hwShdslSpanConfProfileTable."
+            
+            REVISION     "201202140000Z"
+	    DESCRIPTION  "V1.20,  modify the description of the leaf hwhdsl2ShdslStatusCurrSnrMarginUs, hwhdsl2ShdslStatusCurrPboUs, 
+	                  hwhdsl2ShdslStatusCurrLoopAttenDs, hwhdsl2ShdslStatusCurrSnrMarginDs, hwhdsl2ShdslStatusCurrPboDs, 
+	                  hwhdsl2ShdslStatusGroupMasterPort.
+	                 "
+            REVISION     "201111080000Z"
+	    DESCRIPTION  "V1.19, add leaf node hwShdslEndpointAlarmConfProfileActiveFailAlarmSwitch.
+	                  Modify the description and value of the leaf node hwhdsl2ShdslSpanConfPathMode.
+	                  modify the definition of the trap node: hwShdslSnrExceedThreshUsAlarmTrap,
+	                  hwShdslLoopAtteExceedThreshUsAlarmTrap,hwShdslESSExceedThreshUsAlarmTrap,hwShdslSESSExceedThreshUsAlarmTrap,
+	                  hwShdslCRCErrExceedThreshUsAlarmTrap,hwShdslLOSWExceedThreshUsAlarmTrap,hwShdslUASSExceedThreshUsAlarmTrap,
+	                  hwShdslSnrExceedThreshDsAlarmTrap,hwShdslLoopAtteExceedThreshDsAlarmTrap,hwShdslESSExceedThreshDsAlarmTrap,
+	                  hwShdslSESSExceedThreshDsAlarmTrap,hwShdslCRCErrExceedThreshDsAlarmTrap,hwShdslLOSWExceedThreshDsAlarmTrap,
+	                  hwShdslUASSExceedThreshDsAlarmTrap.
+	                 "
+
+            REVISION     "201102210000Z"
+	    DESCRIPTION  "V1.18, add leaf node: hwhdsl2ShdslStatusGroupMasterPort,hwhdsl2ShdslStatusGroupLineRate,
+	                  hwhdsl2ShdslStatusCurrMode,hwhdsl2ShdslStatusGroupActualPayloadRate in table hwShdslSpanStatusTable.
+	                  modify the description of the leaf node: hwhdsl2ShdslStatusCurrLoopAttenDs.
+	                 "
+	                          
+            REVISION     "201010210000Z"
+	    DESCRIPTION  "V1.17, modify the definition of the trap node: hwShdslSnrExceedThreshUsAlarmTrap,hwShdslLoopAtteExceedThreshUsAlarmTrap,
+	                  hwShdslESSExceedThreshUsAlarmTrap,hwShdslSESSExceedThreshUsAlarmTrap,hwShdslCRCErrExceedThreshUsAlarmTrap,
+	                  hwShdslLOSWExceedThreshUsAlarmTrap,hwShdslUASSExceedThreshUsAlarmTrap.
+	                  add the definition of the trap node: hwShdslSnrExceedThreshDsAlarmTrap,hwShdslLoopAtteExceedThreshDsAlarmTrap,
+	                  hwShdslESSExceedThreshDsAlarmTrap,hwShdslSESSExceedThreshDsAlarmTrap,hwShdslCRCErrExceedThreshDsAlarmTrap,
+	                  hwShdslLOSWExceedThreshDsAlarmTrap,hwShdslUASSExceedThreshDsAlarmTrap.
+	                  modify the description of the leaf node: hwShdslEndpointThreshLoopAttenuationDs,hwShdslEndpointThreshSNRMarginDs,
+	                  hwShdslEndpointThreshESDs,hwShdslEndpointThreshSESDs,hwShdslEndpointThreshCRCanomaliesDs,
+	                  hwShdslEndpointThreshLOSWSDs,hwShdslEndpointThreshUASDs.
+			 "
+			 
+ 	    REVISION     "201009270000Z"
+	    DESCRIPTION  "V1.16, modify the description of the whole MIB file."
+           
+ 	    REVISION     "201008250000Z"
+	    DESCRIPTION  "V1.15, add leaf node hwShdslEndpointAlarmConfProfileDyingGaspCfg in table hwShdslEndpointAlarmConfProfileTable, 
+	                 modify leaf node hdsl2ShdslEndpointAlarmConfProfileDyingGasp for mib standardization."
+           
+	    REVISION     "201008130000Z"
+	    DESCRIPTION  "V1.14, modify the definition of the node: hwShdslPortBindOper.
+			  modify the data type of the trap node hwShdsl2ChipsetSwitchResult."
+			                     
+            REVISION     "201007290000Z"
+	    DESCRIPTION  "V1.13, add the definition of the trap node: hwSHDSLProfIDChangeTrap.
+			 add leaf node hwhdslConfProfileType in table hwShdslTrapsVbOids.
+			 add the value of invalid(-1) for the node of hwShdslChipsetMode."
+			
+            REVISION     "201006230000Z"
+            DESCRIPTION  "V1.12, modify the definition of the trap node hwShdslPortStatusChangeTrap.
+                          add leaf node hwShdsl15MinIntervalMoniSecs, hwShdsl15MinIntervalValid in table hwShdsl15MinIntervalTable.
+                          add leaf node hwShdsl1DayIntervalValid in table hwShdsl1DayIntervalTable.
+                          add table hwShdslEndpointMaintTable.
+                          add hwShdslEndpointAlarmConfProfileTable for supporting downstream alarm parameter.
+                          modify the node name of hwShdslSnrExceedThresholdAlarmTrap, hwShdslLoopAtteExceedThreAlarmTrap,
+                          hwShdslESSExceedThreAlarmTrap, hwShdslSESSExceedThreAlarmTrap, hwShdslCRCErrExceedThreAlarmTrap,
+                          hwShdslLOSWExceedThreAlarmTrap, hwShdslUASSExceedThreAlarmTrap."
+
+            REVISION     "201002260000Z"
+            DESCRIPTION  "V1.11, modify the definition of the trap node hwShdslPortBindChangeTrap, hwShdslChipsetModeSwitchTrap. "
+
+            REVISION     "201001120000Z"
+            DESCRIPTION  "V1.10, Modify the definition of the node, include:hwhdsl2ShdslModulationMode, hwhdsl2hwShdslModulationMode, hwhdsl2ShdslStatusNtrMode. "
+
+            REVISION     "201001120000Z"
+            DESCRIPTION  "V1.09, add hwShdslEndpointCurrTable,hwShdsl15MinIntervalTable,hwShdsl1DayIntervalTable for shdsl performance monitoring.
+                          Modify hwShdslSpanConfProfileTable, hwShdslSpanStatusTable for EDTB.
+                          In hwShdslSpanConfProfileTable,modify hwhdsl2hwShdslSpanConfPathMode,add hwhdsl2hwShdslSpanConfFrameType, hwhdsl2hwShdslSpanConfClkAlign.
+                          In hwShdslSpanStatusTable,modify hwhdsl2ShdslStatusCurrLoopAttenUs,hwhdsl2ShdslStatusCurrSNRMarginUs,hwhdsl2ShdslStatusCurrPboUs,
+                          add hwhdsl2ShdslStatusNTRMode,hwhdsl2ShdslStatusCurrLoopAttenDs,hwhdsl2ShdslStatusCurrSNRMarginDs,hwhdsl2ShdslStatusCurrPboDs.
+                          modify SHDSL crosstalk mib name hwShdslCrossTalkCanellationGroupTable,hwShdslCrossTalkCanellationGroupIndex,
+                          hwShdslCrossTalkCanellationGroupPortList,hwShdslCrossTalkCanellationGroupAdminStatus,hwShdslCrossTalkCanellationGroupOperStatus,hwShdslCrossTalkCanellationGroupRowStatus."
+
+            REVISION     "201001120000Z"
+            DESCRIPTION  "V1.08, Modify the definition of the trap node."
+
+            REVISION     "201001120000Z"
+            DESCRIPTION  "V1.07, add the definition of the trap node."
+
+            REVISION     "200911300000Z"
+            DESCRIPTION  "V1.06, add hwShdslCrosssTalkCanellationGroupTable for the cross talk cancellation group."
+
+            REVISION     "200801160000Z"
+            DESCRIPTION  "V1.03, add hwShdslChipsetModeTable for supporting the configuration of the chipset mode of SHDSL board"
+
+            REVISION     "200312280000Z"
+            DESCRIPTION  "V1.00, Initial version."
+
+            ::= { huaweiUtility 35  }
+
+
+        hwShdslPortBindConfTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwShdslPortBindConfEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwShdslPortBindConfTable contains port binding configuration parameters for the SHDSL line.
+                 The index of this table is hwShdslGroupIndex.
+                "
+            ::= { hwShdsl  2 }
+
+        hwShdslPortBindConfEntry OBJECT-TYPE
+            SYNTAX      HwShdslPortBindConfEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwShdslPortBindConfTable contains port binding configuration parameters for the SHDSL line.
+                 The index of this entry is hwShdslGroupIndex.
+                "
+            INDEX { hwShdslGroupIndex }
+            ::= { hwShdslPortBindConfTable 1 }
+
+        HwShdslPortBindConfEntry ::=
+            SEQUENCE {
+                hwShdslGroupIndex                           Unsigned32,
+                hwShdslIfIndexFirst                         Unsigned32,
+                hwShdslIfIndexSecond                        Unsigned32,
+                hwShdslPortBindRowStatus                    RowStatus
+             }
+
+        hwShdslGroupIndex OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object identifies a row in this table.
+                 The hwShdslGroupIndex should be equal to the hwShdslIfIndexFirst.
+                "
+            ::= { hwShdslPortBindConfEntry 1 }
+
+        hwShdslIfIndexFirst OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslIfIndexFirst is the first ifindex of the binding group."
+            ::= { hwShdslPortBindConfEntry 2 }
+
+        hwShdslIfIndexSecond OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslIfIndexSecond is the second ifindex of the binding group."
+            ::= { hwShdslPortBindConfEntry 3 }
+
+        hwShdslPortBindRowStatus OBJECT-TYPE
+            SYNTAX      RowStatus
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslPortBindRowStatus is used to create a new row or
+                 delete an existing row in the hwShdslPortBindConfTable.
+                 When binding SHDSL port, RowStatus should be createAndGo(4).
+                 When unbinding SHDSL port, RowStatus should be destroy(6).
+                "
+            ::= { hwShdslPortBindConfEntry 4 }
+
+        hwShdslPortBindTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwShdslPortBindEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table supports the configuration of port type in the SHDSL board.
+                 The index of this table is hwShdslPortBindPriPort.
+                "
+            ::= { hwShdsl  3 }
+
+        hwShdslPortBindEntry OBJECT-TYPE
+            SYNTAX      HwShdslPortBindEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table supports the configuration of port type in the SHDSL board.
+                 The index of this entry is hwShdslPortBindPriPort.
+                "
+            INDEX { hwShdslPortBindPriPort }
+            ::= { hwShdslPortBindTable 1 }
+
+        HwShdslPortBindEntry ::=
+            SEQUENCE {
+                hwShdslPortBindPriPort                  Integer32,
+                hwShdslPortBindType                     INTEGER,
+                hwShdslPortBindPortList                 Unsigned32,
+                hwShdslBindRowStatus                    RowStatus
+             }
+
+        hwShdslPortBindPriPort OBJECT-TYPE
+            SYNTAX      Integer32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object is the primary port in an SHDSL binding group. This object identifies a row in this table."
+            ::= { hwShdslPortBindEntry 1 }
+
+        hwShdslPortBindType OBJECT-TYPE
+            SYNTAX      INTEGER {
+                mPair(1),
+                efm(2)
+            }
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The SHDSL bind type.
+                 Options:
+                 1. mPair(1) -The SHDSL bind type is mPair
+                 2. efm(2)   -The SHDSL bind type is efm
+                "
+            ::= { hwShdslPortBindEntry 2 }
+
+        hwShdslPortBindPortList OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The SHDSL bind ports cover bits."
+            ::= { hwShdslPortBindEntry 3 }
+
+        hwShdslBindRowStatus OBJECT-TYPE
+            SYNTAX      RowStatus
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The bind operation type, this object is used to create a new row or delete an existing row in this table.
+                 createAndGo(4) means bind, destroy(6) means undo the bind.
+                "
+            ::= { hwShdslPortBindEntry 4 }
+
+        hdsl2ShdslStatusCurrLoopAtten  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS       "0.1 dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object contains the current loop attenuation value in the HDSL2/SHDSL span.
+                 It ranges from 0 to 1270 units of 0.1 dB. (Physical values are 0 to 127 dB).
+                 Unit: 0.1 dB
+                "
+            ::= { hdsl2ShdslSpanStatusEntry 65535 }
+
+         hdsl2ShdslStatusCurrSNRMargin  OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "0.1 dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object contains the current snr margin value in the HDSL2/SHDSL span.
+                 It ranges from -1270 to 1270 units of 0.1 dB. (Physical values are -127 to 127 dB).
+                 Unit: 0.1 dB
+                "
+            ::= { hdsl2ShdslSpanStatusEntry 65536 }
+
+        hdsl2ShdslStatusCurrPbo OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "0.1dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object contains the actual Power Back-Off.
+                 Unit: 0.1 dB
+                "
+            ::= { hdsl2ShdslSpanStatusEntry 65537 }
+
+        hwhdsl2ShdslModulationMode OBJECT-TYPE
+            SYNTAX      INTEGER {
+                tcpam16(1),
+                tcpam32(2),
+                auto(3),
+                invalidValue(-1)
+            }
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object contains the current modulation mode in the HDSL2/SHDSL span,
+                 as reported in an Equipment Response message.
+                 Options:
+                 1. tcpam16(1)   - SHDSL modulation mode is tcpam16
+                 2. tcpam32(2)   - SHDSL modulation mode is tcpam32
+                 3. auto(3)      - SHDSL modulation mode is auto
+                 4. invalidValue(-1) -invalid value
+                "
+            ::= { hdsl2ShdslSpanStatusEntry 65538 }
+
+        hwhdsl2ShdslSpanConfPathMode OBJECT-TYPE
+            SYNTAX      INTEGER {
+                atm(1),
+                ptm(2),
+                tdm(3)
+            }
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object defines path mode of line, M-Pair bonding ports can work in ATM mode or TDM mode,
+                 EFM bonding ports work in PTM mode. This object is defaulted atm(1).
+                 Options:
+                 1. atm(1) - Path mode is atm
+                 2. ptm(2) - Path mode is ptm
+                 3. tdm(3) - Path mode is tdm
+                "
+            ::= { hdsl2ShdslSpanConfProfileEntry 65535 }
+
+        hwhdsl2ShdslSpanConfModulationMode OBJECT-TYPE
+            SYNTAX      INTEGER {
+                tcpam16(1),
+                tcpam32(2),
+                auto(3)
+            }
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object defines the modulation mode in the HDSL2/SHDSL span.
+                 Options:
+                 1. tcpam16(1)   -SHDSL modulation mode is tcpam16
+                 2. tcpam32(2)   -SHDSL modulation mode is tcpam32
+                 3. auto(3)      -SHDSL modulation mode is auto
+                "
+            ::= { hdsl2ShdslSpanConfProfileEntry 65536 }
+            
+        hdsl2ShdslEndpointAlarmConfProfileDyingGasp OBJECT-TYPE
+           SYNTAX      INTEGER
+                       {
+                       enable(1),
+                       disable(2)
+                       }
+           MAX-ACCESS  read-create
+           STATUS      current
+           DESCRIPTION
+               "This object enables/disables the report of LOSS-OF-POWER alarm in an SHDSL line.
+                Options:
+                   1. enable(1)  - SHDSL alarm profile DyingGasp switch is enable
+                   2. disable(2) - SHDSL alarm profile DyingGasp switch is disable
+                   DEFVAL{ disable }
+                "
+           ::= { hdsl2ShdslEndpointAlarmConfProfileEntry 10 }             
+
+        hwShdslChipsetModeTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwShdslChipsetModeEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table supports the configuration of the chipset mode of SHDSL board.
+                 The index of this table is a combination of hwShdslFrameID, hwShdslSlotID and hwShdslChipsetID.
+                "
+            ::= { hwShdsl  4 }
+
+        hwShdslChipsetModeEntry OBJECT-TYPE
+            SYNTAX      HwShdslChipsetModeEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table supports the configuration of the chipset mode of SHDSL board.
+                 The index of this entry is a combination of hwShdslFrameID, hwShdslSlotID and hwShdslChipsetID.
+                "
+            INDEX { hwShdslFrameID, hwShdslSlotID, hwShdslChipsetID }
+            ::= { hwShdslChipsetModeTable 1 }
+
+        HwShdslChipsetModeEntry ::=
+            SEQUENCE {
+                hwShdslFrameID                      Integer32,
+                hwShdslSlotID                       Integer32,
+                hwShdslChipsetID                    Integer32,
+                hwShdslChipsetMode                  INTEGER
+             }
+
+        hwShdslFrameID OBJECT-TYPE
+            SYNTAX      Integer32
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This object defines the frame id of the device."
+            ::= { hwShdslChipsetModeEntry 1 }
+
+        hwShdslSlotID OBJECT-TYPE
+            SYNTAX      Integer32
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This object defines the slot id of the device."
+            ::= { hwShdslChipsetModeEntry 2 }
+
+        hwShdslChipsetID OBJECT-TYPE
+            SYNTAX      Integer32
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This object defines the chipset id of the board."
+            ::= { hwShdslChipsetModeEntry 3 }
+
+        hwShdslChipsetMode OBJECT-TYPE
+	    SYNTAX INTEGER
+		{
+		atm(1),
+		ptm(2),
+		invalid(-1)
+		}				
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "This object defines the SHDSL Chipset Mode.
+                 Options:
+                 1. atm(1)  - The SHDSL Chipset Mode is atm
+                 2. ptm(2)  - The SHDSL Chipset Mode is ptm
+                 3. invalid(-1) - Invalid value
+                "
+            ::= { hwShdslChipsetModeEntry 4 }
+
+        hwShdslSpanConfProfileTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwShdslSpanConfProfileEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table supports the configuration of the modulation mode of SHDSL line-profile.
+                 The index of this table is hdsl2ShdslSpanConfProfileName.
+                "
+            ::= { hwShdsl  5 }
+
+        hwShdslSpanConfProfileEntry OBJECT-TYPE
+            SYNTAX      HwShdslSpanConfProfileEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table supports the configuration of the modulation mode of SHDSL line-profile.
+                 The index of this entry is hdsl2ShdslSpanConfProfileName.
+                "
+            INDEX { hdsl2ShdslSpanConfProfileName }
+            ::= { hwShdslSpanConfProfileTable 1 }
+
+        HwShdslSpanConfProfileEntry ::=
+            SEQUENCE {
+                hwhdsl2hwShdslSpanConfModulationMode        INTEGER,
+                hwhdsl2hwShdslSpanConfPathMode              INTEGER,
+                hwhdsl2hwShdslSpanConfFrameType             INTEGER,
+                hwhdsl2hwShdslSpanConfClkAlign              INTEGER,
+                hwhdsl2hwShdslSpanConfPerfMode              INTEGER
+             }
+
+        hwhdsl2hwShdslSpanConfModulationMode OBJECT-TYPE
+            SYNTAX      INTEGER {
+                tcpam16(1),
+                tcpam32(2),
+                auto(3)
+            }
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object defines the modulation mode in the HDSL2/SHDSL span.
+                 Options:
+                 1. tcpam16(1)   -SHDSL modulation mode is tcpam16
+                 2. tcpam32(2)   -SHDSL modulation mode is tcpam32
+                 3. auto(3)      -SHDSL modulation mode is auto
+                "
+            DEFVAL      { auto }
+            ::= { hwShdslSpanConfProfileEntry 1 }
+
+        hwhdsl2hwShdslSpanConfPathMode OBJECT-TYPE
+            SYNTAX      INTEGER {
+                atm(1),
+                ptm(2),
+                tdm(3)
+            }
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object defines path mode of line,
+                 M-Pair bonding ports can only work in ATM mode, EFM bonding ports work in PTM mode.
+                 Options:
+                 1. atm(1) - Path mode of line is atm
+                 2. ptm(2) - Path mode of line is ptm
+                 3. tdm(3) - Path mode of line is tdm
+                "
+            DEFVAL      { atm }
+            ::= { hwShdslSpanConfProfileEntry 2 }
+
+        hwhdsl2hwShdslSpanConfFrameType OBJECT-TYPE
+            SYNTAX      INTEGER {
+                e1(1),
+                v35(2)
+            }
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object defines the frame type.
+                 Options:
+                 1. e1(1)  - The frame type is e1
+                 2. v35(2) - The frame type is v35
+                "
+            DEFVAL      { e1 }
+            ::= { hwShdslSpanConfProfileEntry 3 }
+
+        hwhdsl2hwShdslSpanConfClkAlign OBJECT-TYPE
+            SYNTAX      INTEGER {
+                syn(1),
+                notsyn(2)
+            }
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object defines the clock mode.
+                 Options:
+                 1. syn(1)         - Synchronization
+                 2. notsyn(2)      - Asynchronism 
+                "
+            DEFVAL      { syn }
+            ::= { hwShdslSpanConfProfileEntry 4 }
+            
+        hwhdsl2hwShdslSpanConfPerfMode OBJECT-TYPE
+            SYNTAX      INTEGER {
+                auto(1),
+                absolute(2),
+                delta(3)
+            }
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object defines the performance mode.
+                 Options:
+                 1. auto(1)         - auto
+                 2. absolute(2)     - absolute 
+                 3. delta(3)        - delta
+                "
+            DEFVAL      { auto }
+            ::= { hwShdslSpanConfProfileEntry 5 }
+            
+        hwShdslSpanStatusTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwShdslSpanStatusEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table supports the status information of the modulation mode of SHDSL line-profile.
+                 The index of this table is ifIndex.
+                "
+            ::= { hwShdsl  6 }
+
+        hwShdslSpanStatusEntry OBJECT-TYPE
+            SYNTAX      HwShdslSpanStatusEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table supports the status information of the modulation mode of SHDSL line-profile.
+                 The index of this entry is ifIndex.
+                "
+            INDEX { ifIndex }
+            ::= { hwShdslSpanStatusTable 1 }
+
+        HwShdslSpanStatusEntry ::=
+            SEQUENCE {
+                hwhdsl2hwShdslModulationMode                    INTEGER,
+                hwhdsl2ShdslStatusCurrLoopAttenUs               Unsigned32,
+                hwhdsl2ShdslStatusCurrSnrMarginUs               Integer32,
+                hwhdsl2ShdslStatusCurrPboUs                     Integer32,
+                hwhdsl2ShdslStatusNtrMode                       INTEGER,
+                hwhdsl2ShdslStatusCurrLoopAttenDs               Integer32,
+                hwhdsl2ShdslStatusCurrSnrMarginDs               Integer32,
+                hwhdsl2ShdslStatusCurrPboDs                     Integer32,
+                hwhdsl2ShdslStatusGroupMasterPort               Integer32,
+                hwhdsl2ShdslStatusGroupLineRate                 Gauge32,
+                hwhdsl2ShdslStatusCurrMode                      INTEGER,
+                hwhdsl2ShdslStatusGroupActualPayloadRate        Gauge32
+             }  
+                
+        hwhdsl2hwShdslModulationMode OBJECT-TYPE
+            SYNTAX      INTEGER {
+                tcpam16(1),
+                tcpam32(2),
+                auto(3),
+                invalidValue(-1)
+            }
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object defines the current modulation mode in the HDSL2/SHDSL span,
+                 as reported in an Equipment Response message.
+                 Options:
+                 1. tcpam16(1)   - SHDSL modulation mode is tcpam16
+                 2. tcpam32(2)   - SHDSL modulation mode is tcpam32
+                 3. auto(3)      - SHDSL modulation mode is auto
+                 4. invalidValue(-1) - Invalid value
+                "
+            DEFVAL      { auto }
+            ::= { hwShdslSpanStatusEntry 1 }
+
+        hwhdsl2ShdslStatusCurrLoopAttenUs  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS       "1dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object defines the current upstream loop attenuation value in the HDSL2/SHDSL span.
+                 It ranges from 0 to 128 units of 1dB.
+                 Unit: 1dB
+                "
+            ::= { hwShdslSpanStatusEntry 2 }
+
+        hwhdsl2ShdslStatusCurrSnrMarginUs  OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "1dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object defines the current upstream snr margin value in the HDSL2/SHDSL span. 
+                 The invalid value is -1. If data on the port is invalid or no data is generated 
+                 on the port because the port has not been activated, the invalid value will be returned.
+                 Unit: 1dB
+                "
+            ::= { hwShdslSpanStatusEntry 3 }
+
+        hwhdsl2ShdslStatusCurrPboUs OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "0.1dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object defines the current upstream Power Back-Off in the HDSL2/SHDSL span.
+                 The invalid value is -1. If data on the port is invalid or no data is generated 
+                 on the port because the port has not been activated, the invalid value will be returned.
+                 Unit: 0.1dB
+                "
+            ::= { hwShdslSpanStatusEntry 4 }
+
+        hwhdsl2ShdslStatusNtrMode OBJECT-TYPE
+            SYNTAX      INTEGER {
+                freeRun(1),
+                system(2),
+                invalidValue(-1)
+            }
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object defines the NTR mode.
+                 Options:
+                 1. freeRun(1)  - Network timing reference clock mode is freeRun
+                 2. system(2)   - Network timing reference clock mode is system
+                 3. invalidValue(-1) - Indicates invalid value
+                "
+            DEFVAL       { freeRun }
+            ::= { hwShdslSpanStatusEntry 5 }
+
+        hwhdsl2ShdslStatusCurrLoopAttenDs OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "1dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object defines the current downstream loop attenuation in the HDSL2/SHDSL span.
+                 It ranges from -127 to 128 units of 1dB. 
+                 The invalid value is -1. If data on the port is invalid or no data is generated 
+                 on the port because the port has not been activated, the invalid value will be returned.
+                 Unit: 1dB
+                "
+            ::= { hwShdslSpanStatusEntry 6 }
+
+        hwhdsl2ShdslStatusCurrSnrMarginDs OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "1dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object defines the current downstream SNR margin in the HDSL2/SHDSL span.
+                 The invalid value is -1. If data on the port is invalid or no data is generated 
+                 on the port because the port has not been activated, the invalid value will be returned.
+                 Unit: 1dB
+                "
+            ::= { hwShdslSpanStatusEntry 7 }
+
+        hwhdsl2ShdslStatusCurrPboDs OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "0.1dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object defines the current downstream Power Back-Off in the HDSL2/SHDSL span.
+                 The invalid value is -1. If data on the port is invalid or no data is generated 
+                 on the port because the port has not been activated, the invalid value will be returned.
+                 Unit: 0.1dB
+                "
+            ::= { hwShdslSpanStatusEntry 8 }
+
+        hwhdsl2ShdslStatusGroupMasterPort OBJECT-TYPE
+            SYNTAX      Integer32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object defines the ifIndex of the master port in the binding group.
+                 The invalid value is -1. If data on the port is invalid or no data is generated 
+                 on the port because the port has not been activated, the invalid value will be returned.
+                "
+            ::= { hwShdslSpanStatusEntry 9 }
+
+        hwhdsl2ShdslStatusGroupLineRate OBJECT-TYPE
+            SYNTAX      Gauge32
+            UNITS       "bps"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object defines the line rate of the binding group.
+                "
+            ::= { hwShdslSpanStatusEntry 10 }
+
+        hwhdsl2ShdslStatusCurrMode OBJECT-TYPE
+            SYNTAX      INTEGER {
+                atm(1),
+                ptm(2),
+                tdm(3),
+                invalid(-1)
+            }
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object defines path mode of line, M-Pair bonding ports can only work in ATM mode,
+                 EFM bonding ports work in PTM mode. This object is defaulted atm(1).
+                 Options:
+                 1. atm(1) - Path mode is atm
+                 2. ptm(2) - Path mode is ptm
+                 3. tdm(3) - Path mode is tdm
+                 4. invalid(-1) - Invalid value
+                "
+            ::= { hwShdslSpanStatusEntry 11 }
+            
+        hwhdsl2ShdslStatusGroupActualPayloadRate OBJECT-TYPE
+            SYNTAX      Gauge32
+            UNITS       "bps"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object defines the actual payload rate of the binding group.
+                "
+            ::= { hwShdslSpanStatusEntry 12 }
+            
+        hwShdslCrossTalkCanellationGroupTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwShdslCrossTalkCanellationGroupEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table supports the configuration of the cross talk cancellation group.
+                 The index of this table is hwShdslCrossTalkCanellationGroupIndex.
+                "
+            ::= { hwShdsl  7 }
+
+        hwShdslCrossTalkCanellationGroupEntry OBJECT-TYPE
+            SYNTAX      HwShdslCrossTalkCanellationGroupEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table supports the configuration of the cross talk cancellation group.
+                 The index of this entry is hwShdslCrossTalkCanellationGroupIndex.
+                "
+            INDEX { hwShdslCrossTalkCanellationGroupIndex }
+            ::= { hwShdslCrossTalkCanellationGroupTable 1 }
+
+        HwShdslCrossTalkCanellationGroupEntry ::=
+            SEQUENCE {
+                hwShdslCrossTalkCanellationGroupIndex               Unsigned32,
+                hwShdslCrossTalkCanellationGroupPortList            OCTET STRING,
+                hwShdslCrossTalkCanellationGroupAdminStatus         INTEGER,
+                hwShdslCrossTalkCanellationGroupOperStatus          INTEGER,
+                hwShdslCrossTalkCanellationGroupRowStatus           RowStatus
+             }
+
+        hwShdslCrossTalkCanellationGroupIndex OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This object identifies a row in this table."
+            ::= { hwShdslCrossTalkCanellationGroupEntry 1 }
+
+        hwShdslCrossTalkCanellationGroupPortList  OBJECT-TYPE
+            SYNTAX      OCTET STRING (SIZE (0..64))
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "This object defines the port list of the shdsl cross talk cancellation group.
+                 Port index indicates the port value.
+                "
+            ::= { hwShdslCrossTalkCanellationGroupEntry 2 }
+
+        hwShdslCrossTalkCanellationGroupAdminStatus  OBJECT-TYPE
+            SYNTAX      INTEGER {
+                deactivate(1),
+                activate(2)
+            }
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "This object defines the administration status of the SHDSL cross talk cancellation group.
+                 When the administration status is deactivate, the port in the group cannot be activated.
+                 Options:
+                 1. deactivate(1) - The administration status of the SHDSL cross talk cancellation group is deactivate
+                 2. activate(2)   - The administration status of the SHDSL cross talk cancellation group is activate
+                "
+            ::= { hwShdslCrossTalkCanellationGroupEntry 3 }
+
+        hwShdslCrossTalkCanellationGroupOperStatus OBJECT-TYPE
+            SYNTAX      INTEGER {
+                activated(1),
+                activating(2),
+                deactivated(3)
+            }
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object defines the running status of the shdsl cross talk cancellation group.
+                 Options:
+                 1. activated(1)     - The running status of the SHDSL cross talk cancellation group is activated
+                 2. activating(2)    - The running status of the SHDSL cross talk cancellation group is activating
+                 3. deactivated(3)   - The running status of the SHDSL cross talk cancellation group is deactivated
+                "
+            ::= { hwShdslCrossTalkCanellationGroupEntry 4 }
+
+        hwShdslCrossTalkCanellationGroupRowStatus OBJECT-TYPE
+            SYNTAX      RowStatus
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "This object is used to create a new row or delete an existing row in this table."
+            ::= { hwShdslCrossTalkCanellationGroupEntry 5 }
+
+-- shdsl trap
+        hwShdslTrapsVbOids     OBJECT IDENTIFIER ::= { hwShdsl 8 }
+
+        hwShdsl2ChipsetSwitchResult OBJECT-TYPE
+            SYNTAX  INTEGER {
+                            success(0), 
+                            fail(1)                        
+                            }
+            MAX-ACCESS  accessible-for-notify
+            STATUS      current
+            DESCRIPTION
+                "This object defines the SHDSL Chipset Switch Result.
+                 Options:
+                 1. success(0)  - The SHDSL Chipset Switch Result is success
+                 2. fail(1)     - The SHDSL Chipset Switch Result is fail
+                "
+            ::= { hwShdslTrapsVbOids 1 }
+
+        hwShdslPortBindOper OBJECT-TYPE
+  	    SYNTAX INTEGER
+			{
+			unbind(1),
+			bind(2)
+			}	
+            MAX-ACCESS  accessible-for-notify
+            STATUS      current
+            DESCRIPTION
+                "This object defines the SHDSL Port Bind operate
+                 Options:
+                 1. unbind(1) -SHDSL port state is unbind
+                 2. bind(2)   -SHDSL port state is bind
+                "
+            ::= { hwShdslTrapsVbOids 2 }
+
+        hwShdslPortBindNum  OBJECT-TYPE
+            SYNTAX      Integer32
+            MAX-ACCESS  accessible-for-notify
+            STATUS      current
+            DESCRIPTION
+                "This object defines the SHDSL Bind Port number"
+            ::= { hwShdslTrapsVbOids 3 }
+
+        hwhdslSpanConfProfileID OBJECT-TYPE
+            SYNTAX      Integer32
+            MAX-ACCESS  accessible-for-notify
+            STATUS      current
+            DESCRIPTION
+                "This object indicates the line template item."
+            ::= { hwShdslTrapsVbOids 4 }
+
+        hwhdslActivationFailureCause OBJECT-TYPE
+            SYNTAX      OCTET STRING (SIZE (0..1024))
+            MAX-ACCESS  accessible-for-notify
+            STATUS      current
+            DESCRIPTION
+                "This object indicates the the reason of the active port fail."
+            ::= { hwShdslTrapsVbOids 5 }
+
+        hwhdslChipsetID OBJECT-TYPE
+            SYNTAX      Integer32
+            MAX-ACCESS  accessible-for-notify
+            STATUS      current
+            DESCRIPTION
+                "This object defines the chipset ID of the board."
+            ::= { hwShdslTrapsVbOids 6 }
+
+        hwhdslConfProfileType OBJECT-TYPE
+            SYNTAX      INTEGER {
+                hdsl2ShdslSpanConfProfile(1),
+                hdsl2ShdslEndpointAlarmConfProfile(2)
+            }
+            MAX-ACCESS  accessible-for-notify
+            STATUS      current
+            DESCRIPTION
+                "This object defines the type of the SHDSL profile ID.
+                 Options:
+                 1. hdsl2ShdslSpanConfProfile(1)          - SHDSL line profile 
+                 2. hdsl2ShdslEndpointAlarmConfProfile(2) - SHDSL alarm profile 
+                "
+            ::= { hwShdslTrapsVbOids 7 }
+
+        hwShdslTraps           OBJECT IDENTIFIER ::= { hwShdsl 9 }
+        hwShdslCommonTraps     OBJECT IDENTIFIER ::= { hwShdslTraps 1 }
+        hwShdslCommonTrapsPrefix  OBJECT IDENTIFIER ::= { hwShdslCommonTraps 0 }
+        hwShdslAlarmTraps      OBJECT IDENTIFIER ::= { hwShdslTraps 2 }
+        hwShdslAlarmTrapsPrefix   OBJECT IDENTIFIER ::= { hwShdslAlarmTraps 0 }
+
+        hwShdslPortStatusChangeTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hwPortOperStatus,
+                hwPortPrimaryStatus,
+                hwPortSecondaryStatus
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslPortStatusChangeTrap is sent when the status of an SHDSL port changes."
+            ::= { hwShdslCommonTraps     0 1 }
+
+        hwShdslPortBindChangeTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hwShdslPortBindOper,
+                hwShdslPortBindType,
+                hwShdslPortBindNum,
+                hdsl2ShdslSpanConfProfileName,
+                hwShdslPortBindPortList,
+                hwShdslPortBindPortList
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslPortBindChangeTrap is sent when the binding relationship of an SHDSL port changes."
+            ::= { hwShdslCommonTraps     0 2 }
+
+        hwShdslChipsetModeSwitchTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwShdslChipsetID,
+                hwShdslChipsetMode,
+                hwShdsl2ChipsetSwitchResult
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslChipsetModeSwitchTrap is sent when the chipset mode of an SHDSL port changes."
+            ::= { hwShdslCommonTraps     0 3 }
+
+        hwSHDSLProfIDChangeTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwConfigChangeIP,
+                hwhdslConfProfileType,
+                ifIndex,
+                hwXdslProfName
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwSHDSLProfIDChangeTrap is sent when the profile bound to an SHDSL port is changed."
+            ::= { hwShdslCommonTraps 0 4 }
+
+        hwShdslPortActRateLowerThresholdAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hdsl2ShdslStatusActualLineRate,
+                hdsl2ShdslStatusActualLineRate
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslPortActRateLowerThresholdAlarmTrap is sent
+                 when the activation rate of an xDSL line is lower than the threshold.
+                "
+            ::= { hwShdslAlarmTraps 0 1 }
+
+        hwShdslSnrExceedThreshUsAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hdsl2ShdslInvIndex,
+                hdsl2ShdslEndpointThreshSNRMargin,
+                hdsl2ShdslEndpointCurrSnrMgn
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslSnrExceedThreshUsAlarmTrap is sent when the upstream SNR margin exceeds the threshold."
+            ::= { hwShdslAlarmTraps 0 2 }
+
+        hwShdslLoopAtteExceedThreshUsAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hdsl2ShdslInvIndex,
+                hdsl2ShdslEndpointThreshLoopAttenuation,
+                hdsl2ShdslEndpointCurrAtn
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslLoopAtteExceedThreshUsAlarmTrap is sent when the upstream loop attenuation exceeds the threshold."
+            ::= { hwShdslAlarmTraps 0 3 }
+
+        hwShdslESSExceedThreshUsAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hdsl2ShdslInvIndex,
+                hdsl2ShdslEndpointThreshES,
+                hdsl2ShdslEndpointCurr15MinES
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslESSExceedThreshUsAlarmTrap is sent when the upstream errored seconds (ESs) exceeds the threshold."
+            ::= { hwShdslAlarmTraps 0 4 }
+
+        hwShdslSESSExceedThreshUsAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hdsl2ShdslInvIndex,
+                hdsl2ShdslEndpointThreshSES,
+                hdsl2ShdslEndpointCurr15MinSES
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslSESSExceedThreshUsAlarmTrap is sent
+                 when the upstream severely errored seconds (SESs) exceeds the threshold.
+                "
+            ::= { hwShdslAlarmTraps 0 5 }
+
+        hwShdslCRCErrExceedThreshUsAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hdsl2ShdslInvIndex,
+                hdsl2ShdslEndpointThreshCRCanomalies,
+                hdsl2ShdslEndpointCurr15MinCRCanomalies
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslCRCErrExceedThreshUsAlarmTrap is sent when the upstream CRC errors exceeds the threshold."
+            ::= { hwShdslAlarmTraps 0 6 }
+
+        hwShdslLOSWExceedThreshUsAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hdsl2ShdslInvIndex,
+                hdsl2ShdslEndpointThreshLOSWS,
+                hdsl2ShdslEndpointCurr15MinLOSWS
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslLOSWExceedThreshUsAlarmTrap is sent
+                 when the upstream loss of synchronization word (LOSW) exceeds the threshold.
+                "
+            ::= { hwShdslAlarmTraps 0 7 }
+
+        hwShdslUASSExceedThreshUsAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hdsl2ShdslInvIndex,
+                hdsl2ShdslEndpointThreshUAS,
+                hdsl2ShdslEndpointCurr15MinUAS
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslUASSExceedThreshUsAlarmTrap is sent
+                 when the upstream unavailable seconds (UASs) exceeds the threshold.
+                "
+            ::= { hwShdslAlarmTraps 0 8 }
+
+        hwShdslSTURPowerOffThreAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslSTURPowerOffThreAlarmTrap is sent when the G.SHDSL STU-R is powered off."
+            ::= { hwShdslAlarmTraps 0 9 }
+
+        hwShdslPortAutoDeactiveAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslPortAutoDeactiveAlarmTrap is sent
+                 when the G.SHDSL port is automatically deactivated due to the line fault.
+                "
+            ::= { hwShdslAlarmTraps 0 10 }
+
+        hwShdslPortReactiveAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslPortReactiveAlarmTrap is sent
+                 when the G.SHDSL port is re-activated after the line recovers.
+                "
+            ::= { hwShdslAlarmTraps 0 11 }
+
+        hwShdslConfigParaFailedActivateAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hwhdslSpanConfProfileID,
+                hwhdslActivationFailureCause
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslConfigParaFailedActivateAlarmTrap is sent
+                 when the G.SHDSL line configuration parameters fail to activate the port.
+                "
+            ::= { hwShdslAlarmTraps 0 12 }
+
+        hwShdslChipsetNotAvailableAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwhdslChipsetID
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslChipsetNotAvailableAlarmTrap is sent when the G.SHDSL chipset is not available."
+            ::= { hwShdslAlarmTraps 0 13 }
+
+        hwShdslChipsetRecoverAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwhdslChipsetID
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslChipsetRecoverAlarmTrap is sent when the G.SHDSL chipset recovers from a fault."
+            ::= { hwShdslAlarmTraps 0 14 }
+
+        hwShdslPortDeactiveAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslPortDeactiveAlarmTrap is sent when some xDSL ports or all
+                 the xDSL ports are automatically deactivated due to lack of licenses.
+                "
+            ::= { hwShdslAlarmTraps 0 15 }
+            
+        hwShdslSnrExceedThreshDsAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hdsl2ShdslInvIndex,
+                hwShdslEndpointThreshSNRMarginDs,
+                hdsl2ShdslEndpointCurrSnrMgn
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslSnrExceedThreshDsAlarmTrap is sent when the downstream SNR margin exceeds the threshold."
+            ::= { hwShdslAlarmTraps 0 16 }
+
+        hwShdslLoopAtteExceedThreshDsAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hdsl2ShdslInvIndex,
+                hwShdslEndpointThreshLoopAttenuationDs,
+                hdsl2ShdslEndpointCurrAtn
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslLoopAtteExceedThreshDsAlarmTrap is sent when the downstream loop attenuation exceeds the threshold."
+            ::= { hwShdslAlarmTraps 0 17 }
+
+        hwShdslESSExceedThreshDsAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hdsl2ShdslInvIndex,
+                hwShdslEndpointThreshESDs,
+                hdsl2ShdslEndpointCurr15MinES
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslESSExceedThreshDsAlarmTrap is sent when the downstream errored seconds (ESs) exceeds the threshold."
+            ::= { hwShdslAlarmTraps 0 18 }
+
+        hwShdslSESSExceedThreshDsAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hdsl2ShdslInvIndex,
+                hwShdslEndpointThreshSESDs,
+                hdsl2ShdslEndpointCurr15MinSES
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslSESSExceedThreshDsAlarmTrap is sent
+                 when the downstream severely errored seconds (SESs) exceeds the threshold.
+                "
+            ::= { hwShdslAlarmTraps 0 19 }
+
+        hwShdslCRCErrExceedThreshDsAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hdsl2ShdslInvIndex,
+                hwShdslEndpointThreshCRCanomaliesDs,
+                hdsl2ShdslEndpointCurr15MinCRCanomalies
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslCRCErrExceedThreshDsAlarmTrap is sent when the downstream CRC errors exceeds the threshold."
+            ::= { hwShdslAlarmTraps 0 20 }
+
+        hwShdslLOSWExceedThreshDsAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hdsl2ShdslInvIndex,
+                hwShdslEndpointThreshLOSWSDs,
+                hdsl2ShdslEndpointCurr15MinLOSWS
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslLOSWExceedThreshDsAlarmTrap is sent
+                 when the downstream loss of synchronization word (LOSW) exceeds the threshold.
+                "
+            ::= { hwShdslAlarmTraps 0 21 }
+
+        hwShdslUASSExceedThreshDsAlarmTrap NOTIFICATION-TYPE
+            OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hdsl2ShdslInvIndex,
+                hwShdslEndpointThreshUASDs,
+                hdsl2ShdslEndpointCurr15MinUAS
+            }
+            STATUS      current
+            DESCRIPTION
+                "The hwShdslUASSExceedThreshDsAlarmTrap is sent
+                 when the downstream unavailable seconds (UASs) exceeds the threshold.
+                "
+            ::= { hwShdslAlarmTraps 0 22 }
+
+        hwShdslEndpointCurrTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwShdslEndpointCurrEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table contains current status and performance information for segment endpoints
+                 in HDSL2/SHDSL lines. As with other tables in this MIB module indexed by ifIndex,
+                 entries in this table MUST be maintained in a persistent manner.
+                 The index of this table is a combination of ifIndex, hdsl2ShdslInvIndex,
+                 hdsl2ShdslEndpointSide and hdsl2ShdslEndpointWirePair.
+                "
+            ::= { hwShdsl  10 }
+
+        hwShdslEndpointCurrEntry OBJECT-TYPE
+            SYNTAX      HwShdslEndpointCurrEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table contains current status and performance information for segment endpoints
+                 in HDSL2/SHDSL lines. As with other tables in this MIB module indexed by ifIndex,
+                 entries in this table MUST be maintained in a persistent manner.
+                 The index of this entry is a combination of ifIndex, hdsl2ShdslInvIndex,
+                 hdsl2ShdslEndpointSide and hdsl2ShdslEndpointWirePair.
+                "
+            INDEX { ifIndex, hdsl2ShdslInvIndex, hdsl2ShdslEndpointSide,hdsl2ShdslEndpointWirePair }
+            ::= { hwShdslEndpointCurrTable 1 }
+
+        HwShdslEndpointCurrEntry ::=
+            SEQUENCE {
+                hwShdslEndpointCurr15MinStartTime DateAndTime,
+                hwShdslEndpointCurr1DayStartTime  DateAndTime
+            }
+
+        hwShdslEndpointCurr15MinStartTime  OBJECT-TYPE
+            SYNTAX      DateAndTime
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object indicates the start time of the current 15-minute performance statistics."
+            ::= { hwShdslEndpointCurrEntry 1 }
+
+        hwShdslEndpointCurr1DayStartTime  OBJECT-TYPE
+            SYNTAX      DateAndTime
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object indicates the start time of the current 1-day performance statistics."
+            ::= { hwShdslEndpointCurrEntry 2 }
+
+        hwShdsl15MinIntervalTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwShdsl15MinIntervalEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table provides one row for each HDSL2/SHDSL endpoint performance data collection interval.
+                 This table contains live data from equipment. As such, it is NOT persistent.
+                 The index of this table is a combination of ifIndex, hdsl2ShdslInvIndex,
+                 hdsl2ShdslEndpointSide, hdsl2ShdslEndpointWirePair and hdsl2Shdsl15MinIntervalNumber.
+                "
+            ::= { hwShdsl  11 }
+
+        hwShdsl15MinIntervalEntry OBJECT-TYPE
+            SYNTAX      HwShdsl15MinIntervalEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table provides one row for each HDSL2/SHDSL endpoint performance data collection interval.
+                 This table contains live data from equipment. As such, it is NOT persistent.
+                 The index of this entry is a combination of ifIndex, hdsl2ShdslInvIndex,
+                 hdsl2ShdslEndpointSide, hdsl2ShdslEndpointWirePair and hdsl2Shdsl15MinIntervalNumber.
+                "
+            INDEX { ifIndex, hdsl2ShdslInvIndex, hdsl2ShdslEndpointSide,
+                hdsl2ShdslEndpointWirePair, hdsl2Shdsl15MinIntervalNumber}
+            ::= { hwShdsl15MinIntervalTable 1 }
+
+        HwShdsl15MinIntervalEntry ::=
+            SEQUENCE {
+                hwShdsl15MinIntervalStartTime      DateAndTime,
+                hwShdsl15MinIntervalMoniSecs       Unsigned32,
+                hwShdsl15MinIntervalValid          TruthValue
+            }
+
+        hwShdsl15MinIntervalStartTime  OBJECT-TYPE
+            SYNTAX      DateAndTime
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object indicates the start time of the historical 15-minute performance statistics."
+            ::= { hwShdsl15MinIntervalEntry 1 }
+
+        hwShdsl15MinIntervalMoniSecs OBJECT-TYPE
+            SYNTAX       Unsigned32
+            UNITS        "seconds"
+            MAX-ACCESS   read-only
+            STATUS       current
+            DESCRIPTION
+                "This object indicates the total seconds monitored in this interval.
+                 Unit: seconds
+                "
+            ::= { hwShdsl15MinIntervalEntry 2 }
+
+        hwShdsl15MinIntervalValid OBJECT-TYPE
+            SYNTAX      TruthValue
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object indicates if the data for this interval is valid."
+            ::= { hwShdsl15MinIntervalEntry 3 }
+
+        hwShdsl1DayIntervalTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwShdsl1DayIntervalEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table provides one row for each HDSL2/SHDSL endpoint performance data collection interval.
+                 This table contains live data from equipment. As such, it is NOT persistent.
+                 The index of this table is a combination of ifIndex, hdsl2ShdslInvIndex,
+                 hdsl2ShdslEndpointSide, hdsl2ShdslEndpointWirePair and hdsl2Shdsl1DayIntervalNumber.
+                "
+            ::= { hwShdsl  12 }
+
+        hwShdsl1DayIntervalEntry OBJECT-TYPE
+            SYNTAX      HwShdsl1DayIntervalEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table provides one row for each HDSL2/SHDSL endpoint performance data collection interval.
+                 This table contains live data from equipment. As such, it is NOT persistent.
+                 The index of this entry is a combination of ifIndex, hdsl2ShdslInvIndex,
+                 hdsl2ShdslEndpointSide, hdsl2ShdslEndpointWirePair and hdsl2Shdsl1DayIntervalNumber.
+                "
+            INDEX { ifIndex, hdsl2ShdslInvIndex, hdsl2ShdslEndpointSide,
+                hdsl2ShdslEndpointWirePair, hdsl2Shdsl1DayIntervalNumber }
+            ::= { hwShdsl1DayIntervalTable 1 }
+
+        HwShdsl1DayIntervalEntry ::=
+            SEQUENCE {
+                hwShdsl1DayIntervalStartTime DateAndTime,
+                hwShdsl1DayIntervalValid     TruthValue
+            }
+
+        hwShdsl1DayIntervalStartTime  OBJECT-TYPE
+            SYNTAX      DateAndTime
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object indicates the start time of the historical 1-day performance statistics."
+            ::= { hwShdsl1DayIntervalEntry 1 }
+
+            hwShdsl1DayIntervalValid OBJECT-TYPE
+            SYNTAX      TruthValue
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This object indicates if the data for this interval is valid."
+            ::= { hwShdsl1DayIntervalEntry 2 }
+
+        hwShdslEndpointMaintTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwShdslEndpointMaintEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table supports maintenance operations (e.g., loopbacks) to be performed on HDSL2/SHDSL segment
+                 endpoints. This table contains live data from equipment. As such, it is NOT persistent.
+                 The index of this table is a combination of ifIndex, hdsl2ShdslInvIndex, and hdsl2ShdslEndpointSide.
+                "
+            ::= { hwShdsl  13 }
+
+        hwShdslEndpointMaintEntry OBJECT-TYPE
+            SYNTAX      HwShdslEndpointMaintEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table supports maintenance operations (e.g., loopbacks) to be performed on HDSL2/SHDSL segment
+                 endpoints. This table contains live data from equipment. As such, it is NOT persistent.
+                 The index of this entry is a combination of ifIndex, hdsl2ShdslInvIndex, and hdsl2ShdslEndpointSide.
+                "
+            INDEX { ifIndex, hdsl2ShdslInvIndex, hdsl2ShdslEndpointSide}
+            ::= { hwShdslEndpointMaintTable 1 }
+
+        HwShdslEndpointMaintEntry ::=
+            SEQUENCE {
+                hwShdslMaintPowerBackOffValue Gauge32
+            }
+
+        hwShdslMaintPowerBackOffValue  OBJECT-TYPE
+            SYNTAX      Gauge32
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "If hdsl2ShdslMaintPowerBackOff is set to enhanced(2), you can set this object from 0 to 31 db."
+            ::= { hwShdslEndpointMaintEntry 1 }
+
+        hwShdslEndpointAlarmConfProfileTable OBJECT-TYPE
+            SYNTAX      SEQUENCE OF HwShdslEndpointAlarmConfProfileEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table supports definitions of alarm configuration profiles for HDSL2/SHDSL segment endpoints.
+                 Each profile contains a set of parameters for setting alarm thresholds for various performance
+                 attributes monitored at HDSL2/SHDSL segment endpoints.
+                 This table MUST be maintained in a persistent manner.
+                 The index of this table is hdsl2ShdslEndpointAlarmConfProfileName.
+                "
+            ::= { hwShdsl  14 }
+
+        hwShdslEndpointAlarmConfProfileEntry OBJECT-TYPE
+            SYNTAX      HwShdslEndpointAlarmConfProfileEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "This table supports definitions of alarm configuration profiles for HDSL2/SHDSL segment endpoints.
+                 Each profile contains a set of parameters for setting alarm thresholds for various performance
+                 attributes monitored at HDSL2/SHDSL segment endpoints.
+                 This table MUST be maintained in a persistent manner.
+                 The index of this entry is hdsl2ShdslEndpointAlarmConfProfileName.
+                "
+            INDEX { IMPLIED hdsl2ShdslEndpointAlarmConfProfileName }
+            ::= { hwShdslEndpointAlarmConfProfileTable 1 }
+
+        HwShdslEndpointAlarmConfProfileEntry ::=
+            SEQUENCE {
+                hwShdslEndpointThreshLoopAttenuationDs          Integer32,
+                hwShdslEndpointThreshSNRMarginDs                Integer32,
+                hwShdslEndpointThreshESDs                       Hdsl2ShdslPerfIntervalThreshold,
+                hwShdslEndpointThreshSESDs                      Hdsl2ShdslPerfIntervalThreshold,
+                hwShdslEndpointThreshCRCanomaliesDs             Integer32,
+                hwShdslEndpointThreshLOSWSDs                    Hdsl2ShdslPerfIntervalThreshold,
+                hwShdslEndpointThreshUASDs                      Hdsl2ShdslPerfIntervalThreshold,
+                hwShdslEndpointAlarmConfProfileDyingGaspCfg     INTEGER,
+                hwShdslEndpointAlarmConfProfileActiveFailAlarmSwitch  INTEGER
+
+            }
+
+        hwShdslEndpointThreshLoopAttenuationDs OBJECT-TYPE
+            SYNTAX      Integer32(-127..128)
+            UNITS       "dB"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object configures the loop attenuation alarm threshold in the downstream direction.
+                 When the current value of hdsl2ShdslEndpointCurrAtn reaches or exceeds this threshold,
+                 an hwShdslLoopAtteExceedThreshDsAlarmTrap MAY be generated.
+                 Unit: dB
+                "
+            DEFVAL      { 0 }
+            ::= { hwShdslEndpointAlarmConfProfileEntry 1 }
+
+        hwShdslEndpointThreshSNRMarginDs OBJECT-TYPE
+            SYNTAX      Integer32(-127..128)
+            UNITS       "dB"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object configures the SNR margin alarm threshold in the downstream direction.
+                 When the current value of hdsl2ShdslEndpointCurrSnrMgn reaches or drops below this threshold,
+                 a hwShdslSnrExceedThreshDsAlarmTrap MAY be generated.
+                 Unit: dB
+                "
+            DEFVAL      { 0 }
+            ::= { hwShdslEndpointAlarmConfProfileEntry 2 }
+
+        hwShdslEndpointThreshESDs OBJECT-TYPE
+            SYNTAX      Hdsl2ShdslPerfIntervalThreshold
+            UNITS       "seconds"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object configures the threshold for the number of Errored Seconds (ES)in the
+                 downstream direction within any given 15-minute performance data collection interval.
+                 If the value of Errored Seconds in a particular 15-minute collection interval
+                 reaches/ exceeds this value, an hwShdslESSExceedThreshDsAlarmTrap MAY be generated.
+                 At most, one notification will be sent per interval per endpoint.
+                 Unit: seconds
+                "
+            DEFVAL      { 0 }
+            ::= { hwShdslEndpointAlarmConfProfileEntry 3 }
+
+        hwShdslEndpointThreshSESDs OBJECT-TYPE
+            SYNTAX      Hdsl2ShdslPerfIntervalThreshold
+            UNITS       "seconds"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object configures the threshold for the number of Severely Errored Seconds (SES)in the
+                 downstream direction within any given 15-minute performance data collection interval.
+                 If the value of Severely Errored Seconds in a particular 15-minute collection
+                 interval reaches/exceeds this value, an hwShdslSESSExceedThreshDsAlarmTrap MAY be generated.
+                 At most, one notification will be sent per interval per endpoint.
+                 Unit: seconds
+                "
+            DEFVAL      { 0 }
+            ::= { hwShdslEndpointAlarmConfProfileEntry 4 }
+
+        hwShdslEndpointThreshCRCanomaliesDs OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "detected CRC Anomalies"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object configures the threshold for the number of CRC anomalies in the downstream
+                 direction within any given 15-minute performance data collection interval.
+                 If the value of CRC anomalies in a particular 15-minute collection interval
+                 reaches/exceeds this value, an hwShdslCRCErrExceedThreshDsAlarmTrap MAY be generated.
+                 At most, one notification will be sent per interval per endpoint.
+                 Unit: detected CRC Anomalies
+                "
+            DEFVAL      { 0 }
+            ::= { hwShdslEndpointAlarmConfProfileEntry 5 }
+
+        hwShdslEndpointThreshLOSWSDs OBJECT-TYPE
+            SYNTAX      Hdsl2ShdslPerfIntervalThreshold
+            UNITS       "seconds"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object configures the threshold for the number of Loss of Sync Word (LOSW) Seconds
+                 in the downstream direction within any given 15-minute performance data collection interval.
+                 If the value of LOSW in a particular 15-minute collection interval reaches/exceeds this value,
+                 an hwShdslLOSWExceedThreshDsAlarmTrap MAY be generated.
+                 At most, one notification will be sent per interval per endpoint.
+                 Unit: seconds
+                "
+            DEFVAL      { 0 }
+            ::= { hwShdslEndpointAlarmConfProfileEntry 6 }
+
+        hwShdslEndpointThreshUASDs OBJECT-TYPE
+            SYNTAX      Hdsl2ShdslPerfIntervalThreshold
+            UNITS       "seconds"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object configures the threshold for the number of Unavailable Seconds (UAS) in
+                 the downstream direction within any given 15-minute performance data collection interval.
+                 If the value of UAS in a particular 15-minute collection interval reaches/exceeds this value,
+                 an hwShdslUASSExceedThreshDsAlarmTrap MAY be generated.
+                 At most, one notification will be sent per interval per endpoint.
+                 Unit: seconds
+                "
+            DEFVAL      { 0 }
+            ::= { hwShdslEndpointAlarmConfProfileEntry 7 }
+ 
+        hwShdslEndpointAlarmConfProfileDyingGaspCfg OBJECT-TYPE
+            SYNTAX      INTEGER
+                        {
+                        enable(1),
+                        disable(2)
+                        }
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object enables/disables the report of LOSS-OF-POWER alarm in a SHDSL line.
+                 Options:
+                 1. enable(1)  - SHDSL alarm profile DyingGasp switch is enable
+                 2. disable(2) - SHDSL alarm profile DyingGasp switch is disable
+                "
+            DEFVAL      { disable }
+            ::= { hwShdslEndpointAlarmConfProfileEntry 8 }
+            
+        hwShdslEndpointAlarmConfProfileActiveFailAlarmSwitch OBJECT-TYPE
+            SYNTAX INTEGER {
+                               enable (1),
+                               disable (2)
+                           }
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                       "This object enable/disable the active fail alarm switch. 
+                        Options:
+                        1. enable(1)  - The active fail alarm switch is enabled
+                        2. disable(2) - The active fail alarm switch is disabled
+                       "         
+            DEFVAL       { enable }
+            ::= { hwShdslEndpointAlarmConfProfileEntry 9 }      
+
+    END

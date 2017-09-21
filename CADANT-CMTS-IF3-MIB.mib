@@ -1,0 +1,1440 @@
+CADANT-CMTS-IF3-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    OBJECT-TYPE, 
+    MODULE-IDENTITY, 
+    Integer32, 
+    Counter32, 
+    Unsigned32, 
+    Counter64
+	FROM SNMPv2-SMI
+    DisplayString, 
+    TEXTUAL-CONVENTION,
+    RowStatus, 
+    TimeInterval, 
+    TruthValue,
+    DateAndTime,
+    MacAddress,
+    TimeStamp
+        FROM SNMPv2-TC
+    OBJECT-GROUP, 
+    MODULE-COMPLIANCE
+        FROM SNMPv2-CONF
+    cadCmtsIf3
+        FROM CADANT-PRODUCTS-MIB
+    ifIndex, InterfaceIndex, InterfaceIndexOrZero
+        FROM IF-MIB
+    TenthdB,
+    TenthdBmV,
+    DocsisUpstreamType,
+    DocsisQosVersion,
+    DocsEqualizerData  
+        FROM DOCS-IF-MIB
+    ChannelList,
+    Dsid,
+    ChSetId,
+    IfDirection,
+    RangingState,
+    RcpId,
+    docsIf3DsChSetId,
+    docsIf3UsChSetId
+        FROM DOCS-IF3-MIB
+    cadIfCmtsCmStatusMacAddress
+        FROM CADANT-CMTS-MAC-MIB
+    cadIfMacDomainIfIndex
+        FROM CADANT-CMTS-LAYER2CMTS-MIB
+    SnmpAdminString
+             FROM SNMP-FRAMEWORK-MIB;         
+    cadCmtsIf3Mib MODULE-IDENTITY
+    LAST-UPDATED "201511050000Z" -- Nov 5, 2015
+    ORGANIZATION 
+        "Arris International, Inc."
+    CONTACT-INFO 
+        "Arris Technical Support
+         Postal: ARRIS
+         E-Mail: support@arrisi.com"
+    DESCRIPTION 
+        " This MIB module contains Cadant IF3 MIB information. "
+
+    REVISION  "201511050000Z" -- Nov 5, 2015
+    DESCRIPTION 
+        "Remove invalidDpd(19) from CmStatusEventTypeCode.
+         Remove invalidDpd(200) from cadIfCmtsCmFailedProfReason."
+
+    REVISION  "201510290000Z" -- Oct 29, 2015
+    DESCRIPTION 
+        "Change MAX-ACCESS of cadIfCmtsCmFailedProfReason from read-only to not-accessible."
+
+    REVISION  "201504060000Z" -- Apr 06, 2015
+    DESCRIPTION 
+        "Add cadIfCmtsCmFailedProfStatusTable"
+
+    REVISION  "201503100000Z" -- Mar 10, 2015
+    DESCRIPTION 
+        "Add plcFecLockFailure, ncpFecLockFailure, and prof0FecLockFailure 
+         to cadCmtsCmRegImpairedReason"
+    REVISION  "201502270000Z" -- Feb 27, 2015
+    DESCRIPTION 
+        "Add OFDM related event type code to CmStatusEventTypeCode"
+    REVISION  "201402240000Z" -- Feb 24, 2014
+    DESCRIPTION 
+        "Additional per channel set statistics."
+    REVISION  "201311050000Z" -- Nov 5, 2013
+    DESCRIPTION 
+        "Add cadIf3UsChSetTable and cadIf3DsChSetTable"
+    REVISION  "201101180000Z" -- Jan 18, 2011
+    DESCRIPTION 
+        "Change SYNTAX of cadRccStatusId from (1..255) to (1..4294967295)" 
+    REVISION  "201007020000Z" -- July 2, 2010
+    DESCRIPTION 
+        "Change default value of cadCmStatusMaxEventHoldoff to 1500 (30 seconds)." 
+    REVISION  "201005040000Z" -- May 4, 2010
+    DESCRIPTION 
+        "Remove cadClearAllCmtsCmRegImpaired and cadClearCmtsCmRegImpaired." 
+    REVISION  "201001290000Z" -- Jan 29, 2010
+    DESCRIPTION 
+        "Change index scheme of cadCmtsCmRegImpairedStatusEntry to 
+         cadIfCmtsCmStatusMacAddress + cadCmtsCmRegImpairedIfIndex + cadCmtsCmRegImpairedReason
+         Add usStationMaintFailure(900) to cadCmtsCmRegImpairedReason.
+         Remove tiTimeout(800) from cadCmtsCmRegImpairedReason
+         Add cadClearAllCmtsCmRegImpaired and cadClearCmtsCmRegImpaired" 
+    REVISION  "200908250000Z" -- Aug 25, 2009
+    DESCRIPTION 
+        "Change default value of cadCmStatusMaxEventHoldoff to 32,000.
+                default value of cadCmStatusEventEnabled to true(1)." 
+    REVISION  "200808210000Z" -- Aug 21, 2008
+    DESCRIPTION 
+        "Remove the following MIB objects:
+         cadIf3CmtsCmUsStatusRxPower, 
+         cadIf3CmtsCmUsStatusSignalNoise,
+         cadIf3CmtsCmUsStatusMicroreflections,
+         cadIf3CmtsCmUsStatusEqData,
+         cadIf3CmtsCmUsStatusUnerroreds,
+         cadIf3CmtsCmUsStatusCorrecteds,
+         cadIf3CmtsCmUsStatusUncorrectables, and
+         cadIf3CmtsCmUsStatusHighResolutionTimingOffset.
+         " 
+    REVISION  "200807300000Z" -- July 30, 2008
+    DESCRIPTION 
+        "Change Enumeration order of cadCmtsCmRegImpairedReason." 
+
+    REVISION  "200804150000Z" -- Apr 15, 2008
+    DESCRIPTION 
+        "Modify cadCmtsCmRegImpairedReason and cadCmtsCmRegImpairedLastRepairAction." 
+    REVISION  "200802150000Z" -- Feb 15, 2008
+    DESCRIPTION 
+        "Add cadDsbgDynEnable, cadDsbgReseqWaitTime, and cadDsbgReseqWarnThrshld." 
+    REVISION  "200712120000Z" -- Dec 12, 2007
+    DESCRIPTION 
+        "Add cadDsbgDynEnable, cadDsbgReseqWaitTime, and cadDsbgReseqWarnThrshld." 
+    REVISION  "200711070000Z" -- Nov 7, 2007
+    DESCRIPTION 
+        "Add cadIf3CmtsCmUsStatusTable." 
+    REVISION  "200709280000Z" -- Sep 28, 2007
+    DESCRIPTION 
+        " Initial version. "
+    ::= { cadCmtsIf3 1 }
+
+
+
+cadCmtsIf3MibObjects OBJECT IDENTIFIER ::= { cadCmtsIf3Mib 1 }
+
+--============== TEXTUAL-CONVENTION ========================
+
+
+HhMmSs ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1d:1d:1d"
+    STATUS       current
+    DESCRIPTION
+            "A time specification of hours, minutes, and 
+          seconds.
+
+            field  octets  contents                  range
+            -----  ------  --------                  -----
+              1       1    hour                      0..23
+              2       1    minutes                   0..59
+              3       1    seconds                   0..59"
+    SYNTAX       OCTET STRING (SIZE (3))
+
+CmStatusEventTypeCode ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION 
+        "This field contains a unique code which 
+        describes the event condition. Refer to Table
+        6-56 in MULPI." 
+    SYNTAX INTEGER {
+        secondaryChlMddTimeout(1),
+        qamFecLockFailure(2),
+        seqOutOfRange(3),
+        mddRecovery(4),
+        qamFecLockRecovery(5),
+        t4Timeout(6),
+        t3RetriesExceeded(7),
+        t3RangingRecovery(8),
+        cmOnBatteryBackup(9),
+        cmAcPowerRestored(10),
+        ofdmProfileFailure(16),
+        dpdMismatch(18),
+
+        ncpProfileFailure(20),
+        plcFecLockFailure(21),
+        ncpProfileRecovery(22),
+        plcFecLockRecovery(23),
+        ofdmProfileRecovery(24)
+    }
+
+
+--=======================================================
+--=   Cadant CM Status Message MacDomain Configuration Table
+--=======================================================
+
+cadCmStatusMdCfgTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadCmStatusMdCfgEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "At MAC Domain creation time with one row per cadCmStatusEventTypeCode 
+         value for the new MAC Domain. These rows MUST be deleted by the CMTS 
+         when the MAC Domain is deleted."
+   ::= { cadCmtsIf3MibObjects 1 }
+
+cadCmStatusMdCfgEntry OBJECT-TYPE
+    SYNTAX      CadCmStatusMdCfgEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row containing information about the 
+         Cadant CM Status Mac domain configuration. "
+    INDEX    { cadIfMacDomainIfIndex, cadCmStatusEventTypeCode }
+    ::= { cadCmStatusMdCfgTable 1 }
+
+CadCmStatusMdCfgEntry ::= SEQUENCE {
+            cadCmStatusEventTypeCode               CmStatusEventTypeCode, 
+            cadCmStatusEventDescription            DisplayString,          
+            cadCmStatusEventEnabled                TruthValue,
+            cadCmStatusMaxEventHoldoff             INTEGER,
+            cadCmStatusMaxNumReports               INTEGER
+}
+
+cadCmStatusEventTypeCode OBJECT-TYPE
+    SYNTAX CmStatusEventTypeCode
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "This field contains a unique code which 
+        describes the event condition. Refer to Table
+        6-56 in MULPI." 
+    ::= { cadCmStatusMdCfgEntry 1 }
+
+cadCmStatusEventDescription OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (0..80))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Textual description of event. This will 
+        default to a description that is generated by the CMTS 
+        but will be set to the Event Description which is sent 
+        from the CM, if applicable."
+    ::= { cadCmStatusMdCfgEntry 2 }
+
+cadCmStatusEventEnabled OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+        "This attribute represents the enable/disable 
+        for a particular event for which status may be 
+        reported via the CM-STATUS message."
+    DEFVAL { true } 
+    ::= { cadCmStatusMdCfgEntry 3 }
+
+cadCmStatusMaxEventHoldoff OBJECT-TYPE
+    SYNTAX      INTEGER (1..65535)
+    UNITS       "20 millisecond increments"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+        "The CM-STATUS reporting mechanism includes a
+        random holdoff prior to transmission of status report 
+        messages. This attribute is the maximum value of that 
+        holdoff timer to be used by the CM when determining 
+        when to transmit a CM-STATUS message."
+    DEFVAL { 1500 } 
+    ::= { cadCmStatusMdCfgEntry 4 }
+
+
+cadCmStatusMaxNumReports OBJECT-TYPE
+    SYNTAX      INTEGER (0..255)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION  
+        "Maximum Number of Reports per event:
+        0:     Unlimited number of reports
+        1-255: Maximum number of reports for an event type 
+        reporting transaction."
+    DEFVAL { 1 }
+    ::= { cadCmStatusMdCfgEntry 5 }
+
+cadCmtsCmCtrlStatusOverrideCfgTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadCmtsCmCtrlStatusOverrideCfgEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A Table containing information about the 
+         Cadant CM control status override configuration. "
+    ::= { cadCmtsIf3MibObjects 2 }
+
+cadCmtsCmCtrlStatusOverrideCfgEntry OBJECT-TYPE
+    SYNTAX      CadCmtsCmCtrlStatusOverrideCfgEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row containing information about the 
+         Cadant CM control status override configuration. "
+    INDEX    { cadCmtsCmCtrlStatusMacAddress, cadCmtsCmCtrlStatusEventTypeCode }
+    ::= { cadCmtsCmCtrlStatusOverrideCfgTable 1 }
+
+CadCmtsCmCtrlStatusOverrideCfgEntry ::= SEQUENCE {
+        cadCmtsCmCtrlStatusMacAddress       MacAddress,
+        cadCmtsCmCtrlStatusEventTypeCode    CmStatusEventTypeCode,
+        cadCmtsCmCtrlStatusOverrideEnabled  TruthValue,
+        cadCmtsCmCtrlStatusOverrideDsChList OCTET STRING,
+        cadCmtsCmCtrlStatusOverrideUsChList OCTET STRING,
+        cadCmtsCmCtrlStatusRowStatus        RowStatus
+}
+
+cadCmtsCmCtrlStatusMacAddress OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "The CM Mac Address."
+    ::= { cadCmtsCmCtrlStatusOverrideCfgEntry 1 }
+
+cadCmtsCmCtrlStatusEventTypeCode OBJECT-TYPE
+    SYNTAX      CmStatusEventTypeCode
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "This field contains a unique code which 
+        describes the event condition. Refer to Table
+        6-56 in MULPI."
+    ::= { cadCmtsCmCtrlStatusOverrideCfgEntry 2 }
+
+cadCmtsCmCtrlStatusOverrideEnabled OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION 
+        "This attribute can be used to override the 
+        CM's primary channel MDD with regard to enabling a 
+        particular event type."
+    ::= { cadCmtsCmCtrlStatusOverrideCfgEntry 3 }
+
+cadCmtsCmCtrlStatusOverrideDsChList OBJECT-TYPE
+    SYNTAX OCTET STRING (SIZE (0..255)) -- need to change to ChannelList
+    MAX-ACCESS read-create
+    STATUS      current
+    DESCRIPTION 
+        "List of DS channel IDs to which this override 
+        applies."
+    ::= { cadCmtsCmCtrlStatusOverrideCfgEntry 4 }
+
+cadCmtsCmCtrlStatusOverrideUsChList OBJECT-TYPE
+    SYNTAX OCTET STRING (SIZE (0..255)) -- need to change to ChannelList
+    MAX-ACCESS read-create
+    STATUS      current
+    DESCRIPTION 
+        "List of US channel IDs to which this override 
+        applies."
+    ::= { cadCmtsCmCtrlStatusOverrideCfgEntry 5 }
+
+cadCmtsCmCtrlStatusRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "Row Status for this table"
+    ::= { cadCmtsCmCtrlStatusOverrideCfgEntry 6 }
+
+
+--=======================================================
+--=   Cadant CM Status Counts Table
+--=======================================================
+cadCmStatusCountsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadCmStatusCountsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A Table containing information about the 
+         Cadant CM status counter. "
+    ::= { cadCmtsIf3MibObjects 3 }
+
+cadCmStatusCountsEntry OBJECT-TYPE
+    SYNTAX      CadCmStatusCountsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row containing information about the 
+         Cadant CM status counter. "
+    INDEX       { cadCmStatusCountsCmMacAddress, cadCmStatusEventTypeCode }
+    ::= { cadCmStatusCountsTable 1 }
+
+CadCmStatusCountsEntry ::= SEQUENCE {
+    cadCmStatusCountsCmMacAddress           MacAddress,
+    cadCmStatusCountsEventTypeCode          CmStatusEventTypeCode,
+    cadCmStatusCountsEventDescription       DisplayString,
+    cadCmStatusCountsEventCount             Counter64,        
+    cadCmStatusCountsReportedDsChIfIndex    InterfaceIndexOrZero,
+    cadCmStatusCountsReportedUsChIfIndex    InterfaceIndexOrZero,  
+    cadCmStatusCountsReportedDsid           Dsid,
+    cadCmStatusCountsTimeStamp              TimeStamp
+}
+
+cadCmStatusCountsCmMacAddress OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "MAC Address of CM which reported this event."
+    ::= { cadCmStatusCountsEntry 1 }
+
+cadCmStatusCountsEventTypeCode OBJECT-TYPE
+    SYNTAX      CmStatusEventTypeCode
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "This field contains a unique code which 
+        describes the event condition. Refer to Table
+        6-56 in MULPI."
+    ::= { cadCmStatusCountsEntry 2 }
+
+cadCmStatusCountsEventDescription OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..80))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Textual description of event. This will 
+        default to a description that is generated by the CMTS 
+        but will be set to the Event Description which is sent 
+        from the CM, if applicable."
+    ::= { cadCmStatusCountsEntry 3 }
+
+cadCmStatusCountsEventCount OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Count of the number of times that the 
+        cadCmStatusEventTypeCode has been reported for this 
+        CM."
+    ::= { cadCmStatusCountsEntry 4 }
+     
+cadCmStatusCountsReportedDsChIfIndex OBJECT-TYPE
+    SYNTAX      InterfaceIndexOrZero
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "ifIndex corresponding to the reported DCID."
+    ::= { cadCmStatusCountsEntry 5 }
+
+cadCmStatusCountsReportedUsChIfIndex OBJECT-TYPE
+    SYNTAX      InterfaceIndexOrZero
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "ifIndex corresponding to the reported UCID."
+    ::= { cadCmStatusCountsEntry 6 }
+
+cadCmStatusCountsReportedDsid OBJECT-TYPE
+    SYNTAX      Dsid
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "DSID as reported by CM."
+    ::= { cadCmStatusCountsEntry 7 }
+
+cadCmStatusCountsTimeStamp OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "TimeStamp when this row was created."
+    ::= { cadCmStatusCountsEntry 8 }
+
+
+--======================================================
+--== Cadant Downstream Channel Set Relationship Table ==
+--======================================================
+
+cadCmtsCmRepairParamTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadCmtsCmRepairParamEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+	"A table that contains information on the 
+	 CM repair parameters. "
+    ::= { cadCmtsIf3MibObjects 4 }
+
+cadCmtsCmRepairParamEntry OBJECT-TYPE
+    SYNTAX  CadCmtsCmRepairParamEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+	"A conceptual row containing information about the 
+	 CM repair parameter. "
+    INDEX { cadIfMacDomainIfIndex }
+    ::= { cadCmtsCmRepairParamTable 1 }
+
+CadCmtsCmRepairParamEntry ::= SEQUENCE {
+     cadCmtsCmRepairEnabled             TruthValue,
+     cadCmtsCmRepairWindowStartTime     HhMmSs,
+     cadCmtsCmRepairWindowEndTime       HhMmSs,
+     cadCmtsCmRepairInterval            HhMmSs
+}
+
+cadCmtsCmRepairEnabled OBJECT-TYPE
+    SYNTAX TruthValue
+    MAX-ACCESS read-write
+    STATUS      current
+    DESCRIPTION 
+        "When true(1), the CMTS will periodically 
+        attempt to repair any unresolved topology and/or 
+        partial service condition for each CM which has been 
+        added to the CM problem list."
+    ::= { cadCmtsCmRepairParamEntry 1 }
+
+cadCmtsCmRepairWindowStartTime OBJECT-TYPE
+    SYNTAX HhMmSs
+    MAX-ACCESS read-write
+    STATUS      current
+    DESCRIPTION 
+        "Time of day for beginning of CmRepair Window."
+    ::= { cadCmtsCmRepairParamEntry 2 }
+
+cadCmtsCmRepairWindowEndTime OBJECT-TYPE
+    SYNTAX HhMmSs
+    MAX-ACCESS read-write
+    STATUS      current
+    DESCRIPTION 
+        "Time of day for end of CmRepair Window."
+    ::= { cadCmtsCmRepairParamEntry 3 }
+
+cadCmtsCmRepairInterval OBJECT-TYPE
+    SYNTAX HhMmSs
+    MAX-ACCESS read-write
+    STATUS      current
+    DESCRIPTION 
+        "Period between repair attemts during repair 
+        window."
+    ::= { cadCmtsCmRepairParamEntry 4 }
+
+
+--======================================================
+--== Cadant CMTS CM Repair Parameter Table ==
+--======================================================
+
+cadCmtsCmRegImpairedStatusTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadCmtsCmRegImpairedStatusEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+	"A table that contains information on the 
+	 CM impaired status. "
+    ::= { cadCmtsIf3MibObjects 5 }
+
+cadCmtsCmRegImpairedStatusEntry OBJECT-TYPE
+    SYNTAX  CadCmtsCmRegImpairedStatusEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+	    "A conceptual row containing information about the 
+	    CM impaired status. "
+    INDEX { cadIfCmtsCmStatusMacAddress, cadCmtsCmRegImpairedIfIndex, cadCmtsCmRegImpairedReason } 
+    ::= { cadCmtsCmRegImpairedStatusTable 1 }
+
+CadCmtsCmRegImpairedStatusEntry ::= SEQUENCE {
+
+    cadCmtsCmRegImpairedReason              INTEGER,
+    cadCmtsCmRegImpairedFaultDetected       DateAndTime,
+    cadCmtsCmRegImpairedLastRepairAttempt   DateAndTime,
+    cadCmtsCmRegImpairedLastRepairAction    INTEGER,
+    cadCmtsCmRegImpairedIfIndex             InterfaceIndex                 
+}
+
+cadCmtsCmRegImpairedReason OBJECT-TYPE
+    SYNTAX  INTEGER {
+            qamFecLockFailure (100),
+            plcFecLockFailure (130),
+            ncpFecLockFailure (150),
+            prof0FecLockFailure (170),
+            unknownMdDsSgId (200),
+            unknownMdUsSgId (300),
+            badRcs (400),
+            badTcs (500),
+            t4Timeout (600),
+            t3Timeout (700),
+            -- obsolete t1Timeout (800),
+            usStationMaintFailure(900)
+         }
+    MAX-ACCESS read-only
+    STATUS  current
+    DESCRIPTION 
+        "Reason why CM is considered to be impaired. Reason codes 
+         with lower integer values take precedence over reason codes 
+         with higher values if multiple reasons apply to the same CM.
+
+         The unknownMdDsSgId reason is used whenever the MD-DS-SG-ID 
+         reported in the B-INIT-RNG-REQ message is 0 and the CMTS 
+         cannot otherwise determine which downstream service group 
+         the CM is contained within.
+
+         The unknownMdUsSgId reason is used whenever the MD-DS-SG-ID 
+         is known for the CM but the MD-US-SG cannot be determined 
+         by the topology resolution process. This reason may indicate 
+         an undiagnosed connectivity problem in the cable network whereby 
+         the true connectivity does not match the provisioned connectivity. 
+         It may also indicate one or more corrupted upstream channels. 
+
+         The badRcs reason indicates that the CM was unable to tune to 
+         and receive a downstream channel that is assigned to the CM 
+         in the RCC. This may indicate an undiagnosed connectivity problem 
+         or a CM receiver problem.
+
+         The badTcs reason indicates that CM was unable to successfully 
+         range on one or more upstream channels that were assigned to 
+         the CM in the TCC. This reason may indicate an undiagnosed 
+         connectivity problem in the cable network whereby the true 
+         connectivity does not match the provisioned connectivity. 
+         It may also indicate one or more corrupted upstream channels. 
+         This reason may also indicate that the supervision for one or 
+         more upstream channels cannot be found within the RCS.
+
+         The qamFecLockFailure reason indicates that the CM has reported 
+         that one or more previously known good downstream channels 
+         has lost FEC lock. This reason supercedes unknownMdDsSgId.
+
+         The t4Timeout indicates that the CM has reported that it has 
+         experienced a timeout event for DOCSIS timer T4 
+         (Periodic Ranging opportunities interval).
+
+         The t3Timeout reason indicates that the CM has reported that 
+         it has exceeded the maximum number of consecutive timeouts 
+         of timer T3 (ranging response timer).
+         
+         The usStationMaintFailure indicates that C4 has detected that
+         CM is experiencing periodic ranging failure."
+    ::= { cadCmtsCmRegImpairedStatusEntry 1 }
+
+cadCmtsCmRegImpairedFaultDetected OBJECT-TYPE
+    SYNTAX DateAndTime
+    MAX-ACCESS read-only
+    STATUS      current
+    DESCRIPTION 
+        "Date and time when impairment of CM was 
+        first detected."
+    ::= { cadCmtsCmRegImpairedStatusEntry 2 }
+
+cadCmtsCmRegImpairedLastRepairAttempt OBJECT-TYPE
+    SYNTAX DateAndTime
+    MAX-ACCESS read-only
+    STATUS      current
+    DESCRIPTION 
+        "Date and time when corrective action was 
+        last attempted. If no action has not yet been attempted, 
+        then this time should be the same as 
+        cadCmtsCmRegImpairedFaultDetected."
+    ::= { cadCmtsCmRegImpairedStatusEntry 3 }
+
+cadCmtsCmRegImpairedLastRepairAction OBJECT-TYPE
+    SYNTAX INTEGER {
+        noAction(0),
+        cmReset (1),
+        dbcMessage (2),
+        dccMessage (3)
+    }
+    MAX-ACCESS read-only
+    STATUS      current
+    DESCRIPTION 
+        "Type of corrective action last attempted.
+         If no action has yet been attempted then 
+         the value should be noAction."
+    ::= { cadCmtsCmRegImpairedStatusEntry 4 }
+
+cadCmtsCmRegImpairedIfIndex OBJECT-TYPE
+    SYNTAX InterfaceIndex
+    MAX-ACCESS read-only
+    STATUS      current
+    DESCRIPTION 
+        "This object indicates either a downstream or upstream channel is impaired."
+    ::= { cadCmtsCmRegImpairedStatusEntry 5 }
+
+cadIf3CmtsCmUsStatusTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF CadIf3CmtsCmUsStatusEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+        "This object defines status information of the CM
+        currently in use Upstream Logical Channels, as reported
+        by the CMTS."
+     ::= { cadCmtsIf3MibObjects 6}
+
+
+cadIf3CmtsCmUsStatusEntry OBJECT-TYPE
+     SYNTAX      CadIf3CmtsCmUsStatusEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+         "The conceptual row of cadIf3CmtsCmUsStatusTable."
+     INDEX {
+             cadIfCmtsCmStatusMacAddress,
+             cadIf3CmtsCmUsStatusChIfIndex
+           }
+     ::= { cadIf3CmtsCmUsStatusTable 1 }
+
+CadIf3CmtsCmUsStatusEntry ::= SEQUENCE {
+     cadIf3CmtsCmUsStatusChIfIndex
+                  InterfaceIndex,
+     cadIf3CmtsCmUsStatusModulationType
+                  DocsisUpstreamType,
+     cadIf3CmtsCmUsStatusIsMuted       -- updated per OSSIv3.0-N-07.0410-4
+                  TruthValue,
+     cadIf3CmtsCmUsStatusRangingStatus -- updated per OSSIv3.0-N-07.0410-4
+                  RangingState
+     }
+
+cadIf3CmtsCmUsStatusChIfIndex OBJECT-TYPE
+     SYNTAX      InterfaceIndex
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+        "This attribute is a key that represents the ifIndex
+        of the upstream interface."
+     ::= { cadIf3CmtsCmUsStatusEntry 1 }
+
+cadIf3CmtsCmUsStatusModulationType OBJECT-TYPE
+     SYNTAX      DocsisUpstreamType
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This attribute represents the modulation type currently
+        used by this upstream channel."
+     ::= { cadIf3CmtsCmUsStatusEntry 2 }
+
+cadIf3CmtsCmUsStatusIsMuted OBJECT-TYPE    -- updated per OSSIv3.0-N-07.0410-4
+     SYNTAX      TruthValue
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This attribute has a value 'true' to indicate that 
+        the CM's upstream channel has been muted via 
+        CM-CTRL-REQ/CM-CTRL-RSP message exchange."
+     REFERENCE
+         "DOCSIS 3.0 MAC and Upper Layer Protocols Interface
+         Specification CM-SP-MULPIv3.0-I01-060804, section
+         Media Access Control specification."
+     ::= { cadIf3CmtsCmUsStatusEntry 11 }
+
+cadIf3CmtsCmUsStatusRangingStatus OBJECT-TYPE  -- updated per OSSIv3.0-N-07.0410-4
+     SYNTAX      RangingState
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This attribute denotes the ranging state of the CM."
+     REFERENCE
+         "DOCSIS 3.0 MAC and Upper Layer Protocols Interface
+         Specification CM-SP-MULPIv3.0-I01-060804, section
+         Media Access Control specification."
+     ::= { cadIf3CmtsCmUsStatusEntry 12 }
+
+cadRccStatusTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF CadRccStatusEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+        "The RCC Status object provides a read-only view of
+        the statically-configured (from the RccCfg object)
+        and dynamically-created RCCs.
+        The CMTS creates an RCC Status instance for each unique
+        MAC Domain Cable Modem Service Group (MD-CM-SG) to
+        which it signals an RCC to the CM."
+     ::= { cadCmtsIf3MibObjects 7}
+
+cadRccStatusEntry OBJECT-TYPE
+     SYNTAX      CadRccStatusEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+         "The conceptual row of cadRccStatusTable.
+         The ifIndex key corresponds to the MAC Domain interface
+         where the RCC is configured."
+     INDEX {
+             cadIfMacDomainIfIndex,
+             cadRccStatusRcpId,
+             cadRccStatusId
+            }
+     ::= { cadRccStatusTable 1 }
+
+CadRccStatusEntry ::= SEQUENCE {
+     cadRccStatusRcpId          RcpId,
+     cadRccStatusId             Unsigned32,
+     cadRccStatusRccCfgId       Unsigned32,
+     cadRccStatusValidityCode   INTEGER,
+     cadRccStatusValidityCodeText   SnmpAdminString,
+     cadRccStatusDsChSetId      ChSetId,
+     cadRccStatusChannelCount   Unsigned32
+     }
+
+cadRccStatusRcpId OBJECT-TYPE
+     SYNTAX      RcpId
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+        "This key represents the RCP-ID to which this instance
+        applies."
+     ::= { cadRccStatusEntry 1 }
+
+cadRccStatusId OBJECT-TYPE
+     SYNTAX      Unsigned32 (1..4294967295)
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+        "This key represents an RCC combination for a particular
+        RcpId either from an RCC configuration object
+        or a CMTS-determined RCC and is unique per combination
+        of MAC Domain IfIndex and RcpId."
+     ::= { cadRccStatusEntry 2 }
+
+cadRccStatusRccCfgId OBJECT-TYPE
+     SYNTAX      Unsigned32 (0..65535)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This attribute identifies an RCC-Configured combination
+        from which this instance was defined. If nonzero,
+        it corresponds to the RccCfg instance from which
+        the RCC was created. Zero means that the  RCC was dynamically
+        created by the CMTS."
+     ::= { cadRccStatusEntry 3 }
+
+cadRccStatusValidityCode OBJECT-TYPE
+     SYNTAX      INTEGER {other(1),
+                         valid(2),
+                         invalid(3),
+                         wrongPrimaryDs(4),
+                         missingPrimaryDs(5),
+                         multiplePrimaryDs(6),
+                         duplicateDs(7),
+                         wrongFrequencyRange(8),
+                         wrongConnectivity(9)
+                         }
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This attribute indicates whether the RCC instance
+        of this object is valid or not. An RCC Status instance
+        from a configured or a dynamic RCC could become invalid,
+        for example, due changes in the topology."
+     ::= { cadRccStatusEntry 4 }
+
+cadRccStatusValidityCodeText OBJECT-TYPE
+     SYNTAX      SnmpAdminString
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This attribute contains the CMTS vendor-specific
+        log information from the Receive Channel Configuration
+        Status encoding."
+     ::= { cadRccStatusEntry 5 }
+
+cadRccStatusDsChSetId OBJECT-TYPE
+     SYNTAX      ChSetId
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This object contains the ID for the downstream channel set used by this RCC. 
+         It is only unique in association with a specific MAC domain."
+     ::= { cadRccStatusEntry 6 }
+
+cadRccStatusChannelCount OBJECT-TYPE
+     SYNTAX      Unsigned32
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This object provides the number of downstream channels provided by a modem using this RCC."
+     ::= { cadRccStatusEntry 7 }
+
+----------------------------------------------------------------------
+
+cadIf3UsChSetTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF CadIf3UsChSetEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+        "This object defines a set of upstream channels. These
+        channel sets may be associated with TCSID."
+
+     ::= { cadCmtsIf3MibObjects 8}
+
+cadIf3UsChSetEntry OBJECT-TYPE
+     SYNTAX      CadIf3UsChSetEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+         "The conceptual row of cadIf3UsChSetTable.
+         The ifIndex key corresponds to the MAC Domain interface
+         where the upstream channel set is defined."
+     INDEX {
+             ifIndex,
+             docsIf3UsChSetId,
+             cadIf3UsChIfIndex
+           }
+     ::= { cadIf3UsChSetTable 1 }
+
+CadIf3UsChSetEntry ::= SEQUENCE {
+     cadIf3UsChIfIndex  InterfaceIndex
+                  
+     }
+
+cadIf3UsChIfIndex OBJECT-TYPE
+     SYNTAX      InterfaceIndex
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This object is associated with an upstream channel ifIndex."
+     ::= { cadIf3UsChSetEntry 1 }
+
+------------------------------------------------------------------------------
+
+cadIf3DsChSetTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF CadIf3DsChSetEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+        "This object defines a set of downstream channels. These
+        channel sets may be associated with RCSID."
+
+     ::= { cadCmtsIf3MibObjects 9}
+
+cadIf3DsChSetEntry OBJECT-TYPE
+     SYNTAX      CadIf3DsChSetEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+         "The conceptual row of cadIf3DsChSetTable.
+         The ifIndex key corresponds to the MAC Domain interface
+         where the downstream channel set is defined."
+     INDEX {
+             ifIndex,
+             docsIf3DsChSetId,
+             cadIf3DsChIfIndex
+           }
+     ::= { cadIf3DsChSetTable 1 }
+
+CadIf3DsChSetEntry ::= SEQUENCE {
+     cadIf3DsChIfIndex  InterfaceIndex
+                  
+     }
+
+cadIf3DsChIfIndex OBJECT-TYPE
+     SYNTAX      InterfaceIndex
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This object is associated with an downstream channel ifIndex."
+     ::= { cadIf3DsChSetEntry 1 }
+
+--
+--
+--
+cadIf3CsSummaryTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadIf3CsSummaryEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table contains counts of the modems using a particular upstream
+             or downstream channel set.  It is used to construct "
+        ::= { cadCmtsIf3MibObjects 10 }
+
+cadIf3CsSummaryEntry OBJECT-TYPE
+        SYNTAX      CadIf3CsSummaryEntry
+        MAX-ACCESS  not-accessible
+        STATUS      deprecated
+        DESCRIPTION
+            "The conceptual row of the cadIf3CsSummary table that contains the
+             the count of modems using this channel set."
+        INDEX { ifIndex, cadIf3CsDir, cadIf3CsId }
+        ::= { cadIf3CsSummaryTable 1 }
+
+CadIf3CsSummaryEntry ::= SEQUENCE {
+            cadIf3CsDir                         IfDirection,
+            cadIf3CsId                          ChSetId,
+            cadIf3CsNumOther                    Integer32,
+            cadIf3CsNumInitRanging              Integer32,
+            cadIf3CsNumRangingComplete          Integer32,
+            cadIf3CsNumStartEae                 Integer32,
+            cadIf3CsNumStartDhcpv4              Integer32,
+            cadIf3CsNumStartDhcpv6              Integer32,
+            cadIf3CsNumDhcpv4Complete           Integer32,
+            cadIf3CsNumDhcpv6Complete           Integer32,            
+            cadIf3CsNumStartCfgFileDownload     Integer32,
+            cadIf3CsNumCfgFileDownloadComplete  Integer32,
+            cadIf3CsNumStartRegistration        Integer32,
+            cadIf3CsNumRegistrationComplete     Integer32,
+            cadIf3CsNumOperational              Integer32,
+            cadIf3CsNumBpiInit                  Integer32,
+            cadIf3CsNumForwardingDisabled       Integer32,
+            cadIf3CsNumRfMuteAll                Integer32,
+            cadIf3CsNumTotal                    Integer32,
+            cadIf3CsNumRangingAborted           Integer32,
+            cadIf3CsNumRangFlaps                Integer32,
+            cadIf3CsNumProvFlaps                Integer32,
+            cadIf3CsNumRegFlaps                 Integer32
+        }
+
+cadIf3CsDir OBJECT-TYPE
+        SYNTAX      IfDirection
+        MAX-ACCESS  not-accessible
+        STATUS      deprecated
+        DESCRIPTION
+            "The direction of the channel set associated with this modem count."
+        ::= { cadIf3CsSummaryEntry 1 }
+
+cadIf3CsId OBJECT-TYPE
+        SYNTAX      ChSetId
+        MAX-ACCESS  not-accessible
+        STATUS      deprecated
+        DESCRIPTION
+            "The channel set associated with this modem count."
+        ::= { cadIf3CsSummaryEntry 2 }
+
+cadIf3CsNumOther OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this channel set in state other(1)"
+        ::= { cadIf3CsSummaryEntry 3 }
+
+cadIf3CsNumInitRanging OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this channel set in state initialRanging(2)"
+        ::= { cadIf3CsSummaryEntry 4 }
+
+cadIf3CsNumRangingComplete OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this channel set in state rangingAutoAdjComplete(4)"
+        ::= { cadIf3CsSummaryEntry 5 }
+
+cadIf3CsNumStartEae OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this channel set in state startEae(10)"
+        ::= { cadIf3CsSummaryEntry 6 }
+
+cadIf3CsNumStartDhcpv4 OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this channel set in state startDhcpv4(11)"
+        ::= { cadIf3CsSummaryEntry 7 }
+
+cadIf3CsNumStartDhcpv6 OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this channel set in state startDhcpv6(12)"
+        ::= { cadIf3CsSummaryEntry 8 }
+
+cadIf3CsNumDhcpv4Complete OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this channel set in state dhcpv4Complete(5)"
+        ::= { cadIf3CsSummaryEntry 9 }
+
+cadIf3CsNumDhcpv6Complete OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this channel set in state dhcpv6Complete(13)"
+        ::= { cadIf3CsSummaryEntry 10 }
+
+cadIf3CsNumStartCfgFileDownload OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this channel set in state startConfigFileDownload(14)"
+        ::= { cadIf3CsSummaryEntry 11 }
+
+cadIf3CsNumCfgFileDownloadComplete OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this channel set in state configFileDownloadComplete(15)"
+        ::= { cadIf3CsSummaryEntry 12 }
+
+cadIf3CsNumStartRegistration OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this channel set in state startRegistration(16)"
+        ::= { cadIf3CsSummaryEntry 13 }
+
+cadIf3CsNumRegistrationComplete OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this channel set in state registrationComplete(6)"
+        ::= { cadIf3CsSummaryEntry 14 }
+
+cadIf3CsNumOperational OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this channel set in state operational(8)"
+        ::= { cadIf3CsSummaryEntry 15 }
+
+cadIf3CsNumBpiInit OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this channel set in state bpiInit(9)" 
+        ::= { cadIf3CsSummaryEntry 16 }
+
+cadIf3CsNumForwardingDisabled OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this channel set in state forwardingDisabled(17)"
+        ::= { cadIf3CsSummaryEntry 17 }
+
+cadIf3CsNumRfMuteAll OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this channel set in state rfMuteAll(18)"
+        ::= { cadIf3CsSummaryEntry 18 }
+
+cadIf3CsNumTotal OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The total count of cable modems on this channel set"
+        ::= { cadIf3CsSummaryEntry 19 }
+
+cadIf3CsNumRangingAborted OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this channel set in state rangingAborted(3)"
+        ::= { cadIf3CsSummaryEntry 20 }
+
+cadIf3CsNumRangFlaps OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of times a CM on this channel set has reset in Ranging states."
+        ::= { cadIf3CsSummaryEntry 21 }
+
+cadIf3CsNumProvFlaps OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of times a CM on this channel set has reset in Provisioning states."
+        ::= { cadIf3CsSummaryEntry 22 }
+
+cadIf3CsNumRegFlaps OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of times a CM on this channel set has reset in Registered state."
+        ::= { cadIf3CsSummaryEntry 23 }
+
+---
+--- This table summarizes the modem counts for the entire chassis
+---
+cadIf3ChsSummary OBJECT IDENTIFIER ::= { cadCmtsIf3MibObjects 11 }
+
+cadIf3ChsNumOther OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this chassis in state other(1)"
+        ::= { cadIf3ChsSummary 3 }
+
+cadIf3ChsNumInitRanging OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this chassis in state initialRanging(2)"
+        ::= { cadIf3ChsSummary 4 }
+
+cadIf3ChsNumRangingComplete OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this chassis in state rangingAutoAdjComplete(4)"
+        ::= { cadIf3ChsSummary 5 }
+
+cadIf3ChsNumStartEae OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this chassis in state startEae(10)"
+        ::= { cadIf3ChsSummary 6 }
+
+cadIf3ChsNumStartDhcpv4 OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this chassis in state startDhcpv4(11)"
+        ::= { cadIf3ChsSummary 7 }
+
+cadIf3ChsNumStartDhcpv6 OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this chassis in state startDhcpv6(12)"
+        ::= { cadIf3ChsSummary 8 }
+
+cadIf3ChsNumDhcpv4Complete OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this chassis in state dhcpv4Complete(5)"
+        ::= { cadIf3ChsSummary 9 }
+
+cadIf3ChsNumDhcpv6Complete OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this chassis in state dhcpv6Complete(13)"
+        ::= { cadIf3ChsSummary 10 }
+
+cadIf3ChsNumStartCfgFileDownload OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this chassis in state startConfigFileDownload(14)"
+        ::= { cadIf3ChsSummary 11 }
+
+cadIf3ChsNumCfgFileDownloadComplete OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this chassis in state configFileDownloadComplete(15)"
+        ::= { cadIf3ChsSummary 12 }
+
+cadIf3ChsNumStartRegistration OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this chassis in state startRegistration(16)"
+        ::= { cadIf3ChsSummary 13 }
+
+cadIf3ChsNumRegistrationComplete OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this chassis in state registrationComplete(6)"
+        ::= { cadIf3ChsSummary 14 }
+
+cadIf3ChsNumOperational OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this chassis in state operational(8)"
+        ::= { cadIf3ChsSummary 15 }
+
+cadIf3ChsNumBpiInit OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this chassis in state bpiInit(9)" 
+        ::= { cadIf3ChsSummary 16 }
+
+cadIf3ChsNumForwardingDisabled OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this chassis in state forwardingDisabled(17)"
+        ::= { cadIf3ChsSummary 17 }
+
+cadIf3ChsNumRfMuteAll OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this chassis in state rfMuteAll(18)"
+        ::= { cadIf3ChsSummary 18 }
+
+cadIf3ChsNumTotal OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The total count of cable modems on this chassis"
+        ::= { cadIf3ChsSummary 19 }
+
+cadIf3ChsNumRangingAborted OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of modems on this chassis in state rangingAborted(3)"
+        ::= { cadIf3ChsSummary 20 }
+
+cadIf3ChsNumRangFlaps OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of times a CM on this chassis set has reset in a ranging state."
+        ::= { cadIf3ChsSummary 21 }
+
+cadIf3ChsNumProvFlaps OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of times a CM on this chassis has reset in a provisioning state."
+        ::= { cadIf3ChsSummary 22 }
+
+cadIf3ChsNumRegFlaps OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "The number of times a CM on this chassis has reset in a registered state."
+        ::= { cadIf3ChsSummary 23 }
+
+--
+-- ------------------------------------ cadIfCmtsCmFailedProfStatusTable --------------------------------------
+--
+
+cadIfCmtsCmFailedProfStatusTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadIfCmtsCmFailedProfStatusEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+	"A table that contains information on the 
+	 CM impaired status (partial channel condition). "
+    ::= { cadCmtsIf3MibObjects 12 }
+
+cadIfCmtsCmFailedProfStatusEntry OBJECT-TYPE
+    SYNTAX  CadIfCmtsCmFailedProfStatusEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+	    "A conceptual row containing information about the 
+	    CM impaired OFDM profile status. "
+    INDEX { cadIfCmtsCmFailedProfMacAddress, cadIfCmtsCmFailedProfIfIndex,
+            cadIfCmtsCmFailedProfId, cadIfCmtsCmFailedProfReason } 
+    ::= { cadIfCmtsCmFailedProfStatusTable 1 }
+
+CadIfCmtsCmFailedProfStatusEntry ::= SEQUENCE {
+    cadIfCmtsCmFailedProfMacAddress          MacAddress,
+    cadIfCmtsCmFailedProfIfIndex             InterfaceIndex,                 
+    cadIfCmtsCmFailedProfId                  Integer32,
+    cadIfCmtsCmFailedProfReason              INTEGER,
+    cadIfCmtsCmFailedProfFaultDetected       DateAndTime
+}
+
+cadIfCmtsCmFailedProfMacAddress OBJECT-TYPE
+        SYNTAX     MacAddress
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "The MAC address of the modem experiencing the failure."
+    ::= { cadIfCmtsCmFailedProfStatusEntry 1 }
+
+cadIfCmtsCmFailedProfIfIndex OBJECT-TYPE
+    SYNTAX InterfaceIndex
+    MAX-ACCESS read-only
+    STATUS      current
+    DESCRIPTION 
+        "This is the ifIndex of the channel associated with the
+         Failed profile."
+    ::= { cadIfCmtsCmFailedProfStatusEntry 2 }
+
+cadIfCmtsCmFailedProfId OBJECT-TYPE
+        SYNTAX     Integer32 (2..16)
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "The profile number of this profile plus one.
+             Profile IDs zero and 255 result in partial service,
+             not a partial channel condition, so they are not in
+             this table."
+        REFERENCE
+            "DOCSIS OSSI Specification,Section DsOfdmProfileCfg"
+    ::= { cadIfCmtsCmFailedProfStatusEntry 3 }
+
+cadIfCmtsCmFailedProfReason OBJECT-TYPE
+    SYNTAX  INTEGER {
+            lostFecLock (300)
+         }
+    MAX-ACCESS not-accessible
+    STATUS  current
+    DESCRIPTION 
+        "Reason why a profile is considered to be impaired. 
+
+         The lostFecLock reason is used when the CM sends a
+         DS OFDM profile failure CM-STATUS message for an OFDM
+         channel and profile. This is sent when the CM detects
+         excessive errors on a profile. For an OFDMA channel, it
+         indicates excessive errors in received packets from the CM."
+        REFERENCE
+            "DOCSIS MULPI Specification,
+             Table 10-4"
+    ::= { cadIfCmtsCmFailedProfStatusEntry 4 }
+
+cadIfCmtsCmFailedProfFaultDetected OBJECT-TYPE
+    SYNTAX DateAndTime
+    MAX-ACCESS read-only
+    STATUS      current
+    DESCRIPTION 
+        "Date and time when impairment of CM was 
+        first detected."
+    ::= { cadIfCmtsCmFailedProfStatusEntry 5 }
+
+
+END

@@ -1,0 +1,206 @@
+-- ============================================================================
+-- Copyright (C) 2010 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description:This mib is used for defining huawei's MAC pool, it maintances
+--             the configuration and management of MAC pool.
+--             It provides the interface to assign and releases source MAC address,
+--             for the IPOA and PPPoA attribute.
+-- Reference: HUAWEI-MIB
+-- Version:    V1.08    
+--
+-- ============================================================================
+
+    HUAWEI-IPDSLAM-MACPOOL-MIB DEFINITIONS ::= BEGIN
+
+        IMPORTS
+            OBJECT-TYPE, MODULE-IDENTITY, Integer32, Unsigned32        
+                FROM SNMPv2-SMI           
+            MacAddress, RowStatus                              
+                FROM SNMPv2-TC
+            huaweiUtility            
+                FROM HUAWEI-MIB;       
+                
+        hwIpDslamMacPoolMIB MODULE-IDENTITY
+            LAST-UPDATED "201011200000Z" 
+            ORGANIZATION "Huawei Technologies Co., Ltd."
+            CONTACT-INFO 
+                "Huawei Industrial Base
+                 Bantian, Longgang
+                 Shenzhen 518129
+                 People's Republic of China 
+                 Website: http://www.huawei.com
+                 Email: support@huawei.com
+                "
+            DESCRIPTION 
+                "This mib is used for defining huawei's MAC pool, it maintances
+                 the configuration and management of MAC pool.
+                 It provides the interface to assign and releases source MAC address,
+                 for the IPOA and PPPoA attribute.
+                "  
+           
+            -- Revision history
+            REVISION     "201011200000Z"                                                                     
+            DESCRIPTION  "V1.08, modified the description of this file.
+                         " 
+            
+            REVISION     "201007230000Z"                                                                     
+            DESCRIPTION  "V1.07, modified the description of this file.
+                          Modified the description of hwIpDslamMacPoolRowStatus, hwIpDslamMacPoolServiceType.
+                         " 
+
+            REVISION     "201003160000Z"                                                                     
+            DESCRIPTION  "V1.06, modified the description of hwIpDslamMacPoolTable." 
+            
+            REVISION     "201002200000Z"
+            DESCRIPTION  "V1.05, changed Syntax of hwIpDslamMacPoolBegin from PhyAddress to MacAddress."
+                    
+            REVISION     "200912240000Z"
+            DESCRIPTION  "V1.04, changed SMI to SMIv2 standard."
+                    
+            REVISION     "200904150000Z"
+            DESCRIPTION  "V1.03, supported to assign MAC Pool index automatically"    
+            
+            REVISION     "200806030000Z"          
+            DESCRIPTION  "V1.01, added hwIpDslamMacPoolServiceType in hwIpDslamMacPoolEntry, 
+                         for giving the service type."    
+                        
+            REVISION     "200511080000Z"          
+            DESCRIPTION  "V1.00, first draft."
+                
+            ::= { huaweiUtility 43}
+    
+   
+        hwIpDslamMacPoolTable OBJECT-TYPE
+            SYNTAX      SEQUENCE OF HwIpDslamMacPoolEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "Used for creating, querying, or deleting a MAC address pool. 
+                 The MAC address pool provides MAC addresses for the IPoA feature, 
+                 PPPoA feature, and the SMAC feature of xPON protect groups.
+		 The index of this table is hwIpDslamMacPoolIndex.
+                "
+            ::= { hwIpDslamMacPoolMIB 1 }
+
+        hwIpDslamMacPoolEntry OBJECT-TYPE
+            SYNTAX      HwIpDslamMacPoolEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "Used for creating, querying, or deleting a MAC address pool. 
+                 The MAC address pool provides MAC addresses for the IPoA feature, 
+                 PPPoA feature, and the SMAC feature of xPON protect groups.
+		 The index of this entry is hwIpDslamMacPoolIndex.
+                "
+            INDEX { hwIpDslamMacPoolIndex }
+            ::= { hwIpDslamMacPoolTable 1 }
+                
+        HwIpDslamMacPoolEntry ::= 
+        	SEQUENCE {
+	            hwIpDslamMacPoolIndex        Unsigned32,
+	            hwIpDslamMacPoolBegin        MacAddress,
+	            hwIpDslamMacPoolScope        Integer32,
+	            hwIpDslamMacPoolRemain       Integer32,
+	            hwIpDslamMacPoolRowStatus    RowStatus,
+	            hwIpDslamMacPoolServiceType  INTEGER
+                }
+                                          
+        hwIpDslamMacPoolIndex OBJECT-TYPE
+            SYNTAX       Unsigned32 (0..19|4294967295)
+            MAX-ACCESS   read-only
+            STATUS       current
+            DESCRIPTION
+                "Indicates the index of a MAC address pool. 
+                 Range: 0¨C19, 4294967295
+                 The specific index need not be specified during the creation of a MAC address pool. 
+                 You can fill in 0xFFFFFFFF(4294967295) as the value of hwIpDslamMacPoolIndex and issue the setting. 
+                 Then, the system automatically allocates an idle MAC address pool index and returns the index to the NMS.
+                "
+            ::= { hwIpDslamMacPoolEntry 1 }   
+         
+        hwIpDslamMacPoolBegin OBJECT-TYPE
+            SYNTAX       MacAddress
+            MAX-ACCESS   read-create
+            STATUS       current
+            DESCRIPTION
+                "Indicates the start MAC address of the MAC address pool. 
+                 The following is an example of the input format of a MAC address: 
+                 Assuming that a MAC address is 00e0-fc11-0000, it should be input 
+                 as # 0x00 0xe0 0xfc 0x11 0x00 0x00.
+                "
+            ::= { hwIpDslamMacPoolEntry 2 }
+        
+        hwIpDslamMacPoolScope OBJECT-TYPE
+            SYNTAX       Integer32(1..1024)
+            MAX-ACCESS   read-create
+            STATUS       current
+            DESCRIPTION
+                "Indicates the number of MAC addresses in the MAC address pool.
+                 Range: 1-1024
+                "
+            ::= { hwIpDslamMacPoolEntry 3 }
+        
+        hwIpDslamMacPoolRemain OBJECT-TYPE
+            SYNTAX       Integer32(0..1024)
+            MAX-ACCESS   read-only
+            STATUS       current
+            DESCRIPTION
+                "Indicates the number of unallocated MAC addresses in the MAC address pool. 
+                 This leaf is read-only and is not involved in the create and delete 
+                 operations on the MAC address pool.
+                 Range: 0-1024
+                "
+            ::= { hwIpDslamMacPoolEntry 4 }
+        
+        hwIpDslamMacPoolRowStatus OBJECT-TYPE
+            SYNTAX       RowStatus
+            MAX-ACCESS   read-create
+            STATUS       current
+            DESCRIPTION
+                "Indicates the row status and is used for creating or deleting a MAC address pool. 
+                 Only options createAndGo(4) and destroy(6) are supported. 
+                
+                 To create a MAC address pool, input hwIpDslamMacPoolBegin and hwIpDslamMacPoolScope, 
+                 specify the value of hwIpDslamMacPoolRowStatus to createAndGo(4), and then perform the set operation. 
+                 hwIpDslamMacPoolServiceType is an optional parameter for input.
+                
+                 Only the MAC address pool none of whose MAC addresses is occupied can be deleted. 
+                 That is, the values of hwIpDslamMacPoolRemain and hwIpDslamMacPoolScope are the same when the MAC address pool is queried. 
+                 To delete a MAC address pool, specify the index of the target MAC address pool, 
+                 specify the value of hwIpDslamMacPoolRowStatus to destroy(6), and then perform the set operation.
+                
+                 In the query operation, the value of hwIpDslamMacPoolRowStatus is always active(1).
+
+                 Options:
+                 1. active(1)      -indicates query operation
+                 2. createAndGo(4) -create a MAC address pool 
+                 3. destroy(6)     -delete a MAC address pool
+                "
+            ::= { hwIpDslamMacPoolEntry 5 }          
+        
+        hwIpDslamMacPoolServiceType OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                xPoA(1),
+                singleMac(2)
+                }
+            MAX-ACCESS   read-create
+            STATUS       current
+            DESCRIPTION
+                "Indicates the service type of the MAC address pool. 
+                
+                 If the value of hwIpDslamMacPoolServiceType is xPoA(1), 
+                 it indicates that the MAC address pool provides MAC addresses for the IPoA and PPPoA features. 
+                
+                 If the value of hwIpDslamMacPoolServiceType is singleMac(2), 
+                 it indicates that the MAC address pool provides MAC addresses for the SMAC feature of xPON protect groups. 
+                
+                 When this leaf is not input, the system uses xPoA(1) by default.
+                
+                 Options:
+                 1. xPoA(1)      -indicates the service type is xPoA
+                 2. singleMac(2) -indicates the service type is singleMac
+                 Default: xPoA(1)
+                "
+            ::= { hwIpDslamMacPoolEntry 6 }            
+END
+    

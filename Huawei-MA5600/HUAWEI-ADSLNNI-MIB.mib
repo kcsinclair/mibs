@@ -1,0 +1,1383 @@
+-- ============================================================================
+-- Copyright (C) 2010 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description:  This MIB is used for defining Huawei's ADSLNNI management MIB objects.
+-- Reference:  
+-- Version: V1.04
+-- ============================================================================
+
+	HUAWEI-ADSLNNI-MIB DEFINITIONS ::= BEGIN
+
+	IMPORTS
+	       MODULE-IDENTITY, OBJECT-TYPE, Unsigned32, NOTIFICATION-TYPE, Integer32,	Counter32
+	           FROM SNMPv2-SMI	    			
+	       ifIndex
+	           FROM IF-MIB          		
+	       hwFrameIndex, hwSlotIndex
+	           FROM HUAWEI-DEVICE-MIB
+	       HCPerfTimeElapsed
+	           FROM  HC-PerfHist-TC-MIB   -- [RFC3705]
+	       Adsl2Unit,
+	       Adsl2TransmissionModeType,
+	       Adsl2Direction,
+	       Adsl2PowerMngState,
+	       Adsl2InitResult,
+	       Adsl2Tssi,
+	       Adsl2LastTransmittedState,
+	       Adsl2LineStatus,
+	       Adsl2ChAtmStatus,
+	       Adsl2ChPtmStatus
+	           FROM ADSL2-LINE-TC-MIB                                                
+	       huaweiUtility
+	           FROM HUAWEI-MIB;			
+
+	hwAdslnniMIB MODULE-IDENTITY
+	        LAST-UPDATED "201207200000Z" 
+	        ORGANIZATION
+             	    "Huawei Technologies Co.,Ltd."
+                CONTACT-INFO
+                         "Huawei Industrial Base                
+                          Bantian, Longgang                     
+                          Shenzhen 518129                       
+                          People's Republic of China            
+                          Website: http://www.huawei.com        
+                          Email: support@huawei.com             
+                         "   
+	        DESCRIPTION  "This MIB is used for defining Huawei's ADSLNNI management MIB objects."
+	        
+	  --  Revision history
+	        REVISION     "201207200000Z"
+	        DESCRIPTION  "V1.04, delete unnecessary en dashes."
+	        
+	        REVISION     "201009270000Z"
+	        DESCRIPTION  "V1.03, modify the description of the whole MIB file."
+	  
+	        REVISION     "201009070000Z"
+	        DESCRIPTION  "V1.02, Modify for MIB standardization."    
+	        	
+	        REVISION     "200911120000Z"
+	        DESCRIPTION  "V1.01, Add MIB for ADSLNNI."                                 
+        
+	        REVISION     "200911040000Z" 
+	        DESCRIPTION  "V1.00, Initial version."
+	        
+		::= { huaweiUtility 143 }		
+                                            
+	hwAdslnni	OBJECT IDENTIFIER ::= { hwAdslnniMIB 1 }
+	
+	hwAdslnniCfg			OBJECT IDENTIFIER ::= { hwAdslnni 1 }
+	hwAdslnniStatistics		OBJECT IDENTIFIER ::= { hwAdslnni 2 } 
+	hwAdslnniPerStatis              OBJECT IDENTIFIER ::= { hwAdslnni 3 }
+	hwAdslnniPMLine      OBJECT IDENTIFIER ::= { hwAdslnniPerStatis 1 }
+        hwAdslnniPMChannel   OBJECT IDENTIFIER ::= { hwAdslnniPerStatis 2 }
+
+--             AdslnniCfg              
+	hwAdslnniPvcCfgTable  OBJECT-TYPE
+      	SYNTAX      SEQUENCE  OF  HwAdslnniPvcCfgEntry
+      	MAX-ACCESS  not-accessible
+      	STATUS      current
+      	DESCRIPTION
+           "Table hwAdslnniPvcCfgTable config the PVC of ADSLNNI is used to set and query the ADSL upstream VPI/VCI.
+            This table is used for the bonding group instead of the ADSL port.
+            Each bonding group corresponds to one PVC and the PVC takes effect only in the ATM bonding mode.
+            The index of this table is ifIndex.
+           "
+		::= { hwAdslnniCfg 1 }
+
+	hwAdslnniPvcCfgEntry  OBJECT-TYPE
+		SYNTAX      HwAdslnniPvcCfgEntry
+		MAX-ACCESS  not-accessible
+		STATUS      current
+		DESCRIPTION
+                   "Table hwAdslnniPvcCfgTable config the PVC of ADSLNNI is used to set and query the ADSL upstream VPI/VCI.
+                    This table is used for the bonding group instead of the ADSL port.
+                    Each bonding group corresponds to one PVC and the PVC takes effect only in the ATM bonding mode.
+                    The index of this entry is ifIndex.
+                   "		
+		INDEX  { ifIndex }
+		::= { hwAdslnniPvcCfgTable 1 }
+
+   	HwAdslnniPvcCfgEntry  ::=
+		SEQUENCE 
+		{
+		    hwAdslnniPvcVpi   Integer32,
+		    hwAdslnniPvcVci   Integer32   
+   		} 
+   		
+   hwAdslnniPvcVpi  OBJECT-TYPE
+   	SYNTAX Integer32(0..255)
+   	MAX-ACCESS read-write
+   	STATUS current
+   	DESCRIPTION
+           "The VPI of the adslnni port."
+   	DEFVAL       { 0 }
+   	::= { hwAdslnniPvcCfgEntry 1 }
+    
+   hwAdslnniPvcVci  OBJECT-TYPE
+   	SYNTAX Integer32(32..255)
+   	MAX-ACCESS read-write
+   	STATUS current
+   	DESCRIPTION
+           "The VCI of the adslnni port."
+   	DEFVAL       { 35 }   		
+   	::= { hwAdslnniPvcCfgEntry 2 }    
+
+   hwAdslnniInventoryTable  OBJECT-TYPE
+      SYNTAX      SEQUENCE  OF  HwAdslnniInventoryEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The table hwAdslnniInventoryTable contains inventory of the
+          ADSL2 units.
+          The indexes of this table are ifIndex and hwAdslnniLInvUnit.
+         "
+      ::= { hwAdslnniCfg 2 }
+
+   hwAdslnniInventoryEntry  OBJECT-TYPE
+      SYNTAX      HwAdslnniInventoryEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The table hwAdslnniInventoryTable contains inventory of the
+          ADSL2 units.
+          The indexes of this entry are ifIndex and hwAdslnniLInvUnit.
+         "
+      INDEX  { ifIndex, hwAdslnniLInvUnit }
+      ::= { hwAdslnniInventoryTable 1 }
+
+   HwAdslnniInventoryEntry  ::=
+      SEQUENCE {
+         hwAdslnniLInvUnit                      Adsl2Unit,
+         hwAdslnniLInvG994VendorId              OCTET STRING,
+         hwAdslnniLInvSystemVendorId            OCTET STRING,
+         hwAdslnniLInvVersionNumber             OCTET STRING,
+         hwAdslnniLInvSerialNumber              OCTET STRING,
+         hwAdslnniLInvSelfTestResult            Unsigned32,
+         hwAdslnniLInvTransmissionCapabilities  Adsl2TransmissionModeType
+      }
+      
+   hwAdslnniLInvUnit  OBJECT-TYPE
+      SYNTAX      Adsl2Unit
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The termination unit atuc(1) or atur(2)."
+      ::= { hwAdslnniInventoryEntry 1 }
+
+   hwAdslnniLInvG994VendorId  OBJECT-TYPE
+      SYNTAX      OCTET STRING  (SIZE(8))
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The ATU G.994.1 Vendor ID as inserted in the G.994.1 CL/CLR
+          message.  It consists of 8 binary octets, including a country
+          code followed by a (regionally allocated) provider code, as
+          defined in Recommendation T.35.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.4"
+      ::= { hwAdslnniInventoryEntry 2 }
+
+   hwAdslnniLInvSystemVendorId  OBJECT-TYPE
+      SYNTAX      OCTET STRING  (SIZE(8))
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The ATU System Vendor ID (identifies the ATU system
+          integrator) as inserted in the Overhead Messages (both ATUs
+          for G.992.3 and G.992.4) or in the Embedded Operations
+          Channel (only ATU-R in G.992.1 and G.992.2).  It consists of
+          8 binary octets, with the same format as used for
+          Adsl2InvG994VendorId.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.4"
+      ::= { hwAdslnniInventoryEntry 3 }
+
+   hwAdslnniLInvVersionNumber  OBJECT-TYPE
+      SYNTAX      OCTET STRING  (SIZE(0..16))
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The ATU version number (vendor-specific information) as
+          inserted in the Overhead Messages (both ATUs for G.992.3 and
+          G.992.4) or in the Embedded Operations Channel (only ATU-R in
+          G.992.1 and G.992.2).  It consists of up to 16 binary octets.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.4"
+      ::= { hwAdslnniInventoryEntry 4 }
+
+   hwAdslnniLInvSerialNumber  OBJECT-TYPE
+      SYNTAX      OCTET STRING  (SIZE(0..32))
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The ATU serial number (vendor-specific information) as
+          inserted in the Overhead Messages (both ATUs for G.992.3 and
+          G.992.4) or in the Embedded Operations Channel (only ATU-R in
+          G.992.1 and G.992.2).  It is vendor-specific information.  It
+          consists of up to 32 ASCII characters.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.4"
+      ::= { hwAdslnniInventoryEntry 5 }
+
+   hwAdslnniLInvSelfTestResult  OBJECT-TYPE
+      SYNTAX      Unsigned32
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The ATU self-test result, coded as a 32-bit value.  The
+          most significant octet of the result is '0' if the self-test
+          passed, and '1' if the self-test failed.  The interpretation
+          of the other octets is vendor discretionary.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.4"
+      ::= { hwAdslnniInventoryEntry 6 }
+
+   hwAdslnniLInvTransmissionCapabilities  OBJECT-TYPE
+      SYNTAX      Adsl2TransmissionModeType
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The ATU transmission system capability list of the different
+          coding types.  It is coded in a bit-map representation with 1
+          or more bits set.  A bit set to '1' means that the ATU
+          supports the respective coding.  The value may be derived
+          from the handshaking procedures defined in G.994.1.  A set
+          of ADSL2 line transmission modes, with one bit per mode.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.4"
+      ::= { hwAdslnniInventoryEntry 7 }      
+      
+   hwAdslnniLineTable  OBJECT-TYPE
+      SYNTAX      SEQUENCE  OF  HwAdslnniLineEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The table hwAdslnniLineTable contains configuration,
+          commands, and status parameters of the ADSL2 line.
+          The index of this table is an interface index where the
+          interface has an ifType of adslnni.
+         "
+      ::= { hwAdslnniCfg 3 }
+
+   hwAdslnniLineEntry  OBJECT-TYPE
+      SYNTAX      HwAdslnniLineEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The table hwAdslnniLineTable contains configuration,
+          commands, and status parameters of the ADSL2 line.
+          The index of this entry is an interface index where the
+          interface has an ifType of adslnni.
+         "
+      INDEX  { ifIndex }
+      ::= { hwAdslnniLineTable 1 }
+
+   HwAdslnniLineEntry  ::=
+      SEQUENCE {
+         hwAdslnniLineStatusAtuTransSys       Adsl2TransmissionModeType,
+         hwAdslnniLineStatusPwrMngState       Adsl2PowerMngState,
+         hwAdslnniLineStatusInitResult        Adsl2InitResult,
+         hwAdslnniLineStatusLastStateDs       Adsl2LastTransmittedState,
+         hwAdslnniLineStatusLastStateUs       Adsl2LastTransmittedState,
+         hwAdslnniLineStatusAtur              Adsl2LineStatus,
+         hwAdslnniLineStatusAtuc              Adsl2LineStatus,
+         hwAdslnniLineStatusLnAttenDs         Unsigned32,
+         hwAdslnniLineStatusLnAttenUs         Unsigned32,
+         hwAdslnniLineStatusSigAttenDs        Unsigned32,
+         hwAdslnniLineStatusSigAttenUs        Unsigned32,
+         hwAdslnniLineStatusSnrMarginDs       Integer32,
+         hwAdslnniLineStatusSnrMarginUs       Integer32,
+         hwAdslnniLineStatusAttainableRateDs  Unsigned32,
+         hwAdslnniLineStatusAttainableRateUs  Unsigned32,
+         hwAdslnniLineStatusActPsdDs          Integer32,
+         hwAdslnniLineStatusActPsdUs          Integer32,
+         hwAdslnniLineStatusActAtpDs          Integer32,
+         hwAdslnniLineStatusActAtpUs          Integer32
+      }
+      
+    hwAdslnniLineStatusAtuTransSys  OBJECT-TYPE
+      SYNTAX      Adsl2TransmissionModeType
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The ATU Transmission System (ATS) in use.
+          It is coded in a bit-map representation with only a single bit
+          set to '1' (the selected coding for the ADSL line).  This
+          parameter may be derived from the handshaking procedures
+          defined in Recommendation G.994.1.  A set of ADSL2 line
+          transmission modes, with one bit per mode.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.3.1.1.1"
+      ::= { hwAdslnniLineEntry 1 }
+
+   hwAdslnniLineStatusPwrMngState  OBJECT-TYPE
+      SYNTAX      Adsl2PowerMngState
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The current power management state.
+          Options: 
+          1. L0(1) - Synchronized and full transmission (i.e., Showtime).
+          2. L1(2) - Low Power with reduced net data rate (G.992.2 only).
+          3. L2(3) - Low Power with reduced net data rate (G.992.3 and
+                     G.992.4 only).
+          4. L3(4) - No power.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.2"
+         ::= { hwAdslnniLineEntry 2 }
+   hwAdslnniLineStatusInitResult  OBJECT-TYPE
+      SYNTAX      Adsl2InitResult
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Indicates the result of the last full initialization performed
+          on the line.  
+          Options: 
+          1. noFail(0)            -Indicates that no abnormity occurs.
+          2. configError(1)       -Indicates that the configuration is incorrect.
+          3. configNotFeasible(2) -Indicates that the configuration is improper.
+          4. commFail(3)         -Indicates that the communication fails.
+          5. noPeerAtu(4)         -Indicates that the peer ATU does not exist.
+          6. otherCause(5)        -Indicates that an unknown error occurs.
+          "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.3"
+      ::= { hwAdslnniLineEntry 3 }
+
+   hwAdslnniLineStatusLastStateDs  OBJECT-TYPE
+      SYNTAX      Adsl2LastTransmittedState
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The last successful transmitted initialization state in
+          the downstream direction in the last full initialization
+          performed on the line.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.4"
+      ::= { hwAdslnniLineEntry 4 }
+
+   hwAdslnniLineStatusLastStateUs  OBJECT-TYPE
+      SYNTAX      Adsl2LastTransmittedState
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The last successful transmitted initialization state in the
+          upstream direction in the last full initialization performed
+          on the line.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.5"
+      ::= { hwAdslnniLineEntry 5 }
+
+   hwAdslnniLineStatusAtur  OBJECT-TYPE
+      SYNTAX      Adsl2LineStatus
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Indicates current state (existing failures) of the ATU-R.
+          This is a bit-map of possible conditions.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.1.1.2"
+      ::= { hwAdslnniLineEntry 6 }
+
+   hwAdslnniLineStatusAtuc  OBJECT-TYPE
+      SYNTAX      Adsl2LineStatus
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Indicates current state (existing failures) of the ATU-C.
+          This is a bit-map of possible conditions.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.1.1.1"
+      ::= { hwAdslnniLineEntry 7 }
+
+   hwAdslnniLineStatusLnAttenDs  OBJECT-TYPE
+      SYNTAX      Unsigned32 (0..1270 | 2147483646 | 2147483647)
+      UNITS       "0.1 dB"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The measured difference in the total power transmitted by the
+          ATU-C and the total power received by the ATU-R over all sub-
+          carriers during diagnostics mode and initialization.  It
+          ranges from 0 to 1270 units of 0.1 dB (physical values
+          are 0 to 127 dB).
+          A special value of 0x7FFFFFFF (2147483647) indicates the line
+          attenuation is out of range to be represented.
+          A special value of 0x7FFFFFFE (2147483646) indicates the line
+          attenuation measurement is currently unavailable.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.6"
+      ::= { hwAdslnniLineEntry 8 }
+
+   hwAdslnniLineStatusLnAttenUs  OBJECT-TYPE
+      SYNTAX      Unsigned32 (0..1270 | 2147483646 | 2147483647)
+      UNITS       "0.1 dB"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The measured difference in the total power transmitted by the
+          ATU-R and the total power received by the ATU-C over all sub-
+          carriers during diagnostics mode and initialization.
+          It ranges from 0 to 1270 units of 0.1 dB (physical values are
+          0 to 127 dB).
+          A special value of 0x7FFFFFFF (2147483647) indicates the line
+          attenuation is out of range to be represented.
+          A special value of 0x7FFFFFFE (2147483646) indicates the line
+          attenuation measurement is currently unavailable.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.7"
+      ::= { hwAdslnniLineEntry 9 }
+
+   hwAdslnniLineStatusSigAttenDs  OBJECT-TYPE
+      SYNTAX      Unsigned32 (0..1270 | 2147483646 | 2147483647)
+      UNITS       "0.1 dB"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The measured difference in the total power transmitted by the
+          ATU-C and the total power received by the ATU-R over all sub-
+          carriers during Showtime.  It ranges from 0 to 1270 units of
+          0.1 dB (physical values are 0 to 127 dB).
+          A special value of 0x7FFFFFFF (2147483647) indicates the
+          signal attenuation is out of range to be represented.
+          A special value of 0x7FFFFFFE (2147483646) indicates the
+          signal attenuation measurement is currently unavailable.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.8"
+      ::= { hwAdslnniLineEntry 10 }
+
+   hwAdslnniLineStatusSigAttenUs  OBJECT-TYPE
+      SYNTAX      Unsigned32 (0..1270 | 2147483646 | 2147483647)
+      UNITS       "0.1 dB"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The measured difference in the total power transmitted by the
+          ATU-R and the total power received by the ATU-C over all sub-
+          carriers during Showtime.  It ranges from 0 to 1270 units of
+          0.1 dB (physical values are 0 to 127 dB).
+          A special value of 0x7FFFFFFF (2147483647) indicates the
+          signal attenuation is out of range to be represented.
+          A special value of 0x7FFFFFFE (2147483646) indicates the
+          signal attenuation measurement is currently unavailable.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.9"
+      ::= { hwAdslnniLineEntry 11 }
+
+   hwAdslnniLineStatusSnrMarginDs  OBJECT-TYPE
+      SYNTAX      Integer32 (-640..630 | 2147483646 | 2147483647)
+      UNITS       "0.1 dB"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Downstream SNR Margin is the maximum increase in dB of the
+          noise power received at the ATU-R, such that the BER
+          requirements are met for all downstream bearer channels.  It
+          ranges from -640 to 630 units of 0.1 dB (physical values are
+          -64 to 63 dB).
+          A special value of 0x7FFFFFFF (2147483647) indicates the
+          SNR Margin is out of range to be represented.
+          A special value of 0x7FFFFFFE (2147483646) indicates the
+          SNR Margin measurement is currently unavailable.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.10"
+      ::= { hwAdslnniLineEntry 12 }
+
+   hwAdslnniLineStatusSnrMarginUs  OBJECT-TYPE
+      SYNTAX      Integer32 (-640..630 | 2147483646 | 2147483647)
+      UNITS       "0.1 dB"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Upstream SNR Margin is the maximum increase in dB of the noise
+          power received at the ATU-C, such that the BER requirements
+          are met for all downstream bearer channels.  It ranges from
+          -640 to 630 units of 0.1 dB (physical values are -64 to
+          63 dB).
+          A special value of 0x7FFFFFFF (2147483647) indicates the
+          SNR Margin is out of range to be represented.
+          A special value of 0x7FFFFFFE (2147483646) indicates the
+          SNR Margin measurement is currently unavailable.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.11"
+      ::= { hwAdslnniLineEntry 13 }
+
+   hwAdslnniLineStatusAttainableRateDs  OBJECT-TYPE
+      SYNTAX      Unsigned32
+      UNITS       "bits/second"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Maximum Attainable Data Rate Downstream.
+          The maximum downstream net data rate currently attainable by
+          the ATU-C transmitter and the ATU-R receiver, coded in
+          bits/second.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.12"
+      ::= { hwAdslnniLineEntry 14 }
+
+   hwAdslnniLineStatusAttainableRateUs  OBJECT-TYPE
+      SYNTAX      Unsigned32
+      UNITS       "bits/second"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Maximum Attainable Data Rate Upstream.
+          The maximum upstream net data rate currently attainable by the
+          ATU-R transmitter and the ATU-C receiver, coded in
+          bits/second.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.13"
+      ::= { hwAdslnniLineEntry 15 }
+
+   hwAdslnniLineStatusActPsdDs OBJECT-TYPE
+      SYNTAX      Integer32 (-900..0 | 2147483647)
+      UNITS       "0.1 dB"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Actual Power Spectrum Density (PSD) Downstream.  The average
+          downstream transmit PSD over the sub-carriers used for
+          downstream.  It ranges from -900 to 0 units of 0.1 dB
+          (physical values are -90 to 0 dBm/Hz).
+          A value of 0x7FFFFFFF (2147483647) indicates the measurement
+          is out of range to be represented.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.14"
+      ::= { hwAdslnniLineEntry 16 }
+
+   hwAdslnniLineStatusActPsdUs OBJECT-TYPE
+      SYNTAX      Integer32 (-900..0 | 2147483647)
+      UNITS       "0.1 dB"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Actual Power Spectrum Density (PSD) Upstream.  The average
+          upstream transmit PSD over the sub-carriers used for upstream.
+          It ranges from -900 to 0 units of 0.1 dB (physical values
+          are -90 to 0 dBm/Hz).
+          A value of 0x7FFFFFFF (2147483647) indicates the measurement
+          is out of range to be represented.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.15"
+      ::= { hwAdslnniLineEntry 17 }
+
+   hwAdslnniLineStatusActAtpDs  OBJECT-TYPE
+      SYNTAX      Integer32 (-310..310 | 2147483647)
+      UNITS       "0.1 dB"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Actual Aggregate Transmit Power Downstream.  The total amount
+          of transmit power delivered by the ATU-C at the U-C reference
+          point, at the instant of measurement.  It ranges from -310 to
+          310 units of 0.1 dB (physical values are -31 to 31 dBm).
+          A value of 0x7FFFFFFF (2147483647) indicates the measurement
+          is out of range to be represented.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.16"
+      ::= { hwAdslnniLineEntry 18 }
+
+   hwAdslnniLineStatusActAtpUs  OBJECT-TYPE
+      SYNTAX      Integer32 (-310..310 | 2147483647)
+      UNITS       "0.1 dB"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Actual Aggregate Transmit Power Upstream.  The total amount of
+          transmit power delivered by the ATU-R at the U-R
+          reference point, at the instant of measurement.  It ranges
+          from -310 to 310 units of 0.1 dB (physical values are -31
+          to 31 dBm).
+          A value of 0x7FFFFFFF (2147483647) indicates the measurement
+          is out of range to be represented.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.17"
+      ::= { hwAdslnniLineEntry 19 }      
+          
+	hwAdslnniChannelStatusTable  OBJECT-TYPE
+      SYNTAX      SEQUENCE  OF  HwAdslnniChannelStatusEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The table hwAdslnniChannelStatusTable contains status
+          parameters of the ADSL2 channel. This table contains live
+          data from equipment.
+          The indexes of this table are ifIndex and hwadslnniChStatusUnit.
+         "
+      ::= { hwAdslnniCfg 4 }
+
+   hwAdslnniChannelStatusEntry  OBJECT-TYPE
+      SYNTAX      HwAdslnniChannelStatusEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The table hwAdslnniChannelStatusTable contains status
+          parameters of the ADSL2 channel. This table contains live
+          data from equipment.
+          The indexes of this entry are ifIndex and hwadslnniChStatusUnit.
+         "
+      INDEX  { ifIndex, hwadslnniChStatusUnit }
+      ::= { hwAdslnniChannelStatusTable 1 }
+
+   HwAdslnniChannelStatusEntry  ::=
+      SEQUENCE {
+         hwadslnniChStatusUnit                Adsl2Unit,
+         hwadslnniChStatusChannelNum          Unsigned32,
+         hwadslnniChStatusActDataRate         Unsigned32,
+         hwadslnniChStatusPrevDataRate        Unsigned32,
+         hwadslnniChStatusActDelay            Unsigned32,
+         hwadslnniChStatusAtmStatus           Adsl2ChAtmStatus,
+         hwadslnniChStatusPtmStatus           Adsl2ChPtmStatus,
+         hwadslnniChStatusINP                 Unsigned32,
+         hwadslnniChStatusRSRedundancy        Unsigned32,
+         hwadslnniChStatusRSSymbols           Unsigned32,
+         hwadslnniChStatusInterDepth          Unsigned32,
+         hwadslnniChStatusSymbolLength        Unsigned32,
+         hwadslnniChStatusRSSize              Unsigned32
+      }
+      
+   hwadslnniChStatusUnit  OBJECT-TYPE
+      SYNTAX      Adsl2Unit
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The termination unit ATUC(1) or ATUR(2)."
+      ::= { hwAdslnniChannelStatusEntry 1 }
+
+   hwadslnniChStatusChannelNum  OBJECT-TYPE
+      SYNTAX      Unsigned32
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Provides the bearer channel number associated with this
+          row (i.e., the channel ifIndex).
+          This enables determining the channel configuration profile
+          and the channel thresholds profile applicable for this
+          bearer channel.
+         "
+      ::= { hwAdslnniChannelStatusEntry 2 }
+
+   hwadslnniChStatusActDataRate  OBJECT-TYPE
+      SYNTAX      Unsigned32(0..200000000)
+      UNITS       "bits/second"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The actual net data rate that the bearer channel is operating
+          at, if in L0 power management state. In L1 or L2 states, it
+          relates to the previous L0 state. The data rate is coded in
+          bit/s.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.1"
+      ::= { hwAdslnniChannelStatusEntry 3 }
+      
+   hwadslnniChStatusPrevDataRate  OBJECT-TYPE
+      SYNTAX      Unsigned32(0..200000000)
+      UNITS       "bits/second"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The previous net data rate that the bearer channel was
+          operating at just before the latest rate change event. This
+          could be a full or short initialization, fast retrain, DRA or
+          power management transitions, excluding transitions between L0
+          state and L1 or L2 states. The data rate is coded in bit/s.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.2"
+      ::= { hwAdslnniChannelStatusEntry 4 }
+
+   hwadslnniChStatusActDelay  OBJECT-TYPE
+      SYNTAX      Unsigned32(0..8176)
+      UNITS       "milliseconds"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The actual one-way interleaving delay introduced by the
+          PMS-TC in the direction of the bearer channel, if in L0
+          power management state. In L1 or L2 states, it relates to
+          the previous L0 state. It is coded in ms (rounded to the
+          nearest ms).
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.3"
+      ::= { hwAdslnniChannelStatusEntry 5 }
+
+   hwadslnniChStatusAtmStatus  OBJECT-TYPE
+      SYNTAX      Adsl2ChAtmStatus
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Indicates current state (existing failures) of the ADSL
+          channel in case its Data Path is ATM. This is a bit-map of
+          possible conditions.  
+          The various bit positions are:
+             noFailure(0)               - This bit position positively
+                                          reports that no defect or failure
+                                          exists.
+             noCellDelineation(1)       - The link was successfully
+                                          initialized, but cell delineation
+                                          was never acquired on the
+                                          associated ATM data path.
+             lossOfCellDelineation(2)   - Loss of cell delineation on the
+                                          associated ATM data path.
+         In case the channel is not of ATM Data Path the object is set
+         to '0'.
+        "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.1.4"
+      ::= { hwAdslnniChannelStatusEntry 6 }
+
+   hwadslnniChStatusPtmStatus  OBJECT-TYPE
+      SYNTAX      Adsl2ChPtmStatus
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Indicates current state (existing failures) of the ADSL
+          channel in case its Data Path is PTM. This is a bit-map of
+          possible conditions.  
+          The various bit positions are:
+             noFailure(0)     - This bit position positively
+                                reports that no defect or failure exists.
+             outOfSync (1)    - Out of synchronization.
+         In case the channel is not of PTM Data Path the object is set
+         to '0'.
+        "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.1.5"
+      ::= { hwAdslnniChannelStatusEntry 7 }    
+      
+    hwadslnniChStatusINP  OBJECT-TYPE
+      SYNTAX      Unsigned32(0..254)
+      UNITS       "0.1 DMT symbol"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The actual impulse noise protection (INP) on 
+          the bearer channel in L0 state.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.4"
+      ::= { hwAdslnniChannelStatusEntry 8 }
+      
+   hwadslnniChStatusRSRedundancy  OBJECT-TYPE
+      SYNTAX      Unsigned32(0..16)
+      UNITS       "byte"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The actual number of Reed-Solomon redundancy 
+          bytes per codeword used in the latency path 
+          in which the bearer channel is transported.
+          The value is coded in bytes. 
+          Range: 0-16. 
+          The value 0 indicates no Reed-Solomon coding.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.6.2"
+      ::= { hwAdslnniChannelStatusEntry 9 }
+      
+   hwadslnniChStatusRSSymbols  OBJECT-TYPE
+      SYNTAX      Unsigned32
+      UNITS       "0.01 DMT symbol"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The DMT Symbol number per codeword used in 
+          the latency path in which the bearer channel
+          is transported.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.3"
+      ::= { hwAdslnniChannelStatusEntry 10 }
+
+   hwadslnniChStatusInterDepth  OBJECT-TYPE
+      SYNTAX      Unsigned32(1..4096)
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The actual Reed-Solomon codeword size used 
+          in the latency path in which the bearer channel 
+          is transported.
+          The value ranges from 1 to 4096 by step of 1. 
+          The value 1 indicates no interleaving.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.6.4"
+      ::= { hwAdslnniChannelStatusEntry 11 }
+      
+   hwadslnniChStatusSymbolLength  OBJECT-TYPE
+      SYNTAX      Unsigned32(0..65535)
+      UNITS       "bit"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The actual number of bits per symbol assigned 
+          to the latency path in which the bearer channel 
+          is transported.
+          This value does not include trellis overhead.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.6.3"
+      ::= { hwAdslnniChannelStatusEntry 12 }
+
+   hwadslnniChStatusRSSize  OBJECT-TYPE
+      SYNTAX      Unsigned32(0..255)
+      UNITS       "byte"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "The actual Reed-Solomon codeword size used 
+          in the latency path in which the bearer channel 
+          is transported.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.6.1"
+      ::= { hwAdslnniChannelStatusEntry 13 }     
+      
+   hwAdslnniSCStatusTable  OBJECT-TYPE
+      SYNTAX      SEQUENCE  OF  HwAdslnniSCStatusEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The table hwadslnniSCStatusTable contains status parameters
+          of the ADSL2 sub-carriers.
+          The indexes of this table are ifIndex and hwAdslnniSCStatusDirection.          
+         "
+      ::= { hwAdslnniCfg 5 }
+
+   hwAdslnniSCStatusEntry  OBJECT-TYPE
+      SYNTAX      HwAdslnniSCStatusEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The table hwadslnniSCStatusTable contains status parameters
+          of the ADSL2 sub-carriers.
+          The indexes of this entry are ifIndex and hwAdslnniSCStatusDirection.
+         "
+      INDEX  { 
+                 ifIndex,
+                 hwAdslnniSCStatusDirection 
+             }
+      ::= { hwAdslnniSCStatusTable 1 }
+
+   HwAdslnniSCStatusEntry  ::=
+      SEQUENCE {
+         hwAdslnniSCStatusDirection         Adsl2Direction,
+         hwadslnniSCStatusSnr               OCTET STRING,
+         hwadslnniSCStatusBitsAlloc         OCTET STRING,
+         hwadslnniSCStatusGainAlloc         OCTET STRING,
+         hwadslnniSCStatusTssi              Adsl2Tssi
+      }
+      
+   hwAdslnniSCStatusDirection  OBJECT-TYPE
+        SYNTAX   Adsl2Direction
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+	   "The direction of the sub-carrier is either upstream or downstream."
+        ::= { hwAdslnniSCStatusEntry 1 }
+
+   hwadslnniSCStatusSnr  OBJECT-TYPE
+        SYNTAX      OCTET STRING  (SIZE(0..512))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           "The SNR Margin per sub-carrier, expressing the ratio between
+            the received signal power and received noise power per
+            subscriber.  It is an array of 512 octets, designed for
+            supporting up to 512 (downstream) sub-carriers.
+            The number of utilized octets on downstream direction depends
+            on NSCds, and on upstream direction it depends on NSCus.  This
+            value is referred here as NSC.
+            Octet i (0 <= i < NSC) is set to a value in the range 0 to
+            254 to indicate that the respective downstream or upstream sub-
+            carrier i has SNR of: (-32 + Adsl2SubcarrierSnr(i)/2) in dB
+            (i.e., -32 to 95dB).
+            The special value 255 means that no measurement could be done
+            for the subcarrier because it is out of the PSD mask passband
+            or that the noise PSD is out of range to be represented.
+            Each value in this array is 8 bits wide.
+           "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.20.2 (SNRpsds)
+                    and paragraph 7.5.1.20.4 (SNRpsus)"
+        ::= { hwAdslnniSCStatusEntry 2 }
+
+   hwadslnniSCStatusBitsAlloc  OBJECT-TYPE
+        SYNTAX      OCTET STRING  (SIZE(0..256))
+        UNITS       "bits"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           "The bits allocation per sub-carrier.  An array of 256 octets
+            (512 nibbles), designed for supporting up to 512 (downstream)
+            sub-carriers.
+            The number of utilized nibbles on downstream direction depends
+            on NSCds, and on upstream direction it depends on NSCus. This
+            value is referred here as NSC.
+            Nibble i (0 <= i < NSC) is set to a value in the range 0
+            to 15 to indicate that the respective downstream or upstream
+            sub-carrier i has the same amount of bits allocation.
+           "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.21.1 (BITSpsds)
+                    and paragraph 7.5.1.21.2 (BITSpsus)"
+        ::= { hwAdslnniSCStatusEntry 3 }
+
+   hwadslnniSCStatusGainAlloc  OBJECT-TYPE
+        SYNTAX      OCTET STRING  (SIZE(0..1024))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           "The gain allocation per sub-carrier.  An array of 512 16-bits
+            values, designed for supporting up to 512 (downstream) sub-
+            carriers.
+            The number of utilized octets on downstream direction depends
+            on NSCds, and on upstream direction it depends on NSCus.  This
+            value is referred here as NSC.
+            Value i (0 <= i < NSC) is in the range 0 to 4093 to indicate
+            that the respective downstream or upstream sub-carrier i has the
+            same amount of gain value.
+            The gain value is represented as a multiple of 1/512 on
+            linear scale.  Each value in this array is 16 bits wide and is
+            stored in big endian format.
+           "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.21.3 (GAINSpsds)
+                    and paragraph 7.5.1.21.4 (GAINSpsus)"
+        ::= { hwAdslnniSCStatusEntry 4 }
+
+   hwadslnniSCStatusTssi  OBJECT-TYPE
+        SYNTAX      Adsl2Tssi
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           "The transmit spectrum shaping (TSSi) breakpoints expressed
+            as the set of breakpoints exchanged during G.994.1.
+            Each breakpoint is a pair of values occupying 3 octets with the
+            following structure:
+            First 2 octets - Index of the subcarrier used in the context of
+                             the breakpoint.
+            Third octet    - The shaping parameter at the breakpoint.
+            Subcarrier index is an unsigned number in the range 1 to either
+            NSCds (downstream direction) or NSCus (upstream direction).
+            The shaping parameter value is in the range 0 to 127 (units of
+            -0.5dB). The special value 127 indicates that the subcarrier
+            is not transmitted.
+           "
+      REFERENCE  "ITU-T G.997.1, paragraph 7.5.1.21.5 (TSSpsds)
+                  and paragraph 7.5.1.21.6 (TSSpsus)"
+        ::= { hwAdslnniSCStatusEntry 5 }
+
+--            AdslnniStatistics               
+   	hwAdslnniStatisticsTable  OBJECT-TYPE
+      	        SYNTAX      SEQUENCE  OF  HwAdslnniStatisticsEntry
+      	        MAX-ACCESS  not-accessible
+      	        STATUS      current
+      	        DESCRIPTION
+                   "The table hwAdslnniStatisticsTable contains statistics 
+                    of the Adsl NNI.
+                    The index of this table is ifIndex.
+                   "
+	        ::= { hwAdslnniStatistics 1 }
+
+	hwAdslnniStatisticsEntry  OBJECT-TYPE
+		SYNTAX      HwAdslnniStatisticsEntry
+		MAX-ACCESS  not-accessible
+		STATUS      current
+		DESCRIPTION
+		   "The table hwAdslnniStatisticsTable contains statistics 
+		    of the Adsl NNI.
+		    The index of this entry is ifIndex.
+		   "
+		INDEX  { ifIndex }
+		::= { hwAdslnniStatisticsTable 1 }
+
+   	HwAdslnniStatisticsEntry  ::=
+		SEQUENCE 
+		{
+		    hwAdslnniRxFrameCount  Counter32,
+		    hwAdslnniRxBytesCount  Counter32,
+		    hwAdslnniTxFrameCount  Counter32,
+		    hwAdslnniTxBytesCount  Counter32,
+		    hwAdslnniStatisticsClear INTEGER
+   	}
+   	
+	hwAdslnniRxFrameCount  OBJECT-TYPE
+		SYNTAX      Counter32
+		UNITS       "frames"
+		MAX-ACCESS  read-only
+		STATUS      current
+      	        DESCRIPTION
+	           "The ADSLNNI port receive OK frames."
+		::= { hwAdslnniStatisticsEntry 1 }
+		
+	hwAdslnniRxBytesCount  OBJECT-TYPE
+		SYNTAX      Counter32
+		UNITS       "bytes"
+		MAX-ACCESS  read-only
+		STATUS      current
+      	        DESCRIPTION
+	           "The ADSLNNI port receive OK bytes."
+		::= { hwAdslnniStatisticsEntry 2 }
+		
+	hwAdslnniTxFrameCount  OBJECT-TYPE
+		SYNTAX      Counter32
+		UNITS       "frames"
+		MAX-ACCESS  read-only
+		STATUS      current
+      	        DESCRIPTION
+		   "The ADSLNNI port transmit OK frames."
+		::= { hwAdslnniStatisticsEntry 3 }
+		
+	hwAdslnniTxBytesCount  OBJECT-TYPE
+		SYNTAX      Counter32
+		UNITS       "bytes"
+		MAX-ACCESS  read-only
+		STATUS      current
+      	        DESCRIPTION
+		   "The ADSLNNI port transmit OK bytes."
+		::= { hwAdslnniStatisticsEntry 4 }				
+		
+	hwAdslnniStatisticsClear  OBJECT-TYPE
+		SYNTAX      INTEGER
+			{
+				resetStat(1)
+			}
+		MAX-ACCESS  read-write
+		STATUS      current
+      	        DESCRIPTION
+		   "Clear the statistics of ADSL NNI, 
+		    Options:
+		    1. resetStat(1)  -clear the statistics
+		   "                              
+		::= { hwAdslnniStatisticsEntry 5 }
+		
+--          PM line current counters          
+   hwAdslnniPMLineCurrTable  OBJECT-TYPE
+      SYNTAX      SEQUENCE  OF  HwAdslnniPMLineCurrEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The table hwAdslnniPMLineCurrTable contains current Performance
+          Monitoring results of ADSL2 lines.
+          The indexes of this table are ifIndex and hwadslnniPMLCurrUnit.
+         "
+      ::= { hwAdslnniPMLine 1 }
+
+   hwAdslnniPMLineCurrEntry  OBJECT-TYPE
+      SYNTAX      HwAdslnniPMLineCurrEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The table hwAdslnniPMLineCurrTable contains current Performance
+          Monitoring results of ADSL2 lines.
+          The indexes of this entry are ifIndex and hwadslnniPMLCurrUnit.
+         "
+      INDEX  { ifIndex, hwadslnniPMLCurrUnit }
+      ::= { hwAdslnniPMLineCurrTable 1 }
+      
+   HwAdslnniPMLineCurrEntry  ::=
+      SEQUENCE {
+         hwadslnniPMLCurrUnit                    Adsl2Unit,
+         hwadslnniPMLCurrValidIntervals          Unsigned32,
+         hwadslnniPMLCurrInvalidIntervals        Unsigned32,
+         hwadslnniPMLCurr15MTimeElapsed          HCPerfTimeElapsed,
+         hwadslnniPMLCurr15MFecs                 Counter32,
+         hwadslnniPMLCurr15MEs                   Counter32,
+         hwadslnniPMLCurr15MSes                  Counter32,
+         hwadslnniPMLCurr15MLoss                 Counter32,
+         hwadslnniPMLCurr15MUas                  Counter32
+      }
+      
+   hwadslnniPMLCurrUnit  OBJECT-TYPE
+      SYNTAX      Adsl2Unit
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The termination unit atuc(1) or atur(2)."
+      ::= { hwAdslnniPMLineCurrEntry 1 }
+
+   hwadslnniPMLCurrValidIntervals  OBJECT-TYPE
+      SYNTAX      Unsigned32
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Valid intervals."
+      ::= { hwAdslnniPMLineCurrEntry 2 }
+
+   hwadslnniPMLCurrInvalidIntervals  OBJECT-TYPE
+      SYNTAX      Unsigned32
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Invalid intervals."
+      ::= { hwAdslnniPMLineCurrEntry 3 }
+
+   hwadslnniPMLCurr15MTimeElapsed  OBJECT-TYPE
+      SYNTAX      HCPerfTimeElapsed
+      UNITS       "seconds"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Total elapsed seconds since this PM interval began.
+          Note that the PM counters are not reset even when the XTU
+          is reinitialized.  They are reinitialized only when the
+          agent itself is reset or reinitialized.
+         "
+      ::= { hwAdslnniPMLineCurrEntry 4 }
+
+   hwadslnniPMLCurr15MFecs  OBJECT-TYPE
+      SYNTAX      Counter32
+      UNITS       "seconds"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Count of seconds during this interval where there was at least
+          one FEC correction event for one or more bearer channels in
+          this line.  This parameter is inhibited during UAS or SES.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+      ::= { hwAdslnniPMLineCurrEntry 5 }
+
+   hwadslnniPMLCurr15MEs  OBJECT-TYPE
+      SYNTAX      Counter32
+      UNITS       "seconds"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Count of seconds during this interval where there was:
+             ATU-C: CRC-8 >= 1 for one or more bearer channels OR
+                    LOS >= 1 OR SEF >=1 OR LPR >= 1
+             ATU-R: FEBE >= 1 for one or more bearer channels OR
+                    LOS-FE >=1 OR RDI >=1 OR LPR-FE >=1 .
+          This parameter is inhibited during UAS.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+      ::= { hwAdslnniPMLineCurrEntry 6 }
+
+   hwadslnniPMLCurr15MSes  OBJECT-TYPE
+      SYNTAX      Counter32
+      UNITS       "seconds"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Count of seconds during this interval where there was:
+             ATU-C: (CRC-8 summed over all bearer channels) >= 18 OR
+                    LOS >= 1 OR SEF >= 1 OR LPR >= 1
+             ATU-R: (FEBE summed over all bearer channels) >= 18 OR
+                    LOS-FE >= 1 OR RDI >= 1 OR LPR-FE >= 1 .
+          This parameter is inhibited during UAS.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+      ::= { hwAdslnniPMLineCurrEntry 7 }
+
+   hwadslnniPMLCurr15MLoss  OBJECT-TYPE
+      SYNTAX      Counter32
+      UNITS       "seconds"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Count of seconds during this interval where there was LOS (or
+          LOS-FE for ATU-R).
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+      ::= { hwAdslnniPMLineCurrEntry 8 }
+
+   hwadslnniPMLCurr15MUas  OBJECT-TYPE
+      SYNTAX      Counter32
+      UNITS       "seconds"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Count of seconds in Unavailability State during this
+          interval.  Unavailability begins at the onset of 10
+          contiguous severely-errored seconds, and ends at the
+          onset of 10 contiguous seconds with no severely-errored
+          seconds.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+      ::= { hwAdslnniPMLineCurrEntry 9 }
+            
+   hwAdslnniPMLineCurrInitTable   OBJECT-TYPE
+      SYNTAX      SEQUENCE  OF  HwAdslnniPMLineCurrInitEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The table hwAdslnniPMLineCurrInitTable contains current
+          initialization counters of the ADSL2 line.
+          The index of this table consists of an interface index, where
+          the interface has an ifType of adslnni, and a termination unit.
+          The index of this table is ifIndex.
+         "
+      ::= { hwAdslnniPMLine 2 }
+
+   hwAdslnniPMLineCurrInitEntry  OBJECT-TYPE
+      SYNTAX      HwAdslnniPMLineCurrInitEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The table hwAdslnniPMLineCurrInitTable contains current
+          initialization counters of the ADSL2 line.
+          The index of this table consists of an interface index, where
+          the interface has an ifType of adslnni, and a termination unit.
+          The index of this entry is ifIndex.
+         "
+      INDEX  { ifIndex }
+      ::= { hwAdslnniPMLineCurrInitTable 1 }
+
+   HwAdslnniPMLineCurrInitEntry  ::=
+      SEQUENCE {
+         hwAdslnniPMLCurrInit15MTimeElapsed          Unsigned32,
+         hwAdslnniPMLCurrInit15MFullInits            Unsigned32,
+         hwAdslnniPMLCurrInit15MFailedFullInits      Unsigned32,
+         hwAdslnniPMLCurrInit15MShortInits           Unsigned32,
+         hwAdslnniPMLCurrInit15MFailedShortInits     Unsigned32
+      }
+      
+
+   hwAdslnniPMLCurrInit15MTimeElapsed  OBJECT-TYPE
+      SYNTAX      Unsigned32
+      UNITS       "seconds"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Total elapsed seconds since this PM interval began.
+          Note that the PM counters are not reset even when the XTU
+          is reinitialized.  They are reinitialized only when the
+          agent itself is reset or reinitialized.
+         "
+      ::= { hwAdslnniPMLineCurrInitEntry 1 }
+
+   hwAdslnniPMLCurrInit15MFullInits  OBJECT-TYPE
+      SYNTAX      Unsigned32
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Count of full initializations attempted on the line
+          (successful and failed) during this interval.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+      ::= { hwAdslnniPMLineCurrInitEntry 2 }
+
+   hwAdslnniPMLCurrInit15MFailedFullInits  OBJECT-TYPE
+      SYNTAX      Unsigned32
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Count of failed full initializations on the line during this
+          interval.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+      ::= { hwAdslnniPMLineCurrInitEntry 3 }
+
+   hwAdslnniPMLCurrInit15MShortInits  OBJECT-TYPE
+      SYNTAX      Unsigned32
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Count of short initializations attempted on the line
+          (successful and failed) during this interval.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+      ::= { hwAdslnniPMLineCurrInitEntry 4 }
+
+   hwAdslnniPMLCurrInit15MFailedShortInits  OBJECT-TYPE
+      SYNTAX      Unsigned32
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Count of failed short initializations on the line during this
+          interval.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+      ::= { hwAdslnniPMLineCurrInitEntry 5 }
+
+   hwAdslnniPMChCurrTable        OBJECT-TYPE
+      SYNTAX      SEQUENCE  OF  HwAdslnniPMChCurrEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The table hwadslnniPMChCurrTable contains current Performance
+          Monitoring results of the ADSL2 channel.
+          The indexes of this table are ifIndex and hwadslnniPMChCurrUnit.
+         "
+      ::= { hwAdslnniPMChannel 1 }
+
+   hwAdslnniPMChCurrEntry  OBJECT-TYPE
+      SYNTAX      HwAdslnniPMChCurrEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+         "The table hwadslnniPMChCurrTable contains current Performance
+          Monitoring results of the ADSL2 channel.
+          The indexes of this entry are ifIndex and hwadslnniPMChCurrUnit.
+         "
+      INDEX  { ifIndex, hwadslnniPMChCurrUnit }
+      ::= { hwAdslnniPMChCurrTable 1 }
+
+   HwAdslnniPMChCurrEntry  ::=
+      SEQUENCE {
+         hwadslnniPMChCurrUnit                     Adsl2Unit,
+         hwadslnniPMChCurrValidIntervals           Unsigned32,
+         hwadslnniPMChCurrInvalidIntervals         Unsigned32,
+         hwadslnniPMChCurr15MTimeElapsed           HCPerfTimeElapsed,
+         hwadslnniPMChCurr15MCodingViolations      Unsigned32,
+         hwadslnniPMChCurr15MCorrectedBlocks       Unsigned32
+      }
+
+   hwadslnniPMChCurrUnit  OBJECT-TYPE
+      SYNTAX      Adsl2Unit
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+      "The termination unit."
+      ::= { hwAdslnniPMChCurrEntry 1 }
+
+   hwadslnniPMChCurrValidIntervals  OBJECT-TYPE
+      SYNTAX      Unsigned32
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Valid intervals."
+      ::= { hwAdslnniPMChCurrEntry 2 }
+
+   hwadslnniPMChCurrInvalidIntervals  OBJECT-TYPE
+      SYNTAX      Unsigned32
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Invalid intervals."
+       ::= { hwAdslnniPMChCurrEntry 3 }
+
+   hwadslnniPMChCurr15MTimeElapsed  OBJECT-TYPE
+      SYNTAX      HCPerfTimeElapsed
+      UNITS       "seconds"
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Total elapsed seconds since this PM interval began.
+          Note that the PM counters are not reset even when the XTU
+          is reinitialized. They are reinitialized only when the
+          agent itself is reset or reinitialized.
+         "
+      ::= { hwAdslnniPMChCurrEntry 4 }
+
+   hwadslnniPMChCurr15MCodingViolations  OBJECT-TYPE
+      SYNTAX      Unsigned32
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Count of CRC-8 (FEBE for ATU-R) anomalies occurring in the
+          channel during the interval. This parameter is inhibited
+          during UAS or SES. If the CRC is applied over multiple
+          channels, then each related CRC-8 (or FEBE) anomaly should
+          increment each of the counters related to the individual
+          channels.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.2.2"
+     ::= { hwAdslnniPMChCurrEntry 5 }
+
+   hwadslnniPMChCurr15MCorrectedBlocks  OBJECT-TYPE
+      SYNTAX      Unsigned32
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+         "Count of FEC (FFEC for ATU-R) anomalies (corrected code words)
+          occurring in the channel during the interval. This parameter
+          is inhibited during UAS or SES. If the FEC is applied over
+          multiple channels, then each related FEC (or FFEC) anomaly
+          should increment each of the counters related to the
+          individual channels.
+         "
+      REFERENCE    "ITU-T G.997.1, paragraph 7.2.2"
+      ::= { hwAdslnniPMChCurrEntry 6 }
+
+   END

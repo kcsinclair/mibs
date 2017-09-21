@@ -1,0 +1,845 @@
+CADANT-CMTS-MULTICAST-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, Counter64, Integer32,
+    Unsigned32, TimeTicks                                  FROM SNMPv2-SMI
+    InetAddress, InetAddressPrefixLength,
+    InetAddressType                                        FROM INET-ADDRESS-MIB
+    MacAddress, RowStatus, TruthValue                      FROM SNMPv2-TC
+    SnmpAdminString                                        FROM SNMP-FRAMEWORK-MIB
+    ifIndex, InterfaceIndex, InterfaceIndexOrZero          FROM IF-MIB
+    cadLayer3                                              FROM CADANT-PRODUCTS-MIB
+    cadIfMacDomainIfIndex                                  FROM CADANT-CMTS-LAYER2CMTS-MIB
+    ChSetId                                                FROM DOCS-IF3-MIB
+    dsgIfTunnelIndex, dsgIfClassId, Dsid, 
+    dsgIfTunnelGrpIndex                                    FROM DSG-IF-MIB
+    mgmdPmStaticGroupEntityType, mgmdPmStaticGroupIfIndex,
+    mgmdPmStaticGroupAddressType                           FROM DC-MGMD-MIB;
+
+cadMcastStdMib MODULE-IDENTITY
+	LAST-UPDATED "201501280000Z"        -- Jan 28, 2015
+	ORGANIZATION "Arris Inc"
+	CONTACT-INFO "Arris Technical Support"
+	DESCRIPTION "Cadant Multicast MIB tables"		
+
+	REVISION "201501280000Z"        -- Jan 28, 2015
+	DESCRIPTION  "Add cadMcastClearVideoForwardCounts."
+
+	REVISION "201409220000Z"        -- Sep 22, 2014
+	DESCRIPTION  "Add cadMcastForwardDestIfType as an index of cadMcastForwardDestEntry."
+
+	REVISION "201406040000Z"        -- June 4, 2014
+	DESCRIPTION  "Add cadMcastIgmpThrottleEnable, cadMcastIgmpThrottleBurstSize,
+                      cadMcastIgmpThrottleInterval and cadMcastIgmpThrottleIncrement
+                      for US IGMP Throttling."
+
+	REVISION "201404080000Z"        -- April 8, 2014
+	DESCRIPTION  "Add cadDsgIfTunnelChToGroupTable"
+
+	REVISION "201307180000Z"        -- July 18, 2013
+	DESCRIPTION  "Add cadMcastDeleteDsg "
+
+	REVISION "201301280000Z"        -- Jan 28, 2013
+	DESCRIPTION  "Change cadMcastStatsTunnelIndex from not-accessible to read-only"
+
+	REVISION "201210080000Z"        -- Oct 08, 2012
+	DESCRIPTION  "Add cadMcastStatsTable"
+
+	REVISION "201111080000Z"        -- Nov 08, 2011
+	DESCRIPTION  "Remove 120 seconds from cadStaticFqdnCachePollInterval.
+                  Add cadMcastForwardUseDefaultFlow object.
+                  Reduce the size of cadFqdnCacheName, cadDsgIfSrcName and cadMgmdPmStaticGroupSourceName 
+                  from 250 to 154."
+
+
+	REVISION "201104050000Z"        -- Apr  5, 2011
+	DESCRIPTION  "Rename cadStaticFqdnCfgGroup to cadFqdnCfgGroup.
+                  Rename cadStaticFqdnCacheEntry to cadFqdnCacheEntry.
+                  Change SYNTAX of FQDN name from OCTET STRING to SnmpAdminString."
+
+	REVISION "201104040000Z"        -- Apr  4, 2011
+	DESCRIPTION  "Change range of cadStaticFqdnCachePollInterval from (1800..2678400)
+                  to (300..86400)"
+
+	REVISION "201103210000Z"        -- Mar 21, 2011
+	DESCRIPTION  "Remove cadMgmdPmStaticGroupName, cadMgmdPmStaticGroupSourceStaticIpAddr and cadDsgIfDestName.
+                  Rename cadMgmdPmStaticGroupStaticIpAddr to Rename cadMgmdPmStaticGroup.
+                  Add cadStaticFqdnCacheStatus.
+                  Change FQDN name maximum size from 256 to 250."
+
+	REVISION "201103080000Z"        -- Mar 8, 2011
+	DESCRIPTION  "Add cadStaticFqdnCfgGroup, cadStaticFqdnCacheEntry, 
+                  cadDsgIfClassifierCfgEntry, and cadMgmdPmStaticGroupCfgEntry."
+
+	REVISION "200508090000Z"
+	DESCRIPTION  "Original version."
+	::= { cadLayer3 10 }
+
+
+--
+--  The Multicast Static MAC/IP Binding Table
+--
+
+cadMcastStaticMacIpBindingTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadMcastStaticMacIpBindingEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The list of static multicast MAC/IP bindings. Bindings in this
+             table are used to override the standard RFC bindings."
+    ::= { cadMcastStdMib 1 }
+
+cadMcastStaticMacIpBindingEntry OBJECT-TYPE
+    SYNTAX     CadMcastStaticMacIpBindingEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "An entry (conceptual row) in the cadMcastStaticMacIpBindingTable."
+    INDEX      { cadMcastStaticMacIpBindingAddressType,
+                 cadMcastStaticMacIpBindingAddress }
+    ::= { cadMcastStaticMacIpBindingTable 1 }
+
+CadMcastStaticMacIpBindingEntry ::= SEQUENCE {
+    cadMcastStaticMacIpBindingAddressType       InetAddressType,
+    cadMcastStaticMacIpBindingAddress           InetAddress,
+    cadMcastStaticMacIpBindingMacAddress        MacAddress,
+    cadMcastStaticMacIpBindingStatus            RowStatus
+}
+
+cadMcastStaticMacIpBindingAddressType OBJECT-TYPE
+    SYNTAX     InetAddressType
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The address type of the InetAddress variables in this table."
+    ::= { cadMcastStaticMacIpBindingEntry 1 }
+
+cadMcastStaticMacIpBindingAddress OBJECT-TYPE
+    SYNTAX     InetAddress
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The multicast group address."
+    ::= { cadMcastStaticMacIpBindingEntry 2 }
+
+cadMcastStaticMacIpBindingMacAddress OBJECT-TYPE
+    SYNTAX     MacAddress
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The MAC address to bind to the multicast group address in
+             the ARP table."
+    ::= { cadMcastStaticMacIpBindingEntry 3 }
+
+cadMcastStaticMacIpBindingStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The status of this row."
+    ::= { cadMcastStaticMacIpBindingEntry 4 }
+
+
+--
+--  The Multicast Static Mroute Table
+--
+
+cadMcastMrouteTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadMcastMrouteEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The list of static mroutes. Routes in this table are used to
+             override unicast routes."
+    ::= { cadMcastStdMib 2 }
+
+cadMcastMrouteEntry OBJECT-TYPE
+    SYNTAX     CadMcastMrouteEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "An entry (conceptual row) in the cadMcastMrouteTable."
+    INDEX      { cadMcastMrouteType,
+                 cadMcastMrouteSourceAddress,
+                 cadMcastMrouteSourcePrefix }
+    ::= { cadMcastMrouteTable 1 }
+
+CadMcastMrouteEntry ::= SEQUENCE {
+    cadMcastMrouteType            InetAddressType,
+    cadMcastMrouteSourceAddress   InetAddress,
+    cadMcastMrouteSourcePrefix    InetAddressPrefixLength,
+    cadMcastMrouteRpfAddress      InetAddress,
+    cadMcastMrouteDistance        Integer32,
+    cadMcastMrouteStatus          RowStatus
+}
+
+cadMcastMrouteType OBJECT-TYPE
+    SYNTAX     InetAddressType
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The address type of the InetAddress variables in this table."
+    ::= { cadMcastMrouteEntry 1 }
+
+cadMcastMrouteSourceAddress OBJECT-TYPE
+    SYNTAX     InetAddress
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The multicast route source address."
+    ::= { cadMcastMrouteEntry 2 }
+
+cadMcastMrouteSourcePrefix OBJECT-TYPE
+    SYNTAX     InetAddressPrefixLength
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The multicast route source network prefix."
+    ::= { cadMcastMrouteEntry 3 }
+
+cadMcastMrouteRpfAddress OBJECT-TYPE
+    SYNTAX     InetAddress
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The multicast route RPF neighbor address."
+    ::= { cadMcastMrouteEntry 4 }
+
+cadMcastMrouteDistance OBJECT-TYPE
+    SYNTAX     Integer32 (0..255)
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The multicast route admin distance."
+    ::= { cadMcastMrouteEntry 5 }
+
+cadMcastMrouteStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The status of this row."
+    ::= { cadMcastMrouteEntry 6 }
+
+
+--
+--  The Multicast Forwarding Table
+--
+
+cadMcastForwardTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadMcastForwardEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The list of multicast forwardings."
+    ::= { cadMcastStdMib 3 }
+
+cadMcastForwardEntry OBJECT-TYPE
+    SYNTAX     CadMcastForwardEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "An entry (conceptual row) in the cadMcastForwardTable."
+    INDEX      { cadMcastForwardAddressType,
+                 cadMcastForwardGroupAddress,
+                 cadMcastForwardSourceAddress,
+                 cadMcastForwardSourceIf }
+    ::= { cadMcastForwardTable 1 }
+
+CadMcastForwardEntry ::= SEQUENCE {
+    cadMcastForwardAddressType    InetAddressType,
+    cadMcastForwardGroupAddress   InetAddress,
+    cadMcastForwardSourceAddress  InetAddress,
+    cadMcastForwardSourceIf       InterfaceIndexOrZero,
+    cadMcastForwardDestIfList     Unsigned32,
+    cadMcastForwardCount          Counter64
+}
+
+cadMcastForwardAddressType OBJECT-TYPE
+    SYNTAX     InetAddressType
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The address type of the InetAddress variables in this table."
+    ::= { cadMcastForwardEntry 1 }
+
+cadMcastForwardGroupAddress OBJECT-TYPE
+    SYNTAX     InetAddress
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The multicast group address."
+    ::= { cadMcastForwardEntry 2 }
+
+cadMcastForwardSourceAddress OBJECT-TYPE
+    SYNTAX     InetAddress
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The multicast source address or 0 for all sources."
+    ::= { cadMcastForwardEntry 3 }
+
+cadMcastForwardSourceIf OBJECT-TYPE
+    SYNTAX     InterfaceIndexOrZero
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The multicast source interface or 0 for all interface."
+    ::= { cadMcastForwardEntry 4 }
+
+cadMcastForwardDestIfList OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "The index id of the list of destination interfaces."
+    ::= { cadMcastForwardEntry 5 }
+
+cadMcastForwardCount OBJECT-TYPE
+    SYNTAX     Counter64
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "The number of multicast packets forwarded for this group."
+    ::= { cadMcastForwardEntry 6 }
+
+
+--
+--  The Multicast Forwarding Destination Interface Table
+--
+
+cadMcastForwardDestTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadMcastForwardDestEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The list of multicast forwarding destination interfaces."
+    ::= { cadMcastStdMib 4 }
+
+cadMcastForwardDestEntry OBJECT-TYPE
+    SYNTAX     CadMcastForwardDestEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "An entry (conceptual row) in the cadMcastForwardDestTable."
+    INDEX      { cadMcastForwardDestIfListId,
+                 cadMcastForwardDestIfType,
+                 cadMcastForwardDestIf }
+    ::= { cadMcastForwardDestTable 1 }
+
+CadMcastForwardDestEntry ::= SEQUENCE {
+    cadMcastForwardDestIfListId   Unsigned32,
+    cadMcastForwardDestIf         Unsigned32,
+    cadMcastForwardDestIfType     INTEGER
+}
+
+cadMcastForwardDestIfListId OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The index id of the list of destination interfaces."
+    ::= { cadMcastForwardDestEntry 1 }
+
+cadMcastForwardDestIf OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "The multicast dest interface.For the case of   
+             cadMcastForwardDestIfType being set to sdv(2), the destination 
+             interface will be a DCAM slot number. For all other settings of 
+             cadMcastForwardDestIfType, the destination interface will be an 
+             ifIndex."
+    ::= { cadMcastForwardDestEntry 2 }
+
+cadMcastForwardDestIfType OBJECT-TYPE
+    SYNTAX   INTEGER {
+            docsis(1),
+            sdv(2)
+    }
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "The type of multicast destination interface."
+    ::= { cadMcastForwardDestEntry 3 }
+
+
+--
+--  Global Multicast Variables
+--
+
+cadMcastGlobals OBJECT IDENTIFIER ::= { cadMcastStdMib 5 }
+
+cadMcastClearForwardCounts OBJECT-TYPE
+	SYNTAX  TruthValue
+	MAX-ACCESS  read-write
+	STATUS  current
+	DESCRIPTION
+          "This variable always returns false upon reading. When
+           set to true, the multicast forward counts are cleared."
+  DEFVAL { false }
+	::= { cadMcastGlobals 1 }
+
+cadMcastForwardUseDefaultFlow OBJECT-TYPE
+	SYNTAX  TruthValue
+	MAX-ACCESS  read-write
+	STATUS  current
+	DESCRIPTION
+          "When set to true, the forwarding of multicast data packets uses the default flow"
+  DEFVAL { false }
+	::= { cadMcastGlobals 2 }
+
+cadMcastDeleteDsg OBJECT-TYPE
+        SYNTAX  TruthValue
+        MAX-ACCESS  read-write
+        STATUS  current
+        DESCRIPTION
+          "This variable always returns false(2) upon reading. When
+           set to true(1), all rows in every DSG MIB table are deleted.
+           except dsgIfDownstreamEntry(s) are reset to default values."
+  DEFVAL { false }
+    ::= { cadMcastGlobals 3 }
+
+
+cadMcastIgmpThrottleEnable OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+          "Globally enable/disable IGMP throttle feature."
+        DEFVAL { true }
+        ::= { cadMcastGlobals 4 }
+
+cadMcastIgmpThrottleBurstSize OBJECT-TYPE
+        SYNTAX      Unsigned32 (1..40)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+	  "Maximum size of IGMP throttle bucket per MAC address."
+        DEFVAL { 22 }
+        ::= { cadMcastGlobals 5 }
+
+cadMcastIgmpThrottleInterval OBJECT-TYPE
+        SYNTAX      Unsigned32 (1..10)
+        UNITS       "seconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+	  "Interval in seconds between replenishing an IGMP throttle bucket."
+        DEFVAL { 1 }
+        ::= { cadMcastGlobals 6 }
+
+cadMcastIgmpThrottleIncrement OBJECT-TYPE
+        SYNTAX      Unsigned32  (1..20)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+	  "Number of tokens added to a throttle bucket every cadMcastIgmpThrottleInterval seconds."
+        DEFVAL { 8 }
+        ::= { cadMcastGlobals 7 }
+
+cadMcastClearVideoForwardCounts OBJECT-TYPE
+       SYNTAX  TruthValue
+       MAX-ACCESS  read-write
+       STATUS  current
+       DESCRIPTION
+          "This variable always returns false upon reading. When
+           set to true, the SDV multicast forward counts (i.e.    
+           cadMcastForwardCount attribute of the rows of  
+           cadMcastForwardEntry for IEQ video) are cleared."
+      DEFVAL { false }
+       ::= { cadMcastGlobals 8 }
+
+
+--
+--  Global FQDN for DSG and statically-joined IGMP Variables
+-- 
+
+cadFqdnCfgGroup OBJECT IDENTIFIER ::= { cadMcastStdMib 6 }
+
+cadFqdnCacheEnable OBJECT-TYPE
+	SYNTAX  TruthValue
+	MAX-ACCESS  read-write
+	STATUS  current
+	DESCRIPTION
+          "If set to true(1), polling for the C4 applications' FQDN / IP cache binding updates
+           will be enabled. If set to false(2), no polling will be performed."
+  DEFVAL { false }
+	::= { cadFqdnCfgGroup 1 }
+
+cadFqdnCachePollInterval OBJECT-TYPE
+	SYNTAX  Unsigned32 (300..86400)
+    UNITS   "seconds" 
+	MAX-ACCESS  read-write
+	STATUS  current
+	DESCRIPTION
+          "Poll interval in seconds for checking for updates to the
+           C4 application's FQDN/IP cache binding."
+  DEFVAL { 1800 }
+	::= { cadFqdnCfgGroup 2 }
+
+cadFqdnCacheRefresh OBJECT-TYPE
+	SYNTAX  TruthValue
+	MAX-ACCESS  read-write
+	STATUS  current
+	DESCRIPTION
+          "This variable always returns false(2) upon reading. When set to true(1), 
+           the C4 application will immediatelly poll the DNS resovler for an update of each 
+           of the FQDN IP bindings contained in the cadStaticFqdnCacheTable."
+  DEFVAL { false }
+	::= { cadFqdnCfgGroup 3 }
+
+
+--
+--  Statically joined FQDN Cache Table
+--
+
+cadFqdnCacheTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadFqdnCacheEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The list of the FQDN IP bindings from DNS resolver."
+    ::= { cadMcastStdMib 7 }
+
+cadFqdnCacheEntry OBJECT-TYPE
+    SYNTAX     CadFqdnCacheEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "An entry (conceptual row) in the cadFqdnCacheTable."
+    INDEX      { cadFqdnCacheName }
+    ::= { cadFqdnCacheTable 1 }
+
+CadFqdnCacheEntry ::= SEQUENCE {
+    cadFqdnCacheName              SnmpAdminString,
+    cadFqdnCacheFqdn              SnmpAdminString,
+    cadFqdnCacheIpAddrType        InetAddressType,
+    cadFqdnCacheIpAddress         InetAddress,
+    cadFqdnCacheLastUpdateTime    TimeTicks,
+    cadFqdnCacheStatus            INTEGER
+}
+
+cadFqdnCacheName OBJECT-TYPE
+    SYNTAX     SnmpAdminString (SIZE (1..154))
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The name can be a host name or fully/partially qualified domain name."
+    ::= { cadFqdnCacheEntry 1 }
+
+cadFqdnCacheFqdn OBJECT-TYPE
+    SYNTAX     SnmpAdminString (SIZE (0..250))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "the fully qualified domain name returned from DNS resolver."
+    ::= { cadFqdnCacheEntry 2 }
+
+cadFqdnCacheIpAddrType OBJECT-TYPE
+    SYNTAX     InetAddressType
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "The IP address type associated with the IP address. 
+             If the IP address is zero length, this object will be set to 
+             unknown(0)."
+    DEFVAL { unknown }
+    ::= { cadFqdnCacheEntry 3 }
+
+
+cadFqdnCacheIpAddress OBJECT-TYPE
+    SYNTAX     InetAddress
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "The IP address type associated with the resolved IP address. 
+             This object is set to zero length, if the resolved IP address is not found."
+    DEFVAL { ''H }
+    ::= { cadFqdnCacheEntry 4 }
+
+cadFqdnCacheLastUpdateTime OBJECT-TYPE
+    SYNTAX     TimeTicks
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "The sysUpTime when a cadStaticFqdnCacheEntry is updated."
+    ::= { cadFqdnCacheEntry 5 }
+
+cadFqdnCacheStatus OBJECT-TYPE
+    SYNTAX     INTEGER {
+            validIp(1),
+            unknownIp(2),
+            invalidIp(3),
+            timeout(4),
+            genError(5)
+    }
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "validIp(1) - found a valid IP address associated with cadStaticFqdnCacheName.
+             unknownIp(2) - DNS server does not have the IP address.
+             invalidIp(3) - IP address returned by the service is not a vlid unicast IP address.
+             timeout(4) - DNS resolver send request but get timeout. 
+             genError(5) - general error." 
+    ::= { cadFqdnCacheEntry 6 }
+--
+-- Cadant DSG Classifier FQDN Configuration Table
+-- 
+
+cadDsgIfClassifierCfgTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadDsgIfClassifierCfgEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The list of the FQDN IP bindings from DNS resolver."
+    ::= { cadMcastStdMib 8 }
+
+cadDsgIfClassifierCfgEntry OBJECT-TYPE
+    SYNTAX     CadDsgIfClassifierCfgEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "An entry (conceptual row) in the cadDsgIfClassifierCfgTable."
+    INDEX      { dsgIfTunnelIndex, dsgIfClassId }
+    ::= { cadDsgIfClassifierCfgTable 1 }
+
+CadDsgIfClassifierCfgEntry ::= SEQUENCE {
+    cadDsgIfSrcName                     SnmpAdminString,
+    cadDsgIfClassifierCfgRowStatus      RowStatus
+}
+
+cadDsgIfSrcName OBJECT-TYPE
+    SYNTAX     SnmpAdminString ( SIZE (0..154))
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The source name where a source name can be a host name, 
+             partially, or fully qualified domain name."
+    ::= { cadDsgIfClassifierCfgEntry 1 }
+
+cadDsgIfClassifierCfgRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The status of this row."
+    ::= { cadDsgIfClassifierCfgEntry 2 }
+
+--
+-- Cadant MgmdPmStaticGroup FQDN configuration Table
+--
+
+cadMgmdPmStaticGroupCfgTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadMgmdPmStaticGroupCfgEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The list of the FQDN IP bindings from DNS resolver."
+    ::= { cadMcastStdMib 9 }
+
+cadMgmdPmStaticGroupCfgEntry OBJECT-TYPE
+    SYNTAX     CadMgmdPmStaticGroupCfgEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "An entry (conceptual row) in the cadMgmdPmStaticGroupCfgTable."
+    INDEX      { mgmdPmStaticGroupEntityType, mgmdPmStaticGroupIfIndex,
+                 mgmdPmStaticGroupAddressType, cadMgmdPmStaticGroupAddress, 
+                 cadMgmdPmStaticGroupSourceName
+               }
+    ::= { cadMgmdPmStaticGroupCfgTable 1 }
+
+CadMgmdPmStaticGroupCfgEntry ::= SEQUENCE {
+    cadMgmdPmStaticGroupAddress             InetAddress,
+    cadMgmdPmStaticGroupSourceName          SnmpAdminString,
+    cadMgmdPmStaticGroupCfgRowStatus        RowStatus
+}
+
+
+cadMgmdPmStaticGroupAddress OBJECT-TYPE
+    SYNTAX     InetAddress
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "the static IP address of the group."
+    ::= { cadMgmdPmStaticGroupCfgEntry 1 }
+
+cadMgmdPmStaticGroupSourceName OBJECT-TYPE
+    SYNTAX     SnmpAdminString(SIZE (0..154))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "Group source name can be a host name or fully/partially qualified domain name."
+    ::= { cadMgmdPmStaticGroupCfgEntry 2 }
+
+
+cadMgmdPmStaticGroupCfgRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "The status of this row."
+    ::= { cadMgmdPmStaticGroupCfgEntry 3 }
+
+
+--
+-- Cadant Multicast Status Table
+--
+
+cadMcastStatsTable OBJECT-TYPE 
+    SYNTAX      SEQUENCE OF CadMcastStatsEntry 
+    MAX-ACCESS  not-accessible 
+    STATUS      current 
+    DESCRIPTION 
+            "The Cadent Multicast Stats Table contains 
+            the packet and byte counters for an instance of a multicast stream. 
+            If the multicast stream is for a DSG tunnel, it also contains the ifIndex
+            of the channel carrying the tunnel and the tunnel number." 
+    ::= { cadMcastStdMib 10 } 
+
+cadMcastStatsEntry OBJECT-TYPE 
+    SYNTAX      CadMcastStatsEntry
+    MAX-ACCESS  not-accessible 
+    STATUS      current 
+    DESCRIPTION
+            "An entry in the Cadent Multicast Stats Table. 
+            An entry in this table exists for each active multicast service
+            flow when MDF is enabled on the cable-mac." 
+    INDEX { cadIfMacDomainIfIndex,             
+            cadMcastStatsDsid }  
+    ::= { cadMcastStatsTable 1 } 
+
+CadMcastStatsEntry ::= SEQUENCE {
+    cadMcastStatsDsid           Dsid,
+    cadMcastStatsSentPkts       Counter64,
+    cadMcastStatsSentOctets     Counter64,
+    cadMcastStatsDroppedPkts    Counter64,
+    cadMcastStatsDroppedOctets  Counter64,
+    cadMcastStatsDsIfIndex      InterfaceIndexOrZero,
+    cadMcastStatsTunnelIndex    Unsigned32,
+    cadMcastStatsDsChSetId      ChSetId,
+    cadMcastStatsGSFID          Unsigned32
+    }
+
+cadMcastStatsDsid OBJECT-TYPE
+    SYNTAX      Dsid 
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+            "This object contains the DSID value with which the 
+            CMTS labels the DSG Tunnel traffic."
+    ::= { cadMcastStatsEntry 1 }
+
+cadMcastStatsSentPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current 
+    DESCRIPTION 
+            "This attribute indicates the count of the number of
+             packets transmitted for this outgoing multicast stream."
+    ::= { cadMcastStatsEntry 2 } 
+
+cadMcastStatsSentOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "bytes"
+    MAX-ACCESS  read-only
+    STATUS      current 
+    DESCRIPTION 
+            "This attribute indicates the count of the number of
+             octets transmitted for this outgoing multicast stream."
+        ::= { cadMcastStatsEntry 3 }
+
+cadMcastStatsDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current 
+    DESCRIPTION 
+            "This attribute indicates the count of the number of
+             packets dropped for this outgoing multicast stream."
+    ::= { cadMcastStatsEntry 4 } 
+
+cadMcastStatsDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "bytes"
+    MAX-ACCESS  read-only
+    STATUS      current 
+    DESCRIPTION 
+            "This attribute indicates the count of the number of
+             octets dropped for this outgoing multicast stream."
+        ::= { cadMcastStatsEntry 5 } 
+
+cadMcastStatsDsIfIndex OBJECT-TYPE
+    SYNTAX     InterfaceIndexOrZero
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The ifIndex of the downstream channel carrying this stream.
+         Zero if stream is not for DSG."
+    ::= { cadMcastStatsEntry 6 }
+
+cadMcastStatsTunnelIndex OBJECT-TYPE 
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-only
+    STATUS     current 
+    DESCRIPTION 
+        "The index into the DSG Tunnel table that represent
+         a tunnel. Zero if stream is not for DSG." 
+    ::= { cadMcastStatsEntry 7  } 
+
+cadMcastStatsDsChSetId OBJECT-TYPE
+     SYNTAX      ChSetId
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This attribute provides the reference for the Downstream
+        Channel Set within a MAC Domain that the multicast
+        Servide flow is replicated to."
+     ::= { cadMcastStatsEntry 8 }
+
+cadMcastStatsGSFID OBJECT-TYPE
+     SYNTAX      Unsigned32 (1..4294967295)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This attribute indicates the identifier assigned
+        to the multicast group service flow."
+     ::= { cadMcastStatsEntry 9 }
+
+--
+-- Cadant DSG Tunnel Channel to Group Table
+-- 
+
+cadDsgIfTunnelChToGroupTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadDsgIfTunnelChToGroupEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The list of entries of DSG tunnel channel to group."
+    ::= { cadMcastStdMib 11 }
+
+cadDsgIfTunnelChToGroupEntry OBJECT-TYPE
+    SYNTAX     CadDsgIfTunnelChToGroupEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "An entry (conceptual row) in the cadDsgIfTunnelChToGroupTable."
+    INDEX      { ifIndex, cadDsgIfTunnelGrpIndex }
+    ::= { cadDsgIfTunnelChToGroupTable 1 }
+
+CadDsgIfTunnelChToGroupEntry ::= SEQUENCE {
+    cadDsgIfTunnelGrpIndex      Unsigned32
+}
+
+cadDsgIfTunnelGrpIndex OBJECT-TYPE
+     SYNTAX      Unsigned32
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This attribute indicates DSG tunnel group index."
+     ::= { cadDsgIfTunnelChToGroupEntry 1 }
+
+END

@@ -1,0 +1,137 @@
+
+-- orig IPOX_MIB
+
+IpoX-MIB DEFINITIONS ::= BEGIN
+
+   IMPORTS  OBJECT-TYPE                    FROM RFC-1212
+            AutonomousType                 FROM SNMPv2-TC
+            TruthValue                     FROM SNMPv2-TC
+            TestAndIncr                    FROM SNMPv2-TC
+            RowStatus                      FROM SNMPv2-TC
+            TimeTicks                      FROM RFC1155-SMI
+            Counter                        FROM RFC1155-SMI
+            mib-2                          FROM RFC1213-MIB
+            IANAifType                     FROM IANAifType-MIB
+            ifIndex, InterfaceIndex        FROM ITF-MIB
+            InterfaceIndexOrZero           FROM ITF-MIB
+            asam                           FROM SYSTEM-MIB;
+
+asamIPoX      OBJECT IDENTIFIER ::= { asam 46 }
+
+   ipoxIfTable  OBJECT-TYPE
+      SYNTAX SEQUENCE OF IpoxIfEntry
+      ACCESS not-accessible
+      STATUS mandatory
+      DESCRIPTION
+         "The Alcatel proprietary IP-over-Ethernet interface table.
+
+          ALCATEL NOTE:
+             SUPPORT:  	YES
+             PERSIST:  	YES
+             TABLE SIZE:	4672 = 1024 (network) + 19*48*4	 "
+      ::= {asamIPoX 1}
+
+   ipoxIfEntry  OBJECT-TYPE
+      SYNTAX IpoxIfEntry
+      ACCESS not-accessible
+      STATUS mandatory
+      DESCRIPTION
+         "An entry containing information applicable to a
+          particular IPoE interface.
+
+          ALCATEL NOTE:
+             SUPPORT:  	YES
+             PERSIST:  	YES
+             INSRVMOD: 	NA
+             RANGE:	NA
+             DEFVALUE :	NA
+             UNITS:	NA "
+      INDEX { ipoxIfLowerLayerIfIndex }
+
+      ::= {ipoxIfTable 1}
+
+   IpoxIfEntry ::= SEQUENCE
+   {
+      ipoxIfLowerLayerIfIndex        InterfaceIndex,
+      ipoxIfRowStatus                RowStatus,
+      ipoxIfThisLayerIfIndex         InterfaceIndexOrZero
+   }
+
+   ipoxIfLowerLayerIfIndex  OBJECT-TYPE
+      SYNTAX InterfaceIndex
+      ACCESS read-only
+      STATUS mandatory
+      DESCRIPTION
+         "The interface index of the lower layer i.e.
+		o  either a bridge port
+		o  either an ATM VC with bridged encapsulatin
+		o  either a terminated VLAN on one of the above
+
+          ALCATEL NOTE:
+             SUPPORT:  	YES
+             PERSIST:  	YES
+             INSRVMOD: 	NO / INDEX
+             RANGE:	NA
+             DEFVALUE :	NA
+             UNITS:	NA "
+      ::= {ipoxIfEntry 1}
+
+   ipoxIfRowStatus  OBJECT-TYPE
+      SYNTAX RowStatus
+      ACCESS read-write
+      STATUS mandatory
+      DESCRIPTION
+         "The status of this conceptual row.
+          The RowStatus TC requires that this DESCRIPTION clause
+          states under which circumstances other objects in this row
+          can be modified.  The value of this object has no effect on
+          whether other objects in this conceptual row can be
+          modified.
+          A conceptual row can always be made active.
+
+          ALCATEL NOTE:
+             SUPPORT:  	YES
+             PERSIST:  	NO
+             INSRVMOD: 	NA
+             RANGE:	1 | 4 | 6	-- active (1), createAndGo (4), destroy (6)
+             DEFVALUE :	NA
+             UNITS:	NA "
+      ::= {ipoxIfEntry 2}
+
+   ipoxIfThisLayerIfIndex  OBJECT-TYPE
+      SYNTAX InterfaceIndexOrZero
+      ACCESS read-write
+      STATUS mandatory
+      DESCRIPTION
+         "The interface index of this layer.  This value may
+          be assigned by the system or specified by the manager
+		o  the ifIndex is *NOT* specified or set to zero
+                   during creation of a row in this table
+
+                   The system will automatically allocate an ifIndex
+                   for this row and create a corresponding entry in
+                   the ifTable
+
+		o  the ifIndex is specified with a non-zero value
+                   during creation of a row in this table
+
+                   The system will check whether 
+ 			- the lower layer ifIndex refers to a terminated
+                          VLAN
+		  	- the this layer ifIndex exists and also refers
+                          to a terminated VLAN.
+                   If it does, this means that this terminated VLAN
+                   should be added to the bundle of terminated VLANs,
+                   referred to by this layer ifIndex.
+
+          ALCATEL NOTE:
+             SUPPORT:  	YES
+             PERSIST:  	YES
+             INSRVMOD: 	YES
+             RANGE	NA
+             DEFVALUE :	NA
+             UNITS:	NA "
+      ::= {ipoxIfEntry 3}
+
+END
+

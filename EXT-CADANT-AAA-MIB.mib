@@ -1,0 +1,1544 @@
+CADANT-AAA-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, Integer32, Unsigned32,
+    Counter32, TimeTicks, IpAddress  
+        FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION, TruthValue, RowStatus, DisplayString    
+        FROM SNMPv2-TC
+    MODULE-COMPLIANCE, OBJECT-GROUP  
+        FROM SNMPv2-CONF
+    SnmpAdminString                        
+        FROM SNMP-FRAMEWORK-MIB
+    InetAddressIPv4or6, AAAmethod, AccountingType, LineType,
+    SshService, SshAuthMethod, SshCipher, SshMacAlg, SshCipherType,
+    SshProtocol, SshKeyExchangeMethod, SshKeyType
+        FROM CADANT-TC
+    cadAuthentication                        
+        FROM CADANT-PRODUCTS-MIB;
+
+
+cadAAA  MODULE-IDENTITY
+    LAST-UPDATED "201509300000Z" -- September 30, 2015
+    ORGANIZATION "Arris International Inc."
+    CONTACT-INFO
+        "       Customer Support 
+
+        Postal: Arris International Inc.
+                4343 Commerce Court
+                Lisle, IL 60532
+
+        Phone:  +1 630 281 3000
+        Email:  support@cadant.com"
+    DESCRIPTION
+     "The MIB module describes the proprietary AAA configuration
+      parameters used to support authentication and authorization in the C4."
+
+    REVISION "201509300000Z" -- September 30, 2015
+    DESCRIPTION "Import SshKeyExchangeMethod and SshKeyType."
+    REVISION "201508200000Z" -- August 20, 2015
+    DESCRIPTION "Fix legal range for cadSshPort and cadSshMax Clients.
+                 Change cadSshServerKeyType and cadSshKeyExhange from
+                 read-write to read-only."
+    REVISION "201507160000Z" -- Jul 16, 2015
+    DESCRIPTION "Expand PemKey to 2800 max octets.
+                 Add cadSshServerKeyType and cadSshKeyExhange.
+                 Remove unused cadSshTelnetEnabled and cadSshFtpEnabled."
+    REVISION "201310220000Z" -- October 22, 2013
+    DESCRIPTION "Add RADIUS support."
+    REVISION "200910090000Z" -- October 9, 2009
+    DESCRIPTION "Remove RADIUS support."
+    REVISION "200509230000Z"
+    DESCRIPTION "Updated cadSshSessionEntry"
+    REVISION "200506090000Z"
+    DESCRIPTION "Modify the range value for cadAuthGroup and cadAuthorizationGroup."
+    REVISION "200411300000Z"
+    DESCRIPTION "Added cadSshPasswordAuthRequired, cadSshPublicKeyAuthRequired,
+                 cadSshPublicKeyAuthFirst, and cadSshMaxAuthFailures."
+    REVISION "200408270000Z"
+    DESCRIPTION "Added back the cmd node for backward compatability."
+    REVISION "200408190000Z"
+    DESCRIPTION "Moved cadCLIcommandPrivilegeLevelTable from cadAAA.12 to cadAAA.14, since
+                 index has changed from type CmdNode to DisplayString."
+    REVISION "200407200000Z"
+    DESCRIPTION "Added cadSshPortForwardingEnabled."
+    REVISION "200402240000Z"
+    DESCRIPTION "Changed type for cadGroupPort from INTEGER to Integer32."
+    REVISION "200402180000Z"
+    DESCRIPTION "Added server port to the server group table."
+    REVISION "200308220000Z"
+    DESCRIPTION "Added command privilege level to the line table."
+    REVISION "200308200000Z"
+    DESCRIPTION "Added accounting type to the line table."
+    REVISION "200308150000Z"
+    DESCRIPTION "Added accounting method list table."
+    REVISION "200308010000Z"
+    DESCRIPTION "Add attribute to store original privilege level."
+    REVISION "200307160000Z"
+    DESCRIPTION "Allow zero length TACACS+ key."
+    REVISION "200306130000Z"
+    DESCRIPTION "Increased the length of user ids and passwords to 64."
+    REVISION "200305150000Z"
+    DESCRIPTION "Added table of CLI commands to privilege level mapping."
+    REVISION "200305080000Z"
+    DESCRIPTION "Added RowStatus to table of enable passwords."
+    REVISION "200305070000Z"
+    DESCRIPTION "Enable passwords are now stored in a table indexed by privilege level."
+    REVISION "200304010000Z"
+    DESCRIPTION "Add Authorization MIB."
+    REVISION "200303140000Z"
+    DESCRIPTION "Add TACACS+ MIB."
+    REVISION "200210160000Z"
+    DESCRIPTION "Add ciphers to SSH configuration."
+    REVISION "200208300000Z"
+    DESCRIPTION "Reduced size of 'name' type objects to 16."
+    REVISION "200208210000Z"
+    DESCRIPTION "Change radius key length."
+    REVISION "200207250000Z"
+    DESCRIPTION "Add support for SSH sessions and status tables."
+
+    ::= { cadAuthentication 1 }
+
+--
+-- Textual conventions
+--
+PemKey ::= TEXTUAL-CONVENTION
+        DISPLAY-HINT "2800a"
+        STATUS current
+        DESCRIPTION
+          " An rsa/dsa digital key in PEM format."
+        SYNTAX OCTET STRING (SIZE(0..2800))
+
+CmdNode ::= TEXTUAL-CONVENTION
+        DISPLAY-HINT "1x:"
+        STATUS current
+        DESCRIPTION
+          " Address of the command node associated with the CLI command"
+        SYNTAX OCTET STRING (SIZE(4))
+--
+-- The line is the basic AAA configuration object in the system
+--
+
+cadLineTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadLineEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "This table reflects the AAA configuration for each line (vty or 
+        console) in the system."
+       ::= { cadAAA 2 }
+
+cadLineEntry OBJECT-TYPE
+    SYNTAX     CadLineEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION 
+      ""
+    INDEX { cadLineIndex }
+    ::= { cadLineTable 1 }
+
+CadLineEntry ::=
+    SEQUENCE {
+      cadLineIndex              Integer32,
+      cadLineType               LineType,
+      cadLineEnabled            TruthValue,
+      cadLineSessionTimeout     Integer32,
+      cadLineIdleTimeout        Integer32,
+      cadLinePagination         Integer32,
+      cadLineBaud               Integer32,
+      cadLinePassword           OCTET STRING,
+      cadLineLoginAuthMethodList  SnmpAdminString,
+      cadLineEnableAuthMethodList SnmpAdminString,
+      cadLineAuthorMethodList     SnmpAdminString,
+      cadLineShellAccountingMethodList   SnmpAdminString,
+      cadLineCommandAccountingMethodList SnmpAdminString,
+      cadLineShellAccountingType   AccountingType,
+      cadLineCommandAccountingType AccountingType,
+      cadLineCommandAccountingPrivilegeLevel      Integer32
+    }
+
+cadLineIndex OBJECT-TYPE
+    SYNTAX     Integer32 (1..19)
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "The line index  corresponding to a console or vty line.
+        These are preallocated by the system at startup." 
+       ::= { cadLineEntry 1 }
+
+cadLineType OBJECT-TYPE
+    SYNTAX     LineType
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The type (vty or console) of the access line."
+    DEFVAL { vty }
+       ::= { cadLineEntry 2 }
+
+cadLineEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The status of the line.  When enabled, the line is available
+        for access to the C4."
+    DEFVAL { false }
+       ::= { cadLineEntry 3 }
+
+cadLineSessionTimeout OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Session length in seconds.  The C4 automatically terminates the 
+        the session when this interval expires.  A value of zero indicates
+        no timeout."
+    DEFVAL { 0 }
+       ::= { cadLineEntry 4 }
+
+cadLineIdleTimeout OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Maximum idle time in seconds.  The C4 automatically terminates the
+        session if no I/O activity occurs within this interval.  A value of
+        zero indicates no timeout."
+    DEFVAL { 0 }
+       ::= { cadLineEntry 5 }
+
+cadLinePagination OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Number of lines of consecutive output to display before pausing
+        and prompting the user.  A value of zero indicates no pagination."
+    DEFVAL { 0 }
+       ::= { cadLineEntry 6 }
+
+cadLineBaud OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Baud rate in bits per second.  This is applicable to console lines
+        only and is saved in the eeprom."
+    DEFVAL { 9600 }
+       ::= { cadLineEntry 7 }
+
+cadLinePassword OBJECT-TYPE
+    SYNTAX     OCTET STRING (SIZE(0..64))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The (encrypted) password associated with this line if line-based
+        authentication is active.  This is the line password."
+       ::= { cadLineEntry 8 }
+
+cadLineLoginAuthMethodList OBJECT-TYPE
+    SYNTAX     SnmpAdminString (SIZE(0..16))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The authentication methods used in allowing login access on this line.
+        This is a partial index into the cadAuthMethodTable.  An empty
+        string indicates no authentication is possible and effectively
+        disables the line."
+    DEFVAL { ''H }
+       ::= { cadLineEntry 9 }
+
+cadLineEnableAuthMethodList OBJECT-TYPE
+    SYNTAX     SnmpAdminString (SIZE(0..16))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The authentication methods used in allowing enable access on this line.
+        This is a partial index into the cadAuthMethodTable.  An empty
+        string indicates no authentication is possible and effectively
+        disables the line."
+    DEFVAL { ''H }
+       ::= { cadLineEntry 10 }
+
+cadLineAuthorMethodList OBJECT-TYPE
+    SYNTAX     SnmpAdminString (SIZE(0..16))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The authorization methods used in allowing different privledge levels
+        on this line.  This is a partial index into the cadAuthorMethodTable.  
+        An empty string indicates no authorization is possible, in that case,
+        authorization is equivalent to authentication."
+    DEFVAL { ''H }
+       ::= { cadLineEntry 11 }
+
+cadLineShellAccountingMethodList OBJECT-TYPE
+    SYNTAX     SnmpAdminString (SIZE(0..16))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The method list used for shell accounting.  
+        An empty string indicates no command accounting is possible."
+    DEFVAL { ''H }
+       ::= { cadLineEntry 12 }
+
+cadLineCommandAccountingMethodList OBJECT-TYPE
+    SYNTAX     SnmpAdminString (SIZE(0..16))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The method list used for command accounting.  Accounting will 
+        be done only for commands whose privilege level is greater than or equal  
+        to cadLineCommandAccountingPrivilegeLevel.
+        An empty string indicates no command accounting is possible."
+    DEFVAL { ''H }
+       ::= { cadLineEntry 13 }
+
+cadLineShellAccountingType OBJECT-TYPE
+    SYNTAX     AccountingType 
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Accounting type for shell accounting.  The accounting type 
+        is used to decide whether accounting records are sent at the initiation 
+        and termination of a session or only at the termination of a session."
+    DEFVAL { start-stop }
+       ::= { cadLineEntry 14 }
+
+cadLineCommandAccountingType OBJECT-TYPE
+    SYNTAX     AccountingType 
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Accounting type for command accounting.  The accounting type 
+        is used to decide whether accounting records are sent at the initiation 
+        and termination of a command or only at the termination of a command."
+    DEFVAL { stop-only }
+       ::= { cadLineEntry 15 }
+
+cadLineCommandAccountingPrivilegeLevel OBJECT-TYPE
+    SYNTAX     Integer32 (0..15)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "When command accounting is enabled, accounting records will be sent 
+        only for commands whose privilege level is greater than or equal to 
+        cadLineCommandAccountingPrivilegeLevel."
+    DEFVAL { 0 }
+       ::= { cadLineEntry 16 }
+
+--
+--
+--  Authorization Method table
+-- 
+
+cadAuthorizationMethodTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadAuthorizationMethodEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "A list of methods which are used in determining the type and sequence
+        of authorization."
+       ::= { cadAAA 3 }
+
+cadAuthorizationMethodEntry OBJECT-TYPE
+    SYNTAX     CadAuthorizationMethodEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+      "Each row describes a single AAA method.  Order is used in determining
+       the sequence in which the methods are applied."
+      INDEX { cadAuthorizationListName, cadAuthorizationListIndex }
+      ::= { cadAuthorizationMethodTable 1 }
+
+CadAuthorizationMethodEntry ::=
+    SEQUENCE {
+        cadAuthorizationListName   SnmpAdminString,
+        cadAuthorizationListIndex  Integer32,
+        cadAuthorizationType       AAAmethod,
+        cadAuthorizationGroup      SnmpAdminString,
+        cadAuthorizationRowStatus  RowStatus
+    }
+
+cadAuthorizationListName OBJECT-TYPE
+    SYNTAX     SnmpAdminString(SIZE(1..16))
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "The name of the authorization method list.  Each list
+        can have a number of different authorization methods
+        that are tried in order to authorize the command."
+       ::= { cadAuthorizationMethodEntry 1 }
+
+cadAuthorizationListIndex OBJECT-TYPE
+    SYNTAX     Integer32 (0|1..32)
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "The order in the authorization sequence when this
+        method is used.  A value of zero allows the snmp agent
+        to choose the next hightest available index that preserves
+        the list order."
+       ::= { cadAuthorizationMethodEntry 2 }
+
+cadAuthorizationType OBJECT-TYPE
+    SYNTAX     AAAmethod
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadAuthorizationMethodEntry 3 }
+
+cadAuthorizationGroup OBJECT-TYPE
+    SYNTAX     SnmpAdminString(SIZE(0..16))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The name of the group used in TACACS+ method.
+        The default names of 'tac_default' represent
+        the entire set of defined TACACS+ servers."
+       ::= { cadAuthorizationMethodEntry 4 }
+
+cadAuthorizationRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadAuthorizationMethodEntry 5 }
+
+--
+--  Authentication Method table
+-- 
+
+cadAuthMethodTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadAuthMethodEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "A list of methods which are used in determining the type and sequence
+        of authentication."
+       ::= { cadAAA 4 }
+
+cadAuthMethodEntry OBJECT-TYPE
+    SYNTAX     CadAuthMethodEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+      "Each row describes a single AAA method.  Order is used in determining
+       the sequence in which the methods are applied."
+      INDEX { cadAuthListName, cadAuthListIndex }
+      ::= { cadAuthMethodTable 1 }
+
+CadAuthMethodEntry ::=
+    SEQUENCE {
+        cadAuthListName   SnmpAdminString,
+        cadAuthListIndex  Integer32,
+        cadAuthType       AAAmethod,
+        cadAuthGroup      SnmpAdminString,
+        cadAuthRowStatus  RowStatus
+    }
+
+cadAuthListName OBJECT-TYPE
+    SYNTAX     SnmpAdminString(SIZE(1..16))
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "The name of the authentication method list.  Each list
+        can have a number of different authentication methods
+        that are tried in order to authenticate the user."
+       ::= { cadAuthMethodEntry 1 }
+
+cadAuthListIndex OBJECT-TYPE
+    SYNTAX     Integer32 (0|1..32)
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "The order in the authentication sequence when this
+        method is used.  A value of zero allows the snmp agent
+        to choose the next hightest available index that preserves
+        the list order."
+       ::= { cadAuthMethodEntry 2 }
+
+cadAuthType OBJECT-TYPE
+    SYNTAX     AAAmethod
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadAuthMethodEntry 3 }
+
+cadAuthGroup OBJECT-TYPE
+    SYNTAX     SnmpAdminString(SIZE(0..16))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The name of the group used in RADIUS/TACACS+ methods.
+        The default names of 'default' and 'tac_default' represent
+        the entire set of defined RADIUS and TACACS+ servers
+        respectively."
+       ::= { cadAuthMethodEntry 4 }
+
+cadAuthRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadAuthMethodEntry 5 }
+
+--
+--  Accountinvg Method table
+-- 
+
+cadAccountingMethodTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadAccountingMethodEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "A list of methods which are used in determining the type and sequence
+        of accounting."
+       ::= { cadAAA 5 }
+
+cadAccountingMethodEntry OBJECT-TYPE
+    SYNTAX     CadAccountingMethodEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+      "Each row describes a single AAA method.  Order is used in determining
+       the sequence in which the methods are applied."
+      INDEX { cadAccountingListName, cadAccountingListIndex }
+      ::= { cadAccountingMethodTable 1 }
+
+CadAccountingMethodEntry ::=
+    SEQUENCE {
+        cadAccountingListName   SnmpAdminString,
+        cadAccountingListIndex  Integer32,
+        cadAccountingType       AAAmethod,
+        cadAccountingGroup      SnmpAdminString,
+        cadAccountingRowStatus  RowStatus
+    }
+
+cadAccountingListName OBJECT-TYPE
+    SYNTAX     SnmpAdminString(SIZE(1..16))
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "The name of the accounting method list.  Each list
+        can have a number of different accounting methods
+        that are tried in order to authorize the command."
+       ::= { cadAccountingMethodEntry 1 }
+
+cadAccountingListIndex OBJECT-TYPE
+    SYNTAX     Integer32 (0|1..32)
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "The order in the accounting sequence when this
+        method is used.  A value of zero allows the snmp agent
+        to choose the next hightest available index that preserves
+        the list order."
+       ::= { cadAccountingMethodEntry 2 }
+
+cadAccountingType OBJECT-TYPE
+    SYNTAX     AAAmethod
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadAccountingMethodEntry 3 }
+
+cadAccountingGroup OBJECT-TYPE
+    SYNTAX     SnmpAdminString(SIZE(1..16))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The name of the group used in TACACS+ method.
+        The default names of 'tac_default' represent
+        the entire set of defined TACACS+ servers."
+       ::= { cadAccountingMethodEntry 4 }
+
+cadAccountingRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadAccountingMethodEntry 5 }
+
+--
+-- The AAA Server Group Table
+--
+
+cadServerGroupTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadServerGroupEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadAAA 6 }
+
+cadServerGroupEntry OBJECT-TYPE
+    SYNTAX     CadServerGroupEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+      "This is the cross-reference table linking server group names used
+       in authentication lists to the ordered set of individual servers."
+      INDEX { cadGroupName, cadGroupIndex }
+      ::= { cadServerGroupTable 1 }
+
+CadServerGroupEntry ::=
+    SEQUENCE {
+        cadGroupName         SnmpAdminString,
+        cadGroupIndex        Integer32,
+        cadGroupType         INTEGER,
+        cadGroupIpAddress    InetAddressIPv4or6,
+        cadGroupPort         Integer32,
+        cadGroupRowStatus    RowStatus
+    }
+
+cadGroupName OBJECT-TYPE
+    SYNTAX     SnmpAdminString(SIZE(1..16))
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "Server Group name.  The group name 'radius' includes all
+        defined radius servers on the C4."
+       ::= { cadServerGroupEntry 1 }
+
+cadGroupIndex OBJECT-TYPE
+    SYNTAX     Integer32 (0|1..32)
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "Orders the group based on the order in which the servers were
+        defined.  A value of zero allows the snmp agent to choose the 
+        next largest available index that preserves the list order."
+       ::= { cadServerGroupEntry 2 }
+
+cadGroupType OBJECT-TYPE
+    SYNTAX     INTEGER {
+      radius(1),
+      tacacs(2)
+    }
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Orders the group based on the order in which the servers were
+        defined."
+    DEFVAL { radius }
+       ::= { cadServerGroupEntry 3 }
+
+cadGroupIpAddress OBJECT-TYPE
+    SYNTAX     InetAddressIPv4or6
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Ip address of the AAA server."
+       ::= { cadServerGroupEntry 4 }
+
+cadGroupPort OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Port number of the AAA server."
+       ::= { cadServerGroupEntry 5 }
+
+cadGroupRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadServerGroupEntry 6 }
+
+--
+-- RADIUS Server table
+--
+
+cadRadiusTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadRadiusEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "This table defines the configuration parameters of the RADIUS
+        servers used for authentication by the C4."
+       ::= { cadAAA 7 }
+
+cadRadiusEntry OBJECT-TYPE
+    SYNTAX     CadRadiusEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+      ""
+      INDEX { cadRadiusIpAddress }
+      ::= { cadRadiusTable 1 }
+
+CadRadiusEntry ::=
+    SEQUENCE {
+        cadRadiusIpAddress   InetAddressIPv4or6,
+        cadRadiusAuthPort    Integer32,
+        cadRadiusAcctPort    Integer32,
+        cadRadiusTimeout     Integer32,
+        cadRadiusRetrans     Integer32,
+        cadRadiusKey         OCTET STRING,
+        cadRadiusAuthServerIndex Integer32,
+        cadRadiusRowStatus   RowStatus
+    }
+
+cadRadiusIpAddress OBJECT-TYPE
+    SYNTAX InetAddressIPv4or6
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "The IP address of the radius server host."
+       ::= { cadRadiusEntry 1 }
+
+cadRadiusAuthPort OBJECT-TYPE
+    SYNTAX Integer32 (0..65535)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The UDP port to use for RADIUS authentication."
+       DEFVAL { 1812 }
+       ::= { cadRadiusEntry 2 }
+
+cadRadiusAcctPort OBJECT-TYPE
+    SYNTAX     Integer32 (0..65535)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The UDP port to use for RADIUS accounting records."
+    DEFVAL {  1813 }
+       ::= { cadRadiusEntry 3 }
+
+cadRadiusTimeout OBJECT-TYPE
+    SYNTAX     Integer32 (0..1500)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Time in seconds to wait between retransmissions of a RADIUS request."
+    DEFVAL { 3 }
+       ::= { cadRadiusEntry 4 }
+
+cadRadiusRetrans OBJECT-TYPE
+    SYNTAX     Integer32 (0..15)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The number of retransmissions before declaring a RADIUS server dead."
+    DEFVAL { 5 }
+       ::= { cadRadiusEntry 5 }
+
+cadRadiusKey OBJECT-TYPE
+    SYNTAX     OCTET STRING(SIZE(1..32))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The shared secret used between the C4 and the RADIUS server."
+       ::= { cadRadiusEntry 7 }
+
+cadRadiusAuthServerIndex OBJECT-TYPE
+    SYNTAX     Integer32(1..2147483647)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The index in the radiusAuthServerEntry table corresponding to this 
+        radius host."
+       ::= { cadRadiusEntry 8 }
+
+cadRadiusRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadRadiusEntry 9 }
+
+--
+-- TACACS+ Server table
+--
+
+cadTacacsTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadTacacsEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "This table defines the configuration parameters of the TACACS+
+        servers used by the C4."
+       ::= { cadAAA 8 }
+
+cadTacacsEntry OBJECT-TYPE
+    SYNTAX     CadTacacsEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+      ""
+      INDEX { cadTacacsIpAddress }
+      ::= { cadTacacsTable 1 }
+
+CadTacacsEntry ::=
+    SEQUENCE {
+        cadTacacsIpAddress   InetAddressIPv4or6,
+        cadTacacsPort        Integer32,
+        cadTacacsTimeout     Integer32,
+        cadTacacsKey         OCTET STRING,
+        cadTacacsSingleConnect    TruthValue,
+        cadTacacsServerIndex Integer32,
+        cadTacacsRowStatus   RowStatus
+    }
+
+cadTacacsIpAddress OBJECT-TYPE
+    SYNTAX InetAddressIPv4or6
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "The IP address of the TACACS+ server host."
+       ::= { cadTacacsEntry 1 }
+
+cadTacacsPort OBJECT-TYPE
+    SYNTAX Integer32 (0..65535)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The TCP port to use for TACACS+ authentication."
+       DEFVAL { 49 }
+       ::= { cadTacacsEntry 2 }
+
+cadTacacsTimeout OBJECT-TYPE
+    SYNTAX     Integer32 (0..1500)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Time in seconds before TCP times out."
+    DEFVAL { 3 }
+       ::= { cadTacacsEntry 3 }
+
+cadTacacsKey OBJECT-TYPE
+    SYNTAX     OCTET STRING(SIZE(0..32))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The shared secret used between the C4 and the TACACS+ server."
+       ::= { cadTacacsEntry 4 }
+
+cadTacacsSingleConnect OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Indicates whether this TACACS+ server will support multiplexing of 
+        multiple sessions over a single TCP connection."
+    DEFVAL { false }
+       ::= { cadTacacsEntry 5 }
+
+cadTacacsServerIndex OBJECT-TYPE
+    SYNTAX     Integer32(1..2147483647)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The index in the tacacsServerEntry table corresponding to this 
+        tacacs host."
+       ::= { cadTacacsEntry 6 }
+
+cadTacacsRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadTacacsEntry 7 }
+
+--
+-- SSH daemon parameters
+--
+
+cadSshConfig OBJECT IDENTIFIER ::= { cadAAA 9 }
+
+cadSshEnabled OBJECT-TYPE
+    SYNTAX TruthValue
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The current adminstative status of the SSH server.  True implies
+        the SSH server is active."
+    DEFVAL { false }
+       ::= { cadSshConfig 1 }
+
+cadSshPort OBJECT-TYPE
+    SYNTAX Integer32 (1..65535)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Port on which the SSH server listens."
+    DEFVAL { 22 }
+       ::= { cadSshConfig 2 }
+
+cadSshSessionIdleTimeout OBJECT-TYPE
+    SYNTAX Integer32 (0..12000)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Seconds the SSH server will allow an established connection to 
+        remain idle connection before terminating it.  0 implies an unlimited
+        idle timeout."
+    DEFVAL { 0 }
+       ::= { cadSshConfig 3 }
+
+cadSshMaxClients OBJECT-TYPE
+    SYNTAX Integer32 (0..20)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Maximum number of active SSH clients allowed by the SSH server.
+        0 implies the upper range of 20."
+    DEFVAL { 0 }
+       ::= { cadSshConfig 4 }
+
+cadSshPasswordAuthEnabled OBJECT-TYPE
+    SYNTAX TruthValue
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "True means that password authentication is allowed by the SSH server.
+        False implies that public key authentication must be allowed.  Setting
+        this object fo false(2) will automatically cause cadSshPasswordAuthRequired
+        to be set to false(2)."
+    DEFVAL { true }
+       ::= { cadSshConfig 5 }
+
+cadSshPublicKeyAuthEnabled OBJECT-TYPE
+    SYNTAX TruthValue
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "When true, the SSH server will allow clients to authenticate using a
+        digital signature.  If false, password authentication must be allowed.
+        Setting this object to false(2) will automatically cause
+        cadSshPublicKeyAuthRequired and cadSshPublicKeyAuthFirst to be set to
+        false(2)."
+    DEFVAL { true }
+       ::= { cadSshConfig 6 }
+
+cadSshCliLoginEnabled OBJECT-TYPE
+    SYNTAX TruthValue
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "When true, the SSH server will allow clients to login into the CLI."
+    DEFVAL { true }
+       ::= { cadSshConfig 7 }
+
+cadSshSecureFtpEnabled OBJECT-TYPE
+    SYNTAX TruthValue
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "When true, the SSH server will allow clients to establish secure
+        ftp sessions."
+    DEFVAL { true }
+       ::= { cadSshConfig 8 }
+
+cadSshPublicKey OBJECT-TYPE
+    SYNTAX PemKey
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The SSH server's public key."
+       ::= { cadSshConfig 11 }
+
+cadSshPrivateKey OBJECT-TYPE
+    SYNTAX PemKey
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The SSH server private key"
+       ::= { cadSshConfig 12 }
+
+cadSshCiphers OBJECT-TYPE
+    SYNTAX SshCipher
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "SSH message encryption ciphers"
+    DEFVAL { '7C'H }  -- arcfour, blowfish, 3des, cast, and aes are enabled
+       ::= { cadSshConfig 13 }
+
+cadSshPortForwardingEnabled OBJECT-TYPE
+    SYNTAX TruthValue
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Set this object to true(1) if SSH port forwarding is to be enabled. Otherwise,
+        this object should be false(2) if SSH port forwarding is disabled."
+    DEFVAL { false }
+       ::= { cadSshConfig 14 }
+
+cadSshPasswordAuthRequired OBJECT-TYPE
+    SYNTAX TruthValue
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "If cadSshPasswordAuthEnabled is set to true(1), then setting
+        cadSshPasswordAuthRequired to true(1) instructs the SSH server to require
+        password authentication from connecting clients. If cadSshPasswordAuthEnabled
+        is set to true(1) and this object it set to false(2), then password
+        authentication may not be necessary as long as cadSshPublicAuthEnabled is set
+        to true(1). Otherwise, if cadSshPasswordAuthEnabled is set to false(2), any
+        attempt to set cadSshPasswordAuthRequired to true(1) will be rejected."
+    DEFVAL { false } -- password authentication not required
+       ::= { cadSshConfig 15 }
+
+cadSshPublicKeyAuthRequired OBJECT-TYPE
+    SYNTAX TruthValue
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "If cadSshPublicKeyAuthEnabled is set to true(1), then setting
+        cadSshPublicKeyAuthRequired to true(1) instructs the SSH server to require
+        public key authentication from connecting clients. If cadSshPublicKeyAuthRequired
+        is set to true(1) and this object it set to false(2), then public key
+        authentication may not be necessary as long as cadSshPasswordAuthEnabled is set
+        to true(1). Otherwise, if cadSshPublicKeyAuthEnabled is set to false(2), any
+        attempt to set cadSshPublicKeyAuthRequired to true(1) will be rejected. Setting
+        this object to false(2) will automatically cause cadSshPublicKeyAuthFirst to be
+        set to false(2)."
+    DEFVAL { false } -- public key authentication not required
+       ::= { cadSshConfig 16 }
+
+cadSshPublicKeyAuthFirst OBJECT-TYPE
+    SYNTAX TruthValue
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "If both cadSshPublicKeyAuthEnabled and cadSshPublicKeyAuthRequired are set to
+        true(1), then this object may set to true(1). Otherwise, attempts to set this
+        object to true(1) will fail. If set to true(1) and cadSshPasswordAuthRequired
+        is set to true, then the SSH server will required public key authentication to
+        preceed password authentication."
+    DEFVAL { false } -- public key auth not required to be before password auth
+       ::= { cadSshConfig 17 }
+
+cadSshMaxAuthFailures OBJECT-TYPE
+    SYNTAX Unsigned32 (0..64)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The SSH server will reject clients who fail to authorize after this many
+        attempts."
+    DEFVAL { 3 } -- SSH server will reject after the 3rd failure
+       ::= { cadSshConfig 18 }
+
+cadSshServerKeyType OBJECT-TYPE
+    SYNTAX SshKeyType
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The SSH server key type (DSA-1024 or RSA-2048)."
+    DEFVAL { unknown }
+       ::= { cadSshConfig 19 }
+
+cadSshKeyExchange OBJECT-TYPE
+    SYNTAX SshKeyExchangeMethod
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The SSH server key exhange method."
+    DEFVAL { '80'H }  -- dh-gr1-sha1 enabled
+       ::= { cadSshConfig 20 }
+
+--
+-- Local Password File
+--
+
+cadPasswordTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadPasswordEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "This table reflects the local user passwords defined for the C4."
+       ::= { cadAAA 10 }
+
+cadPasswordEntry OBJECT-TYPE
+    SYNTAX     CadPasswordEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION 
+      ""
+    INDEX { cadPassUser }
+    ::= { cadPasswordTable 1 }
+
+CadPasswordEntry ::=
+    SEQUENCE {
+      cadPassUser              SnmpAdminString,
+      cadPassPassword          OCTET STRING,
+      cadPassAuthLevel         INTEGER,
+      cadPassPublicKey         PemKey,
+      cadPassRowStatus         RowStatus
+    }
+
+cadPassUser OBJECT-TYPE
+    SYNTAX     SnmpAdminString (SIZE(1..64))
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "Local user name defined on the C4."
+       ::= { cadPasswordEntry 1 }
+
+cadPassPassword OBJECT-TYPE
+    SYNTAX     OCTET STRING(SIZE(0..64))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Encrypted password for local user defined on the C4."
+       ::= { cadPasswordEntry 2 }
+
+cadPassAuthLevel OBJECT-TYPE
+    SYNTAX     INTEGER {
+      priviledged(1),
+      normal(2)
+    }
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Authorization level for this user account."
+    DEFVAL { normal }
+       ::= { cadPasswordEntry 3 }
+
+cadPassPublicKey OBJECT-TYPE
+    SYNTAX     PemKey
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "User's public key for use by SSH"
+       ::= { cadPasswordEntry 4 }
+
+cadPassRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadPasswordEntry 5 }
+
+--
+-- CMTS global enable passwords
+--
+
+cadEnablePasswordTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadEnablePasswordEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "This table reflects the local enable passwords defined for various privilege levels."
+       ::= { cadAAA 11 }
+
+cadEnablePasswordEntry OBJECT-TYPE
+    SYNTAX     CadEnablePasswordEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION 
+      ""
+    INDEX { cadPrivilegeLevel }
+    ::= { cadEnablePasswordTable 1 }
+
+CadEnablePasswordEntry ::=
+    SEQUENCE {
+      cadPrivilegeLevel        INTEGER,
+      cadEnablePassword        OCTET STRING,
+      cadEnablePasswordRowStatus  RowStatus
+    }
+
+cadPrivilegeLevel OBJECT-TYPE
+    SYNTAX     INTEGER(0..15)
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "Privilege level."
+       ::= { cadEnablePasswordEntry 1 }
+
+cadEnablePassword OBJECT-TYPE
+    SYNTAX     OCTET STRING(SIZE(0..64))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "Encrypted enable password associated with the privilege level."
+       ::= { cadEnablePasswordEntry 2 }
+
+cadEnablePasswordRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadEnablePasswordEntry 3 }
+
+-- Keeping the OID and name from a previous definition reserved
+cadCLIcommandPrivilegeLevelTable OBJECT IDENTIFIER ::= { cadAAA 12 }
+
+--
+-- CMTS CLI command <-> privilege level mapping
+--
+cadCLIcommandPrivilegeTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadCLIcommandPrivilegeEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "This table reflects the mapping of CLI commands to privilege levels."
+       ::= { cadAAA 14 }
+
+cadCLIcommandPrivilegeEntry OBJECT-TYPE
+    SYNTAX     CadCLIcommandPrivilegeEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION 
+      ""
+    INDEX { cadCLIcommandPrivilegeCommand }
+    ::= { cadCLIcommandPrivilegeTable 1 }
+
+CadCLIcommandPrivilegeEntry ::=
+    SEQUENCE {
+      cadCLIcommandPrivilegeNodeAddr      CmdNode,
+      cadCLIcommandPrivilegeCommand       DisplayString,
+      cadCLIcommandPrivilegeOriginalLevel INTEGER,
+      cadCLIcommandPrivilegeNewLevel      INTEGER,
+      cadCLIcommandPrivilegeRowStatus     RowStatus
+    }
+
+cadCLIcommandPrivilegeNodeAddr OBJECT-TYPE
+    SYNTAX     CmdNode
+    MAX-ACCESS not-accessible
+    STATUS     obsolete
+    DESCRIPTION
+       "Address of the command node that uniquely identifies a CLI command."
+       ::= { cadCLIcommandPrivilegeEntry 1 }
+
+cadCLIcommandPrivilegeCommand OBJECT-TYPE
+    SYNTAX     DisplayString
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "Fully expanded CLI command text that uniquely identifies this command node."
+       ::= { cadCLIcommandPrivilegeEntry 2 }
+
+cadCLIcommandPrivilegeOriginalLevel OBJECT-TYPE
+    SYNTAX     INTEGER(0..15)
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Original privilege level defined at compile time."
+    DEFVAL { 0 }
+       ::= { cadCLIcommandPrivilegeEntry 3 }
+
+cadCLIcommandPrivilegeNewLevel OBJECT-TYPE
+    SYNTAX     INTEGER(0..15)
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Configured privilege level that overrides cadCLIcommandPrivilegeOriginalLevel"
+    DEFVAL { 0 }
+       ::= { cadCLIcommandPrivilegeEntry 4 }
+
+cadCLIcommandPrivilegeRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Control object for this row"
+    DEFVAL { createAndGo }
+       ::= { cadCLIcommandPrivilegeEntry 5 }
+
+--
+--
+--
+cadSshStatus OBJECT IDENTIFIER ::= { cadAAA 13 }
+
+cadSshServerVersion OBJECT-TYPE
+    SYNTAX SnmpAdminString
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The current version information for this C4 SSH server."
+       ::= { cadSshStatus 1 }
+
+cadSshOfferedProtocols OBJECT-TYPE
+    SYNTAX SshProtocol
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "SSH Protocols available on this C4 SSH server."
+       ::= { cadSshStatus 2 }
+
+cadSshServerRunning OBJECT-TYPE
+    SYNTAX TruthValue
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "If true, the C4 SSH server is active."
+       ::= { cadSshStatus 3 }
+
+cadSshSessionTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadSshSessionEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "This table defines the configuration parameters of the RADIUS
+        servers used for authentication by the C4."
+       ::= { cadSshStatus 4 }
+
+cadSshSessionEntry OBJECT-TYPE
+    SYNTAX     CadSshSessionEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+      ""
+      INDEX { cadSshSessionIndex }
+      ::= { cadSshSessionTable 1 }
+
+CadSshSessionEntry ::=
+    SEQUENCE {
+        cadSshSessionIndex      Integer32,
+	cadSshConnectionId	Integer32,
+        cadSshUser              SnmpAdminString,
+	cadSshClientIpAddr      InetAddressIPv4or6,
+        cadSshServiceType       SshService,
+	cadSshAuthMethod        SshAuthMethod,
+        cadSshCipherType        SshCipherType,
+	cadSshMacAlg            SshMacAlg,
+	cadSshClientSw          SnmpAdminString,
+        cadSshSessionRowStatus  RowStatus
+    }
+
+cadSshSessionIndex OBJECT-TYPE
+    SYNTAX Integer32 (1..32)
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "The session index  corresponding to a SSH session.
+        These are preallocated by the system at startup." 
+       ::= { cadSshSessionEntry 1 }
+
+cadSshConnectionId OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The connection identifier for this SSH session."
+       ::= { cadSshSessionEntry 2 }
+
+cadSshUser OBJECT-TYPE
+    SYNTAX SnmpAdminString(SIZE(1..32))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadSshSessionEntry 3 }
+
+
+cadSshClientIpAddr  OBJECT-TYPE
+    SYNTAX     InetAddressIPv4or6
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+               "The client IP address."
+    ::= { cadSshSessionEntry 4 }
+
+cadSshServiceType OBJECT-TYPE
+    SYNTAX SshService
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadSshSessionEntry 5 }
+
+cadSshAuthMethod OBJECT-TYPE
+    SYNTAX SshAuthMethod
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The authentication method for this session."
+       ::= { cadSshSessionEntry 6 }
+
+cadSshCipherType OBJECT-TYPE
+    SYNTAX SshCipherType
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadSshSessionEntry 7 }
+
+cadSshMacAlg OBJECT-TYPE
+    SYNTAX SshMacAlg
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadSshSessionEntry 8 }
+
+cadSshClientSw OBJECT-TYPE
+    SYNTAX SnmpAdminString(SIZE(1..32))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadSshSessionEntry 9 }
+
+cadSshSessionRowStatus OBJECT-TYPE
+    SYNTAX RowStatus
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       ""
+       ::= { cadSshSessionEntry 10 }
+
+-- conformance information
+
+cadAAAConformance OBJECT IDENTIFIER ::= { cadAAA 20 }
+
+cadAAAGroups      OBJECT IDENTIFIER ::= { cadAAAConformance 1 }
+cadAAACompliances OBJECT IDENTIFIER ::= { cadAAAConformance 2 }
+
+-- compliance statements
+cadAAACompliance MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+       "The compliance statement "
+    MODULE  -- this module
+    MANDATORY-GROUPS {
+         cadAAALineGroup,
+         cadAAAMethodGroup,
+         cadAAAServerGroup,
+         cadAAAProtocolGroup,
+         cadAAASshGroup,
+         cadAAAPasswordGroup
+    }
+    GROUP       cadAAALineGroup
+    DESCRIPTION
+       "This group defines line configuration for the C4."
+    GROUP       cadAAAMethodGroup
+    DESCRIPTION
+       "This group defines the AAA methods for the C4."
+    GROUP       cadAAAServerGroup
+    DESCRIPTION
+       "This group defines the server cross reference group for AAA."
+    GROUP       cadAAAProtocolGroup
+    DESCRIPTION
+       "This group defines AAA protocol information for the C4."
+    GROUP       cadAAASshGroup
+    DESCRIPTION
+       "This group defines AAA SSH protocol information for the C4."
+    GROUP       cadAAAPasswordGroup
+    DESCRIPTION
+       "This group defines AAA password information for the C4."
+    GROUP       cadAAAEnableGroup
+    DESCRIPTION
+       "This group defines AAA enable password information for the C4."
+    ::= { cadAAACompliances 1 }
+
+
+-- units of conformance
+
+cadAAALineGroup    OBJECT-GROUP
+    OBJECTS {
+        cadLineType,
+        cadLineEnabled,
+        cadLineSessionTimeout,
+        cadLineIdleTimeout, 
+        cadLinePagination,
+        cadLineBaud,
+        cadLinePassword,
+        cadLineLoginAuthMethodList,
+        cadLineEnableAuthMethodList,
+        cadLineAuthorMethodList,
+        cadLineShellAccountingMethodList,
+        cadLineCommandAccountingMethodList,
+        cadLineShellAccountingType,
+        cadLineCommandAccountingType,
+        cadLineCommandAccountingPrivilegeLevel
+    }
+    STATUS  current
+    DESCRIPTION
+       "This group defines line configuration for the C4."
+    ::= { cadAAAGroups 1 }
+
+cadAAAMethodGroup    OBJECT-GROUP
+    OBJECTS {
+        cadAuthType,
+        cadAuthGroup
+    }
+    STATUS  current
+    DESCRIPTION
+       "This group defines the AAA methods for the C4."
+    ::= { cadAAAGroups 2 }
+
+cadAAAServerGroup    OBJECT-GROUP
+    OBJECTS {
+        cadGroupIpAddress,
+        cadGroupType
+    }
+    STATUS  current
+    DESCRIPTION
+       "This group defines the server cross reference group for AAA."
+    ::= { cadAAAGroups 3 }
+
+cadAAAProtocolGroup    OBJECT-GROUP
+    OBJECTS {
+        cadTacacsPort,
+        cadTacacsTimeout,
+        cadTacacsKey,
+        cadTacacsSingleConnect,
+        cadTacacsServerIndex
+    }
+    STATUS  current
+    DESCRIPTION
+       "This group defines AAA protocol information for the C4."
+    ::= { cadAAAGroups 4 }
+
+cadAAASshGroup    OBJECT-GROUP
+    OBJECTS {
+        cadSshEnabled,
+        cadSshPort,
+        cadSshSessionIdleTimeout,
+        cadSshMaxClients,
+        cadSshPasswordAuthEnabled,
+        cadSshPublicKeyAuthEnabled,
+        cadSshCliLoginEnabled,
+        cadSshSecureFtpEnabled,
+        cadSshPublicKey,
+        cadSshPrivateKey,
+        cadSshCiphers,
+        cadSshPortForwardingEnabled,
+        cadSshPasswordAuthRequired,
+        cadSshPublicKeyAuthRequired,
+        cadSshPublicKeyAuthFirst,
+        cadSshMaxAuthFailures,
+        cadSshServerKeyType,
+        cadSshKeyExchange
+    }
+    STATUS  current
+    DESCRIPTION
+       "This group defines AAA SSH information for the C4."
+    ::= { cadAAAGroups 5 }
+
+cadAAAPasswordGroup    OBJECT-GROUP
+    OBJECTS {
+        cadPassPassword,
+        cadPassAuthLevel,
+        cadPassPublicKey
+    }
+    STATUS  current
+    DESCRIPTION
+       "This group defines AAA local password information for the C4."
+    ::= { cadAAAGroups 6 }
+
+cadAAAEnableGroup    OBJECT-GROUP
+    OBJECTS {
+        cadEnablePassword
+    }
+    STATUS  current
+    DESCRIPTION
+       "This group defines AAA local enable password information for the C4."
+    ::= { cadAAAGroups 7 }
+END

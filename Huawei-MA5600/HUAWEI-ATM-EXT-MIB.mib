@@ -1,0 +1,873 @@
+-- ============================================================================
+-- Copyright (C) 2010  by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description:  The MIB module defines MIB objects which provide ATM management interfaces.
+-- Reference:  
+-- Version: V3.12
+-- ============================================================================
+  HUAWEI-ATM-EXT-MIB DEFINITIONS ::= BEGIN
+    IMPORTS 
+      atmTrafficDescrParamEntry, atmTrafficDescrParamIndex, atmVplEntry, atmVplVpi, atmVclEntry, 
+      atmVclVpi, atmVclVci, atmMIBObjects, atmVcCrossConnectIndex     
+          FROM ATM-MIB
+      IpAddress, Integer32, Counter32 ,OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE    
+          FROM SNMPv2-SMI
+      ifIndex     
+          FROM IF-MIB 
+      hwFrameIndex, hwSlotIndex, hwPortIndex
+          FROM HUAWEI-DEVICE-MIB  
+      huaweiUtility
+          FROM HUAWEI-MIB;  
+          
+      hwmusaAtm MODULE-IDENTITY
+    LAST-UPDATED "201011090900Z"
+    ORGANIZATION "Huawei Technologies Co.,Ltd."
+    CONTACT-INFO 
+      "Huawei Industrial Base
+       Bantian, Longgang
+       Shenzhen 518129
+       People's Republic of China
+       Website: http://www.huawei.com
+       Email: support@huawei.com
+      "
+    DESCRIPTION "The MIB module defines MIB objects which provide ATM management interfaces."
+    
+--  Revision history
+    REVISION     "201011090900Z"        
+    DESCRIPTION  "V3.12, modified the description of MIB."
+      
+    REVISION     "201007280900Z"
+    DESCRIPTION  "V3.11, modified the description of MIB.
+                  Added enumeration invalid(-1) in hwAtmVclUpcNpcFlagCfg leaf."
+        
+    REVISION     "201005050900Z"
+    DESCRIPTION  "V3.10, modified the errors of the MIB file."
+                
+    REVISION     "201004140000Z"
+    DESCRIPTION  "V3.09, modified according to the simple test."
+                
+    REVISION     "201001120000Z"
+    DESCRIPTION  "V3.08, added the definition of the trap node."
+    
+    REVISION     "200912270000Z"
+    DESCRIPTION  "V3.07, added Huawei private leaf node."
+    
+    REVISION     "200911270000Z"
+    DESCRIPTION  "V3.06, added hwAtmVcCxcVclQueryTable and hwTrafficTableName."
+    
+    REVISION     "200611270000Z"        
+    DESCRIPTION  "V3.02, added hwTrafficTemplateType, hwAtmTrafficCar OBJECT-TYPE, hwTrafficCbrPcrTable, and hwTrafficRtvbrScrTable. "
+
+    REVISION     "200304280000Z"        
+    DESCRIPTION  "V3.00, added file head."
+                
+    REVISION     "200202180000Z"        
+    DESCRIPTION  "V1.00, initial version."
+    
+      ::= { huaweiUtility 99 }
+      
+    hwAtmTrafficReference OBJECT-TYPE
+      SYNTAX Counter32
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+        "
+         UPC indentifier expanded from atmVclTable of ATM-MIB (HUAWEI products).
+        "
+      ::= { atmTrafficDescrParamEntry 65536 }
+
+    hwAtmTrafficPriority OBJECT-TYPE
+      SYNTAX Integer32
+      MAX-ACCESS read-write
+      STATUS current
+      DESCRIPTION
+        "
+         Set corresponding 802.1P priority for ATM connection.
+         UBR service can only set to 0 or 1.
+         NRT-VBR service can only set to 2 or 3.
+         RT-VBR service can only set to 4 or 5.
+         CBR service can only set to 6 or 7.
+        "
+      ::= { atmTrafficDescrParamEntry 65537 }
+
+    hwAtmTrafficPriorityPolicy OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        first-pvcsetting(1),
+        firs-802dot1p(2)
+        }
+      MAX-ACCESS read-write
+      STATUS current
+      DESCRIPTION
+        "Traffic priority policy, can use connection priority or 802.1p tag.  
+         Options:                                                 
+         1. first-pvcsetting(1)        -use connection priority   
+         2. firs-802dot1p(2)           -use connection 802.1p tag 
+       "
+      ::= { atmTrafficDescrParamEntry 65538 }
+    hwTrafficTemplateType OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        atm(1),
+        ip(2)
+        }
+      MAX-ACCESS read-write
+      STATUS current
+      DESCRIPTION
+        "Traffic Template types.
+         Options:                                                 
+         1. atm(1)          -ATM traffic template 
+         2. ip(2)           -IP traffic template     
+        "
+      ::= { atmTrafficDescrParamEntry 65539 }
+      
+    hwAtmTrafficCar OBJECT-TYPE
+      SYNTAX Integer32
+      MAX-ACCESS read-write
+      STATUS current
+      DESCRIPTION
+        "
+         User input the value of the CAR 64..32768 .
+        "
+      ::= { atmTrafficDescrParamEntry 65540 }  
+      
+    hwTrafficTableName OBJECT-TYPE
+      SYNTAX OCTET STRING (SIZE (0..32))
+      MAX-ACCESS read-write
+      STATUS current
+      DESCRIPTION
+        "
+         Traffic table's name.
+        "
+      ::= { atmTrafficDescrParamEntry 65541 }
+
+      
+    hwAtmVplUpcNpcFlag OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        enable(1),
+        disable(2)
+        }
+      MAX-ACCESS read-write
+      STATUS current
+      DESCRIPTION
+        "Vpl UPC indentifiers expanded from atmVclTable of ATM-MIB. 
+         Options:
+         1. enable(1)        -Vpl UPC identifiers expanded is enable
+         2. disable(2)       -Vpl UPC identifiers expanded is disable  
+        "
+      ::= { atmVplEntry 65536 }
+    
+    hwAtmVclUpcNpcFlag OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        enable(1),
+        disable(2)
+        }
+      MAX-ACCESS read-write
+      STATUS current
+      DESCRIPTION
+        "UPC/NPC flag, indicates flow control switch status.
+         Options:
+         1. enable(1)    -UPC/NPC flag is enable 
+         2. disable(2)   -UPC/NPC flag is disable 
+        "
+      ::= { atmVclEntry 65536 }
+    
+    hwAtmVclProtocalType OBJECT-TYPE
+      SYNTAX INTEGER
+        {
+        llc1483b(1),
+        ipoa(2),
+        none(3)
+        }
+      MAX-ACCESS read-write
+      STATUS current
+      DESCRIPTION
+        "Protocal type of VCL.
+         Options:
+         1. llc1483b(1)   -VCL protocal llc1483b
+         2. ipoa(2)       -VCL protocal ipoa
+         3. none(3)       -none VCL protocal 
+        "
+      ::= { atmVclEntry 65537 }
+    
+    hwAtmVclUserType OBJECT-TYPE
+      SYNTAX Integer32
+      MAX-ACCESS read-write
+      STATUS current
+      DESCRIPTION
+        "VCL user type.
+        "
+      ::= { atmVclEntry 65539 }
+    
+    hwAtmVclBoundIpAddress OBJECT-TYPE
+      SYNTAX IpAddress
+      MAX-ACCESS read-write
+      STATUS current
+      DESCRIPTION
+        "VCL IP Address.
+        "
+      ::= { atmVclEntry 65540 }
+  
+    hwAtmVcldot1dDefaultPriority OBJECT-TYPE
+      SYNTAX Integer32 (0..7)
+      MAX-ACCESS read-write
+      STATUS current
+      DESCRIPTION
+        "VCL LAN 802.1p priority.
+        "
+      ::= { atmVclEntry 65541 }
+      
+    hwTrafficCbrPcrTable    OBJECT-TYPE
+      SYNTAX      SEQUENCE OF HwTrafficCbrPcrEntry
+      MAX-ACCESS      not-accessible
+      STATUS      current
+      DESCRIPTION
+        "CBR traffic PCR parameter table, it is used for setting and querying CBR 
+         traffic's PCR parameter.
+         The index of this table is hwCbrPcrIndex.
+         "
+      ::= { atmMIBObjects 65536 }
+
+    hwTrafficCbrPcrEntry    OBJECT-TYPE
+      SYNTAX         HwTrafficCbrPcrEntry
+      MAX-ACCESS         not-accessible
+      STATUS         current
+      DESCRIPTION
+        "CBR traffic PCR parameter table, it is used for setting and querying CBR 
+         traffic's PCR parameter.
+         The index of this entry is hwCbrPcrIndex.
+        "
+      INDEX   
+      { 
+       hwCbrPcrIndex
+      }
+      ::= { hwTrafficCbrPcrTable  1 }
+
+    HwTrafficCbrPcrEntry    ::= SEQUENCE  {
+            hwCbrPcrIndex         Integer32,
+            hwCbrPcrValue         Integer32,
+            hwCbrPcrRefCount      Integer32
+          }
+   
+    hwCbrPcrIndex  OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS   not-accessible
+      STATUS   current
+      DESCRIPTION
+        "The index of CBR traffic PCR parameter table. 
+         The id of CBR traffic PCR parameter.
+        "
+      ::= { hwTrafficCbrPcrEntry 1}
+   
+    hwCbrPcrValue  OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS   read-write
+      STATUS   current
+      DESCRIPTION
+        "The CBR traffic PCR parameter value.
+        "
+      ::= { hwTrafficCbrPcrEntry 2}
+   
+    hwCbrPcrRefCount  OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS   read-only
+      STATUS   current
+      DESCRIPTION
+        "The number of the CBR traffic PCR parameter referenced.
+        "
+      ::= { hwTrafficCbrPcrEntry 3} 
+      
+
+    hwTrafficRtvbrScrTable    OBJECT-TYPE
+      SYNTAX      SEQUENCE OF HwTrafficRtvbrScrEntry
+      MAX-ACCESS      not-accessible
+      STATUS      current
+      DESCRIPTION
+        "Rtvbr traffic SCR parameter table, it is used for setting and querying Rtvbr 
+         traffic's SCR parameter.
+         The index of this table is hwRtvbrScrIndex.
+        "
+      ::= { atmMIBObjects 65537 }
+
+    hwTrafficRtvbrScrEntry    OBJECT-TYPE
+      SYNTAX         HwTrafficRtvbrScrEntry
+      MAX-ACCESS         not-accessible
+      STATUS         current
+      DESCRIPTION
+        "Rtvbr traffic SCR parameter table, it is used for setting and querying Rtvbr 
+         traffic's SCR parameter.
+         The index of this entry is hwRtvbrScrIndex.
+        "
+      INDEX   
+      { 
+       hwRtvbrScrIndex
+      }                     
+      ::= { hwTrafficRtvbrScrTable  1 }
+
+    HwTrafficRtvbrScrEntry    ::= SEQUENCE  {
+            hwRtvbrScrIndex         Integer32,
+            hwRtvbrScrValue         Integer32,
+            hwRtvbrScrRefCount      Integer32
+          }
+   
+    hwRtvbrScrIndex  OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS   not-accessible
+      STATUS   current
+      DESCRIPTION
+        "The index of rtVbr traffic SCR parameter table.
+         The id of Rtvbr traffic SCR parameter.
+        "
+      ::= { hwTrafficRtvbrScrEntry 1}
+   
+    hwRtvbrScrValue  OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS   read-write
+      STATUS   current
+      DESCRIPTION
+        "The Rtvbr traffic SCR parameter value.
+        "
+      ::= { hwTrafficRtvbrScrEntry 2}
+   
+    hwRtvbrScrRefCount  OBJECT-TYPE
+      SYNTAX   Integer32
+      MAX-ACCESS   read-only
+      STATUS   current
+      DESCRIPTION
+        "The number of the Rtvbr traffic SCR parameter referenced.
+        "
+      ::= { hwTrafficRtvbrScrEntry 3} 
+--
+-- hwAtmVcCxcVclQueryTable  
+--
+    hwAtmVcCxcVclQueryTable OBJECT-TYPE
+      SYNTAX SEQUENCE OF HwAtmVcCxcVclQueryEntry
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "Cxc query vcl para table.
+         The index of this table is atmVcCrossConnectIndex.
+        "
+      ::= { atmMIBObjects 65538 }
+
+    hwAtmVcCxcVclQueryEntry OBJECT-TYPE
+      SYNTAX HwAtmVcCxcVclQueryEntry
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "Cxc query vcl para table.
+         The index of this entry is atmVcCrossConnectIndex.
+        "
+      INDEX { atmVcCrossConnectIndex }
+      ::= { hwAtmVcCxcVclQueryTable 1 }   
+      
+    HwAtmVcCxcVclQueryEntry ::=
+      SEQUENCE {
+        hwAtmVcCxcSrcVclIfIndex
+        Integer32,
+        hwAtmVcCxcSrcVclVpi
+        Integer32,
+        hwAtmVcCxcSrcVclVci
+        Integer32,
+        hwAtmVcCxcDstVclIfIndex
+        Integer32,
+        hwAtmVcCxcDstVclVpi
+        Integer32,
+        hwAtmVcCxcDstVclVci
+        Integer32
+       }
+       
+    hwAtmVcCxcSrcVclIfIndex OBJECT-TYPE   
+      SYNTAX Integer32
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+        "The source ifIndex value of the ATM interface for this VC cross-connect.
+        "
+      ::= { hwAtmVcCxcVclQueryEntry 1 }
+
+    hwAtmVcCxcSrcVclVpi OBJECT-TYPE   
+      SYNTAX Integer32
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+        "The source VPI value of the ATM interface for this VC cross-connect.
+        "
+      ::= { hwAtmVcCxcVclQueryEntry 2 }
+
+    hwAtmVcCxcSrcVclVci OBJECT-TYPE   
+      SYNTAX Integer32
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+        "The source VCI value of the ATM interface for this VC cross-connect.
+        "
+      ::= { hwAtmVcCxcVclQueryEntry 3 }
+
+    hwAtmVcCxcDstVclIfIndex OBJECT-TYPE   
+      SYNTAX Integer32
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+        "The destination ifIndex value of the ATM interface for this VC cross-connect.
+        "
+      ::= { hwAtmVcCxcVclQueryEntry 4 }
+
+    hwAtmVcCxcDstVclVpi OBJECT-TYPE   
+      SYNTAX Integer32
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+        "The destination VPI value of the ATM interface for this VC cross-connect.
+        "
+      ::= { hwAtmVcCxcVclQueryEntry 5 }
+
+    hwAtmVcCxcDstVclVci OBJECT-TYPE   
+      SYNTAX Integer32
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+        "The destination VCI value of the ATM interface for this VC cross-connect.
+        "
+      ::= { hwAtmVcCxcVclQueryEntry 6 }
+      
+-- hwatmTrafficDescrParamCfgTable  
+
+    hwatmTrafficDescrParamCfgTable OBJECT-TYPE
+      SYNTAX SEQUENCE OF HwatmTrafficDescrParamCfgEntry
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "This table contains information on ATM traffic associated parameters.
+         The index of this table is atmTrafficDescrParamIndex."
+      ::= { hwmusaAtm 107 }
+    
+    hwatmTrafficDescrParamCfgEntry OBJECT-TYPE
+      SYNTAX HwatmTrafficDescrParamCfgEntry
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+        "This table contains information on ATM traffic associated parameters.
+         The index of this entry is atmTrafficDescrParamIndex."
+      INDEX { atmTrafficDescrParamIndex }
+      ::= { hwatmTrafficDescrParamCfgTable 1 }
+
+    HwatmTrafficDescrParamCfgEntry ::=
+      SEQUENCE 
+      { 
+       hwAtmTrafficReferenceCfg          Counter32,
+       hwAtmTrafficPriorityCfg           Integer32,
+       hwAtmTrafficPriorityPolicyCfg     INTEGER,
+       hwTrafficTemplateTypeCfg          INTEGER,
+       hwAtmTrafficCarCfg                Integer32, 
+       hwTrafficTableNameCfg             OCTET STRING
+      }
+    
+    hwAtmTrafficReferenceCfg OBJECT-TYPE
+      SYNTAX Counter32
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+        "UPC indentifier expanded from atmVclTable of ATM-MIB (HUAWEI products)."
+      ::= { hwatmTrafficDescrParamCfgEntry 1 }
+
+    hwAtmTrafficPriorityCfg OBJECT-TYPE
+      SYNTAX Integer32
+      MAX-ACCESS read-write
+      STATUS current
+      DESCRIPTION
+        "Set corresponding 802.1P priority for ATM connection.
+         UBR service can only set to 0 or 1.
+         NRT-VBR service can only set to 2 or 3.
+         RT-VBR service can only set to 4 or 5.
+         CBR service can only set to 6 or 7."
+      ::= { hwatmTrafficDescrParamCfgEntry 2 }
+
+    hwAtmTrafficPriorityPolicyCfg OBJECT-TYPE
+      SYNTAX INTEGER 
+      {
+       first-pvcsetting(1),
+       firs-802dot1p(2)
+      }
+      MAX-ACCESS read-write
+      STATUS current
+      DESCRIPTION
+        "Traffic priority policy, can use connection priority or 802.1p tag.
+         Options:
+         1. first-pvcsetting(1)        -use connection priority 
+         2. firs-802dot1p(2)           -use connection 802.1p tag
+       "
+      ::= { hwatmTrafficDescrParamCfgEntry 3 } 
+      
+    hwTrafficTemplateTypeCfg OBJECT-TYPE
+       SYNTAX INTEGER 
+       {
+        atm(1),
+        ip(2)
+       }
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+        "Traffic Template types 1-ATM traffic template 2-IP traffic template.
+         Options:
+         1. atm(1)          -ATM traffic template 
+         2. ip(2)           -IP traffic template
+       "
+       ::= { hwatmTrafficDescrParamCfgEntry 4 }
+      
+    hwAtmTrafficCarCfg OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+         "User input the value of the CAR 64..32768."
+       ::= { hwatmTrafficDescrParamCfgEntry 5 }  
+      
+    hwTrafficTableNameCfg OBJECT-TYPE
+       SYNTAX OCTET STRING (SIZE (0..32))
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+         "Traffic table's name."
+       ::= { hwatmTrafficDescrParamCfgEntry 6 }   
+       
+       
+-- hwatmVplCfgTable   
+
+    hwatmVplCfgTable OBJECT-TYPE
+       SYNTAX SEQUENCE OF HwatmVplCfgEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "This table contains information on ATM traffic associated parameters.
+           The indexes of this table are ifIndex and atmVplVpi."
+       ::= { hwmusaAtm 108 }
+    
+    hwatmVplCfgEntry OBJECT-TYPE
+       SYNTAX HwatmVplCfgEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+         "This table contains information on ATM traffic associated parameters.
+           The indexes of this entry are ifIndex and atmVplVpi."
+       INDEX { ifIndex, atmVplVpi }
+       ::= { hwatmVplCfgTable 1 }
+
+    HwatmVplCfgEntry ::=
+       SEQUENCE
+        { 
+        hwAtmVplUpcNpcFlagCfg          INTEGER
+        }   
+                  
+    hwAtmVplUpcNpcFlagCfg OBJECT-TYPE
+       SYNTAX INTEGER 
+       {
+       enable(1),
+       disable(2)
+       }
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+        "Vpl UPC identifiers expanded from atmVclTable of ATM-MIB.
+         Options:
+         1. enable(1)        -Vpl UPC identifiers expanded is enable
+         2. disable(2)       -Vpl UPC identifiers expanded is disable
+         "
+       ::= { hwatmVplCfgEntry 1 } 
+        
+-- hwatmVclCfgTable   
+
+    hwatmVclCfgTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF HwatmVclCfgEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+           "This table contains information about ATM traffic associated parameters, 
+            it is used for setting and querying flag of flow control switch and priority.
+            The indexes of this table are ifIndex, atmVclVpi and atmVclVci.
+           "
+      ::= { hwmusaAtm 109 }
+    
+    hwatmVclCfgEntry OBJECT-TYPE
+        SYNTAX HwatmVclCfgEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+           "This table contains information about ATM traffic associated parameters, 
+            it is used for setting and querying flag of flow control switch and priority.
+            The indexes of this entry are ifIndex, atmVclVpi and atmVclVci.
+           "
+        INDEX { ifIndex, atmVclVpi, atmVclVci }
+        ::= { hwatmVclCfgTable 1 }
+
+    HwatmVclCfgEntry ::=
+        SEQUENCE { 
+                  hwAtmVclUpcNpcFlagCfg            INTEGER,
+                  hwAtmVclProtocalTypeCfg          INTEGER,
+                  hwAtmVclUserTypeCfg              Integer32,
+                  hwAtmVclBoundIpAddressCfg        IpAddress,
+                  hwAtmVcldot1dDefaultPriorityCfg  Integer32     
+                 }    
+                  
+    hwAtmVclUpcNpcFlagCfg OBJECT-TYPE
+        SYNTAX INTEGER {
+                        enable(1),
+                        disable(2),
+                        invalid(-1)
+                       }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+          "VCL UPC NPC flag, indicates flow control switch status.
+           Options:
+           1. enable(1)    -UPC/NPC flag is enable 
+           2. disable(2)   -UPC/NPC flag is disable
+           3. invalid(-1)  -invalid value
+          "
+        ::= { hwatmVclCfgEntry 1 }
+    
+    hwAtmVclProtocalTypeCfg OBJECT-TYPE
+        SYNTAX INTEGER {
+                        llc1483b(1),
+                        ipoa(2),
+                        none(3)
+                       }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+          "Protocol type of VCL.
+           Options:
+           1. llc1483b(1)   -VCL protocol llc1483b
+           2. ipoa(2)       -VCL protocol ipoa
+           3. none(3)       -none VCL protocol 
+          "
+        ::= { hwatmVclCfgEntry 2 }
+    
+    hwAtmVclUserTypeCfg OBJECT-TYPE
+        SYNTAX Integer32
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+          "VCL user type."
+        ::= { hwatmVclCfgEntry 3 }
+    
+    hwAtmVclBoundIpAddressCfg OBJECT-TYPE
+        SYNTAX IpAddress
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+          "VCL IP address."
+        ::= { hwatmVclCfgEntry 4 }
+  
+    hwAtmVcldot1dDefaultPriorityCfg OBJECT-TYPE
+        SYNTAX Integer32 (0..7 | -1)
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+          "VCL LAN 802.1p priority."
+        ::= { hwatmVclCfgEntry 5 }   
+                                    
+                                    
+    hwTrafficCbrPcrCfgTable    OBJECT-TYPE
+        SYNTAX SEQUENCE OF HwTrafficCbrPcrCfgEntry
+        MAX-ACCESS      not-accessible
+        STATUS      current
+        DESCRIPTION 
+          "CBR traffic PCR parameter table.
+           The index of this table is hwCbrPcrCfgIndex."
+        ::= { hwmusaAtm 110 }
+
+    hwTrafficCbrPcrCfgEntry    OBJECT-TYPE
+        SYNTAX  HwTrafficCbrPcrCfgEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION 
+          "CBR traffic PCR parameter table.
+           The index of this entry is hwCbrPcrCfgIndex."
+        INDEX { hwCbrPcrCfgIndex }
+        ::= { hwTrafficCbrPcrCfgTable  1 }
+
+    HwTrafficCbrPcrCfgEntry ::= 
+        SEQUENCE  {
+                   hwCbrPcrCfgIndex         Integer32,
+                   hwCbrPcrValueCfg         Integer32,
+                   hwCbrPcrRefCountCfg      Integer32
+                  }
+
+    hwCbrPcrCfgIndex  OBJECT-TYPE
+        SYNTAX   Integer32
+        MAX-ACCESS   not-accessible
+        STATUS   current
+        DESCRIPTION
+          "The index of CBR traffic PCR parameter table.
+          "
+        ::= { hwTrafficCbrPcrCfgEntry 1}
+   
+    hwCbrPcrValueCfg  OBJECT-TYPE
+        SYNTAX   Integer32
+        MAX-ACCESS   read-write
+        STATUS   current
+        DESCRIPTION
+           "The CBR traffic PCR parameter value."
+        ::= { hwTrafficCbrPcrCfgEntry 2}
+   
+    hwCbrPcrRefCountCfg  OBJECT-TYPE
+        SYNTAX   Integer32
+        MAX-ACCESS   read-only
+        STATUS   current
+        DESCRIPTION 
+          "The CBR traffic PCR parameter reference count."
+        ::= { hwTrafficCbrPcrCfgEntry 3}     
+  
+-- hwTrafficRtvbrScrCfgTable 
+      
+    hwTrafficRtvbrScrCfgTable    OBJECT-TYPE
+        SYNTAX  SEQUENCE OF HwTrafficRtvbrScrCfgEntry
+        MAX-ACCESS not-accessible
+        STATUS  current
+        DESCRIPTION 
+          "RtVbr traffic SCR parameter table.
+           The index of this table is hwRtvbrScrCfgIndex."
+        ::= { hwmusaAtm 111 }
+
+    hwTrafficRtvbrScrCfgEntry    OBJECT-TYPE
+        SYNTAX  HwTrafficRtvbrScrCfgEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION 
+          "RtVbr traffic SCR parameter table.
+           The index of this entry is hwRtvbrScrCfgIndex."
+        INDEX { hwRtvbrScrCfgIndex }
+        ::= { hwTrafficRtvbrScrCfgTable  1 }
+
+    HwTrafficRtvbrScrCfgEntry  ::= 
+        SEQUENCE  {
+                   hwRtvbrScrCfgIndex         Integer32,
+                   hwRtvbrScrValueCfg         Integer32,
+                   hwRtvbrScrRefCountCfg      Integer32
+                  }
+
+    hwRtvbrScrCfgIndex  OBJECT-TYPE
+        SYNTAX   Integer32
+        MAX-ACCESS   not-accessible
+        STATUS   current
+        DESCRIPTION
+          "The index of rtVbr traffic SCR parameter table.
+          "
+        ::= { hwTrafficRtvbrScrCfgEntry 1}
+   
+    hwRtvbrScrValueCfg  OBJECT-TYPE
+        SYNTAX   Integer32
+        MAX-ACCESS   read-write
+        STATUS   current
+        DESCRIPTION
+          "The rtVbr traffic SCR parameter value."
+        ::= { hwTrafficRtvbrScrCfgEntry 2}
+   
+    hwRtvbrScrRefCountCfg  OBJECT-TYPE
+        SYNTAX   Integer32
+        MAX-ACCESS   read-only
+        STATUS   current
+        DESCRIPTION 
+          "The rtVbr traffic SCR parameter reference count."
+        ::= { hwTrafficRtvbrScrCfgEntry 3}   
+        
+--  hwAtmVcCxcVclQueryCfgTable   
+
+    hwAtmVcCxcVclQueryCfgTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF HwAtmVcCxcVclQueryCfgEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION 
+          "Cxc query vcl para table.
+           The index of this table is atmVcCrossConnectIndex."
+        ::= { hwmusaAtm 112 }
+
+    hwAtmVcCxcVclQueryCfgEntry OBJECT-TYPE
+        SYNTAX HwAtmVcCxcVclQueryCfgEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION 
+          "Cxc query vcl para table.
+           The index of this entry is atmVcCrossConnectIndex."
+        INDEX { atmVcCrossConnectIndex }
+        ::= { hwAtmVcCxcVclQueryCfgTable 1 }    
+      
+    HwAtmVcCxcVclQueryCfgEntry ::=
+        SEQUENCE 
+        {
+         hwAtmVcCxcSrcVclIfIndexCfg    Integer32,
+         hwAtmVcCxcSrcVclVpiCfg        Integer32,
+         hwAtmVcCxcSrcVclVciCfg        Integer32,
+         hwAtmVcCxcDstVclIfIndexCfg    Integer32,
+         hwAtmVcCxcDstVclVpiCfg        Integer32,
+         hwAtmVcCxcDstVclVciCfg        Integer32
+        }
+       
+    hwAtmVcCxcSrcVclIfIndexCfg OBJECT-TYPE    
+        SYNTAX Integer32
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+          "The source ifIndex value of the ATM interface for this VC cross-connect."
+        ::= { hwAtmVcCxcVclQueryCfgEntry 1 }
+
+    hwAtmVcCxcSrcVclVpiCfg OBJECT-TYPE    
+        SYNTAX Integer32
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+          "The source VPI value of the ATM interface for this VC cross-connect."
+        ::= { hwAtmVcCxcVclQueryCfgEntry 2 }
+
+    hwAtmVcCxcSrcVclVciCfg OBJECT-TYPE    
+        SYNTAX Integer32
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+          "The source VCI value of the ATM interface for this VC cross-connect."
+        ::= { hwAtmVcCxcVclQueryCfgEntry 3 }
+
+    hwAtmVcCxcDstVclIfIndexCfg OBJECT-TYPE    
+        SYNTAX Integer32
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+          "The destination ifIndex value of the ATM interface for this VC cross-connect."
+        ::= { hwAtmVcCxcVclQueryCfgEntry 4 }
+
+    hwAtmVcCxcDstVclVpiCfg OBJECT-TYPE    
+        SYNTAX Integer32
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+          "The destination VPI value of the ATM interface for this VC cross-connect."
+        ::= { hwAtmVcCxcVclQueryCfgEntry 5 }
+
+    hwAtmVcCxcDstVclVciCfg OBJECT-TYPE    
+        SYNTAX Integer32
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+          "The destination VCI value of the ATM interface for this VC cross-connect."
+        ::= { hwAtmVcCxcVclQueryCfgEntry 6 }
+          
+    -- AlarmTrap
+    hwATMAlarmTraps OBJECT IDENTIFIER ::= { hwmusaAtm 113 }
+    hwATMAlarmTrapsPrefix OBJECT IDENTIFIER ::= { hwATMAlarmTraps 0 }
+    
+    hwATMLicensesInsufficientAlarmTrap NOTIFICATION-TYPE
+        OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+                } 
+        STATUS current
+        DESCRIPTION
+          "The trap will send when licenses are insufficient, so some ports or all the ports 
+           on the AIUG board are automatically deactivated."
+        ::= { hwATMAlarmTraps 0 1 }    
+END
+
+

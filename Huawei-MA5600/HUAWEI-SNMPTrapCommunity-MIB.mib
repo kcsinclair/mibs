@@ -1,0 +1,180 @@
+-- ============================================================================
+-- Copyright (C) 2010 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description:  This mib is used to set and query the community name of the SNMP 
+--               and the information about the trap source interface.
+-- Reference:  
+-- Version: V1.05   
+-- ============================================================================
+        HUAWEI-SNMPTrap-MIB DEFINITIONS ::= BEGIN
+
+        IMPORTS
+            TimeTicks, IpAddress, Integer32, OBJECT-TYPE, MODULE-IDENTITY,
+            NOTIFICATION-TYPE           
+                FROM SNMPv2-SMI 
+            DisplayString, DateAndTime, TruthValue, RowStatus   
+                FROM SNMPv2-TC
+            hwDev
+                FROM HUAWEI-DEVICE-MIB;
+    
+        hwSNMPTrapCommunity MODULE-IDENTITY  
+            LAST-UPDATED "201011090000Z"
+            ORGANIZATION "Huawei Technologies Co.,Ltd."
+            CONTACT-INFO                                        
+                         "Huawei Industrial Base                
+                          Bantian, Longgang                     
+                          Shenzhen 518129                       
+                          People's Republic of China            
+                          Website: http://www.huawei.com        
+                          Email: support@huawei.com             
+                         "                                      
+        DESCRIPTION
+          "This mib is used to set and query the community name of the SNMP 
+           and the information about the trap source interface.
+          "
+          
+-- Revision history  
+        REVISION    "201011090000Z"
+        DESCRIPTION "V1.05, The description of this MIB is modified according to the tool."
+              
+        REVISION    "201006130000Z"
+        DESCRIPTION "V1.04, the description of hwTrapSwitch, hwTrapSourceType, hwCommunityInfoTable, hwCommunityInfoEntry, 
+                     hwCommunityAccess and hwCommunityRowStatus were modified and supplemented."        
+        
+        REVISION    "201003030000Z"
+        DESCRIPTION "V1.03, DT requirements were implemented and the syntax and semantics of SIMPLETEST were changed."
+
+        REVISION    "201001260000Z"
+        DESCRIPTION "V1.02, modified connection object. Used SimpleTest clean warning and error. 
+                     Used MIB browser clean warning and error. Added MIB description."
+
+        REVISION    "200701220000Z"
+        DESCRIPTION "V1.01, modified according to review comments."
+
+        REVISION    "200611270000Z"
+        DESCRIPTION "V1.00, completed the draft."
+        ::= { hwDev 14 }
+        
+        hwTrapSwitch OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+             enable(1),
+             disable(2)
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "Options:
+          1. enable(1)  -indicates that the system can report trap to the NMS.
+          2. disable(2) -indicates that the system does not report trap to the NMS.
+         "
+        ::= { hwSNMPTrapCommunity 1 }
+        
+        hwTrapSourceType OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+             auto(1),
+             meth(2),
+             vlanif(3)
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "The type of the source interface of sending trap.
+          Options:
+          1. auto(1)  -auto type. If it is set to auto(1), the information about the trap source interface 
+                       previously set in the system is cleared.
+          2. meth(2)  -meth type.
+          3. vlanif(3)-vlanif type. 
+          If it is set to meth(2) or vlanif(3), you also need to set hwInterfaceNumber, 
+          in order to complete the information of the source interface of sending trap.
+          If the specified trap source interface does not exist, setting the trap source interface fails.
+         "
+        ::= { hwSNMPTrapCommunity 2 }
+        
+        hwInterfaceNumber OBJECT-TYPE
+        SYNTAX Integer32
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "The number of the source interface for sending trap.
+          If hwTrapSourceType is set to meth(2) or vlanif(3), 
+          you also need to set hwInterfaceNumber.
+         "
+        ::= { hwSNMPTrapCommunity 3 }
+        
+        hwCommunityInfoTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF HwCommunityInfoEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+         "Used to configure and query the community name of the SNMP.
+          If an SNMP manager can provide the correct community name, 
+          the SNMP manager has the permission to access the corresponding community.
+          The index of this table is hwCommunityName.
+         "
+        ::= { hwSNMPTrapCommunity 4 }
+        
+        hwCommunityInfoEntry OBJECT-TYPE
+        SYNTAX HwCommunityInfoEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+         "Used to configure and query the community name of the SNMP.
+          If an SNMP manager can provide the correct community name, 
+          the SNMP manager has the permission to access the corresponding community.
+          The index of this entry is hwCommunityName.
+         "
+        INDEX { IMPLIED hwCommunityName }
+        ::= { hwCommunityInfoTable 1 }
+        
+        HwCommunityInfoEntry ::=
+        SEQUENCE 
+            {
+             hwCommunityName
+                 OCTET STRING,
+             hwCommunityAccess
+                 INTEGER,
+             hwCommunityRowStatus
+                 RowStatus
+            }
+
+        hwCommunityName OBJECT-TYPE
+        SYNTAX OCTET STRING (SIZE (1..32))
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+         "Community authentication name used for SNMP protocol GET or SET operation.
+          It is the index of the community configuration table.
+         "
+        ::= { hwCommunityInfoEntry 1 }
+        
+        hwCommunityAccess OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+             read(1),
+             write(2)
+            }
+        MAX-ACCESS read-create
+        STATUS current
+        DESCRIPTION
+         "The operation authority of the community name.
+          Options:
+          1. read(1)  -indicates that you can only read the MIB object.
+          2. write(2) -indicates that you can read and write the MIB object.
+         "
+        ::= { hwCommunityInfoEntry 2 }
+        
+        hwCommunityRowStatus OBJECT-TYPE
+        SYNTAX RowStatus
+        MAX-ACCESS read-create
+        STATUS current
+        DESCRIPTION
+         "The status of this conceptual row.
+         createAndGo(4) is supplied to create a new instance of a conceptual row.
+         destroy(6) is supplied to delete the instances associated with an existing conceptual row.
+         When you query the object, the existing community names are in the active(1) state.
+         "
+        ::= { hwCommunityInfoEntry 3 }
+            
+    END
+            

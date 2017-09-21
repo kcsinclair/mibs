@@ -1,0 +1,1419 @@
+-- ============================================================================
+-- Copyright (C) 2012 by  HUAWEI TECHNOLOGIES. All rights reserved. 
+-- Description:  The MIB is used for configuring IPv6 ACL rules. An access control list (ACL) 
+--               is used to filter the specified data packets according to a series of 
+--               matching rules configured in the ACL packets so that undesired data 
+--               packets can be identified. By using the matching rules, network devices 
+--               can permit or deny the matching data packets to pass. 
+-- Reference:   
+-- Version:     V1.03
+-- 
+-- ============================================================================
+
+    HUAWEI-IPDSLAM-ACLV6-MIB DEFINITIONS ::= BEGIN
+ 
+       IMPORTS
+           huaweiMgmt            
+               FROM HUAWEI-MIB            
+           IpAddress, Integer32, Counter32,Unsigned32, OBJECT-TYPE, MODULE-IDENTITY,NOTIFICATION-TYPE            
+               FROM SNMPv2-SMI
+           InetAddressType,InetAddress,InetAddressPrefixLength,InetPortNumber
+               FROM INET-ADDRESS-MIB
+           RowStatus, TruthValue, MacAddress            
+               FROM SNMPv2-TC;
+      
+           hwAclv6 MODULE-IDENTITY 
+           LAST-UPDATED "201202101200Z"        
+           ORGANIZATION 
+               "Huawei Technologies Co., Ltd."
+           CONTACT-INFO 
+              "Huawei Industrial Base
+               Bantian, Longgang
+               Shenzhen 518129
+               People's Republic of China
+               Website: http://www.huawei.com
+               Email: support@huawei.com
+              "            
+           DESCRIPTION 
+               "The MIB is used for configuring IPv6 ACL rules.An access control list (ACL) 
+               is used to filter the specified data packets according to a series of 
+               matching rules configured in the ACL packets so that undesired data 
+               packets can be identified. By using the matching rules, network devices 
+               can permit or deny the matching data packets to pass." 
+           
+            -- Revision history                   
+            REVISION    "201202101200Z"         
+            DESCRIPTION "V1.03, modified the description of some leaves of hwAclv6NumGroupTable, hwAclv6BasicRuleTable, hwAclv6AdvancedRuleTable."            
+            
+            -- Revision history                   
+            REVISION    "201107211200Z"         
+            DESCRIPTION "V1.02, added hwAclv6NumGroupAclType and hwAclv6NumGroupAclNumAllocMethod in hwAclv6NumGroupTable 
+                         to allocate the ACLv6 group index automatically."
+            
+            -- Revision history 
+            REVISION    "201101200000Z"            
+            DESCRIPTION "V1.01, initial revision."  
+            
+            ::= { huaweiMgmt 112 }
+                     
+       -- 1.3.6.1.4.1.2011.5.112.1
+       hwAclv6MibObject OBJECT IDENTIFIER ::= { hwAclv6 1 }            
+           
+       -- 1.3.6.1.4.1.2011.5.112.1.1
+       hwAclv6NumGroupTable OBJECT-TYPE
+           SYNTAX SEQUENCE OF HwAclv6NumGroupEntry
+           MAX-ACCESS not-accessible
+           STATUS current
+           DESCRIPTION
+               "Describes the configured ACLv6 groups in the system and basic information about each group,
+                such as the number of rules, steps, and descriptions. 
+                The index of this table is hwAclv6NumGroupAclNum. 
+                The hwAclv6NumGroupAclNum identifies an ACLv6 group."
+           ::= { hwAclv6MibObject 1 }
+       
+       -- 1.3.6.1.4.1.2011.5.112.1.1.1
+       hwAclv6NumGroupEntry OBJECT-TYPE
+           SYNTAX HwAclv6NumGroupEntry
+           MAX-ACCESS not-accessible
+           STATUS current
+           DESCRIPTION
+               "Describes the configured ACLv6 groups in the system and basic information about each group,
+                such as the number of rules, steps, and descriptions. 
+                The index of this entry is hwAclv6NumGroupAclNum.
+                The hwAclv6NumGroupAclNum identifies an ACLv6 group.
+               "
+           INDEX { hwAclv6NumGroupAclNum }
+           ::= { hwAclv6NumGroupTable 1 }
+       
+       HwAclv6NumGroupEntry ::=
+           SEQUENCE { 
+               hwAclv6NumGroupAclNum
+                    Unsigned32,
+               hwAclv6NumGroupMatchOrder
+                   INTEGER,
+               hwAclv6NumGroupSubitemNum
+                   Counter32,
+               hwAclv6NumGroupStep
+                   Integer32,    
+               hwAclv6NumGroupDescription
+                   OCTET STRING, 
+               hwAclv6NumGroupCountClear
+                   INTEGER,
+               hwAclv6NumGroupRowStatus
+                   RowStatus,
+               hwAclv6NumGroupAclType
+                   INTEGER,
+               hwAclv6NumGroupAclNumAllocMethod
+                   INTEGER
+            }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.1.1.1
+       hwAclv6NumGroupAclNum OBJECT-TYPE
+            SYNTAX Unsigned32 (2000..3999|4294967295)
+           MAX-ACCESS not-accessible
+           STATUS current
+           DESCRIPTION
+               "The index of this hwAclv6NumGroupTable.
+                Uniquely identifies an ACLv6 group.
+                Value range: 2000-3999,4294967295 
+               
+               The groups with indexes ranging from 2000 to 2999 are basic ACLv6 groups. 
+               When hwAclv6NumGroupTable is used to create basic ACLv6 rules, 
+               a basic ACLv6 rule group with an index of the specified hwAclv6NumGroupAclNum value must be created through hwAclv6NumGroupTable. 
+                
+               The groups with indexes ranging from 3000 to 3999 are advanced ACLv6 groups. 
+               When hwAclv6AdvancedTable is used to create advanced ACLv6 rule, 
+               an advanced ACLv6 rule group with an index of the specified hwAclv6AdvancedAclNum value must be created through hwAclv6NumGroupAclNum. 
+               
+               The value 4294967295 means to allocate the group index automatically, which is only valid in the set operation.
+               "
+               
+           ::= { hwAclv6NumGroupEntry 1 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.1.1.2
+       hwAclv6NumGroupMatchOrder OBJECT-TYPE
+           SYNTAX INTEGER
+               {
+               config(1),
+               auto(2)
+               }
+           MAX-ACCESS read-only
+           STATUS current
+           DESCRIPTION
+               "Indicates the priority order of an ACLv6 group. 
+                Options: 
+                1. config(1) -the priority order of an ACLv6 group is configuration order
+                2. auto(2)   -the priority order of an ACLv6 group is auto
+                Currently, this leaf is read-only. The value is fixed to config(1), that is, the configuration order.
+               "                
+           ::= { hwAclv6NumGroupEntry 2 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.1.1.3
+       hwAclv6NumGroupSubitemNum OBJECT-TYPE
+           SYNTAX Counter32
+           MAX-ACCESS read-only
+           STATUS current
+           DESCRIPTION
+               "Indicates the number of rules in an ACLv6 group. This leaf is read-only. 
+                The value increases by one when a rule is added to the ACLv6 group.
+               "
+           ::= { hwAclv6NumGroupEntry 3 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.1.1.4
+       hwAclv6NumGroupStep OBJECT-TYPE
+           SYNTAX Integer32 (1..20)
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Indicates the step of adding rules to an ACLv6 group.
+                Range: 1-20
+                When a rule is added and its ID is not specified, the ID of the rule is: step+last rule ID/step*step. 
+                If a user does not enter a value for hwAclv6NumGroupStep, the system uses the value 5 by default.
+               "
+           DEFVAL { 5 }
+           ::= { hwAclv6NumGroupEntry 4 }
+       
+       -- 1.3.6.1.4.1.2011.5.112.1.1.1.5
+       hwAclv6NumGroupDescription OBJECT-TYPE
+           SYNTAX OCTET STRING (SIZE (0..127))
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Indicates the description of an ACLv6 group. It is used for users to identify different ACLv6 groups. 
+                Up to 127 characters are supported. If hwAclv6NumGroupDescription is not set, the description is null by default.
+               "
+           ::= { hwAclv6NumGroupEntry 5 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.1.1.6
+       hwAclv6NumGroupCountClear OBJECT-TYPE
+           SYNTAX INTEGER
+               {
+               cleared(1),
+               nouse(2)
+               }
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Used for clearing the software statistics of an ACLv6 group. 
+                Options: 
+                1. cleared(1) -clear the software statistics of an ACLv6 group
+                2. nouse(2)   -indicates no operation            
+                When this leaf is queried, the value is fixed to cleared(1).
+               "
+           ::= { hwAclv6NumGroupEntry 6 }
+       
+       -- 1.3.6.1.4.1.2011.5.112.1.1.1.7
+       hwAclv6NumGroupRowStatus OBJECT-TYPE
+           SYNTAX RowStatus
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Indicates the row status. 
+                Options: 
+                1. active(1)      -when this leaf is queried, the value is fixed to active(1).
+                2. createAndGo(4) -create an ACLv6 group
+                3. destroy(6)     -delete an ACLv6 group
+                It is used for creating or deleting an ACLv6 group, and clearing the software statistics of an ACLv6 group. 
+              
+                To create an ACLv6 group, set hwAclv6NumGroupRowStatus to createAndGo(4). 
+                The hwAclv6NumGroupStep and hwAclv6NumGroupDescription parameters are optional. 
+               
+                To delete an ACLv6 rule group, set hwAclv6NumGroupRowStatus to destroy(6).             
+                
+                To clear the software statistics of a ACLv6 group, 
+                set hwAclv6NumGroupCountClear to cleared(1) and hwAclv6NumGroupRowStatus to createAndGo(4). 
+               
+                When this leaf is queried, the value is fixed to active(1). 
+               "
+           ::= { hwAclv6NumGroupEntry 7 }
+           
+       -- 1.3.6.1.4.1.2011.5.112.1.1.1.8
+       hwAclv6NumGroupAclType OBJECT-TYPE
+           SYNTAX INTEGER
+               {
+               basicAclv6(2),
+               advAclv6(3)
+               }
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "indicates the type of the ACLv6 group. 
+                Options: 
+                1. basicAclv6(2) -Indicates that the type of the ACLv6 group is basic.
+                2. advAclv6(3)   -Indicates that the type of the ACLv6 group is advanced.           
+               "
+           ::= { hwAclv6NumGroupEntry 8 }
+           
+       -- 1.3.6.1.4.1.2011.5.112.1.1.1.9
+       hwAclv6NumGroupAclNumAllocMethod OBJECT-TYPE
+           SYNTAX INTEGER
+               {
+               minFreeId(1),
+               maxFreeId(2)
+               }
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "indicates the method of allocating the ACLv6 group index automatically.
+                Options: 
+                1. minFreeId(1) -means to allocate the ACLv6 group index from the minimal free index.
+                2. maxFreeId(2) -means to allocate the ACLv6 group index from the maximal free index.       
+               "
+           DEFVAL { 1 }
+           ::= { hwAclv6NumGroupEntry 9 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.2
+       hwAclv6BasicRuleTable OBJECT-TYPE
+           SYNTAX SEQUENCE OF HwAclv6BasicRuleEntry
+           MAX-ACCESS not-accessible
+           STATUS current
+           DESCRIPTION
+               "Describes the details about a basic ACLv6 rule in a basic ACLv6 group, 
+                including the source IP address, prefix length, and other attributes of the rule. 
+               
+                The indexes of this table are hwAclv6BasicAclNum and hwAclv6BasicSubitem. 
+                hwAclv6BasicAclNum is the ID of a basic ACLv6 group. Make sure that the ID is already created in hwAclv6NumGroupTable.
+                hwAclv6BasicSubitem is the ID of a basic ACLv6 rule in the basic ACLv6 group. 
+               "
+           ::= { hwAclv6MibObject 2 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.2.1
+       hwAclv6BasicRuleEntry OBJECT-TYPE
+           SYNTAX HwAclv6BasicRuleEntry
+           MAX-ACCESS not-accessible
+           STATUS current
+           DESCRIPTION
+               "Describes the details about a basic ACLv6 rule in a basic ACLv6 group, 
+                including the source IP address, prefix length, and other attributes of the rule. 
+               
+                The indexes of this entry are hwAclv6BasicAclNum and hwAclv6BasicSubitem. 
+                hwAclv6BasicAclNum is the ID of a basic ACLv6 group. Make sure that the ID is already created in hwAclv6NumGroupTable.
+                hwAclv6BasicSubitem is the ID of a basic ACLv6 rule in the basic ACLv6 group. 
+               "
+           INDEX { hwAclv6BasicAclNum, hwAclv6BasicSubitem }
+           ::= { hwAclv6BasicRuleTable 1 }
+       
+       HwAclv6BasicRuleEntry ::=
+           SEQUENCE { 
+               hwAclv6BasicAclNum
+                   Unsigned32,
+               hwAclv6BasicSubitem
+                   Unsigned32,
+               hwAclv6BasicAct
+                   INTEGER,
+               hwAclv6BasicSrcIpAddressType
+                   InetAddressType,                    
+               hwAclv6BasicSrcIpAddress
+                   InetAddress,
+               hwAclv6BasicSrcIpAddressPrefixLength
+                   InetAddressPrefixLength,
+               hwAclv6BasicTimeRangeName
+                   OCTET STRING,
+               hwAclv6BasicEnable
+                   TruthValue,
+               hwAclv6BasicCount
+                   Counter32,
+               hwAclv6BasicCountClear
+                   INTEGER,
+               hwAclv6BasicPriority
+                   Integer32,
+               hwAclv6BasicRowStatus
+                   RowStatus
+           }  
+            
+       -- 1.3.6.1.4.1.2011.5.112.1.2.1.1
+       hwAclv6BasicAclNum OBJECT-TYPE
+           SYNTAX Unsigned32 (2000..2999)
+           MAX-ACCESS not-accessible
+           STATUS current
+           DESCRIPTION
+               "Uniquely identifies a basic ACLv6 group.
+                Range: 2000-2999
+                Make sure that the ID of the ACLv6 group is already created in hwAclv6NumGroupTable. 
+               "
+           ::= { hwAclv6BasicRuleEntry 1 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.2.1.2
+       hwAclv6BasicSubitem OBJECT-TYPE
+           SYNTAX Unsigned32 (0..4294967295)
+           MAX-ACCESS not-accessible
+           STATUS current
+           DESCRIPTION
+               "Describes the ID of a basic ACLv6 rule in the basic ACLv6 group, uniquely identifying a basic ACLv6 rule. 
+                Range: 0-4294967295
+               
+                In the create operation, if the value is 4294967295, the ID of a rule is generated automatically. 
+                Otherwise, the ID of a  rule is already created according to the specified value. 
+                The automatically generated ID of an ACLv6 rule depends on the value of hwAclv6NumGroupStep, 
+                which corresponds to a basic ACLv6 group in hwAclv6NumGroupTable. 
+                The generated ID of the rule is: step+last rule ID/step*step . 
+               "
+           ::= { hwAclv6BasicRuleEntry 2 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.2.1.3
+       hwAclv6BasicAct OBJECT-TYPE
+           SYNTAX INTEGER
+               {
+               permit(1),                        
+               deny(2)
+               }
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the action of a rule. 
+                Options: 
+                1. permit(1) -indicates that the data packets that meet the conditions can pass
+                2. deny(2)   -indicates that the data packets that meet the conditions are discarded  
+               "
+           ::= { hwAclv6BasicRuleEntry 3 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.2.1.4
+       hwAclv6BasicSrcIpAddressType OBJECT-TYPE
+           SYNTAX InetAddressType
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the ip-address type of the rule.
+                The value represents a type of Internet address.
+               
+                Options:
+                1. unknown(0)  -An unknown address type. This value must be used if the value of the corresponding
+                                InetAddress object is a zero-length string. It may also be used to indicate an IP address
+                                that is not in one of the formats defined below.
+                2. ipv4(1)     -An IPv4 address as defined by the InetAddressIPv4 textual convention.
+                3. ipv6(2)     -An IPv6 address as defined by the InetAddressIPv6 textual convention.
+                4. ipv4z(3)    -A non-global IPv4 address including a zone index as defined by the InetAddressIPv4z textual convention.
+                5. ipv6z(4)    -A non-global IPv6 address including a zone index as defined by the InetAddressIPv6z textual convention.
+                6. dns(16)     -A DNS domain name as defined by the InetAddressDNS textual convention.
+
+                Each definition of a concrete InetAddressType value must be
+                accompanied by a definition of a textual convention for use
+                with that InetAddressType.
+
+                To support future extensions, the InetAddressType textual
+                convention SHOULD NOT be sub-typed in object type definitions.
+                It MAY be sub-typed in compliance statements in order to
+                require only a subset of these address types for a compliant
+                implementation.
+
+                Implementations must ensure that InetAddressType objects
+                and any dependent objects (e.g., InetAddress objects) are
+                consistent.  An inconsistentValue error must be generated
+                if an attempt to change an InetAddressType object would,
+                for example, lead to an undefined InetAddress value.  In
+                particular, InetAddressType/InetAddress pairs must be
+                changed together if the address type changes (e.g., from
+                ipv6(2) to ipv4(1)).
+                "
+           ::= { hwAclv6BasicRuleEntry 4 }    
+
+       -- 1.3.6.1.4.1.2011.5.112.1.2.1.5
+       hwAclv6BasicSrcIpAddress OBJECT-TYPE
+           SYNTAX InetAddress
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes source IP address of the rule.
+                Denotes a generic Internet address.
+
+                An InetAddress value is always interpreted within the context
+                of an InetAddressType value.  Every usage of the InetAddress
+                textual convention is required to specify the InetAddressType
+                object that provides the context.  It is suggested that the
+                InetAddressType object be logically registered before the
+                object(s) that use the InetAddress textual convention, if
+                they appear in the same logical row.
+
+                The value of an InetAddress object must always be
+                consistent with the value of the associated InetAddressType
+                object.  Attempts to set an InetAddress object to a value
+                inconsistent with the associated InetAddressType
+                must fail with an inconsistentValue error.
+
+                When this textual convention is used as the syntax of an
+                index object, there may be issues with the limit of 128
+                sub-identifiers specified in SMIv2, STD 58.  In this case,
+                the object definition MUST include a 'SIZE' clause to
+                limit the number of potential instance sub-identifiers;
+                otherwise the applicable constraints MUST be stated in
+                the appropriate conceptual row DESCRIPTION clauses, or
+                in the surrounding documentation if there is no single
+                DESCRIPTION clause that is appropriate.
+               "
+           ::= { hwAclv6BasicRuleEntry 5 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.2.1.6
+       hwAclv6BasicSrcIpAddressPrefixLength OBJECT-TYPE
+           SYNTAX InetAddressPrefixLength
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes source IP address prefix length of the rule.
+                Denotes the length of a generic Internet network address prefix.  
+                A value of n corresponds to an IP address mask
+                that has n contiguous 1-bits from the most significant
+                bit (MSB), with all other bits set to 0.
+
+                An InetAddressPrefixLength value is always interpreted within
+                the context of an InetAddressType value.  Every usage of the
+                InetAddressPrefixLength textual convention is required to
+                specify the InetAddressType object that provides the
+                context.  It is suggested that the InetAddressType object be
+                logically registered before the object(s) that use the
+                InetAddressPrefixLength textual convention, if they appear
+                in the same logical row.
+
+                InetAddressPrefixLength values larger than
+                the maximum length of an IP address for a specific
+                InetAddressType are treated as the maximum significant
+                value applicable for the InetAddressType.  The maximum
+                significant value is 32 for the InetAddressType
+                'ipv4(1)' and 'ipv4z(3)' and 128 for the InetAddressType
+                'ipv6(2)' and 'ipv6z(4)'.  The maximum significant value
+                for the InetAddressType 'dns(16)' is 0.
+
+                The value zero is object-specific and must be defined as
+                part of the description of any object that uses this
+                syntax.  Examples of the usage of zero might include
+                situations where the Internet network address prefix
+                is unknown or does not apply.
+
+                The upper bound of the prefix length has been chosen to
+                be consistent with the maximum size of an InetAddress."
+           ::= { hwAclv6BasicRuleEntry 6 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.2.1.7
+       hwAclv6BasicTimeRangeName OBJECT-TYPE
+           SYNTAX OCTET STRING (SIZE (0..32))
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the time range name of a rule. 
+                It is used when the effective time of a rule needs to be configured. 
+                If hwAclv6BasicTimeRangeName is not set, the rule is valid all the time by default.                 
+               "               
+           ::= { hwAclv6BasicRuleEntry 7 }
+              
+       -- 1.3.6.1.4.1.2011.5.112.1.2.1.8
+       hwAclv6BasicEnable OBJECT-TYPE
+           SYNTAX TruthValue
+           MAX-ACCESS read-only
+           STATUS current
+           DESCRIPTION
+               "Describes whether the rule is valid. 
+                Options:
+                1. true(1)  -the rule is valid
+                2. false(2) -the rule is invalid
+                If the rule is associated with a time range parameter through hwAclv6BasicTimeRangeName 
+                and the current time is within the defined time range, the value is true(1), which indicates that the rule is valid.                
+                If the current time is not within the defined time range, the value is false(2), which indicates that the rule is invalid. 
+                If the basic ACL rule is not associated with a time range parameter, the rule is valid all the time. 
+               "
+           ::= { hwAclv6BasicRuleEntry 8 }
+       
+       -- 1.3.6.1.4.1.2011.5.112.1.2.1.9
+       hwAclv6BasicCount OBJECT-TYPE
+           SYNTAX Counter32
+           MAX-ACCESS read-only  
+           STATUS current
+           DESCRIPTION
+               "Describes the statistics of packets that match the rule.
+               "                   
+           ::= { hwAclv6BasicRuleEntry 9 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.2.1.10
+       hwAclv6BasicCountClear OBJECT-TYPE
+           SYNTAX INTEGER
+               {
+               cleared(1),
+               nouse(2)
+               }
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Clears the statistics of packets that match the rule.
+                Options:
+                1. cleared(1) -clear the statistics of packets that match the basic ACL rules
+                2. nouse(2)   -indicates no operation
+               
+                When this leaf is queried, the value is fixed to cleared(1).
+               "
+           ::= { hwAclv6BasicRuleEntry 10 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.2.1.11
+       hwAclv6BasicPriority OBJECT-TYPE
+           SYNTAX Integer32 (0..9)
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the priority of a rule.
+                Range: 0-9
+                Default: 0
+               
+                The priority ascends with the value. 
+                When multiple rules are matched at the same time, the rule with the highest priority prevails. 
+               
+                If multiple rules are matched and the priorities are the same, 
+                software does not manage the rules and the hardware logic determines which priority prevails. 
+                To prevent such a case, you can set different priorities for the rules. 
+               "
+           ::= { hwAclv6BasicRuleEntry 11 }
+           
+       -- 1.3.6.1.4.1.2011.5.112.1.2.1.12
+       hwAclv6BasicRowStatus OBJECT-TYPE
+           SYNTAX RowStatus
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Indicates the row status.
+                Options:
+                1. active(1)      -when this leaf is queried, the value is fixed to active(1).
+                2. createAndGo(4) -create a basic ACLv6 rule
+                3. destroy(6)     -delete a basic ACLv6 rule and clear the packet statistics of a basic ACLv6 rule
+               
+                It is used for creating or deleting a basic ACLv6 rule and clearing the packet statistics of a basic ACLv6 rule. 
+                
+                To create a rule, enter hwAclv6BasicAct and set hwAclv6BasicRowStatus to createAndGo(4). 
+                hwAclv6BasicSrcIpAddress, hwAclv6BasicSrcIpAddressPrefixLength, hwAclv6BasicTimeRangeName are optional.
+                 
+                To delete a basic ACLv6 rule, set hwAclv6BasicRowStatus to destroy(6). 
+                
+                To clear the packet statistics of a basic ACLv6 rule, you must set hwAclv6BasicCountClear to cleared(1) 
+                and hwAclv6BasicRowStatus to createAndGo(4). 
+               
+                When this leaf is queried, the value is fixed to active(1).
+               "
+           ::= { hwAclv6BasicRuleEntry 12 }
+
+
+       -- 1.3.6.1.4.1.2011.5.112.1.2
+       hwAclv6AdvancedRuleTable OBJECT-TYPE
+           SYNTAX SEQUENCE OF HwAclv6AdvancedRuleEntry
+           MAX-ACCESS not-accessible
+           STATUS current
+           DESCRIPTION
+               "Describes the details about an advanced ACLv6 rule in an advanced ACLv6 group.
+               
+                The indexes of this table are hwAclv6AdvancedAclNum and hwAclv6AdvancedSubitem. 
+                hwAclv6AdvancedAclNum is the ID of an advanced ACLv6 group. Make sure that the ID is already created in hwAclv6NumGroupTable. 
+                hwAclv6AdvancedSubitem is the ID of an advanced ACLv6 rule in the advance ACLv6 group.
+               "
+           ::= { hwAclv6MibObject 3 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1
+       hwAclv6AdvancedRuleEntry OBJECT-TYPE
+           SYNTAX HwAclv6AdvancedRuleEntry
+           MAX-ACCESS not-accessible
+           STATUS current
+           DESCRIPTION
+               "Describes the details about an advanced ACLv6 rule in an advanced ACLv6 group.
+               
+                The indexes of this entry are hwAclv6AdvancedAclNum and hwAclv6AdvancedSubitem. 
+                hwAclv6AdvancedAclNum is the ID of an advanced ACLv6 group. Make sure that the ID is already created in hwAclv6NumGroupTable. 
+                hwAclv6AdvancedSubitem is the ID of an advanced ACLv6 rule in the advance ACLv6 group.
+               "
+           INDEX { hwAclv6AdvancedAclNum, hwAclv6AdvancedSubitem }
+           ::= { hwAclv6AdvancedRuleTable 1 }
+       
+       HwAclv6AdvancedRuleEntry ::=
+           SEQUENCE { 
+               hwAclv6AdvancedAclNum
+                   Unsigned32,
+               hwAclv6AdvancedSubitem
+                   Unsigned32,
+               hwAclv6AdvancedAct
+                   INTEGER,
+               hwAclv6AdvancedProtocol
+                   Integer32,
+               hwAclv6AdvancedSrcIpAddressType
+                   InetAddressType,                    
+               hwAclv6AdvancedSrcIpAddress
+                   InetAddress,
+               hwAclv6AdvancedSrcIpAddressPrefixLength
+                    InetAddressPrefixLength,
+               hwAclv6AdvancedSrcOp
+                   INTEGER,
+               hwAclv6AdvancedSrcPort1
+                    InetPortNumber,
+               hwAclv6AdvancedSrcPort2
+                    InetPortNumber,
+               hwAclv6AdvancedDestIpAddressType
+                   InetAddressType,                    
+               hwAclv6AdvancedDestIpAddress
+                   InetAddress,
+               hwAclv6AdvancedDestIpAddressPrefixLength
+                    InetAddressPrefixLength,
+               hwAclv6AdvancedDestOp
+                   INTEGER,
+               hwAclv6AdvancedDestPort1
+                    InetPortNumber,
+               hwAclv6AdvancedDestPort2
+                    InetPortNumber,
+               hwAclv6AdvancedPrecedence
+                    Integer32,
+               hwAclv6AdvancedTos
+                   Integer32,
+               hwAclv6AdvancedDscp
+                   Integer32,                    
+               hwAclv6AdvancedTimeRangeName
+                   OCTET STRING,
+               hwAclv6AdvancedIcmpv6Type
+                   Integer32,
+               hwAclv6AdvancedIcmpv6Code
+                   Integer32,
+               hwAclv6AdvancedEnable
+                   TruthValue,
+               hwAclv6AdvancedCount
+                   Counter32,
+               hwAclv6AdvancedCountClear
+                   INTEGER,
+               hwAclv6AdvancedPriority
+                   Integer32,
+               hwAclv6AdvancedRowStatus
+                   RowStatus
+           }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.1
+       hwAclv6AdvancedAclNum OBJECT-TYPE
+           SYNTAX Unsigned32 (3000..3999)
+           MAX-ACCESS not-accessible
+           STATUS current
+           DESCRIPTION
+               "Uniquely identifies an advanced ACLv6 group.
+	        Range: 3000-3999
+	        Make sure that the ID of the ACLv6 group is already created in hwAclv6NumGroupTable.
+               "
+           ::= { hwAclv6AdvancedRuleEntry 1 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.2
+       hwAclv6AdvancedSubitem OBJECT-TYPE
+           SYNTAX Unsigned32 (0..4294967295)
+           MAX-ACCESS not-accessible
+           STATUS current
+           DESCRIPTION
+               "Describes the ID of an advanced ACLv6 rule in an advanced ACLv6 group, uniquely identifying an advanced ACLv6 rule. 
+                Range: 0-4294967295
+               
+                In the create operation, if the value is 4294967295, the ID of an advanced ACLv6 rule is generated automatically.
+                Otherwise, the ID of an advanced ACLv6 rule is already created according to the specified value. 
+                The automatically generated ID of an advanced ACLv6 rule depends on the value of hwAclv6NumGroupStep, 
+                which corresponds to an advanced ACLv6 group in hwAclv6NumGroupTable. 
+                The generated ID of the rule is step+last rule ID/step*step.
+               "
+           ::= { hwAclv6AdvancedRuleEntry 2 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.3
+       hwAclv6AdvancedAct OBJECT-TYPE
+           SYNTAX INTEGER
+               {
+               permit(1),
+               deny(2)
+               }
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the action of a rule. 
+                Options: 
+                1. permit(1) -indicates that the data packets that meet the conditions can pass
+                2. deny(2)   -indicates that the data packets that meet the conditions are discarded  
+               "
+           ::= { hwAclv6AdvancedRuleEntry 3 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.4
+       hwAclv6AdvancedProtocol OBJECT-TYPE
+           SYNTAX Integer32 (0..255)
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the protocol of IP packets that matches an advanced ACLv6 rule.
+                Range: 0-255
+                Default: 0
+                             
+                Common protocols:
+                GRE tunneling(47)
+                Internet Control Message Protocol6(58)
+                Any IP protocol(0)
+                IPv6-Authentication header(51)
+                IPv6 Encapsulating Security Payload(50)
+                OSPF routing protocol(89)
+                Transmission control protocol(6)
+                User Datagram protocol(17)
+               "
+           DEFVAL { 0 }
+           ::= { hwAclv6AdvancedRuleEntry 4 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.5
+       hwAclv6AdvancedSrcIpAddressType OBJECT-TYPE
+           SYNTAX InetAddressType
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the ip-address type of the rule.
+                The value represents a type of Internet address.
+               
+                Options:
+                1. unknown(0)   -An unknown address type. This value must be used if the value of the corresponding
+                                 InetAddress object is a zero-length string. It may also be used to indicate an IP address
+                                 that is not in one of the formats defined below.
+                2. ipv4(1)      -An IPv4 address as defined by the InetAddressIPv4 textual convention.
+                3. ipv6(2)      -An IPv6 address as defined by the InetAddressIPv6 textual convention.
+                4. ipv4z(3)     -A non-global IPv4 address including a zone index as defined by the InetAddressIPv4z textual convention.
+                5. ipv6z(4)     -A non-global IPv6 address including a zone index as defined by the InetAddressIPv6z textual convention.
+                6. dns(16)      -A DNS domain name as defined by the InetAddressDNS textual convention.
+
+                Each definition of a concrete InetAddressType value must be
+                accompanied by a definition of a textual convention for use
+                with that InetAddressType.
+
+                To support future extensions, the InetAddressType textual
+                convention SHOULD NOT be sub-typed in object type definitions.
+                It MAY be sub-typed in compliance statements in order to
+                require only a subset of these address types for a compliant
+                implementation.
+
+                Implementations must ensure that InetAddressType objects
+                and any dependent objects (e.g., InetAddress objects) are
+                consistent.  An inconsistentValue error must be generated
+                if an attempt to change an InetAddressType object would,
+                for example, lead to an undefined InetAddress value.  In
+                particular, InetAddressType/InetAddress pairs must be
+                changed together if the address type changes (e.g., from
+                ipv6(2) to ipv4(1)).
+               "
+           ::= { hwAclv6AdvancedRuleEntry 5 }        
+       
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.6
+       hwAclv6AdvancedSrcIpAddress OBJECT-TYPE
+           SYNTAX InetAddress
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes source IP address of the rule.
+                Denotes a generic Internet address.
+
+                An InetAddress value is always interpreted within the context
+                of an InetAddressType value.  Every usage of the InetAddress
+                textual convention is required to specify the InetAddressType
+                object that provides the context.  It is suggested that the
+                InetAddressType object be logically registered before the
+                object(s) that use the InetAddress textual convention, if
+                they appear in the same logical row.
+
+                The value of an InetAddress object must always be
+                consistent with the value of the associated InetAddressType
+                object.  Attempts to set an InetAddress object to a value
+                inconsistent with the associated InetAddressType
+                must fail with an inconsistentValue error.
+
+                When this textual convention is used as the syntax of an
+                index object, there may be issues with the limit of 128
+                sub-identifiers specified in SMIv2, STD 58.  In this case,
+                the object definition MUST include a 'SIZE' clause to
+                limit the number of potential instance sub-identifiers;
+                otherwise the applicable constraints MUST be stated in
+                the appropriate conceptual row DESCRIPTION clauses, or
+                in the surrounding documentation if there is no single
+                DESCRIPTION clause that is appropriate.
+               "
+           ::= { hwAclv6AdvancedRuleEntry 6 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.7
+       hwAclv6AdvancedSrcIpAddressPrefixLength OBJECT-TYPE
+           SYNTAX InetAddressPrefixLength
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes source IP address prefix length of the rule.
+                Denotes the length of a generic Internet network address
+                prefix.  A value of n corresponds to an IP address mask
+                that has n contiguous 1-bits from the most significant
+                bit (MSB), with all other bits set to 0.
+
+                An InetAddressPrefixLength value is always interpreted within
+                the context of an InetAddressType value.  Every usage of the
+                InetAddressPrefixLength textual convention is required to
+                specify the InetAddressType object that provides the
+                context.  It is suggested that the InetAddressType object be
+                logically registered before the object(s) that use the
+                InetAddressPrefixLength textual convention, if they appear
+                in the same logical row.
+
+                InetAddressPrefixLength values larger than
+                the maximum length of an IP address for a specific
+                InetAddressType are treated as the maximum significant
+                value applicable for the InetAddressType.  The maximum
+                significant value is 32 for the InetAddressType
+                'ipv4(1)' and 'ipv4z(3)' and 128 for the InetAddressType
+                'ipv6(2)' and 'ipv6z(4)'.  The maximum significant value
+                for the InetAddressType 'dns(16)' is 0.
+
+                The value zero is object-specific and must be defined as
+                part of the description of any object that uses this
+                syntax.  Examples of the usage of zero might include
+                situations where the Internet network address prefix
+                is unknown or does not apply.
+
+                The upper bound of the prefix length has been chosen to
+                be consistent with the maximum size of an InetAddress.
+               "
+           ::= { hwAclv6AdvancedRuleEntry 7 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.8
+       hwAclv6AdvancedSrcOp OBJECT-TYPE
+           SYNTAX INTEGER
+               {
+               lt(1),
+               eq(2),
+               gt(3),
+               neq(4),
+               range(5),
+               invalid(255)
+               }
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the operation types of comparing packet source ports when the type of hwAclv6AdvancedProtocol is set to TCP or UDP.
+                Range: 0-5
+                Options:                 
+                1. lt(1)      -indicates '<'
+                2. eq(2)      -indicates '='
+                3. gt(3)      -indicates '>'
+                4. neq(4)     -indicates '!='
+                5. range(5)   -indicates within the range
+                6. invalid(255) -indicates an invalid field.
+               
+                Enter hwAclv6AdvancedSrcPort1 and hwAclv6AdvancedSrcPort2 for the comparison operation only when range(5) is entered. 
+                For other values, enter only hwAclv6AdvancedSrcPort1. 
+               "
+           ::= { hwAclv6AdvancedRuleEntry 8 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.9
+       hwAclv6AdvancedSrcPort1 OBJECT-TYPE
+           SYNTAX InetPortNumber
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the operation value of port 1 in the comparison operation types of the source port in hwAclv6AdvancedSrcOp 
+                when hwAclv6AdvancedProtocol is set to TCP or UDP. 
+                Range: 0-65535
+                          
+                For example, when hwAclv6AdvancedSrcOp is set to eq(2) (=), 
+                it indicates that the source port ID of matched packets equals to the value of hwAclv6AdvancedSrcPort1. 
+               
+                If the value is not specified for an advanced ACLv6 rule, the invalid value 0 is obtained in the query operation. 
+               
+                The number in the brackets is the port IDs that are commonly used. 
+                The port names and meanings of different port names are as follows: 
+                bgp: Border Gateway Protocol(179) 
+                chargen: Character generator (19) 
+                cmd: Remote commands (514) 
+                daytime: Daytime (13) 
+                discard: Discard (9) 
+                domain: Domain Name Service (53) 
+                echo: Echo (7) 
+                exec: Exec (512) 
+                finger: Finger (79) 
+                ftp: File Transfer Protocol (21) 
+                ftp-data: FTP data connections (20) 
+                gopher: Gopher (70) 
+                hostname: NIC hostname server (101) 
+                irc: Internet Relay Chat (194) 
+                klogin: Kerberos login (543) 
+                kshell: Kerberos shell (544) 
+                login: Login (rlogin, 513) 
+                lpd: Printer service (515) 
+                nntp: Network News Transport Protocol (119) 
+                pop2: Post Office Protocol v2 (109) 
+                pop3: Post Office Protocol v3 (110) 
+                smtp: Simple Mail Transport Protocol (25) 
+                sunrpc: SUN Remote Procedure Call (111) 
+                tacacs: TAC Access Control System (49) 
+                talk: Talk (517) 
+                telnet: Telnet (23) 
+                time: Time (37) 
+                uucp: Unix-to-Unix Copy Program (540) 
+                whois: Nicname (43) 
+                www: World Wide Web (HTTP, 80) 
+               "
+           ::= { hwAclv6AdvancedRuleEntry 9 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.10
+       hwAclv6AdvancedSrcPort2 OBJECT-TYPE
+            SYNTAX InetPortNumber
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the operation value of port 2 in the comparison operation types of the source port in hwAclv6AdvancedSrcOp 
+                when hwAclv6AdvancedProtocol is set to TCP or UDP. 
+                Range: 0-65535
+               
+                The operation value of port 2 is needed only when hwAclv6AdvancedSrcOp is set to range(5). 
+                It is dedicated to describe the upper threshold of ports. 
+               
+                If the value is not specified for an advanced ACL rule , the invalid value 0 is obtained in the query operation. 
+               
+                For the port IDs that are commonly used, port names and meanings of different port names, see the descriptions in hwAclv6AdvancedSrcPort1. 
+               "
+           ::= { hwAclv6AdvancedRuleEntry 10 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.11
+       hwAclv6AdvancedDestIpAddressType OBJECT-TYPE
+           SYNTAX InetAddressType
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Destination IP address type of the advanced ACLv6 rule.
+                A value that represents a type of Internet address.
+                Options:
+                1. unknown(0)  -An unknown address type. This value must be used if the value of the corresponding
+                                InetAddress object is a zero-length string. It may also be used to indicate an IP address
+                                that is not in one of the formats defined below.
+                2. ipv4(1)     -An IPv4 address as defined by the InetAddressIPv4 textual convention.
+                3. ipv6(2)     -An IPv6 address as defined by the InetAddressIPv6 textual convention.
+                4. ipv4z(3)    -A non-global IPv4 address including a zone index as defined by the InetAddressIPv4z textual convention.
+                5. ipv6z(4)    -A non-global IPv6 address including a zone index as defined by the InetAddressIPv6z textual convention.
+                6. dns(16)     -A DNS domain name as defined by the InetAddressDNS textual convention.
+
+                Each definition of a concrete InetAddressType value must be
+                accompanied by a definition of a textual convention for use
+                with that InetAddressType.
+ 
+                To support future extensions, the InetAddressType textual
+                convention SHOULD NOT be sub-typed in object type definitions.
+                It MAY be sub-typed in compliance statements in order to
+                require only a subset of these address types for a compliant
+                implementation.
+
+                Implementations must ensure that InetAddressType objects
+                and any dependent objects (e.g., InetAddress objects) are
+                consistent.  An inconsistentValue error must be generated
+                if an attempt to change an InetAddressType object would,
+                for example, lead to an undefined InetAddress value.  In
+                particular, InetAddressType/InetAddress pairs must be
+                changed together if the address type changes (e.g., from
+                ipv6(2) to ipv4(1))."
+           ::= { hwAclv6AdvancedRuleEntry 11 }    
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.12
+       hwAclv6AdvancedDestIpAddress OBJECT-TYPE
+           SYNTAX InetAddress
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes destination IP address of the advanced ACLv6 rule.
+                Denotes a generic Internet address.
+
+                An InetAddress value is always interpreted within the context
+                of an InetAddressType value.  Every usage of the InetAddress
+                textual convention is required to specify the InetAddressType
+                object that provides the context.  It is suggested that the
+                InetAddressType object be logically registered before the
+                object(s) that use the InetAddress textual convention, if
+                they appear in the same logical row.
+
+                The value of an InetAddress object must always be
+                consistent with the value of the associated InetAddressType
+                object.  Attempts to set an InetAddress object to a value
+                inconsistent with the associated InetAddressType
+                must fail with an inconsistentValue error.
+
+                When this textual convention is used as the syntax of an
+                index object, there may be issues with the limit of 128
+                sub-identifiers specified in SMIv2, STD 58.  In this case,
+                the object definition MUST include a 'SIZE' clause to
+                limit the number of potential instance sub-identifiers;
+                otherwise the applicable constraints MUST be stated in
+                the appropriate conceptual row DESCRIPTION clauses, or
+                in the surrounding documentation if there is no single
+                DESCRIPTION clause that is appropriate.
+               "
+           ::= { hwAclv6AdvancedRuleEntry 12 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.13
+       hwAclv6AdvancedDestIpAddressPrefixLength OBJECT-TYPE
+           SYNTAX InetAddressPrefixLength
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes destination IP address prefix length of the advanced ACLv6 rule.
+                Denotes the length of a generic Internet network address
+                prefix.  A value of n corresponds to an IP address mask
+                that has n contiguous 1-bits from the most significant
+                bit (MSB), with all other bits set to 0.
+
+                An InetAddressPrefixLength value is always interpreted within
+                the context of an InetAddressType value.  Every usage of the
+                InetAddressPrefixLength textual convention is required to
+                specify the InetAddressType object that provides the
+                context.  It is suggested that the InetAddressType object be
+                logically registered before the object(s) that use the
+                InetAddressPrefixLength textual convention, if they appear
+                in the same logical row.
+
+                InetAddressPrefixLength values larger than
+                the maximum length of an IP address for a specific
+                InetAddressType are treated as the maximum significant
+                value applicable for the InetAddressType.  The maximum
+                significant value is 32 for the InetAddressType
+                'ipv4(1)' and 'ipv4z(3)' and 128 for the InetAddressType
+                'ipv6(2)' and 'ipv6z(4)'.  The maximum significant value
+                for the InetAddressType 'dns(16)' is 0.
+
+                The value zero is object-specific and must be defined as
+                part of the description of any object that uses this
+                syntax.  Examples of the usage of zero might include
+                situations where the Internet network address prefix
+                is unknown or does not apply.
+
+                The upper bound of the prefix length has been chosen to
+                be consistent with the maximum size of an InetAddress.
+               "
+           ::= { hwAclv6AdvancedRuleEntry 13 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.14
+       hwAclv6AdvancedDestOp OBJECT-TYPE
+           SYNTAX INTEGER
+               {
+               lt(1),
+               eq(2),
+               gt(3),
+               neq(4),
+               range(5),
+               invalid(255)
+               }
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes destination port operation symbol of the advanced ACLv6 rule 
+                when the hwAclv6AdvancedProtocol is TCP or UDP.         
+                Options:                 
+                1. lt(1)         -indicates '<'
+                2. eq(2)         -indicates '='
+                3. gt(3)         -indicates '>'
+                4. neq(4)        -indicates '!='
+                5. range(5)      -indicates within the range
+                6. invalid(255)  -indicates an invalid field.
+                
+                Enter hwAclv6AdvancedDestPort1 and hwAclv6AdvancedDestPort2 for the comparison operation only when range(5) is entered. 
+                For other values, enter only hwAclv6AdvancedDestPort1. 
+               "
+           ::= { hwAclv6AdvancedRuleEntry 14 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.15
+       hwAclv6AdvancedDestPort1 OBJECT-TYPE
+           SYNTAX InetPortNumber
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the operation value of port 1 in the comparison operation types of the destination port in hwAclv6AdvancedDestOp 
+                when hwAclv6AdvancedProtocol is set to TCP or UDP. 
+                Range: 0-65535
+               
+                For example, when hwAclv6AdvancedDestOp is set to eq(2) (=), 
+                it indicates that the ID of the destination port that match packets equals to the value of hwAclv6AdvancedDestPort1. 
+               
+                If the value is not specified for an advanced ACLv6 rule, the invalid value 0 is obtained in the query operation. 
+                For the port IDs that are commonly used, port names and meanings of different port names, see the descriptions in hwAclv6AdvancedSrcPort1.
+               "
+           ::= { hwAclv6AdvancedRuleEntry 15 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.16
+       hwAclv6AdvancedDestPort2 OBJECT-TYPE
+           SYNTAX InetPortNumber
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the operation value of port 2 in the comparison operation types of the destination port in hwAclv6AdvancedDestOp 
+                when hwAclv6AdvancedProtocol is set to TCP or UDP. 
+                Range: 0-65535
+               
+                The operation value of port 2 is needed only when hwAclv6AdvancedDestOp is set to range(5). 
+                It is dedicated to describe the upper threshold of ports. 
+               
+                If the value is not specified for an advanced ACLv6 rule, the invalid value 0 is obtained in the query operation. 
+                For the port IDs that are commonly used, port names and meanings of different port names, see the descriptions in hwAclv6AdvancedSrcPort1. 
+               "
+           ::= { hwAclv6AdvancedRuleEntry 16 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.17
+       hwAclv6AdvancedPrecedence OBJECT-TYPE
+           SYNTAX Integer32 (-1|0..7)
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the priority field of data frames that an advanced ACLv6 rule needs to match. 
+                If the value is not specified for an advanced ACLv6 rule, the invalid value -1 is obtained in the query operation. 
+               
+                The name and meanings of the precedence values are as follows:
+                routine: routine priority(0)
+                priority: priority(1)
+                immediate: immediate priority(2)
+                flash: flash priority(3)
+                flashOverride: flash-override priority(4)
+                critical: critical priority(5)
+                internet: internetwork control priority(6)
+                network: network control priority(7)
+                invalid: invalid field(-1)
+               "
+           ::= { hwAclv6AdvancedRuleEntry 17 }
+       
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.18
+       hwAclv6AdvancedTos OBJECT-TYPE
+           SYNTAX Integer32 (-1|0..15)
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the type of service (ToS) field of data frames that an advanced ACLv6 rule needs to match. 
+                Range: 0-15, -1
+               
+                If the value is not specified for an advanced ACLv6 rule, the invalid value -1 is obtained in the query operation. 
+               
+                The number in the brackets is the ToS value. The meanings of ToS names are as follows: 
+                normal Normal service (0)
+                min-monetary-cost: the service with minimum monetary cost (1)
+                max-reliability: the service with maximum reliability (2)
+                max-throughput: the service with maximum throughput (4)
+                min-delay: the service with minimum delay (8)
+               "
+           ::= { hwAclv6AdvancedRuleEntry 18 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.19
+       hwAclv6AdvancedDscp OBJECT-TYPE
+           SYNTAX Integer32 (-1|0..63)
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the differentiated services code point (DSCP) value of data frames that an advanced ACLv6 rule needs to match. 
+                Range: 0-63, -1 
+               
+                If the value is not specified for an advanced ACLv6 rule, the invalid value -1 is obtained in the query operation. 
+               
+                The number in the brackets is the DSCP value. The names and meanings of the DSCP names are as follows: 
+                af1: service of Assured Forwarding 1 (10) 
+                af2: service of Assured Forwarding 2 (18) 
+                af3: service of Assured Forwarding 3 (26) 
+                af4: service of Assured Forwarding 4 (34) 
+                be: Best Effort service (0) 
+                cs1: service of Class Seletor 1 (8) 
+                cs2: service of Class Seletor 2 (16) 
+                cs3: service of Class Seletor 3 (24) 
+                cs4: service of Class Seletor 4 (32) 
+                cs5: service of Class Seletor 5 (40) 
+                cs6: service of Class Seletor 6 (48) 
+                cs7: service of Class Seletor 7 (56) 
+                ef: Expedited Forwarding service (46)
+               "
+           ::= { hwAclv6AdvancedRuleEntry 19 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.20
+       hwAclv6AdvancedTimeRangeName OBJECT-TYPE
+           SYNTAX OCTET STRING (SIZE (0..32))
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the time range name of a rule. 
+                It is used when the effective time of a rule needs to be configured. 
+                If hwAclv6AdvancedTimeRangeName is not set, the rule is valid all the time by default.                 
+               "
+           ::= { hwAclv6AdvancedRuleEntry 20 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.21
+       hwAclv6AdvancedIcmpv6Type OBJECT-TYPE
+           SYNTAX Integer32 (-1|0..255)
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the ICMPv6 type when packets are filtered by ICMPv6 type and when hwAclv6AdvancedProtocol is set to ICMPv6.
+                Range: 0-255, -1
+               
+                If the value is not specified for an advanced ACLv6 rule, the invalid value -1 is obtained in the query operation. 
+               
+                Type: Indicates the ICMPv6 packet type
+                Code: Indicates the ICMPv6 code.
+                The meanings are as follows: 
+                echo                    Type=128, Code=0
+                echo-reply              Type=129, Code=0
+                err-Header-field        Type=4,   Code=0
+                frag-time-exceeded      Type=3,   Code=1
+                hop-limit-exceeded      Type=3,   Code=0
+                host-admin-prohib       Type=1,   Code=1
+                host-unreachable        Type=1,   Code=3
+                neighbor-advertisement  Type=136, Code=0
+                neighbor-solicitation   Type=135, Code=0
+                network-unreachable     Type=1,   Code=0
+                packet-too-big          Type=2,   Code=0
+                port-unreachable        Type=1,   Code=4
+                redirect                Type=137, Code=0
+                router-advertisement    Type=134, Code=0
+                router-solicitation     Type=133, Code=0
+                unknown-ipv6-opt        Type=4,   Code=2
+                unknown-next-hdr        Type=4,   Code=1
+               "
+           ::= { hwAclv6AdvancedRuleEntry 21 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.22
+       hwAclv6AdvancedIcmpv6Code OBJECT-TYPE
+           SYNTAX Integer32 (-1|0..255)
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes ICMPv6 codes that the ICMPv6 packets are filtered both by ICMPv6 type and ICMP code when hwAclv6AdvancedProtocol is set to ICMPv6. 
+                Range: 0-255, -1
+                If the value is not specified for an advanced ACLv6 rule, the invalid value -1 is obtained in the query operation. 
+                For the definition and meanings of ICMPv6 codes, see the description in hwAclv6AdvancedIcmpv6Type.
+               "
+           ::= { hwAclv6AdvancedRuleEntry 22 }        
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.23
+       hwAclv6AdvancedEnable OBJECT-TYPE
+           SYNTAX TruthValue
+           MAX-ACCESS read-only
+           STATUS current
+           DESCRIPTION
+               "Describes whether an advanced ACLv6 rule is valid. 
+                Options:
+                1. true(1)  -indicates that an advanced ACLv6 rule is valid
+                2. false(2) -indicates that an advanced ACLv6 rule is invalid
+                
+                If the advanced ACLv6 rule is associated with a time range parameter through hwAclv6AdvancedTimeRangeName
+                and the current time is within the defined time range, the value is true(1), which indicates validity.
+                If the current time is not within the defined time range, the value is false(2), which indicates invalidity.
+                If the advanced ACLv6 rule is not associated with a time range parameter, the advanced ACLv6 rule is valid all the time.
+               "
+           ::= { hwAclv6AdvancedRuleEntry 23 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.24
+       hwAclv6AdvancedCount OBJECT-TYPE
+           SYNTAX Counter32
+           MAX-ACCESS read-only
+           STATUS current
+           DESCRIPTION
+               "Describes the statistics of packets that match the rule.
+               "
+           ::= { hwAclv6AdvancedRuleEntry 24 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.25
+       hwAclv6AdvancedCountClear OBJECT-TYPE
+           SYNTAX INTEGER
+               {
+               cleared(1),
+               nouse(2)
+               }
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Clears the statistics of packets that match the rule.
+                Options:
+                1. cleared(1) -clear the statistics of packets that match the advanced ACLv6 rules
+                2. nouse(2)   -indicates no operation
+               
+                When this leaf is queried, the value is fixed to cleared(1).
+               "
+           ::= { hwAclv6AdvancedRuleEntry 25 }
+
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.26
+       hwAclv6AdvancedPriority OBJECT-TYPE
+           SYNTAX Integer32 (0..9)
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Describes the priority of a rule.
+                Range: 0-9
+                Default: 0
+               
+                The priority ascends with the value. 
+                When multiple rules are matched at the same time, the rule with the highest priority prevails. 
+               
+                If multiple rules are matched and the priorities are the same, 
+                software does not manage the rules and the hardware logic determines which priority prevails. 
+                To prevent such a case, you can set different priorities for the rules. 
+               "
+           ::= { hwAclv6AdvancedRuleEntry 26 }
+           
+       -- 1.3.6.1.4.1.2011.5.112.1.3.1.27
+       hwAclv6AdvancedRowStatus OBJECT-TYPE
+           SYNTAX RowStatus
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "Indicates the row status.
+                Options:
+                1. active(1)      -when this leaf is queried, the value is fixed to active(1).
+                2. createAndGo(4) -create an advanced ACLv6 rule
+                3. destroy(6)     -delete an advanced ACLv6 rule and clear the packet statistics of an advanced ACLv6 rule
+               
+                It is used for creating or deleting an advanced ACLv6 rule and clearing the packet statistics of an advanced ACLv6 rule. 
+               
+                To create an advanced ACLv6 rule, enter hwAclv6AdvancedAct and set hwAclv6AdvancedRowStatus to createAndGo(4). 
+                Other parameters are optional. The operator of the source port and destination port and port 1 and port 2 take effect only 
+                when the protocol type is specified as TCP or UDP. 
+                Port 2 needs to be specified only when the port operator character is specified as a value range. 
+                The IDs of the two ports are not differentiated, which are automatically adjusted after delivery.
+                hwAclv6AdvancedIcmpv6Type and hwAclv6AdvancedIcmpv6Code are specified only when the protocol type is ICMP. 
+                
+                To delete an advanced ACLv6 rule, set hwAclv6AdvancedRowStatus to destroy(6). 
+                
+                To clear the statistics of packets that match the advanced ACLv6 rules, 
+                set hwAclv6AdvancedCountClear to cleared(1) and hwAclv6AdvancedRowStatus to createAndGo(4). 
+                
+                When this leaf is queried, the value is fixed to active(1). 
+                "
+            ::= { hwAclv6AdvancedRuleEntry 27 }
+        
+        -- add trap 
+        hwAclv6Traps OBJECT IDENTIFIER ::= { hwAclv6 2}           
+        
+        hwAclv6CommonTraps OBJECT IDENTIFIER ::= { hwAclv6Traps 1 }   
+        
+ 	hwAclv6CommonTrapsPrefix OBJECT IDENTIFIER ::= { hwAclv6CommonTraps 0 }          
+        
+        -- add basic aclv6 rule
+        hwAclv6AddBasicAclTrap NOTIFICATION-TYPE
+             OBJECTS {
+                     hwAclv6BasicAclNum,
+                     hwAclv6BasicSubitem
+                     }
+             STATUS    current
+             DESCRIPTION
+                 "The hwAclv6AddBasicAclTrap will be sent when the basic aclv6 rule is added."
+             ::= { hwAclv6CommonTraps 0 1 }   
+             
+        -- delete basic aclv6 rule
+        hwAclv6DeleteBasicAclTrap NOTIFICATION-TYPE
+             OBJECTS {
+                     hwAclv6BasicAclNum,
+                     hwAclv6BasicSubitem
+                     }
+             STATUS    current
+             DESCRIPTION
+                 "The hwAclv6DeleteBasicAclTrap will be sent when the basic aclv6 rule is deleted."
+             ::= { hwAclv6CommonTraps 0 2}  
+             
+        -- add advanced aclv6 rule
+        hwAclv6AddAdvancedAclTrap NOTIFICATION-TYPE
+             OBJECTS {
+                     hwAclv6AdvancedAclNum,
+                     hwAclv6AdvancedSubitem
+                     }
+             STATUS    current
+             DESCRIPTION
+                 "The hwAclv6AddAdvancedAclTrap will be sent when the advanced aclv6 rule is added."
+             ::= { hwAclv6CommonTraps 0 3 }   
+             
+        -- delete advanced aclv6 rule
+        hwAclv6DeleteAdvancedAclTrap NOTIFICATION-TYPE
+             OBJECTS {
+                     hwAclv6AdvancedAclNum,
+                     hwAclv6AdvancedSubitem
+                     }
+             STATUS    current
+             DESCRIPTION
+                 "The hwAclv6DeleteAdvancedAclTrap will be sent when the advanced aclv6 rule is deleted."
+             ::= { hwAclv6CommonTraps 0 4}  
+         
+        hwAclv6AlarmTraps OBJECT IDENTIFIER ::= { hwAclv6Traps 2 }            
+
+
+   END
+
+

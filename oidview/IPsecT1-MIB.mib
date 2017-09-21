@@ -1,0 +1,4695 @@
+-- extracted from draft-ietf-ipsec-flow-monitoring-mib-00.txt
+-- at Sat Nov 20 07:06:56 1999
+
+ IPsecT1-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+       MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE,
+       Counter32, Counter64, Gauge32, Integer32, enterprises
+         FROM SNMPv2-SMI
+       TEXTUAL-CONVENTION, DisplayString, TimeStamp, TimeInterval, TruthValue
+         FROM SNMPv2-TC
+       MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+         FROM SNMPv2-CONF;
+
+    IPsecMIB MODULE-IDENTITY
+       LAST-UPDATED "9911040000Z"
+       ORGANIZATION "Tivoli Systems and Cisco Systems"
+       CONTACT-INFO
+          "Tivoli Systems
+           Research Triangle Park, NC
+
+           Cisco Systems
+           San Jose, CA"
+       DESCRIPTION
+          "This is the MIB Module for objects to
+           manage the IP Security Protocol."
+       ::= { enterprises ibm(2) ibmProd(6) tivoliNma(168)
+                                           IPsecMgmt(1)
+                                           IPsecMgmtT1(1) 1 }
+
+ -- ----------------------------------------------------------------------------
+ -- Local Textual Conventions
+ -- ----------------------------------------------------------------------------
+    IPSIpAddress ::= TEXTUAL-CONVENTION
+       STATUS     current
+       DESCRIPTION
+          "An IP V4 or V6 Address."
+       SYNTAX  OCTET STRING(SIZE(4 | 16)) -- IP V4 or V6 Address
+
+    IkePeerType  ::= TEXTUAL-CONVENTION
+       STATUS     current
+       DESCRIPTION
+          "The type of IPsec Phase-1 IKE peer identity.  The IKE peer may be
+           indentified by:
+           1. an IP address, or
+           2. a host name."
+       SYNTAX INTEGER {
+                 ipAddrPeer(1),
+                 namePeer(2)
+              }
+
+    IkeNegoMode  ::= TEXTUAL-CONVENTION
+       STATUS     current
+       DESCRIPTION
+          "The IPsec Phase-1 IKE negotiation mode."
+       SYNTAX INTEGER {
+                 main(1),
+                 aggressive(2)
+              }
+
+    IkeHashAlgo   ::= TEXTUAL-CONVENTION
+       STATUS     current
+       DESCRIPTION
+          "The hash algorithm used in IPsec Phase-1 IKE negotiations."
+       SYNTAX INTEGER {
+                 none(1),
+                 md5(2),
+                 sha(3)
+              }
+
+    IkeAuthMethod ::= TEXTUAL-CONVENTION
+       STATUS     current
+       DESCRIPTION
+          "The authentication method used in IPsec Phase-1 IKE
+           negotiations."
+       SYNTAX INTEGER {
+                 none(1),
+                 preSharedKey(2),
+                 rsaSig(3),
+                 rsaEncrypt(4),
+                 revPublicKey(5)
+              }
+
+    DiffHellmanGrp ::= TEXTUAL-CONVENTION
+       STATUS     current
+       DESCRIPTION
+          "The Diffie Hellman Group used in negotiations."
+       SYNTAX INTEGER {
+                 none(1),
+                 dhGroup1(2),
+                 dhGroup2(3)
+              }
+
+    KeyType    ::= TEXTUAL-CONVENTION
+       STATUS     current
+       DESCRIPTION
+          "The type of key used by an IPsec Phase-2 Tunnel."
+       SYNTAX INTEGER{
+                ike(1),
+                manual(2)
+              }
+
+    EncapMode  ::= TEXTUAL-CONVENTION
+       STATUS     current
+       DESCRIPTION
+          "The encapsulation mode used by an IPsec Phase-2 Tunnel."
+       SYNTAX INTEGER{
+                tunnel(1),
+                transport(2)
+
+              }
+
+    EncryptAlgo   ::= TEXTUAL-CONVENTION
+       STATUS     current
+       DESCRIPTION
+          "The encryption algorithm used in negotiations."
+       SYNTAX INTEGER {
+                 none(1),
+                 des(2),
+                 des3(3)
+              }
+
+    AuthAlgo      ::= TEXTUAL-CONVENTION
+       STATUS     current
+       DESCRIPTION
+          "The authentication algorithm used by a
+           security association of an IPsec Phase-2 Tunnel."
+       SYNTAX INTEGER{
+                 none(1),
+                 hmacMd5(2),
+                 hmacSha(3)
+              }
+
+    CompAlgo      ::= TEXTUAL-CONVENTION
+       STATUS     current
+       DESCRIPTION
+          "The compression algorithm used by a
+           security association of an IPsec Phase-2 Tunnel."
+       SYNTAX INTEGER{
+                 none(1),
+                 ldf(2)
+              }
+
+    EndPtType     ::= TEXTUAL-CONVENTION
+       STATUS     current
+       DESCRIPTION
+          "The type of identity use to specify an IPsec End Point."
+       SYNTAX INTEGER {
+                 singleIpAddr(1),
+                 ipAddrRange(2),
+                 ipSubnet(3)
+              }
+
+    TunnelStatus  ::= TEXTUAL-CONVENTION
+       STATUS     current
+       DESCRIPTION
+          "The status of a Tunnel.  Objects of this type may
+           be used to bring the tunnel down by setting
+           value of this object to destroy(2).  Objects of this
+           type cannot be used to create a Tunnel."
+       SYNTAX INTEGER {
+                 active(1),
+                 destroy(2)
+              }
+
+    TrapStatus    ::= TEXTUAL-CONVENTION
+       STATUS     current
+       DESCRIPTION
+          "The administrative status for sending a TRAP."
+       SYNTAX INTEGER {
+                 enabled(1),
+                 disabled(2)
+              }
+
+ -- ----------------------------------------------------------------------------
+ -- IPsec MIB Object Groups
+ --
+ -- This MIB module contains the following groups:
+ -- 1) IPsec Levels Group
+ -- 2) IPsec Phase-1 Group
+ -- 3) IPsec Phase-2 Group
+ -- 4) IPsec History Group
+ -- 5) IPsec Failure Group
+ -- 6) IPsec TRAP Control Group
+ -- ----------------------------------------------------------------------------
+
+    IPsecMIBObjects         OBJECT IDENTIFIER  ::= {IPsecMIB 1}
+
+    IPsecLevels             OBJECT IDENTIFIER  ::= { IPsecMIBObjects 1 }
+    IPsecPhaseOne           OBJECT IDENTIFIER  ::= { IPsecMIBObjects 2 }
+    IPsecPhaseTwo           OBJECT IDENTIFIER  ::= { IPsecMIBObjects 3 }
+    IPsecHistory            OBJECT IDENTIFIER  ::= { IPsecMIBObjects 4 }
+    IPsecFailures           OBJECT IDENTIFIER  ::= { IPsecMIBObjects 5 }
+    IPsecTrapCntl           OBJECT IDENTIFIER  ::= { IPsecMIBObjects 6 }
+
+ -- ----------------------------------------------------------------------------
+ -- ----------------------------------------------------------------------------
+ -- ----------------------------------------------------------------------------
+ -- IPsec Levels Group
+ --
+ -- This group consists of a:
+ -- 1) IPsec MIB Level
+ -- ----------------------------------------------------------------------------
+ -- ----------------------------------------------------------------------------
+ -- ----------------------------------------------------------------------------
+    IPsecMibLevel OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The level of the IPsec MIB."
+       ::= { IPsecLevels 1 }
+
+ -- ----------------------------------------------------------------------------
+ -- ----------------------------------------------------------------------------
+ -- ----------------------------------------------------------------------------
+ -- The IPsec Phase-1 Internet Key Exchange (IKE) Group
+ --
+ -- This group consists of:
+ -- 1) IPsec Phase-1 Global Statistics
+ -- 2) IPsec Phase-1 Peer Table
+ -- 3) IPsec Phase-1 Tunnel Table
+ -- 4) IPsec Phase-1 Correlation Table
+ -- ----------------------------------------------------------------------------
+ -- ----------------------------------------------------------------------------
+ -- ----------------------------------------------------------------------------
+
+ -- ----------------------------------------------------------------------------
+ -- The IPsec Phase-1 Global Statistics
+ -- ----------------------------------------------------------------------------
+    ikeGlobalStats  OBJECT IDENTIFIER  ::= { IPsecPhaseOne 1 }
+
+    ikeGlobalActiveTunnels OBJECT-TYPE
+       SYNTAX Gauge32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The number of currently active IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 1 }
+
+    ikeGlobalPreviousTunnels OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of previously active IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 2 }
+
+    ikeGlobalInOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of octets received by all currently
+           and previously active IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 3 }
+
+    ikeGlobalInPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets received by all currently
+           and previously active IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 4 }
+
+    ikeGlobalInDropPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets which were dropped during
+           receive processing by all currently and previously
+           active IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 5 }
+
+    ikeGlobalInNotifys OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of notifys received by all currently
+           and previously active IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 6 }
+
+    ikeGlobalInP2Exchgs OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges received
+           by all currently and previously active IPsec Phase-1
+           IKE Tunnels."
+       ::= { ikeGlobalStats 7 }
+
+    ikeGlobalInP2ExchgInvalids OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges which were
+           received and found to be invalid by all currently and
+           previously active IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 8 }
+
+    ikeGlobalInP2ExchgRejects OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges which were
+           received and rejected by all currently and
+           previously active IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 9 }
+
+    ikeGlobalInP2SaDelRequests OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 security association
+           delete requests received by all currently and previously
+           active and IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 10 }
+
+    ikeGlobalOutOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of octets sent by all currently
+           and previously active and IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 11 }
+
+    ikeGlobalOutPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets sent by all currently
+           and previously active and IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 12 }
+
+    ikeGlobalOutDropPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets which were dropped during
+           send processing by all currently and previously
+           active IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 13 }
+
+    ikeGlobalOutNotifys OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of notifys sent by all currently
+           and previously active IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 14 }
+
+    ikeGlobalOutP2Exchgs OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges which were
+           sent by all currently and previously active and IPsec
+           Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 15 }
+
+    ikeGlobalOutP2ExchgInvalids OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges which were
+           sent and found to be invalid by all currently and
+           previously active IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 16 }
+
+    ikeGlobalOutP2ExchgRejects OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges which were
+           sent and rejected by all currently and
+           previously active IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 17 }
+
+    ikeGlobalOutP2SaDelRequests OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 security association
+           delete requests sent by all currently and previously
+           active IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 18 }
+
+    ikeGlobalInitTunnels OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-1 IKE Tunnels which were
+           locally initiated."
+       ::= { ikeGlobalStats 19 }
+
+    ikeGlobalInitTunnelFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-1 IKE Tunnels which were
+           locally initiated and failed to activate."
+       ::= { ikeGlobalStats 20 }
+
+    ikeGlobalRespTunnelFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-1 IKE Tunnels which were
+           remotely initiated and failed to activate."
+       ::= { ikeGlobalStats 21 }
+
+    ikeGlobalSysCapFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of system capcity failures which occurred
+           during processing of all current and previously active and
+           IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 22 }
+
+    ikeGlobalAuthFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of authentications which ended
+           in failure by all current and previous IPsec Phase-1
+           IKE Tunnels."
+       ::= { ikeGlobalStats 23 }
+
+    ikeGlobalDecryptFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of decryptions which ended
+           in failure by all current and previous IPsec Phase-1
+           IKE Tunnels."
+       ::= { ikeGlobalStats 24 }
+
+    ikeGlobalHashValidFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of hash validations which ended
+           in failure by all current and previous IPsec Phase-1
+           IKE Tunnels."
+       ::= { ikeGlobalStats 25 }
+
+    ikeGlobalNoSaFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of non-existent Security Assocication
+           in failures which occurred during processing of all current
+           and previous IPsec Phase-1 IKE Tunnels."
+       ::= { ikeGlobalStats 26 }
+
+ -- ----------------------------------------------------------------------------
+ -- The IPsec Phase-1 Internet Key Exchange Peer Table
+ -- ----------------------------------------------------------------------------
+    ikePeerTable OBJECT-TYPE
+       SYNTAX SEQUENCE OF IkePeerEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The IPsec Phase-1 Internet Key Exchange Peer Table.
+           There is one entry in this table for each IPsec
+           Phase-1 IKE peer association which is currently
+           associated with an active IPsec Phase-2 Tunnel.
+           The IPsec Phase-1 IKE Tunnel associated with this
+           IPsec Phase-1 IKE peer association may or may not
+           be currently active."
+      ::= { IPsecPhaseOne 2 }
+
+    ikePeerEntry OBJECT-TYPE
+       SYNTAX IkePeerEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+             "Each entry contains the attributes associated with
+              an IPsec Phase-1 IKE peer association."
+       INDEX { ikePeerLocalType,
+               ikePeerLocalValue,
+               ikePeerRemoteType,
+               ikePeerRemoteValue,
+               ikePeerIntIndex }
+       ::= { ikePeerTable 1}
+
+    IkePeerEntry ::= SEQUENCE {
+       ikePeerLocalType                IkePeerType,
+       ikePeerLocalValue               DisplayString,
+       ikePeerRemoteType               IkePeerType,
+       ikePeerRemoteValue              DisplayString,
+       ikePeerIntIndex                 Integer32,
+       ikePeerLocalAddr                IPSIpAddress,
+       ikePeerRemoteAddr               IPSIpAddress,
+       ikePeerActiveTime               TimeInterval,,
+       ikePeerActiveTunnelIndex        Integer32
+    }
+
+    ikePeerLocalType OBJECT-TYPE
+       SYNTAX IkePeerType
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The type of local peer identity.  The local peer may be
+           indentified by:
+           1. an IP address, or
+           2. a host name."
+       ::= { ikePeerEntry 1 }
+
+    ikePeerLocalValue OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The value of the local peer identity.
+
+           If the local peer type is an IP Address, then this
+           is the IP Address used to identify the local peer.
+
+           If the local peer type is a host name, then this is
+           the host name used to identify the local peer."
+       ::= { ikePeerEntry 2 }
+
+    ikePeerRemoteType OBJECT-TYPE
+       SYNTAX IkePeerType
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The type of remote peer identity.  The remote peer may be
+           indentified by:
+           1. an IP address, or
+           2. a host name."
+       ::= { ikePeerEntry 3 }
+
+    ikePeerRemoteValue OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The value of the remote peer identity.
+
+           If the remote peer type is an IP Address, then this
+           is the IP Address used to identify the remote peer.
+
+           If the remote peer type is a host name, then this is
+           the host name used to identify the remote peer."
+       ::= { ikePeerEntry 4 }
+
+    ikePeerIntIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The internal index of the local-remote peer association.
+           This internal index is used to uniquely identify
+           multiple associations between the local and remote peer."
+       ::= { ikePeerEntry 5 }
+
+    ikePeerLocalAddr OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The IP address of the local peer."
+       ::= { ikePeerEntry 6 }
+
+    ikePeerRemoteAddr OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The IP address of the remote peer."
+       ::= { ikePeerEntry 7 }
+
+    ikePeerActiveTime OBJECT-TYPE
+       SYNTAX TimeInterval,
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The length of time that the peer association has
+           existed in hundredths of a second."
+       ::= { ikePeerEntry 8 }
+
+    ikePeerActiveTunnelIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The index of the active IPsec Phase-1 IKE Tunnel
+           (ikeTunIndex in the ikeTunnelTable) for this peer
+           association.  If an IPsec Phase-1 IKE Tunnel is
+           not currently active, then the value of this
+           object will be zero."
+       ::= { ikePeerEntry 9 }
+
+ -- ----------------------------------------------------------------------------
+ -- The IPsec Phase-1 Internet Key Exchange Tunnel Table
+ -- ----------------------------------------------------------------------------
+    ikeTunnelTable OBJECT-TYPE
+       SYNTAX SEQUENCE OF IkeTunnelEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The IPsec Phase-1 Internet Key Exchange Tunnel Table.
+           There is one entry in this table for each active IPsec
+           Phase-1 IKE Tunnel."
+      ::= { IPsecPhaseOne 3 }
+
+    ikeTunnelEntry OBJECT-TYPE
+       SYNTAX IkeTunnelEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+             "Each entry contains the attributes associated with
+              an active IPsec Phase-1 IKE Tunnel."
+       INDEX { ikeTunIndex }
+       ::= { ikeTunnelTable 1}
+
+    IkeTunnelEntry ::= SEQUENCE {
+       ikeTunIndex                 Integer32,
+       ikeTunLocalType             IkePeerType,
+       ikeTunLocalValue            DisplayString,
+       ikeTunLocalAddr             IPSIpAddress,
+       ikeTunLocalName             DisplayString,
+       ikeTunRemoteType            IkePeerType,
+       ikeTunRemoteValue           DisplayString,
+       ikeTunRemoteAddr            IPSIpAddress,
+       ikeTunRemoteName            DisplayString,
+       ikeTunNegoMode              IkeNegoMode,
+       ikeTunDiffHellmanGrp        DiffHellmanGrp,
+       ikeTunEncryptAlgo           EncryptAlgo,
+       ikeTunHashAlgo              IkeHashAlgo,
+       ikeTunAuthMethod            IkeAuthMethod,
+       ikeTunLifeTime              Integer32,
+       ikeTunActiveTime            TimeInterval,,
+       ikeTunSaRefreshThreshold    Integer32,
+       ikeTunTotalRefreshes        Counter32,
+       ikeTunInOctets              Counter32,
+       ikeTunInPkts                Counter32,
+       ikeTunInDropPkts            Counter32,
+       ikeTunInNotifys             Counter32,
+       ikeTunInP2Exchgs            Counter32,
+       ikeTunInP2ExchgInvalids     Counter32,
+       ikeTunInP2ExchgRejects      Counter32,
+       ikeTunInP2SaDelRequests     Counter32,
+       ikeTunOutOctets             Counter32,
+       ikeTunOutPkts               Counter32,
+       ikeTunOutDropPkts           Counter32,
+       ikeTunOutNotifys            Counter32,
+       ikeTunOutP2Exchgs           Counter32,
+       ikeTunOutP2ExchgInvalids    Counter32,
+       ikeTunOutP2ExchgRejects     Counter32,
+       ikeTunOutP2SaDelRequests    Counter32,
+       ikeTunStatus                TunnelStatus
+    }
+
+    ikeTunIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The index of the IPsec Phase-1 IKE Tunnel Table.
+           The value of the index is a number which begins at one and
+           is incremented with each tunnel that is created. The value
+           of this object will wrap at 2,147,483,647."
+       ::= { ikeTunnelEntry 1 }
+
+    ikeTunLocalType OBJECT-TYPE
+       SYNTAX IkePeerType
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The type of local peer identity.  The local peer may be
+           indentified by:
+           1. an IP address, or
+           2. a host name."
+       ::= { ikeTunnelEntry 2 }
+
+    ikeTunLocalValue OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The value of the local peer identity.
+
+           If the local peer type is an IP Address, then this
+           is the IP Address used to identify the local peer.
+
+           If the local peer type is a host name, then this is
+           the host name used to identify the local peer."
+       ::= { ikeTunnelEntry 3 }
+
+    ikeTunLocalAddr OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The IP address of the local endpoint for the IPsec
+           Phase-1 IKE Tunnel."
+       ::= { ikeTunnelEntry 4 }
+
+    ikeTunLocalName OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The DNS name of the local IP address for the IPsec Phase-1
+           IKE Tunnel. If the DNS name associated with the local
+           tunnel endpoint is not known, then the value of this
+           object will be a NULL string."
+       ::= { ikeTunnelEntry 5 }
+
+    ikeTunRemoteType OBJECT-TYPE
+       SYNTAX IkePeerType
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The type of remote peer identity.  The remote peer may be
+           indentified by:
+           1. an IP address, or
+           2. a host name."
+       ::= { ikeTunnelEntry 6 }
+
+    ikeTunRemoteValue OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The value of the remote peer identity.
+
+           If the remote peer type is an IP Address, then this
+           is the IP Address used to identify the remote peer.
+
+           If the remote peer type is a host name, then this is
+           the host name used to identify the remote peer."
+       ::= { ikeTunnelEntry 7 }
+
+    ikeTunRemoteAddr OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The IP address of the remote endpoint for the IPsec
+           Phase-1 IKE Tunnel."
+       ::= { ikeTunnelEntry 8 }
+
+    ikeTunRemoteName OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The DNS name of the remote IP address of IPsec Phase-1
+           IKE Tunnel. If the DNS name associated with the remote
+           tunnel endpoint is not known, then the value of this
+           object will be a NULL string."
+       ::= { ikeTunnelEntry 9 }
+
+    ikeTunNegoMode OBJECT-TYPE
+       SYNTAX IkeNegoMode
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The negotiation mode of the IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelEntry 10 }
+
+    ikeTunDiffHellmanGrp OBJECT-TYPE
+       SYNTAX DiffHellmanGrp
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The Diffie Hellman Group used in IPsec Phase-1 IKE
+           negotiations."
+       ::= { ikeTunnelEntry 11 }
+
+    ikeTunEncryptAlgo OBJECT-TYPE
+       SYNTAX EncryptAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The encryption algorithm used in IPsec Phase-1 IKE
+           negotiations."
+       ::= { ikeTunnelEntry 12 }
+
+    ikeTunHashAlgo OBJECT-TYPE
+       SYNTAX IkeHashAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The hash algorithm used in IPsec Phase-1 IKE
+           negotiations."
+       ::= { ikeTunnelEntry 13 }
+
+    ikeTunAuthMethod OBJECT-TYPE
+       SYNTAX IkeAuthMethod
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The authentication method used in IPsec Phase-1 IKE
+           negotiations."
+       ::= { ikeTunnelEntry 14 }
+
+    ikeTunLifeTime OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The negotiated LifeTime of the IPsec Phase-1 IKE Tunnel
+           in seconds."
+       ::= { ikeTunnelEntry 15 }
+
+    ikeTunActiveTime OBJECT-TYPE
+       SYNTAX TimeInterval,
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The length of time the IPsec Phase-1 IKE tunnel has been
+           active in hundredths of seconds."
+       ::= { ikeTunnelEntry 16 }
+
+    ikeTunSaRefreshThreshold OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The security assoication refresh threshold in seconds."
+       ::= { ikeTunnelEntry 17 }
+
+    ikeTunTotalRefreshes OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of security associations refreshes performed."
+       ::= { ikeTunnelEntry 18 }
+
+    ikeTunInOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of octets received by this IPsec Phase-1
+           IKE Tunnel."
+       ::= { ikeTunnelEntry 19 }
+
+    ikeTunInPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets received by this IPsec Phase-1
+           IKE Tunnel."
+       ::= { ikeTunnelEntry 20 }
+
+    ikeTunInDropPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets dropped by this IPsec Phase-1
+           IKE Tunnel during receive processing."
+       ::= { ikeTunnelEntry 21 }
+
+    ikeTunInNotifys OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of notifys received by this IPsec Phase-1
+           IKE Tunnel."
+       ::= { ikeTunnelEntry 22 }
+
+    ikeTunInP2Exchgs OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges received by
+           this IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelEntry 23 }
+
+    ikeTunInP2ExchgInvalids OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges received and
+           found to be invalid by this IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelEntry 24 }
+
+    ikeTunInP2ExchgRejects OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges received and
+           rejected by this IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelEntry 25 }
+
+    ikeTunInP2SaDelRequests OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 security association
+           delete requests received by this IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelEntry 26 }
+
+    ikeTunOutOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of octets sent by this IPsec Phase-1
+           IKE Tunnel."
+       ::= { ikeTunnelEntry 27 }
+
+    ikeTunOutPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets sent by this IPsec Phase-1
+           IKE Tunnel."
+       ::= { ikeTunnelEntry 28 }
+
+    ikeTunOutDropPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets dropped by this IPsec Phase-1
+           IKE Tunnel during send processing."
+       ::= { ikeTunnelEntry 29 }
+
+    ikeTunOutNotifys OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of notifys sent by this IPsec Phase-1
+           IKE Tunnel."
+       ::= { ikeTunnelEntry 30 }
+
+    ikeTunOutP2Exchgs OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges sent by
+           this IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelEntry 31 }
+
+    ikeTunOutP2ExchgInvalids OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges sent and
+           found to be invalid by this IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelEntry 32 }
+
+    ikeTunOutP2ExchgRejects OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges sent and
+           rejected by this IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelEntry 33 }
+
+    ikeTunOutP2SaDelRequests OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 security association
+           delete requests sent by this IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelEntry 34 }
+
+    ikeTunStatus OBJECT-TYPE
+       SYNTAX TunnelStatus
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+          "The status of the MIB table row.
+
+           This object can be used to bring the tunnel down by setting
+           value of this object to destroy(2).
+
+           This object cannot be used to create a MIB table row."
+       ::= { ikeTunnelEntry 35 }
+
+ -- ----------------------------------------------------------------------------
+ -- The Internet Key Exchange Peer Association to Phase-2 Tunnel
+ -- Correlation Table
+ -- ----------------------------------------------------------------------------
+    ikePeerCorrTable OBJECT-TYPE
+       SYNTAX SEQUENCE OF IkePeerCorrEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The IPsec Phase-1 Internet Key Exchange Peer Association to
+           IPsec Phase-2 Tunnel Correlation Table.
+           There is one entry in this table for each active IPsec
+           Phase-2 Tunnel."
+      ::= { IPsecPhaseOne 4 }
+
+    ikePeerCorrEntry OBJECT-TYPE
+       SYNTAX IkePeerCorrEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+             "Each entry contains the attributes of an an IPsec Phase-1
+              IKE Peer Association to IPsec Phase-2 Tunnel Correlation."
+       INDEX { ikePeerCorrLocalType,
+               ikePeerCorrLocalValue,
+               ikePeerCorrRemoteType,
+               ikePeerCorrRemoteValue,
+               ikePeerCorrIntIndex,
+               ikePeerCorrSeqNum  }
+       ::= { ikePeerCorrTable 1}
+
+    IkePeerCorrEntry ::= SEQUENCE {
+       ikePeerCorrLocalType                IkePeerType,
+       ikePeerCorrLocalValue               DisplayString,
+       ikePeerCorrRemoteType               IkePeerType,
+       ikePeerCorrRemoteValue              DisplayString,
+       ikePeerCorrIntIndex                 Integer32,
+       ikePeerCorrSeqNum                   Integer32,
+       ikePeerCorrIPsecTunIndex            Integer32
+    }
+
+    ikePeerCorrLocalType OBJECT-TYPE
+       SYNTAX IkePeerType
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The type of local peer identity.  The local peer may be
+           indentified by:
+           1. an IP address, or
+           2. a host name."
+       ::= { ikePeerCorrEntry 1 }
+
+    ikePeerCorrLocalValue OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The value of the local peer identity.
+
+           If the local peer type is an IP Address, then this
+           is the IP Address used to identify the local peer.
+
+           If the local peer type is a host name, then this is
+           the host name used to identify the local peer."
+       ::= { ikePeerCorrEntry 2 }
+
+    ikePeerCorrRemoteType OBJECT-TYPE
+       SYNTAX IkePeerType
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The type of remote peer identity.  The remote peer may be
+           indentified by:
+           1. an IP address, or
+           2. a host name."
+       ::= { ikePeerCorrEntry 3 }
+
+    ikePeerCorrRemoteValue OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The value of the remote peer identity.
+
+           If the remote peer type is an IP Address, then this
+           is the IP Address used to identify the remote peer.
+
+           If the remote peer type is a host name, then this is
+           the host name used to identify the remote peer."
+       ::= { ikePeerCorrEntry 4 }
+
+    ikePeerCorrIntIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The internal index of the local-remote peer association.
+           This internal index is used to uniquely identify
+           multiple associations between the local and remote peer."
+       ::= { ikePeerCorrEntry 5 }
+
+    ikePeerCorrSeqNum   OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The sequence number of the local-remote peer association.
+           This sequence number is used to uniquely identify
+           multiple instances of an unique association between
+           the local and remote peer."
+       ::= { ikePeerCorrEntry 6 }
+
+    ikePeerCorrIPsecTunIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The index of the active IPsec Phase-2 Tunnel
+           (IPsecTunIndex in the IPsecTunnelTable) for this
+           IPsec Phase-1 IKE Peer Association."
+       ::= { ikePeerCorrEntry 7 }
+
+ -- -------------------------------------------------------------------------
+ -- ----------------------------------------------------------------------------
+ -- ----------------------------------------------------------------------------
+ -- IPsec Phase-2 Group
+ --
+ -- This group consists of:
+ -- 1) IPsec Phase-2 Global Statistics
+ -- 2) IPsec Phase-2 Tunnel Table
+ -- 3) IPsec Phase-2 Endpoint Table
+ -- 4) IPsec Phase-2 Security Protection Index Table
+ -- 4) IPsec Phase-2 Security Protection Index Objects
+ -- -------------------------------------------------------------------------
+ -- ----------------------------------------------------------------------------
+ -- ----------------------------------------------------------------------------
+
+ -- ----------------------------------------------------------------------------
+ -- The IPsec Phase-2 Global Tunnel Statistics
+ -- ----------------------------------------------------------------------------
+    IPsecGlobalStats          OBJECT IDENTIFIER ::= { IPsecPhaseTwo 1 }
+
+    IPsecGlobalActiveTunnels OBJECT-TYPE
+       SYNTAX Gauge32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of currently active IPsec Phase-2 Tunnels."
+       ::= { IPsecGlobalStats 1 }
+
+    IPsecGlobalPreviousTunnels OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of previously active IPsec Phase-2 Tunnels."
+       ::= { IPsecGlobalStats 2 }
+
+    IPsecGlobalInOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of octets received by all current and previous
+           IPsec Phase-2 Tunnels.  This value is accumulated
+           BEFORE determining whether or not the packet should be
+           decompressed.  See also IPsecGlobalInOctWraps for the
+           number of times this counter has wrapped."
+       ::= { IPsecGlobalStats 3 }
+
+    IPsecGlobalHcInOctets OBJECT-TYPE
+       SYNTAX Counter64
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "A high capacity count of the total number of octets received
+           by all current and previous IPsec Phase-2 Tunnels.
+           This value is accumulated BEFORE determining whether or
+           not the packet should be decompressed."
+       ::= { IPsecGlobalStats 4 }
+
+    IPsecGlobalInOctWraps OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The number of times the global octets received counter
+           (IPsecGlobalInOctets) has wrapped."
+       ::= { IPsecGlobalStats 5 }
+
+    IPsecGlobalInDecompOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of decompressed octets received by all
+           current and previous IPsec Phase-2 Tunnels.  This value is
+           accumulated AFTER the packet is decompressed. If compression
+           is not being used, this value will match the value of
+           IPsecGlobalInOctets. See also IPsecGlobalInDecompOctWraps
+           for the number of times this counter has wrapped."
+       ::= { IPsecGlobalStats 6 }
+
+    IPsecGlobalHcInDecompOctets OBJECT-TYPE
+       SYNTAX Counter64
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "A high capacity count of the total number of decompressed
+           octets received by all current and previous IPsec Phase-2 Tunnels.
+           This value is accumulated AFTER the packet is decompressed.
+           If compression is not being used, this value will match the
+           value of IPsecGlobalHcInOctets."
+       ::= { IPsecGlobalStats 7 }
+
+    IPsecGlobalInDecompOctWraps OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The number of times the global decompressed octets received counter
+           (IPsecGlobalInDecompOctets) has wrapped."
+       ::= { IPsecGlobalStats 8 }
+
+    IPsecGlobalInPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets received by all current and previous
+           IPsec Phase-2 Tunnels."
+       ::= { IPsecGlobalStats 9 }
+
+    IPsecGlobalInDrops OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets dropped during receive processing
+           by all current and previous IPsec Phase-2 Tunnels. This count does
+           NOT include packets dropped due to Anti-Replay processing."
+       ::= { IPsecGlobalStats 10 }
+
+    IPsecGlobalInReplayDrops OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets dropped during receive processing
+           due to Anti-Replay processing by all current and previous IPsec
+           Phase-2 Tunnels."
+       ::= { IPsecGlobalStats 11 }
+
+    IPsecGlobalInAuths OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of inbound authentication's performed
+           by all current and previous IPsec Phase-2 Tunnels."
+       ::= { IPsecGlobalStats 12 }
+
+    IPsecGlobalInAuthFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of inbound authentication's which ended in failure
+           by all current and previous IPsec Phase-2 Tunnels."
+       ::= { IPsecGlobalStats 13 }
+
+    IPsecGlobalInDecrypts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of inbound decryption's performed
+           by all current and previous IPsec Phase-2 Tunnels."
+       ::= { IPsecGlobalStats 14 }
+
+    IPsecGlobalInDecryptFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of inbound decryption's which ended in failure
+           by all current and previous IPsec Phase-2 Tunnels."
+       ::= { IPsecGlobalStats 15 }
+
+    IPsecGlobalOutOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of octets sent by all current and previous
+           IPsec Phase-2 Tunnels.  This value is accumulated
+           AFTER determining whether or not the packet should be
+           compressed.  See also IPsecGlobalOutOctWraps for the
+           number of times this counter has wrapped."
+       ::= { IPsecGlobalStats 16 }
+
+    IPsecGlobalHcOutOctets OBJECT-TYPE
+       SYNTAX Counter64
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "A high capacity count of the total number of octets
+           sent by all current and previous IPsec Phase-2 Tunnels.
+           This value is accumulated AFTER determining whether or
+           not the packet should be compressed."
+       ::= { IPsecGlobalStats 17 }
+
+    IPsecGlobalOutOctWraps OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The number of times the global octets sent counter
+           (IPsecGlobalOutOctets) has wrapped."
+       ::= { IPsecGlobalStats 18 }
+
+    IPsecGlobalOutUncompOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of uncompressed octets sent by all current
+           and previous IPsec Phase-2 Tunnels.  This value is accumulated BEFORE
+           the packet is compressed. If compression is not being
+           used, this value will match the value of IPsecGlobalOutOctets.
+           See also IPsecGlobalOutDecompOctWraps for the number of times
+           this counter has wrapped."
+       ::= { IPsecGlobalStats 19 }
+
+    IPsecGlobalHcOutUncompOctets OBJECT-TYPE
+       SYNTAX Counter64
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "A high capacity count of the total number of uncompressed
+           octets sent by all current and previous IPsec Phase-2 Tunnels.
+           This value is accumulated BEFORE the packet is compressed.
+           If compression is not being used, this value will match the
+           value of IPsecGlobalHcOutOctets."
+       ::= { IPsecGlobalStats 20 }
+
+    IPsecGlobalOutUncompOctWraps OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The number of times the global uncompressed octets sent counter
+           (IPsecGlobalInUncompOctets) has wrapped."
+       ::= { IPsecGlobalStats 21 }
+
+    IPsecGlobalOutPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets sent by all current and previous
+           IPsec Phase-2 Tunnels."
+       ::= { IPsecGlobalStats 22 }
+
+    IPsecGlobalOutDrops OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets dropped during send processing
+           by all current and previous IPsec Phase-2 Tunnels."
+       ::= { IPsecGlobalStats 23 }
+
+    IPsecGlobalOutAuths OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of outbound authentication's performed
+           by all current and previous IPsec Phase-2 Tunnels."
+       ::= { IPsecGlobalStats 24 }
+
+    IPsecGlobalOutAuthFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of outbound authentication's which ended in failure
+           by all current and previous IPsec Phase-2 Tunnels."
+       ::= { IPsecGlobalStats 25 }
+
+    IPsecGlobalOutEncrypts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of outbound encryption's performed
+           by all current and previous IPsec Phase-2 Tunnels."
+       ::= { IPsecGlobalStats 26 }
+
+    IPsecGlobalOutEncryptFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of outbound encryption's which ended in failure
+           by all current and previous IPsec Phase-2 Tunnels."
+       ::= { IPsecGlobalStats 27 }
+
+    IPsecGlobalProtocolUseFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of protocol use failures which occurred
+           during processing of all current and previously active and
+           IPsec Phase-2 Tunnels."
+       ::= { ikeGlobalStats 28 }
+
+    IPsecGlobalNoSaFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of non-existent Security Assocication
+           in failures which occurred during processing of all current
+           and previous IPsec Phase-2 Tunnels."
+       ::= { ikeGlobalStats 29 }
+
+    IPsecGlobalSysCapFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of system capcity failures which occurred
+           during processing of all current and previously active and
+           IPsec Phase-2 Tunnels."
+       ::= { ikeGlobalStats 30 }
+
+ -- ----------------------------------------------------------------------------
+ -- The IPsec Phase-2 Tunnel Table
+ -- ----------------------------------------------------------------------------
+    IPsecTunnelTable OBJECT-TYPE
+       SYNTAX SEQUENCE OF IPsecTunnelEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The IPsec Phase-2 Tunnel Table.  There is one entry in
+           this table for each active IPsec Phase-2 Tunnel."
+       ::= { IPsecPhaseTwo 2 }
+
+    IPsecTunnelEntry OBJECT-TYPE
+       SYNTAX IPsecTunnelEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "Each entry contains the attributes associated with
+           an active IPsec Phase-2 Tunnel."
+       INDEX { IPsecTunIndex }
+       ::= { IPsecTunnelTable 1 }
+
+    IPsecTunnelEntry ::= SEQUENCE {
+       IPsecTunIndex                Integer32,
+       IPsecTunIkeTunnelIndex       Integer32,
+       IPsecTunIkeTunnelAlive       TruthValue,
+       IPsecTunLocalAddr            IPSIpAddress,
+       IPsecTunRemoteAddr           IPSIpAddress,
+       IPsecTunKeyType              KeyType,
+       IPsecTunEncapMode            EncapMode,
+       IPsecTunLifeSize             Integer32,
+       IPsecTunLifeTime             Integer32,
+       IPsecTunActiveTime           TimeInterval,,
+       IPsecTunSaLifeSizeThreshold  Integer32,
+       IPsecTunSaLifeTimeThreshold  Integer32,
+       IPsecTunTotalRefreshes       Counter32,
+       IPsecTunExpiredSaInstances   Counter32,
+       IPsecTunCurrentSaInstances   Gauge32,
+       IPsecTunInSaDiffHellmanGrp   DiffHellmanGrp,
+       IPsecTunInSaEncryptAlgo      EncryptAlgo,
+       IPsecTunInSaAhAuthAlgo       AuthAlgo,
+       IPsecTunInSaEspAuthAlgo      AuthAlgo,
+       IPsecTunInSaDecompAlgo       CompAlgo,
+       IPsecTunOutSaDiffHellmanGrp  DiffHellmanGrp,
+       IPsecTunOutSaEncryptAlgo     EncryptAlgo,
+       IPsecTunOutSaAhAuthAlgo      AuthAlgo,
+       IPsecTunOutSaEspAuthAlgo     AuthAlgo,
+       IPsecTunOutSaCompAlgo        CompAlgo,
+       IPsecTunInOctets             Counter32,
+       IPsecTunHcInOctets           Counter64,
+       IPsecTunInOctWraps           Counter32,
+       IPsecTunInDecompOctets       Counter32,
+       IPsecTunHcInDecompOctets     Counter64,
+       IPsecTunInDecompOctWraps     Counter32,
+       IPsecTunInPkts               Counter32,
+       IPsecTunInDropPkts           Counter32,
+       IPsecTunInReplayDropPkts     Counter32,
+       IPsecTunInAuths              Counter32,
+       IPsecTunInAuthFails          Counter32,
+       IPsecTunInDecrypts           Counter32,
+       IPsecTunInDecryptFails       Counter32,
+       IPsecTunOutOctets            Counter32,
+       IPsecTunHcOutOctets          Counter64,
+       IPsecTunOutOctWraps          Counter32,
+       IPsecTunOutUncompOctets      Counter32,
+       IPsecTunHcOutUncompOctets    Counter64,
+       IPsecTunOutUncompOctWraps    Counter32,
+       IPsecTunOutPkts              Counter32,
+       IPsecTunOutDropPkts          Counter32,
+       IPsecTunOutAuths             Counter32,
+       IPsecTunOutAuthFails         Counter32,
+       IPsecTunOutEncrypts          Counter32,
+       IPsecTunOutEncryptFails      Counter32,
+       IPsecTunStatus               TunnelStatus
+    }
+
+    IPsecTunIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The index of the IPsec Phase-2 Tunnel Table.
+           The value of the index is a number which begins at one and
+           is incremented with each tunnel that is created. The value
+           of this object will wrap at 2,147,483,647."
+       ::= { IPsecTunnelEntry 1 }
+
+    IPsecTunIkeTunnelIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The index of the associated IPsec Phase-1 IKE Tunnel.
+           (ikeTunIndex in the ikeTunnelTable)"
+       ::= { IPsecTunnelEntry 2 }
+
+    IPsecTunIkeTunnelAlive OBJECT-TYPE
+       SYNTAX TruthValue
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "An indicator which specifies whether or not the
+           IPsec Phase-1 IKE Tunnel currently exists."
+       ::= { IPsecTunnelEntry 3 }
+
+    IPsecTunLocalAddr OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The IP address of the local endpoint for the IPsec
+           Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 4 }
+
+    IPsecTunRemoteAddr OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The IP address of the remote endpoint for the IPsec
+           Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 5 }
+
+    IPsecTunKeyType OBJECT-TYPE
+       SYNTAX KeyType
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The type of key used by the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 6 }
+
+    IPsecTunEncapMode OBJECT-TYPE
+       SYNTAX EncapMode
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The encapsulation mode used by the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 7 }
+
+    IPsecTunLifeSize OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The negotiated LifeSize of the IPsec Phase-2 Tunnel in
+           kilobytes."
+       ::= { IPsecTunnelEntry 8 }
+
+    IPsecTunLifeTime OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The negotiated LifeTime of the IPsec Phase-2 Tunnel in
+           seconds."
+       ::= { IPsecTunnelEntry 9 }
+
+    IPsecTunActiveTime OBJECT-TYPE
+       SYNTAX TimeInterval,
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The length of time the IPsec Phase-2 Tunnel has been
+           active in hundredths of seconds."
+       ::= { IPsecTunnelEntry 10 }
+
+    IPsecTunSaLifeSizeThreshold OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The security association LifeSize refresh threshold in kilobytes."
+       ::= { IPsecTunnelEntry 11 }
+
+    IPsecTunSaLifeTimeThreshold OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The security association LifeTime refresh threshold in seconds."
+       ::= { IPsecTunnelEntry 12 }
+
+    IPsecTunTotalRefreshes OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of security association refreshes performed."
+       ::= { IPsecTunnelEntry 13 }
+
+    IPsecTunExpiredSaInstances OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of security associations which have expired."
+       ::= { IPsecTunnelEntry 14 }
+
+    IPsecTunCurrentSaInstances OBJECT-TYPE
+       SYNTAX Gauge32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The number of security associations which are currently
+           active or expiring."
+       ::= { IPsecTunnelEntry 15 }
+
+    IPsecTunInSaDiffHellmanGrp OBJECT-TYPE
+      SYNTAX DiffHellmanGrp
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The Diffie Hellman Group used by the inbound security
+           association of the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 16 }
+
+    IPsecTunInSaEncryptAlgo OBJECT-TYPE
+       SYNTAX EncryptAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The encryption algorithm used by the inbound security
+           association of the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 17 }
+
+    IPsecTunInSaAhAuthAlgo OBJECT-TYPE
+       SYNTAX AuthAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The authentication algorithm used by the inbound
+           authentication header (AH) security association of
+           the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 18 }
+
+    IPsecTunInSaEspAuthAlgo OBJECT-TYPE
+       SYNTAX AuthAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The authentication algorithm used by the inbound
+           ecapsulation security protocol (ESP) security association of
+           the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 19 }
+
+    IPsecTunInSaDecompAlgo OBJECT-TYPE
+       SYNTAX CompAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The decompression algorithm used by the inbound
+           security association of the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 20 }
+
+    IPsecTunOutSaDiffHellmanGrp OBJECT-TYPE
+       SYNTAX DiffHellmanGrp
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The Diffie Hellman Group used by the outbound security
+           association of the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 21 }
+
+    IPsecTunOutSaEncryptAlgo OBJECT-TYPE
+       SYNTAX EncryptAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The encryption algorithm used by the outbound security
+           association of the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 22 }
+
+    IPsecTunOutSaAhAuthAlgo OBJECT-TYPE
+       SYNTAX AuthAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The authentication algorithm used by the outbound
+           authentication header (AH) security association of
+           the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 23 }
+
+    IPsecTunOutSaEspAuthAlgo OBJECT-TYPE
+       SYNTAX AuthAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The authentication algorithm used by the inbound
+           ecapsulation security protocol (ESP) security association of
+           the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 24 }
+
+    IPsecTunOutSaCompAlgo OBJECT-TYPE
+       SYNTAX CompAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The compression algorithm used by the inbound
+           security association of the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 25 }
+
+    IPsecTunInOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of octets received by this IPsec
+           Phase-2 Tunnel.  This value is accumulated
+           BEFORE determining whether or not the packet should be
+           decompressed.  See also IPsecTunInOctWraps for the
+           number of times this counter has wrapped."
+       ::= { IPsecTunnelEntry 26 }
+
+    IPsecTunHcInOctets OBJECT-TYPE
+       SYNTAX Counter64
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "A high capacity count of the total number of octets
+           received by this IPsec Phase-2 Tunnel.  This value is
+           accumulated BEFORE determining whether or not the packet
+           should be decompressed."
+       ::= { IPsecTunnelEntry 27 }
+
+    IPsecTunInOctWraps OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The number of times the octets received counter
+           (IPsecTunInOctets) has wrapped."
+       ::= { IPsecTunnelEntry 28 }
+
+    IPsecTunInDecompOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of decompressed octets received by this
+           IPsec Phase-2 Tunnel.  This value is accumulated AFTER
+           the packet is decompressed. If compression is not being
+           used, this value will match the value of IPsecTunInOctets.
+           See also IPsecTunInDecompOctWraps for the number of times
+           this counter has wrapped."
+       ::= { IPsecTunnelEntry 29 }
+
+    IPsecTunHcInDecompOctets OBJECT-TYPE
+       SYNTAX Counter64
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "A high capacity count of the total number of decompressed
+           octets received by this IPsec Phase-2 Tunnel.  This value
+           is accumulated AFTER the packet is decompressed. If
+           compression is not being used, this value will match the
+           value of IPsecTunHcInOctets."
+       ::= { IPsecTunnelEntry 30 }
+
+    IPsecTunInDecompOctWraps OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The number of times the decompressed octets received counter
+           (IPsecTunInDecompOctets) has wrapped."
+       ::= { IPsecTunnelEntry 31 }
+
+    IPsecTunInPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets received by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 32 }
+
+    IPsecTunInDropPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets dropped during receive processing
+           by this IPsec Phase-2 Tunnel. This count does NOT include
+           packets dropped due to Anti-Replay processing."
+       ::= { IPsecTunnelEntry 33 }
+
+    IPsecTunInReplayDropPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets dropped during receive processing
+           due to Anti-Replay processing by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 34 }
+
+    IPsecTunInAuths OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of inbound authentication's performed
+           by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 35 }
+
+    IPsecTunInAuthFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of inbound authentication's which ended in
+           failure by this IPsec Phase-2 Tunnel ."
+       ::= { IPsecTunnelEntry 36 }
+
+    IPsecTunInDecrypts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of inbound decryption's performed
+           by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 37 }
+
+    IPsecTunInDecryptFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of inbound decryption's which ended in failure
+           by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 38 }
+
+    IPsecTunOutOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of octets sent by this IPsec
+           Phase-2 Tunnel.  This value is accumulated
+           AFTER determining whether or not the packet should be
+           compressed.  See also IPsecTunOutOctWraps for the
+           number of times this counter has wrapped."
+       ::= { IPsecTunnelEntry 39 }
+
+    IPsecTunHcOutOctets OBJECT-TYPE
+       SYNTAX Counter64
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "A high capacity count of the total number of octets
+           sent by this IPsec Phase-2 Tunnel.  This value is
+           accumulated AFTER determining whether or not the packet
+           should be compressed."
+       ::= { IPsecTunnelEntry 40 }
+
+    IPsecTunOutOctWraps OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The number of times the octets sent counter
+           (IPsecTunOutOctets) has wrapped."
+       ::= { IPsecTunnelEntry 41 }
+
+    IPsecTunOutUncompOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of uncompressed octets sent by this
+           IPsec Phase-2 Tunnel.  This value is accumulated BEFORE
+           the packet is compressed. If compression is not being
+           used, this value will match the value of IPsecTunOutOctets.
+           See also IPsecTunOutDecompOctWraps for the number of times
+           this counter has wrapped."
+       ::= { IPsecTunnelEntry 42 }
+
+    IPsecTunHcOutUncompOctets OBJECT-TYPE
+       SYNTAX Counter64
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "A high capacity count of the total number of uncompressed
+           octets sent by this IPsec Phase-2 Tunnel.  This value is
+           accumulated BEFORE the packet is compressed. If compression
+           is not being used, this value will match the value of
+           IPsecTunHcOutOctets."
+       ::= { IPsecTunnelEntry 43 }
+
+    IPsecTunOutUncompOctWraps OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The number of times the uncompressed octets sent counter
+           (IPsecTunInUncompOctets) has wrapped."
+       ::= { IPsecTunnelEntry 44 }
+
+    IPsecTunOutPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets sent by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 45 }
+
+    IPsecTunOutDropPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets dropped during send processing
+           by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 46 }
+
+    IPsecTunOutAuths OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of outbound authentication's performed
+           by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 47 }
+
+    IPsecTunOutAuthFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of outbound authentication's which ended in
+           failure by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 48 }
+
+    IPsecTunOutEncrypts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of outbound encryption's performed
+           by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 49 }
+
+    IPsecTunOutEncryptFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of outbound encryption's which ended in failure
+           by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelEntry 50 }
+
+    IPsecTunStatus OBJECT-TYPE
+       SYNTAX TunnelStatus
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+          "The status of the MIB table row.
+
+           This object can be used to bring the tunnel down
+           by setting value of this object to destroy(2).
+
+           This object cannot be used to create a MIB table row."
+       ::= { IPsecTunnelEntry 51 }
+
+ -- ----------------------------------------------------------------------------
+ -- The IPsec Phase-2 Tunnel Endpoint Table
+ -- ----------------------------------------------------------------------------
+    IPsecEndPtTable OBJECT-TYPE
+       SYNTAX SEQUENCE OF IPsecEndPtEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The IPsec Phase-2 Tunnel Endpoint Table. This table contains
+           an entry for each active endpoint associated with an IPsec
+           Phase-2 Tunnel."
+       ::= { IPsecPhaseTwo 3 }
+
+    IPsecEndPtEntry OBJECT-TYPE
+       SYNTAX IPsecEndPtEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "An IPsec Phase-2 Tunnel Endpoint entry."
+       INDEX { IPsecTunIndex,  -- from IPsecTunnelTable
+               IPsecEndPtIndex  }
+       ::= { IPsecEndPtTable 1 }
+
+    IPsecEndPtEntry ::= SEQUENCE {
+       IPsecEndPtIndex                Integer32,
+       IPsecEndPtLocalName            DisplayString,
+       IPsecEndPtLocalType            EndPtType,
+       IPsecEndPtLocalAddr1           IPSIpAddress,
+       IPsecEndPtLocalAddr2           IPSIpAddress,
+       IPsecEndPtLocalProtocol        Integer32,
+       IPsecEndPtLocalPort            Integer32,
+       IPsecEndPtRemoteName           DisplayString,
+       IPsecEndPtRemoteType           EndPtType,
+       IPsecEndPtRemoteAddr1          IPSIpAddress,
+       IPsecEndPtRemoteAddr2          IPSIpAddress,
+       IPsecEndPtRemoteProtocol       Integer32,
+       IPsecEndPtRemotePort           Integer32
+    }
+
+    IPsecEndPtIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The number of the Endpoint associated with the
+           IPsec Phase-2 Tunnel Table.  The value of this
+           index is a number which begins at one and is incremented
+           with each Endpoint associated with an IPsec Phase-2 Tunnel.
+           The value of this object will wrap at 2,147,483,647."
+       ::= { IPsecEndPtEntry 1 }
+
+    IPsecEndPtLocalName OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The DNS name of the local Endpoint."
+       ::= { IPsecEndPtEntry 2 }
+
+    IPsecEndPtLocalType OBJECT-TYPE
+       SYNTAX EndPtType
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The type of identity for the local Endpoint.
+           Possible values are:
+           1) a single IP address, or
+           2) an IP address range, or
+           3) an IP subnet."
+       ::= { IPsecEndPtEntry 3 }
+
+    IPsecEndPtLocalAddr1 OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+         "The local Endpoint's first IP address specification.
+
+          If the local Endpoint type is single IP address, then this
+          is the value of the IP address.
+
+          If the local Endpoint type is IP subnet, then this
+          is the value of the subnet.
+
+          If the local Endpoint type is IP address range, then this
+          is the value of beginning IP address of the range."
+       ::= { IPsecEndPtEntry 4 }
+
+    IPsecEndPtLocalAddr2 OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+         "The local Endpoint's second IP address specification.
+
+          If the local Endpoint type is single IP address, then this
+          is the value of the IP address.
+
+          If the local Endpoint type is IP subnet, then this
+          is the value of the subnet mask.
+
+          If the local Endpoint type is IP address range, then this
+          is the value of ending IP address of the range."
+       ::= { IPsecEndPtEntry 5 }
+
+    IPsecEndPtLocalProtocol OBJECT-TYPE
+       SYNTAX Integer32(1..255)
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The protocol number of the local Endpoint's traffic."
+       ::= { IPsecEndPtEntry 6 }
+
+    IPsecEndPtLocalPort OBJECT-TYPE
+       SYNTAX Integer32(0..65535)
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The port number of the local Endpoint's traffic."
+       ::= { IPsecEndPtEntry 7 }
+
+    IPsecEndPtRemoteName OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The DNS name of the remote Endpoint."
+       ::= { IPsecEndPtEntry 8 }
+
+    IPsecEndPtRemoteType OBJECT-TYPE
+       SYNTAX EndPtType
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The type of identity for the remote Endpoint.
+           Possible values are:
+           1) a single IP address, or
+           2) an IP address range, or
+           3) an IP subnet."
+       ::= { IPsecEndPtEntry 9 }
+
+    IPsecEndPtRemoteAddr1 OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+         "The remote Endpoint's first IP address specification.
+
+          If the remote Endpoint type is single IP address, then this
+          is the value of the IP address.
+
+          If the remote Endpoint type is IP subnet, then this
+          is the value of the subnet.
+
+          If the remote Endpoint type is IP address range, then this
+          is the value of beginning IP address of the range."
+       ::= { IPsecEndPtEntry 10 }
+
+    IPsecEndPtRemoteAddr2 OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+         "The remote Endpoint's second IP address specification.
+
+          If the remote Endpoint type is single IP address, then this
+          is the value of the IP address.
+
+          If the remote Endpoint type is IP subnet, then this
+          is the value of the subnet mask.
+
+          If the remote Endpoint type is IP address range, then this
+          is the value of ending IP address of the range."
+       ::= { IPsecEndPtEntry 11 }
+
+    IPsecEndPtRemoteProtocol OBJECT-TYPE
+       SYNTAX Integer32(1..255)
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The protocol number of the remote Endpoint's traffic."
+       ::= { IPsecEndPtEntry 12 }
+
+    IPsecEndPtRemotePort OBJECT-TYPE
+       SYNTAX Integer32(0..65535)
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The port number of the remote Endpoint's traffic."
+       ::= { IPsecEndPtEntry 13 }
+
+ -- ----------------------------------------------------------------------------
+ -- The IPsec Phase-2 Security Protection Index Table
+ -- ----------------------------------------------------------------------------
+    IPsecSpiTable OBJECT-TYPE
+       SYNTAX SEQUENCE OF IPsecSpiEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The IPsec Phase-2 Security Protection Index Table.  This table
+           contains an entry for each active and expiring security
+           association."
+       ::= { IPsecPhaseTwo 4 }
+
+    IPsecSpiEntry OBJECT-TYPE
+       SYNTAX IPsecSpiEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "Each entry contains the attributes associated with
+           active and expiring IPsec Phase-2 security associations."
+       INDEX { IPsecTunIndex,  -- from IPsecTunnelTable
+               IPsecSpiIndex  }
+       ::= { IPsecSpiTable 1 }
+
+    IPsecSpiEntry ::= SEQUENCE {
+       IPsecSpiIndex                Integer32,
+       IPsecSpiDirection            INTEGER,
+       IPsecSpiValue                Integer32,
+       IPsecSpiProtocol             INTEGER,
+       IPsecSpiStatus               INTEGER
+    }
+
+    IPsecSpiIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The number of the SPI associated with the Phase-2 Tunnel Table.
+           The value of this index is a number which begins at one and
+           is incremented with each SPI associated with an IPsec Phase-2
+           Tunnel.  The value of this object will wrap at 2,147,483,647."
+       ::= { IPsecSpiEntry 1 }
+
+    IPsecSpiDirection OBJECT-TYPE
+       SYNTAX INTEGER{
+                 in(1),
+                 out(2)
+              }
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The direction of the SPI."
+       ::= { IPsecSpiEntry 2 }
+
+    IPsecSpiValue OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The value of the SPI."
+       ::= { IPsecSpiEntry 3 }
+
+    IPsecSpiProtocol OBJECT-TYPE
+       SYNTAX INTEGER{
+                 ah(1),
+                 esp(2),
+                 ipcomp(3)
+              }
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The protocol of the SPI."
+       ::= { IPsecSpiEntry 4 }
+
+    IPsecSpiStatus OBJECT-TYPE
+       SYNTAX INTEGER{
+                 active(1),
+                 expiring(2)
+              }
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The status of the SPI."
+       ::= { IPsecSpiEntry 5 }
+
+ -- ----------------------------------------------------------------------------
+ -- ----------------------------------------------------------------------------
+ -- ----------------------------------------------------------------------------
+ -- The IPsec History Group
+ --
+ -- This group consists of a:
+ -- 1) IPsec History Global Objects
+ -- 2) IPsec Phase-1 History Objects
+ -- 3) IPsec Phase-2 History Objects
+ -- ----------------------------------------------------------------------------
+ -- ----------------------------------------------------------------------------
+ -- ----------------------------------------------------------------------------
+    IPsecHistGlobal           OBJECT IDENTIFIER ::= { IPsecHistory 1 }
+    IPsecHistPhaseOne         OBJECT IDENTIFIER ::= { IPsecHistory 2 }
+    IPsecHistPhaseTwo         OBJECT IDENTIFIER ::= { IPsecHistory 3 }
+
+ -- ----------------------------------------------------------------------------
+ -- IPsec History Global Control Objects
+ -- ----------------------------------------------------------------------------
+    IPsecHistGlobalCntl OBJECT IDENTIFIER    ::= { IPsecHistGlobal 1 }
+
+    IPsecHistTableSize  OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+          "The window size of the IPsec Phase-1 and Phase-2
+           History Tables.
+
+           The IPsec Phase-1 and Phase-2 History Tables are
+           implemented as a sliding window in which only the
+           last n entries are maintained.  This object is used
+           specify the number of entries which will be maintained
+           in the IPsec Phase-1 and Phase-2 History Tables.
+
+           When modified by an SNMP SET request, the device will
+           set the value of this object as close as possible to
+           the requested value based on the implementation and
+           available resources."
+       ::= { IPsecHistGlobalCntl 1 }
+
+ -- ----------------------------------------------------------------------------
+ -- The IPsec Phase-1 Tunnel History Table
+ -- ----------------------------------------------------------------------------
+    ikeTunnelHistTable OBJECT-TYPE
+       SYNTAX SEQUENCE OF IkeTunnelHistEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The IPsec Phase-1 Internet Key Exchange Tunnel History Table.
+           This table is implemented as a sliding window in which only the
+           last n entries are maintained.  The maximum number of entries
+           is specified by the IPsecHistTableSize object."
+      ::= { IPsecHistPhaseOne 1 }
+
+    ikeTunnelHistEntry OBJECT-TYPE
+       SYNTAX IkeTunnelHistEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+             "Each entry contains the attributes associated with
+              a previously active IPsec Phase-1 IKE Tunnel."
+       INDEX { ikeTunHistIndex }
+       ::= { ikeTunnelHistTable 1}
+
+    IkeTunnelHistEntry ::= SEQUENCE {
+       ikeTunHistIndex                 Integer32,
+       ikeTunHistTermReason            INTEGER,
+       ikeTunHistActiveIndex           Integer32,
+       ikeTunHistPeerLocalType         IkePeerType,
+       ikeTunHistPeerLocalValue        DisplayString,
+       ikeTunHistPeerIntIndex          Integer32,
+       ikeTunHistPeerRemoteType        IkePeerType,
+       ikeTunHistPeerRemoteValue       DisplayString,
+       ikeTunHistLocalAddr             IPSIpAddress,
+       ikeTunHistLocalName             DisplayString,
+       ikeTunHistRemoteAddr            IPSIpAddress,
+       ikeTunHistRemoteName            DisplayString,
+       ikeTunHistNegoMode              IkeNegoMode,
+       ikeTunHistDiffHellmanGrp        DiffHellmanGrp,
+       ikeTunHistEncryptAlgo           EncryptAlgo,
+       ikeTunHistHashAlgo              IkeHashAlgo,
+       ikeTunHistAuthMethod            IkeAuthMethod,
+       ikeTunHistLifeTime              Integer32,
+       ikeTunHistStartTime             TimeStamp,
+       ikeTunHistActiveTime            TimeInterval,,
+       ikeTunHistTotalRefreshes        Counter32,
+       ikeTunHistTotalSas              Counter32,
+       ikeTunHistInOctets              Counter32,
+       ikeTunHistInPkts                Counter32,
+       ikeTunHistInDropPkts            Counter32,
+       ikeTunHistInNotifys             Counter32,
+       ikeTunHistInP2Exchgs            Counter32,
+       ikeTunHistInP2ExchgInvalids     Counter32,
+       ikeTunHistInP2ExchgRejects      Counter32,
+       ikeTunHistInP2SaDelRequests     Counter32,
+       ikeTunHistOutOctets             Counter32,
+       ikeTunHistOutPkts               Counter32,
+       ikeTunHistOutDropPkts           Counter32,
+       ikeTunHistOutNotifys            Counter32,
+       ikeTunHistOutP2Exchgs           Counter32,
+       ikeTunHistOutP2ExchgInvalids    Counter32,
+       ikeTunHistOutP2ExchgRejects     Counter32,
+       ikeTunHistOutP2SaDelRequests    Counter32
+    }
+
+    ikeTunHistIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The index of the IPsec Phase-1 IKE Tunnel History Table.
+           The value of the index is a number which begins at one and
+           is incremented with each tunnel that ends. The value
+           of this object will wrap at 2,147,483,647."
+       ::= { ikeTunnelHistEntry 1 }
+
+    ikeTunHistTermReason  OBJECT-TYPE
+       SYNTAX INTEGER {
+                 other(1),
+                 normal(2),
+                 operRequest(3),
+                 peerDelRequest(4),
+                 peerLost(5),
+                 seqNumRollOver(6),
+                 localFailure(7)
+              }
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The reason the IPsec Phase-1 IKE Tunnel was terminated.
+           Possible reasons include:
+           1 = other
+           2 = normal termination
+           3 = operator request
+           4 = peer delete request was received
+           5 = contact with peer was lost
+           6 = sequence number rolled over
+           7 = local failure occurred."
+       ::= { ikeTunnelHistEntry 2 }
+
+    ikeTunHistActiveIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The index of the previously active IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelHistEntry 3 }
+
+    ikeTunHistPeerLocalType OBJECT-TYPE
+       SYNTAX IkePeerType
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The type of local peer identity.  The local peer may be
+           indentified by:
+           1. an IP address, or
+           2. a host name."
+       ::= { ikeTunnelHistEntry 4 }
+
+    ikeTunHistPeerLocalValue OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The value of the local peer identity.
+
+           If the local peer type is an IP Address, then this
+           is the IP Address used to identify the local peer.
+           If the local peer type is a host name, then this is
+           the host name used to identify the local peer."
+       ::= { ikeTunnelHistEntry 5 }
+
+    ikeTunHistPeerIntIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The internal index of the local-remote peer association.
+           This internal index is used to uniquely identify
+           multiple associations between the local and remote peer."
+       ::= { ikeTunnelHistEntry 6 }
+
+    ikeTunHistPeerRemoteType OBJECT-TYPE
+       SYNTAX IkePeerType
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The type of remote peer identity.  The remote peer may be
+           indentified by:
+           1. an IP address, or
+           2. a host name."
+       ::= { ikeTunnelHistEntry 7 }
+
+    ikeTunHistPeerRemoteValue OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The value of the remote peer identity.
+
+           If the remote peer type is an IP Address, then this
+           is the IP Address used to identify the remote peer.
+
+           If the remote peer type is a host name, then this is
+           the host name used to identify the remote peer."
+       ::= { ikeTunnelHistEntry 8 }
+
+    ikeTunHistLocalAddr OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The IP address of the local endpoint for the IPsec
+           Phase-1 IKE Tunnel."
+       ::= { ikeTunnelHistEntry 9 }
+
+    ikeTunHistLocalName OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The DNS name of the local IP address for the IPsec Phase-1
+           IKE Tunnel. If the DNS name associated with the local
+           tunnel endpoint is not known, then the value of this
+           object will be a NULL string."
+       ::= { ikeTunnelHistEntry 10 }
+
+    ikeTunHistRemoteAddr OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The IP address of the remote endpoint for the IPsec
+           Phase-1 IKE Tunnel."
+       ::= { ikeTunnelHistEntry 11 }
+
+    ikeTunHistRemoteName OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The DNS name of the remote IP address of IPsec Phase-1
+           IKE Tunnel. If the DNS name associated with the remote
+           tunnel endpoint is not known, then the value of this
+           object will be a NULL string."
+       ::= { ikeTunnelHistEntry 12 }
+
+    ikeTunHistNegoMode OBJECT-TYPE
+       SYNTAX IkeNegoMode
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The negotiation mode of the IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelHistEntry 13 }
+
+    ikeTunHistDiffHellmanGrp OBJECT-TYPE
+       SYNTAX DiffHellmanGrp
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The Diffie Hellman Group used in IPsec Phase-1 IKE
+           negotiations."
+       ::= { ikeTunnelHistEntry 14 }
+
+    ikeTunHistEncryptAlgo OBJECT-TYPE
+       SYNTAX EncryptAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The encryption algorithm used in IPsec Phase-1 IKE
+           negotiations."
+       ::= { ikeTunnelHistEntry 15 }
+
+    ikeTunHistHashAlgo OBJECT-TYPE
+       SYNTAX IkeHashAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The hash algorithm used in IPsec Phase-1 IKE
+           negotiations."
+       ::= { ikeTunnelHistEntry 16 }
+
+    ikeTunHistAuthMethod OBJECT-TYPE
+       SYNTAX IkeAuthMethod
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The authentication method used in IPsec Phase-1 IKE
+           negotiations."
+       ::= { ikeTunnelHistEntry 17 }
+
+    ikeTunHistLifeTime OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The negotiated LifeTime of the IPsec Phase-1 IKE Tunnel
+           in seconds."
+       ::= { ikeTunnelHistEntry 18 }
+
+    ikeTunHistStartTime OBJECT-TYPE
+       SYNTAX TimeStamp
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The time when the IPsec Phase-1 IKE tunnel was started
+           in hundredths of seconds."
+       ::= { ikeTunnelHistEntry 19 }
+
+    ikeTunHistActiveTime OBJECT-TYPE
+       SYNTAX TimeInterval,
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The length of time the IPsec Phase-1 IKE tunnel was been
+           active in hundredths of seconds."
+       ::= { ikeTunnelHistEntry 20 }
+
+    ikeTunHistTotalRefreshes OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of security associations refreshes performed."
+       ::= { ikeTunnelHistEntry 21 }
+
+    ikeTunHistTotalSas       OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of security associations used during the
+           life of the IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelHistEntry 22 }
+
+
+    ikeTunHistInOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of octets received by this IPsec Phase-1
+           IKE Tunnel."
+       ::= { ikeTunnelHistEntry 23 }
+
+    ikeTunHistInPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets received by this IPsec Phase-1
+           IKE Tunnel."
+       ::= { ikeTunnelHistEntry 24 }
+
+    ikeTunHistInDropPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets dropped by this IPsec Phase-1
+           IKE Tunnel during receive processing."
+       ::= { ikeTunnelHistEntry 25 }
+
+    ikeTunHistInNotifys OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of notifys received by this IPsec Phase-1
+           IKE Tunnel."
+       ::= { ikeTunnelHistEntry 26 }
+
+    ikeTunHistInP2Exchgs OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges received by
+           this IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelHistEntry 27 }
+
+    ikeTunHistInP2ExchgInvalids OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges received and
+           found to be invalid by this IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelHistEntry 28 }
+
+    ikeTunHistInP2ExchgRejects OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges received and
+           rejected by this IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelHistEntry 29 }
+
+    ikeTunHistInP2SaDelRequests OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 security association
+           delete requests received by this IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelHistEntry 30 }
+
+    ikeTunHistOutOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of octets sent by this IPsec Phase-1
+           IKE Tunnel."
+       ::= { ikeTunnelHistEntry 31 }
+
+    ikeTunHistOutPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets sent by this IPsec Phase-1
+           IKE Tunnel."
+       ::= { ikeTunnelHistEntry 32 }
+
+    ikeTunHistOutDropPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets dropped by this IPsec Phase-1
+           IKE Tunnel during send processing."
+       ::= { ikeTunnelHistEntry 33 }
+
+    ikeTunHistOutNotifys OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of notifys sent by this IPsec Phase-1
+           IKE Tunnel."
+       ::= { ikeTunnelHistEntry 34 }
+
+    ikeTunHistOutP2Exchgs OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges sent by
+           this IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelHistEntry 35 }
+
+    ikeTunHistOutP2ExchgInvalids OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges sent and
+           found to be invalid by this IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelHistEntry 36 }
+
+    ikeTunHistOutP2ExchgRejects OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 exchanges sent and
+           rejected by this IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelHistEntry 37 }
+
+    ikeTunHistOutP2SaDelRequests OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of IPsec Phase-2 security association
+           delete requests sent by this IPsec Phase-1 IKE Tunnel."
+       ::= { ikeTunnelHistEntry 38 }
+
+ -- ----------------------------------------------------------------------------
+ -- The IPsec Phase-2 Tunnel History Table
+ -- ----------------------------------------------------------------------------
+    IPsecTunnelHistTable OBJECT-TYPE
+       SYNTAX SEQUENCE OF IPsecTunnelHistEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The IPsec Phase-2 Tunnel History Table.
+           This table is implemented as a sliding window in which only the
+           last n entries are maintained.  The maximum number of entries
+           is specified by the IPsecHistTableSize object."
+       ::= { IPsecHistPhaseTwo 1 }
+
+    IPsecTunnelHistEntry OBJECT-TYPE
+       SYNTAX IPsecTunnelHistEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "Each entry contains the attributes associated with
+           a previously active IPsec Phase-2 Tunnel."
+       INDEX { IPsecTunHistIndex }
+       ::= { IPsecTunnelHistTable 1 }
+
+    IPsecTunnelHistEntry ::= SEQUENCE {
+       IPsecTunHistIndex                Integer32,
+       IPsecTunHistTermReason           INTEGER,
+       IPsecTunHistActiveIndex          Integer32,
+       IPsecTunHistIkeTunnelIndex       Integer32,
+       IPsecTunHistLocalAddr            IPSIpAddress,
+       IPsecTunHistRemoteAddr           IPSIpAddress,
+       IPsecTunHistKeyType              KeyType,
+       IPsecTunHistEncapMode            EncapMode,
+       IPsecTunHistLifeSize             Integer32,
+       IPsecTunHistLifeTime             Integer32,
+       IPsecTunHistStartTime            TimeStamp,
+       IPsecTunHistActiveTime           TimeInterval,,
+       IPsecTunHistTotalRefreshes       Counter32,
+       IPsecTunHistTotalSas             Counter32,
+       IPsecTunHistInSaDiffHellmanGrp   DiffHellmanGrp,
+       IPsecTunHistInSaEncryptAlgo      EncryptAlgo,
+       IPsecTunHistInSaAhAuthAlgo       AuthAlgo,
+       IPsecTunHistInSaEspAuthAlgo      AuthAlgo,
+       IPsecTunHistInSaDecompAlgo       CompAlgo,
+       IPsecTunHistOutSaDiffHellmanGrp  DiffHellmanGrp,
+       IPsecTunHistOutSaEncryptAlgo     EncryptAlgo,
+       IPsecTunHistOutSaAhAuthAlgo      AuthAlgo,
+       IPsecTunHistOutSaEspAuthAlgo     AuthAlgo,
+       IPsecTunHistOutSaCompAlgo        CompAlgo,
+       IPsecTunHistInOctets             Counter32,
+       IPsecTunHistHcInOctets           Counter64,
+       IPsecTunHistInOctWraps           Counter32,
+       IPsecTunHistInDecompOctets       Counter32,
+       IPsecTunHistHcInDecompOctets     Counter64,
+       IPsecTunHistInDecompOctWraps     Counter32,
+       IPsecTunHistInPkts               Counter32,
+       IPsecTunHistInReplayDropPkts     Counter32,
+       IPsecTunHistInDropPkts           Counter32,
+       IPsecTunHistInAuths              Counter32,
+       IPsecTunHistInAuthFails          Counter32,
+       IPsecTunHistInDecrypts           Counter32,
+       IPsecTunHistInDecryptFails       Counter32,
+       IPsecTunHistOutOctets            Counter32,
+       IPsecTunHistHcOutOctets          Counter64,
+       IPsecTunHistOutOctWraps          Counter32,
+       IPsecTunHistOutUncompOctets      Counter32,
+       IPsecTunHistHcOutUncompOctets    Counter64,
+       IPsecTunHistOutUncompOctWraps    Counter32,
+       IPsecTunHistOutPkts              Counter32,
+       IPsecTunHistOutDropPkts          Counter32,
+       IPsecTunHistOutAuths             Counter32,
+       IPsecTunHistOutAuthFails         Counter32,
+       IPsecTunHistOutEncrypts          Counter32,
+       IPsecTunHistOutEncryptFails      Counter32
+    }
+
+    IPsecTunHistIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The index of the IPsec Phase-2 Tunnel History Table.
+           The value of the index is a number which begins at one and
+           is incremented with each tunnel that ends. The value
+           of this object will wrap at 2,147,483,647."
+       ::= { IPsecTunnelHistEntry 1 }
+
+    IPsecTunHistTermReason  OBJECT-TYPE
+       SYNTAX INTEGER {
+                 other(1),
+                 normal(2),
+                 operRequest(3),
+                 peerDelRequest(4),
+                 peerLost(5),
+                 seqNumRollOver(6)
+              }
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The reason the IPsec Phase-2 Tunnel was terminated.
+           Possible reasons include:
+           1 = other
+           2 = normal termination
+           3 = operator request
+           4 = peer delete request was received
+           5 = contact with peer was lost
+           6 = local failure occurred
+           7 = sequence number rolled over."
+       ::= { IPsecTunnelHistEntry 2 }
+
+    IPsecTunHistActiveIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The index of the previously active IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 3 }
+
+    IPsecTunHistIkeTunnelIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The index of the associated IPsec Phase-1 Tunnel
+           (ikeTunIndex in the ikeTunnelTable)."
+       ::= { IPsecTunnelHistEntry 4 }
+
+    IPsecTunHistLocalAddr OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The IP address of the local endpoint for the IPsec
+           Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 5 }
+
+    IPsecTunHistRemoteAddr OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The IP address of the remote endpoint for the IPsec
+           Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 6 }
+
+    IPsecTunHistKeyType OBJECT-TYPE
+       SYNTAX KeyType
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The type of key used by the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 7 }
+
+    IPsecTunHistEncapMode OBJECT-TYPE
+       SYNTAX EncapMode
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The encapsulation mode used by the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 8 }
+
+    IPsecTunHistLifeSize OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The negotiated LifeSize of the IPsec Phase-2 Tunnel in
+           kilobytes."
+       ::= { IPsecTunnelHistEntry 9 }
+
+    IPsecTunHistLifeTime OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The negotiated LifeTime of the IPsec Phase-2 Tunnel in
+           seconds."
+       ::= { IPsecTunnelHistEntry 10 }
+
+    IPsecTunHistStartTime OBJECT-TYPE
+       SYNTAX TimeStamp
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The time when the IPsec Phase-2 Tunnel was started
+           in hundredths of seconds."
+       ::= { IPsecTunnelHistEntry 11 }
+
+    IPsecTunHistActiveTime OBJECT-TYPE
+       SYNTAX TimeInterval,
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The length of time the IPsec Phase-2 Tunnel has been
+           active in hundredths of seconds."
+       ::= { IPsecTunnelHistEntry 12 }
+
+    IPsecTunHistTotalRefreshes OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of security association refreshes performed."
+       ::= { IPsecTunnelHistEntry 13 }
+
+    IPsecTunHistTotalSas OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of security associations used during the
+           life of the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 14 }
+
+    IPsecTunHistInSaDiffHellmanGrp OBJECT-TYPE
+       SYNTAX DiffHellmanGrp
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The Diffie Hellman Group used by the inbound security
+           association of the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 15 }
+
+    IPsecTunHistInSaEncryptAlgo OBJECT-TYPE
+       SYNTAX EncryptAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The encryption algorithm used by the inbound security
+           association of the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 16 }
+
+    IPsecTunHistInSaAhAuthAlgo OBJECT-TYPE
+       SYNTAX AuthAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The authentication algorithm used by the inbound
+           authentication header (AH) security association of
+           the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 17 }
+
+    IPsecTunHistInSaEspAuthAlgo OBJECT-TYPE
+       SYNTAX AuthAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The authentication algorithm used by the inbound
+           ecapsulation security protocol (ESP) security association of
+           the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 18 }
+
+    IPsecTunHistInSaDecompAlgo OBJECT-TYPE
+       SYNTAX CompAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The decompression algorithm used by the inbound
+           security association of the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 19 }
+
+    IPsecTunHistOutSaDiffHellmanGrp OBJECT-TYPE
+       SYNTAX DiffHellmanGrp
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The Diffie Hellman Group used by the outbound security
+           association of the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 20 }
+
+    IPsecTunHistOutSaEncryptAlgo OBJECT-TYPE
+       SYNTAX EncryptAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The encryption algorithm used by the outbound security
+           association of the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 21 }
+
+    IPsecTunHistOutSaAhAuthAlgo OBJECT-TYPE
+       SYNTAX AuthAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The authentication algorithm used by the outbound
+           authentication header (AH) security association of
+           the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 22 }
+
+    IPsecTunHistOutSaEspAuthAlgo OBJECT-TYPE
+       SYNTAX AuthAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The authentication algorithm used by the inbound
+           ecapsulation security protocol (ESP) security association of
+           the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 23 }
+
+    IPsecTunHistOutSaCompAlgo OBJECT-TYPE
+       SYNTAX CompAlgo
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The compression algorithm used by the inbound
+           security association of the IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 24 }
+
+    IPsecTunHistInOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of octets received by this IPsec
+           Phase-2 Tunnel.  This value is accumulated
+           BEFORE determining whether or not the packet should be
+           decompressed.  See also IPsecTunInOctWraps for the
+           number of times this counter has wrapped."
+       ::= { IPsecTunnelHistEntry 25 }
+
+    IPsecTunHistHcInOctets OBJECT-TYPE
+       SYNTAX Counter64
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "A high capacity count of the total number of octets
+           received by this IPsec Phase-2 Tunnel.  This value is
+           accumulated BEFORE determining whether or not the packet
+           should be decompressed."
+       ::= { IPsecTunnelHistEntry 26 }
+
+    IPsecTunHistInOctWraps OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The number of times the octets received counter
+           (IPsecTunInOctets) has wrapped."
+       ::= { IPsecTunnelHistEntry 27 }
+
+    IPsecTunHistInDecompOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of decompressed octets received by this
+           IPsec Phase-2 Tunnel.  This value is accumulated AFTER
+           the packet is decompressed. If compression is not being
+           used, this value will match the value of IPsecTunInOctets.
+           See also IPsecTunInDecompOctWraps for the number of times
+           this counter has wrapped."
+       ::= { IPsecTunnelHistEntry 28 }
+
+    IPsecTunHistHcInDecompOctets OBJECT-TYPE
+       SYNTAX Counter64
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "A high capacity count of the total number of decompressed
+           octets received by this IPsec Phase-2 Tunnel.  This value
+           is accumulated AFTER the packet is decompressed. If
+           compression is not being used, this value will match the
+           value of IPsecTunHcInOctets."
+       ::= { IPsecTunnelHistEntry 29 }
+
+    IPsecTunHistInDecompOctWraps OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The number of times the decompressed octets received counter
+           (IPsecTunInDecompOctets) has wrapped."
+       ::= { IPsecTunnelHistEntry 30 }
+
+    IPsecTunHistInPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets received by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 31 }
+
+    IPsecTunHistInDropPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets dropped during receive processing
+           by this IPsec Phase-2 Tunnel. This count does NOT include packets
+           dropped due to Anti-Replay processing."
+       ::= { IPsecTunnelHistEntry 32 }
+
+    IPsecTunHistInReplayDropPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets dropped during receive processing
+           due to Anti-Replay processing by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 33 }
+
+    IPsecTunHistInAuths OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of inbound authentication's performed
+           by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 34 }
+
+    IPsecTunHistInAuthFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of inbound authentication's which ended in
+           failure by this IPsec Phase-2 Tunnel ."
+       ::= { IPsecTunnelHistEntry 35 }
+
+    IPsecTunHistInDecrypts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of inbound decryption's performed
+           by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 36 }
+
+    IPsecTunHistInDecryptFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of inbound decryption's which ended in failure
+           by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 37 }
+
+    IPsecTunHistOutOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of octets sent by this IPsec
+           Phase-2 Tunnel.  This value is accumulated
+           AFTER determining whether or not the packet should be
+           compressed.  See also IPsecTunOutOctWraps for the
+           number of times this counter has wrapped."
+       ::= { IPsecTunnelHistEntry 38 }
+
+    IPsecTunHistHcOutOctets OBJECT-TYPE
+       SYNTAX Counter64
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "A high capacity count of the total number of octets
+           sent by this IPsec Phase-2 Tunnel.  This value is accumulated
+           AFTER determining whether or not the packet should be
+           compressed."
+       ::= { IPsecTunnelHistEntry 39 }
+
+    IPsecTunHistOutOctWraps OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The number of times the octets sent counter
+           (IPsecTunOutOctets) has wrapped."
+       ::= { IPsecTunnelHistEntry 40 }
+
+    IPsecTunHistOutUncompOctets OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of uncompressed octets sent by this
+           IPsec Phase-2 Tunnel.  This value is accumulated BEFORE
+           the packet is compressed. If compression is not being
+           used, this value will match the value of IPsecTunOutOctets.
+           See also IPsecTunOutDecompOctWraps for the number of times
+           this counter has wrapped."
+       ::= { IPsecTunnelHistEntry 41 }
+
+    IPsecTunHistHcOutUncompOctets OBJECT-TYPE
+       SYNTAX Counter64
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "A high capacity count of the total number of uncompressed
+           octets sent by this IPsec Phase-2 Tunnel.  This value is
+           accumulated BEFORE the packet is compressed. If compression
+           is not being used, this value will match the value of
+           IPsecTunHcOutOctets."
+       ::= { IPsecTunnelHistEntry 42 }
+
+    IPsecTunHistOutUncompOctWraps OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The number of times the uncompressed octets sent counter
+           (IPsecTunInUncompOctets) has wrapped."
+       ::= { IPsecTunnelHistEntry 43 }
+
+    IPsecTunHistOutPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets sent by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 44 }
+
+    IPsecTunHistOutDropPkts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of packets dropped during send processing
+           by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 45 }
+
+    IPsecTunHistOutAuths OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of outbound authentication's performed
+           by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 46 }
+
+    IPsecTunHistOutAuthFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of outbound authentication's which ended in
+           failure by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 47 }
+
+    IPsecTunHistOutEncrypts OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of outbound encryption's performed
+           by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 48 }
+
+    IPsecTunHistOutEncryptFails OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The total number of outbound encryption's which ended in failure
+           by this IPsec Phase-2 Tunnel."
+       ::= { IPsecTunnelHistEntry 49 }
+
+ -- ----------------------------------------------------------------------------
+ -- The IPsec Phase-2 Tunnel Endpoint History Table
+ -- ----------------------------------------------------------------------------
+    IPsecEndPtHistTable OBJECT-TYPE
+       SYNTAX SEQUENCE OF IPsecEndPtHistEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The IPsec Phase-2 Tunnel Endpoint History Table.
+           This table is implemented as a sliding window in which only the
+           last n entries are maintained.  The maximum number of entries
+           is specified by the IPsecHistTableSize object."
+       ::= { IPsecHistPhaseTwo 2 }
+
+    IPsecEndPtHistEntry OBJECT-TYPE
+       SYNTAX IPsecEndPtHistEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "Each entry contains the attributes associated with
+           a previously active IPsec Phase-2 Tunnel Endpoint."
+       INDEX { IPsecEndPtHistIndex }
+       ::= { IPsecEndPtHistTable 1 }
+
+    IPsecEndPtHistEntry ::= SEQUENCE {
+       IPsecEndPtHistIndex                Integer32,
+       IPsecEndPtHistTunIndex             Integer32,
+       IPsecEndPtHistActiveIndex          Integer32,
+       IPsecEndPtHistLocalName            DisplayString,
+       IPsecEndPtHistLocalType            EndPtType,
+       IPsecEndPtHistLocalAddr1           IPSIpAddress,
+       IPsecEndPtHistLocalAddr2           IPSIpAddress,
+       IPsecEndPtHistLocalProtocol        Integer32,
+       IPsecEndPtHistLocalPort            Integer32,
+       IPsecEndPtHistRemoteName           DisplayString,
+       IPsecEndPtHistRemoteType           EndPtType,
+       IPsecEndPtHistRemoteAddr1          IPSIpAddress,
+       IPsecEndPtHistRemoteAddr2          IPSIpAddress,
+       IPsecEndPtHistRemoteProtocol       Integer32,
+       IPsecEndPtHistRemotePort           Integer32
+    }
+
+    IPsecEndPtHistIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The number of the previously active Endpoint associated
+           with a IPsec Phase-2 Tunnel Table.  The value of this
+           index is a number which begins at one and is incremented
+           with each Endpoint associated with an IPsec Phase-2 Tunnel.
+           The value of this object will wrap at 2,147,483,647."
+       ::= { IPsecEndPtHistEntry 1 }
+
+    IPsecEndPtHistTunIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The index  of the previously active IPsec Phase-2 Tunnel Table."
+       ::= { IPsecEndPtHistEntry 2 }
+
+    IPsecEndPtHistActiveIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The index  of the previously active Endpoint."
+       ::= { IPsecEndPtHistEntry 3 }
+
+    IPsecEndPtHistLocalName OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The DNS name of the local Endpoint."
+       ::= { IPsecEndPtHistEntry 4 }
+
+    IPsecEndPtHistLocalType OBJECT-TYPE
+       SYNTAX INTEGER {
+                 singleIpAddr(1),
+                 ipAddrRange(2),
+                 ipSubnet(3)
+              }
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The type of identity for the local Endpoint.
+           Possible values are:
+           1) a single IP address, or
+           2) an IP address range, or
+           3) an IP subnet."
+       ::= { IPsecEndPtHistEntry 5 }
+
+    IPsecEndPtHistLocalAddr1 OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+         "The local Endpoint's first IP address specification.
+
+          If the local Endpoint type is single IP address, then this
+          is the value of the IP address.
+
+          If the local Endpoint type is IP subnet, then this
+          is the value of the subnet.
+
+          If the local Endpoint type is IP address range, then this
+          is the value of beginning IP address of the range."
+       ::= { IPsecEndPtHistEntry 6 }
+
+    IPsecEndPtHistLocalAddr2 OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+         "The local Endpoint's second IP address specification.
+
+          If the local Endpoint type is single IP address, then this
+          is the value of the IP address.
+
+          If the local Endpoint type is IP subnet, then this
+          is the value of the subnet mask.
+
+          If the local Endpoint type is IP address range, then this
+          is the value of ending IP address of the range."
+       ::= { IPsecEndPtHistEntry 7 }
+
+    IPsecEndPtHistLocalProtocol OBJECT-TYPE
+       SYNTAX Integer32(1..255)
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The protocol number of the local Endpoint's traffic."
+       ::= { IPsecEndPtHistEntry 8 }
+
+    IPsecEndPtHistLocalPort OBJECT-TYPE
+       SYNTAX Integer32(0..65535)
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The port number of the local Endpoint's traffic."
+       ::= { IPsecEndPtHistEntry 9 }
+
+    IPsecEndPtHistRemoteName OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The DNS name of the remote Endpoint."
+       ::= { IPsecEndPtHistEntry 10 }
+
+    IPsecEndPtHistRemoteType OBJECT-TYPE
+       SYNTAX INTEGER {
+                 singleIpAddr(1),
+                 ipAddrRange(2),
+                 ipSubnet(3)
+              }
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The type of identity for the remote Endpoint.
+           Possible values are:
+           1) a single IP address, or
+           2) an IP address range, or
+           3) an IP subnet."
+       ::= { IPsecEndPtHistEntry 11 }
+
+    IPsecEndPtHistRemoteAddr1 OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+         "The remote Endpoint's first IP address specification.
+
+          If the remote Endpoint type is single IP address, then this
+          is the value of the IP address.
+
+          If the remote Endpoint type is IP subnet, then this
+          is the value of the subnet.
+
+          If the remote Endpoint type is IP address range, then this
+          is the value of beginning IP address of the range."
+       ::= { IPsecEndPtHistEntry 12 }
+
+    IPsecEndPtHistRemoteAddr2 OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+         "The remote Endpoint's second IP address specification.
+
+          If the remote Endpoint type is single IP address, then this
+          is the value of the IP address.
+
+          If the remote Endpoint type is IP subnet, then this
+          is the value of the subnet mask.
+
+          If the remote Endpoint type is IP address range, then this
+          is the value of ending IP address of the range."
+       ::= { IPsecEndPtHistEntry 13 }
+
+    IPsecEndPtHistRemoteProtocol OBJECT-TYPE
+       SYNTAX Integer32(1..255)
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The protocol number of the remote Endpoint's traffic."
+       ::= { IPsecEndPtHistEntry 14 }
+
+    IPsecEndPtHistRemotePort OBJECT-TYPE
+       SYNTAX Integer32(0..65535)
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The port number of the remote Endpoint's traffic."
+       ::= { IPsecEndPtHistEntry 15 }
+
+ -- start here
+ -- -------------------------------------------------------------------------
+ -- The IPsec Failure Group
+ --
+ -- This group consists of a:
+ -- 1) IPsec Failure Global Objects
+ -- 2) IPsec Phase-1 Tunnel Failure Table
+ -- 3) IPsec Phase-2 Tunnel Failure Table
+ -- -------------------------------------------------------------------------
+    IPsecFailGlobal         OBJECT IDENTIFIER ::= { IPsecFailures 1 }
+    IPsecFailPhaseOne       OBJECT IDENTIFIER ::= { IPsecFailures 2 }
+    IPsecFailPhaseTwo       OBJECT IDENTIFIER ::= { IPsecFailures 3 }
+
+ -- ----------------------------------------------------------------------------
+ -- The IPsec Failure Global Control Objects
+ -- ----------------------------------------------------------------------------
+    IPsecFailGlobalCntl  OBJECT IDENTIFIER    ::= { IPsecFailGlobal 1 }
+    IPsecFailTableSize  OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+          "The window size of the IPsec Phase-1 and Phase-2
+           Failure Tables.
+
+           The IPsec Phase-1 and Phase-2 Failure Tables are
+           implemented as a sliding window in which only the
+           last n entries are maintained.  This object is used
+           specify the number of entries which will be maintained
+           in the IPsec Phase-1 and Phase-2 Failure Tables.
+
+           When modified by an SNMP SET request, the device will
+           set the value of this object as close as possible to
+           the requested value based on the implementation and
+           available resources."
+       ::= { IPsecFailGlobalCntl 1 }
+
+ -- ----------------------------------------------------------------------------
+ -- The IPsec Phase-1 Failure Table
+ -- ----------------------------------------------------------------------------
+    ikeFailTable OBJECT-TYPE
+       SYNTAX SEQUENCE OF IkeFailEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The IPsec Phase-1 Failure Table.
+           This table is implemented as a sliding window in which only the
+           last n entries are maintained.  The maximum number of entries
+           is specified by the IPsecFailTableSize object."
+       ::= { IPsecFailPhaseOne 1 }
+
+    ikeFailEntry OBJECT-TYPE
+       SYNTAX IkeFailEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+             "Each entry contains the attributes associated with
+              an IPsec Phase-1 failure."
+       INDEX { ikeFailIndex }
+       ::= { ikeFailTable 1 }
+
+    IkeFailEntry ::= SEQUENCE {
+       ikeFailIndex                Integer32,
+       ikeFailReason               INTEGER,
+       ikeFailTime                 TimeStamp,
+       ikeFailLocalType            IkePeerType,
+       ikeFailLocalValue           DisplayString,
+       ikeFailRemoteType           IkePeerType,
+       ikeFailRemoteValue          DisplayString,
+       ikeFailLocalAddr            IPSIpAddress,
+       ikeFailRemoteAddr           IPSIpAddress
+    }
+
+    ikeFailIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The IPsec Phase-1 Failure Table index.
+           The value of the index is a number which begins at one and
+           is incremented with each IPsec Phase-1 failure. The value
+           of this object will wrap at 2,147,483,647."
+       ::= { ikeFailEntry 1 }
+
+    ikeFailReason OBJECT-TYPE
+       SYNTAX INTEGER{
+                other(1),
+                peerDelRequest(2),
+                peerLost(3),
+                localFailure(4),
+                seqNumRollOver(5),
+                authFailure(6),
+                hashValidation(7),
+                encryptFailure(8),
+                internalError(9),
+                sysCapExceeded(10),
+                proposalFailure(11),
+                peerCertUnavailable(12),
+                peerCertNotValid(13),
+                localCertExpired(14),
+                crlFailure(15),
+                peerEncodingError(16),
+                nonExistentSa(17),
+                operRequest(18)
+              }
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The reason for the failure.  Possible reasons include:
+            1 = other
+            2 = peer delete request was received
+            3 = contact with peer was lost
+            4 = local failure occurred
+            5 = sequence number rolled over
+            6 = authentication failure
+            7 = hash validation failure
+            8 = encryption failure
+            9 = internal error occurred
+           10 = system capacity failure
+           11 = proposal failure
+           12 = peer's certificate is unavailable
+           13 = peer's certificate was found invalid
+           14 = local certificate expired
+           15 = certificate revoke list (crl) failure
+           16 = peer encoding error
+           17 = non-existent security association
+           18 = operator requested termination."
+       ::= { ikeFailEntry 2 }
+
+    ikeFailTime OBJECT-TYPE
+       SYNTAX TimeStamp
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The time of the failure in hundredths of seconds."
+       ::= { ikeFailEntry 3 }
+
+    ikeFailLocalType OBJECT-TYPE
+       SYNTAX IkePeerType
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The type of local peer identity.  The local peer may be
+           indentified by:
+           1. an IP address, or
+           2. a host name."
+       ::= { ikeFailEntry 4 }
+
+    ikeFailLocalValue OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The value of the local peer identity.
+
+           If the local peer type is an IP Address, then this
+           is the IP Address used to identify the local peer.
+
+           If the local peer type is a host name, then this is
+           the host name used to identify the local peer."
+       ::= { ikeFailEntry 5 }
+
+    ikeFailRemoteType OBJECT-TYPE
+       SYNTAX IkePeerType
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The type of remote peer identity.  The remote peer may be
+           indentified by:
+           1. an IP address, or
+           2. a host name."
+       ::= { ikeFailEntry 6 }
+
+    ikeFailRemoteValue OBJECT-TYPE
+       SYNTAX DisplayString
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The value of the remote peer identity.
+
+           If the remote peer type is an IP Address, then this
+           is the IP Address used to identify the remote peer.
+
+           If the remote peer type is a host name, then this is
+           the host name used to identify the remote peer."
+       ::= { ikeFailEntry 7 }
+
+    ikeFailLocalAddr OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The IP address of the local peer."
+       ::= { ikeFailEntry 8 }
+
+    ikeFailRemoteAddr OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The IP address of the remote peer."
+       ::= { ikeFailEntry 9 }
+
+ -- ----------------------------------------------------------------------------
+ -- The IPsec Phase-2 Failure Table
+ -- ----------------------------------------------------------------------------
+    IPsecFailTable OBJECT-TYPE
+       SYNTAX SEQUENCE OF IPsecFailEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The IPsec Phase-2 Failure Table.
+           This table is implemented as a sliding window in which only the
+           last n entries are maintained.  The maximum number of entries
+           is specified by the IPsecFailTableSize object."
+       ::= { IPsecFailPhaseTwo 1 }
+
+    IPsecFailEntry OBJECT-TYPE
+       SYNTAX IPsecFailEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "Each entry contains the attributes associated with
+           an IPsec Phase-1 failure."
+       INDEX { IPsecFailIndex }
+       ::= { IPsecFailTable 1 }
+
+    IPsecFailEntry ::= SEQUENCE {
+       IPsecFailIndex                Integer32,
+       IPsecFailReason               INTEGER,
+       IPsecFailTime                 TimeStamp,
+       IPsecFailTunnelIndex          Integer32,
+       IPsecFailSaSpi                Integer32,
+       IPsecFailPktSrcAddr           IPSIpAddress,
+       IPsecFailPktDstAddr           IPSIpAddress
+    }
+
+    IPsecFailIndex OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+          "The IPsec Phase-2 Failure Table index.
+           The value of the index is a number which begins at one and
+           is incremented with each IPsec Phase-1 failure. The value
+           of this object will wrap at 2,147,483,647."
+       ::= { IPsecFailEntry 1 }
+
+    IPsecFailReason OBJECT-TYPE
+       SYNTAX INTEGER{
+                other(1),
+                internalError(2),
+                peerEncodingError(3),
+                proposalFailure(4),
+                protocolUseFail(5),
+                nonExistentSa(6),
+                decryptFailure(7),
+                encryptFailure(8),
+                inAuthFailure(9),
+                outAuthFailure(10),
+                compression(11),
+                sysCapExceeded(12),
+                peerDelRequest(13),
+                peerLost(14),
+                seqNumRollOver(15),
+                operRequest(16)
+              }
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The reason for the failure.  Possible reasons include:
+            1 = other
+            2 = internal error occurred
+            3 = peer encoding error
+            4 = proposal failure
+            5 = protocol use failure
+            6 = non-existent security association
+            7 = decryption failure
+            8 = encryption failure
+            9 = inbound authentication failure
+           10 = outbound authentication failure
+           11 = compression failure
+           12 = system capacity failure
+           13 = peer delete request was received
+           14 = contact with peer was lost
+           15 = sequence number rolled over
+           16 = operator requested termination."
+       ::= { IPsecFailEntry 2 }
+
+    IPsecFailTime OBJECT-TYPE
+       SYNTAX TimeStamp
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The time of the failure in hundredths of seconds."
+       ::= { IPsecFailEntry 3 }
+
+    IPsecFailTunnelIndex OBJECT-TYPE
+       SYNTAX Integer32(0..65535)
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The Phase-2 Tunnel index (IPsecTunIndex)."
+       ::= { IPsecFailEntry 4 }
+
+    IPsecFailSaSpi  OBJECT-TYPE
+       SYNTAX Integer32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The security association SPI value."
+       ::= { IPsecFailEntry 5 }
+
+    IPsecFailPktSrcAddr  OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The packet's source IP address."
+       ::= { IPsecFailEntry 6 }
+
+    IPsecFailPktDstAddr  OBJECT-TYPE
+       SYNTAX IPSIpAddress
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+          "The packet's destination IP address."
+       ::= { IPsecFailEntry 7 }
+
+ -- ----------------------------------------------------------------------------
+ -- The IPsec TRAP Control Group
+ --
+ -- This group of objects controls the sending of IPsec TRAPs.
+ -- ----------------------------------------------------------------------------
+    IPsecTrapCntlIkeTunnelStart OBJECT-TYPE
+       SYNTAX TrapStatus
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+          "This object defines the administrative state of sending the
+           IPsec IKE Phase-1 Tunnel Start TRAP "
+       DEFVAL { disabled }
+       ::= { IPsecTrapCntl 1 }
+
+    IPsecTrapCntlIkeTunnelStop OBJECT-TYPE
+       SYNTAX TrapStatus
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+          "This object defines the administrative state of sending the
+           IPsec IKE Phase-1 Tunnel Stop TRAP "
+       DEFVAL { disabled }
+       ::= { IPsecTrapCntl 2 }
+
+    IPsecTrapCntlIkeSysFailure OBJECT-TYPE
+       SYNTAX TrapStatus
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+          "This object defines the administrative state of sending the
+           IPsec IKE Phase-1 System Failure TRAP "
+       DEFVAL { disabled }
+       ::= { IPsecTrapCntl 3 }
+
+    IPsecTrapCntlIkeCertCrlFailure OBJECT-TYPE
+       SYNTAX TrapStatus
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+          "This object defines the administrative state of sending the
+           IPsec IKE Phase-1 Certificate/CRL Failure TRAP "
+       DEFVAL { disabled }
+       ::= { IPsecTrapCntl 4 }
+
+    IPsecTrapCntlIkeProtocolFailure OBJECT-TYPE
+       SYNTAX TrapStatus
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+          "This object defines the administrative state of sending the
+           IPsec IKE Phase-1 Protocol Failure TRAP "
+       DEFVAL { disabled }
+       ::= { IPsecTrapCntl 5 }
+
+    IPsecTrapCntlIkeNoSa OBJECT-TYPE
+       SYNTAX TrapStatus
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+          "This object defines the administrative state of sending the
+           IPsec IKE Phase-1 No Security Association TRAP "
+       DEFVAL { disabled }
+       ::= { IPsecTrapCntl 6 }
+
+    IPsecTrapCntlIPsecTunnelStart OBJECT-TYPE
+       SYNTAX TrapStatus
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+          "This object defines the administrative state of sending the IPsec
+           Phase-2 Tunnel Start TRAP "
+       DEFVAL { disabled }
+       ::= { IPsecTrapCntl 7 }
+
+    IPsecTrapCntlIPsecTunnelStop OBJECT-TYPE
+       SYNTAX TrapStatus
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+          "This object defines the administrative state of sending the IPsec
+           Phase-2 Tunnel Stop TRAP "
+       DEFVAL { disabled }
+       ::= { IPsecTrapCntl 8 }
+
+    IPsecTrapCntlIPsecSysFailure OBJECT-TYPE
+       SYNTAX TrapStatus
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+          "This object defines the administrative state of sending the IPsec
+           Phase-2 System Failure TRAP "
+       DEFVAL { disabled }
+       ::= { IPsecTrapCntl 9 }
+
+    IPsecTrapCntlIPsecSetUpFailure OBJECT-TYPE
+       SYNTAX TrapStatus
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+          "This object defines the administrative state of sending the IPsec
+           Phase-2 Set Up Failure TRAP "
+       DEFVAL { disabled }
+       ::= { IPsecTrapCntl 10 }
+
+    IPsecTrapCntlIPsecEarlyTunTerm OBJECT-TYPE
+       SYNTAX TrapStatus
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+          "This object defines the administrative state of sending the IPsec
+           Phase-2 Earily Tunnel Termination TRAP "
+       DEFVAL { disabled }
+       ::= { IPsecTrapCntl 11 }
+
+    IPsecTrapCntlIPsecProtocolFailure OBJECT-TYPE
+       SYNTAX TrapStatus
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+          "This object defines the administrative state of sending the IPsec
+           Phase-2 Protocol Failure TRAP "
+       DEFVAL { disabled }
+       ::= { IPsecTrapCntl 12 }
+
+    IPsecTrapCntlIPsecNoSa OBJECT-TYPE
+       SYNTAX TrapStatus
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+          "This object defines the administrative state of sending the IPsec
+           Phase-2  No Security Association TRAP "
+       DEFVAL { disabled }
+       ::= { IPsecTrapCntl 13 }
+
+ -- ----------------------------------------------------------------------------
+ -- IPsec Notifications - TRAPs
+ -- ----------------------------------------------------------------------------
+
+    IPsecMIBNotifications   OBJECT IDENTIFIER  ::= {IPsecMIB 0}
+
+    ikeTunnelStart NOTIFICATION-TYPE
+       OBJECTS {
+                 ikePeerLocalType,
+                 ikePeerLocalValue,
+                 ikePeerLocalAddr,
+                 ikePeerRemoteType,
+                 ikePeerRemoteValue,
+                 ikePeerRemoteAddr,
+                 ikePeerIntIndex,
+                 ikeTunIndex
+               }
+       STATUS  current
+       DESCRIPTION
+          "This notification is generated when an IPsec Phase-1
+           IKE Tunnel becomes active."
+       ::= { IPsecMIBNotifications 1 }
+
+    ikeTunnelStop NOTIFICATION-TYPE
+       OBJECTS {
+                 ikePeerLocalType,
+                 ikePeerLocalValue,
+                 ikePeerLocalAddr,
+                 ikePeerRemoteType,
+                 ikePeerRemoteValue,
+                 ikePeerRemoteAddr,
+                 ikePeerIntIndex,
+                 ikeTunIndex
+               }
+       STATUS  current
+       DESCRIPTION
+          "This notification is generated when an IPsec Phase-1
+           IKE Tunnel becomes inactive."
+       ::= { IPsecMIBNotifications 2 }
+
+    ikeSysFailure NOTIFICATION-TYPE
+       OBJECTS {
+                 ikePeerLocalType,
+                 ikePeerLocalValue,
+                 ikePeerLocalAddr,
+                 ikePeerRemoteType,
+                 ikePeerRemoteValue,
+                 ikePeerRemoteAddr,
+                 ikePeerIntIndex
+               }
+       STATUS  current
+       DESCRIPTION
+          "This notification is generated when the processing for
+           an IPsec Phase-1 IKE Tunnel experiences an internal
+           or system capacity error."
+       ::= { IPsecMIBNotifications 3 }
+
+    ikeCertCrlFailure NOTIFICATION-TYPE
+       OBJECTS {
+                 ikePeerLocalType,
+                 ikePeerLocalValue,
+                 ikePeerLocalAddr,
+                 ikePeerRemoteType,
+                 ikePeerRemoteValue,
+                 ikePeerRemoteAddr,
+                 ikePeerIntIndex
+               }
+       STATUS  current
+       DESCRIPTION
+          "This notification is generated when the processing for
+           an IPsec Phase-1 IKE Tunnel experiences a Certificate
+           or a Certificate Revoke List (CRL) related error."
+       ::= { IPsecMIBNotifications 4 }
+
+    ikeProtocolFailure NOTIFICATION-TYPE
+       OBJECTS {
+                 ikePeerLocalType,
+                 ikePeerLocalValue,
+                 ikePeerLocalAddr,
+                 ikePeerRemoteType,
+                 ikePeerRemoteValue,
+                 ikePeerRemoteAddr,
+                 ikePeerIntIndex
+               }
+       STATUS  current
+       DESCRIPTION
+          "This notification is generated when the processing for
+           an IPsec Phase-1 IKE Tunnel experiences a protocol
+           related error."
+       ::= { IPsecMIBNotifications 5 }
+
+    ikeNoSa NOTIFICATION-TYPE
+       OBJECTS {
+                 ikePeerLocalType,
+                 ikePeerLocalValue,
+                 ikePeerLocalAddr,
+                 ikePeerRemoteType,
+                 ikePeerRemoteValue,
+                 ikePeerRemoteAddr,
+                 ikePeerIntIndex
+               }
+       STATUS  current
+       DESCRIPTION
+          "This notification is generated when the processing for
+           an IPsec Phase-1 IKE Tunnel experiences a non-existent
+           security association error."
+       ::= { IPsecMIBNotifications 6 }
+
+    IPsecTunnelStart NOTIFICATION-TYPE
+       OBJECTS {
+                 IPsecTunIndex
+               }
+       STATUS  current
+       DESCRIPTION
+          "This notification is generated when an IPsec Phase-2
+           Tunnel becomes active."
+        ::= { IPsecMIBNotifications 7 }
+
+    IPsecTunnelStop NOTIFICATION-TYPE
+       OBJECTS {
+                 IPsecTunIndex
+               }
+       STATUS  current
+       DESCRIPTION
+          "This notification is generated when an IPsec Phase-2
+           Tunnel becomes inactive."
+       ::= { IPsecMIBNotifications 8 }
+
+    IPsecSysFailure NOTIFICATION-TYPE
+       OBJECTS {
+                 ikePeerLocalType,
+                 ikePeerLocalValue,
+                 ikePeerLocalAddr,
+                 ikePeerRemoteType,
+                 ikePeerRemoteValue,
+                 ikePeerRemoteAddr,
+                 ikePeerIntIndex,
+                 IPsecTunIndex,
+                 IPsecSpiIndex
+               }
+       STATUS  current
+       DESCRIPTION
+          "This notification is generated when the processing for
+           an IPsec Phase-2 Tunnel experiences an internal
+           or system capacity error."
+       ::= { IPsecMIBNotifications 9 }
+
+    IPsecSetUpFailure NOTIFICATION-TYPE
+       OBJECTS {
+                 ikePeerLocalType,
+                 ikePeerLocalValue,
+                 ikePeerLocalAddr,
+                 ikePeerRemoteType,
+                 ikePeerRemoteValue,
+                 ikePeerRemoteAddr,
+                 ikePeerIntIndex
+               }
+       STATUS  current
+       DESCRIPTION
+          "This notification is generated when the setup for
+           an IPsec Phase-2 Tunnel fails."
+       ::= { IPsecMIBNotifications 10 }
+
+    IPsecEarilyTunnelTerm NOTIFICATION-TYPE
+       OBJECTS {
+                 IPsecTunIndex,
+                 IPsecSpiIndex
+               }
+       STATUS  current
+       DESCRIPTION
+          "This notification is generated when an an IPsec Phase-2
+           Tunnel is terminated earily or before expected."
+       ::= { IPsecMIBNotifications 11 }
+
+    IPsecProtocolFailure NOTIFICATION-TYPE
+       OBJECTS {
+                 IPsecTunIndex,
+                 IPsecSpiIndex
+               }
+       STATUS  current
+       DESCRIPTION
+          "This notification is generated when the processing for
+           an IPsec Phase-2 Tunnel experiences a protocol
+           related error."
+       ::= { IPsecMIBNotifications 12 }
+
+    IPsecNoSa NOTIFICATION-TYPE
+       OBJECTS {
+                 IPsecTunIndex,
+                 IPsecSpiIndex
+               }
+       STATUS  current
+       DESCRIPTION
+          "This notification is generated when the processing for
+           an IPsec Phase-2 Tunnel experiences a non-existent
+           security association error."
+       ::= { IPsecMIBNotifications 13 }
+
+ -- ----------------------------------------------------------------------------
+ -- Conformance Information
+ -- ----------------------------------------------------------------------------
+    IPsecMIBConformance   OBJECT IDENTIFIER ::= { IPsecMIB 2 }
+
+    IPsecMIBGroups        OBJECT IDENTIFIER ::= { IPsecMIBConformance 1 }
+    IPsecMIBCompliances   OBJECT IDENTIFIER ::= { IPsecMIBConformance 2 }
+
+ -- ----------------------------------------------------------------------------
+ -- Compliance Statements
+ -- ----------------------------------------------------------------------------
+    IPsecMIBCompliance       MODULE-COMPLIANCE
+       STATUS      current
+       DESCRIPTION
+         "The compliance statement for SNMP entities
+          the IP Security Protocol."
+
+       MODULE -- this module
+         MANDATORY-GROUPS  { IPsecLevelsGroup,
+                             IPsecPhaseOneGroup,
+                             IPsecPhaseTwoGroup
+                           }
+
+         OBJECT   ikeTunStatus
+         MIN-ACCESS read-only
+         DESCRIPTION
+           "Write access is not required."
+
+         OBJECT   IPsecTunStatus
+         MIN-ACCESS read-only
+         DESCRIPTION
+           "Write access is not required."
+
+         ::= { IPsecMIBCompliances 1 }
+
+ -- ----------------------------------------------------------------------------
+ -- Units of Conformance
+ -- ----------------------------------------------------------------------------
+    IPsecLevelsGroup OBJECT-GROUP
+       OBJECTS {
+                 IPsecMibLevel
+               }
+       STATUS current
+       DESCRIPTION
+          "This group consists of a:
+           1) IPsec MIB Level"
+       ::= { IPsecMIBGroups 1 }
+
+    IPsecPhaseOneGroup OBJECT-GROUP
+       OBJECTS {
+                 -- The IPsec Phase-1 Global Statistics
+                 ikeGlobalActiveTunnels,
+                 ikeGlobalPreviousTunnels,
+                 ikeGlobalInOctets,
+                 ikeGlobalInPkts,
+                 ikeGlobalInDropPkts,
+                 ikeGlobalInNotifys,
+                 ikeGlobalInP2Exchgs,
+                 ikeGlobalInP2ExchgInvalids,
+                 ikeGlobalInP2ExchgRejects,
+                 ikeGlobalInP2SaDelRequests,
+                 ikeGlobalOutOctets,
+                 ikeGlobalOutPkts,
+                 ikeGlobalOutDropPkts,
+                 ikeGlobalOutNotifys,
+                 ikeGlobalOutP2Exchgs,
+                 ikeGlobalOutP2ExchgInvalids,
+                 ikeGlobalOutP2ExchgRejects,
+                 ikeGlobalOutP2SaDelRequests,
+                 ikeGlobalInitTunnels,
+                 ikeGlobalInitTunnelFails,
+                 ikeGlobalRespTunnelFails,
+                 ikeGlobalSysCapFails,
+                 ikeGlobalAuthFails,
+                 ikeGlobalDecryptFails,
+                 ikeGlobalHashValidFails,
+                 ikeGlobalNoSaFails,
+
+                 -- The IPsec Phase-1 Internet Key Exchange Peer Table
+                 -- ikePeerLocalType,
+                 -- ikePeerLocalValue,
+                 -- ikePeerRemoteType,
+                 -- ikePeerRemoteValue,
+                 -- ikePeerIntIndex,
+                 ikePeerLocalAddr,
+                 ikePeerRemoteAddr,
+                 ikePeerActiveTime,
+                 ikePeerActiveTunnelIndex,
+
+                 -- The IPsec Phase-1 Internet Key Exchange Tunnel Table
+                 -- ikeTunIndex,
+                 ikeTunLocalType,
+                 ikeTunLocalValue,
+                 ikeTunLocalAddr,
+                 ikeTunLocalName,
+                 ikeTunRemoteType,
+                 ikeTunRemoteValue,
+                 ikeTunRemoteAddr,
+                 ikeTunRemoteName,
+                 ikeTunNegoMode,
+                 ikeTunDiffHellmanGrp,
+                 ikeTunEncryptAlgo,
+                 ikeTunHashAlgo,
+                 ikeTunAuthMethod,
+                 ikeTunLifeTime,
+                 ikeTunActiveTime,
+                 ikeTunSaRefreshThreshold,
+                 ikeTunTotalRefreshes,
+                 ikeTunInOctets,
+                 ikeTunInPkts,
+                 ikeTunInDropPkts,
+                 ikeTunInNotifys,
+                 ikeTunInP2Exchgs,
+                 ikeTunInP2ExchgInvalids,
+                 ikeTunInP2ExchgRejects,
+                 ikeTunInP2SaDelRequests,
+                 ikeTunOutOctets,
+                 ikeTunOutPkts,
+                 ikeTunOutDropPkts,
+                 ikeTunOutNotifys,
+                 ikeTunOutP2Exchgs,
+                 ikeTunOutP2ExchgInvalids,
+                 ikeTunOutP2ExchgRejects,
+                 ikeTunOutP2SaDelRequests,
+                 ikeTunStatus,
+
+                 -- The Internet Key Exchange Peer Association to Phase-2 Tunnel
+                 -- Correlation Table
+                 -- ikePeerCorrLocalType,
+                 -- ikePeerCorrLocalValue,
+                 -- ikePeerCorrRemoteType,
+                 -- ikePeerCorrRemoteValue,
+                 -- ikePeerCorrIntIndex,
+                 -- ikePeerCorrSeqNum,
+                 ikePeerCorrIPsecTunIndex
+               }
+       STATUS current
+       DESCRIPTION
+          "This group consists of:
+           1) IPsec Phase-1 Global Objects
+           2) IPsec Phase-1 Peer Table
+           3) IPsec Phase-1 Tunnel Table
+           4) IPsec Phase-1 Correlation Table"
+       ::= { IPsecMIBGroups 2 }
+
+    IPsecPhaseTwoGroup OBJECT-GROUP
+       OBJECTS {
+                 -- The IPsec Phase-2 Global Tunnel Statistics
+                 IPsecGlobalActiveTunnels,
+                 IPsecGlobalPreviousTunnels,
+                 IPsecGlobalInOctets,
+                 IPsecGlobalHcInOctets,
+                 IPsecGlobalInOctWraps,
+                 IPsecGlobalInDecompOctets,
+                 IPsecGlobalHcInDecompOctets,
+                 IPsecGlobalInDecompOctWraps,
+                 IPsecGlobalInPkts,
+                 IPsecGlobalInDrops,
+                 IPsecGlobalInReplayDrops,
+                 IPsecGlobalInAuths,
+                 IPsecGlobalInAuthFails,
+                 IPsecGlobalInDecrypts,
+                 IPsecGlobalInDecryptFails,
+                 IPsecGlobalOutOctets,
+                 IPsecGlobalHcOutOctets,
+                 IPsecGlobalOutOctWraps,
+                 IPsecGlobalOutUncompOctets,
+                 IPsecGlobalHcOutUncompOctets,
+                 IPsecGlobalOutUncompOctWraps,
+                 IPsecGlobalOutPkts,
+                 IPsecGlobalOutDrops,
+                 IPsecGlobalOutAuths,
+                 IPsecGlobalOutAuthFails,
+                 IPsecGlobalOutEncrypts,
+                 IPsecGlobalOutEncryptFails,
+                 IPsecGlobalProtocolUseFails,
+                 IPsecGlobalNoSaFails,
+                 IPsecGlobalSysCapFails,
+
+                 -- The IPsec Phase-2 Tunnel Table
+                 -- IPsecTunIndex,
+                 IPsecTunIkeTunnelIndex,
+                 IPsecTunIkeTunnelAlive,
+                 IPsecTunLocalAddr,
+                 IPsecTunRemoteAddr,
+                 IPsecTunKeyType,
+                 IPsecTunEncapMode,
+                 IPsecTunLifeSize,
+                 IPsecTunLifeTime,
+                 IPsecTunActiveTime,
+                 IPsecTunSaLifeSizeThreshold,
+                 IPsecTunSaLifeTimeThreshold,
+                 IPsecTunTotalRefreshes,
+                 IPsecTunExpiredSaInstances,
+                 IPsecTunCurrentSaInstances,
+                 IPsecTunInSaDiffHellmanGrp,
+                 IPsecTunInSaEncryptAlgo,
+                 IPsecTunInSaAhAuthAlgo,
+                 IPsecTunInSaEspAuthAlgo,
+                 IPsecTunInSaDecompAlgo,
+                 IPsecTunOutSaDiffHellmanGrp,
+                 IPsecTunOutSaEncryptAlgo,
+                 IPsecTunOutSaAhAuthAlgo,
+                 IPsecTunOutSaEspAuthAlgo,
+                 IPsecTunOutSaCompAlgo,
+                 IPsecTunInOctets,
+                 IPsecTunHcInOctets,
+                 IPsecTunInOctWraps,
+                 IPsecTunInDecompOctets,
+                 IPsecTunHcInDecompOctets,
+                 IPsecTunInDecompOctWraps,
+                 IPsecTunInPkts,
+                 IPsecTunInDropPkts,
+                 IPsecTunInReplayDropPkts,
+                 IPsecTunInAuths,
+                 IPsecTunInAuthFails,
+                 IPsecTunInDecrypts,
+                 IPsecTunInDecryptFails,
+                 IPsecTunOutOctets,
+                 IPsecTunHcOutOctets,
+                 IPsecTunOutOctWraps,
+                 IPsecTunOutUncompOctets,
+                 IPsecTunHcOutUncompOctets,
+                 IPsecTunOutUncompOctWraps,
+                 IPsecTunOutPkts,
+                 IPsecTunOutDropPkts,
+                 IPsecTunOutAuths,
+                 IPsecTunOutAuthFails,
+                 IPsecTunOutEncrypts,
+                 IPsecTunOutEncryptFails,
+                 IPsecTunStatus,
+
+                 -- The IPsec Phase-2 Tunnel Endpoint Table
+                 -- IPsecEndPtIndex,
+                 IPsecEndPtLocalName,
+                 IPsecEndPtLocalType,
+                 IPsecEndPtLocalAddr1,
+                 IPsecEndPtLocalAddr2,
+                 IPsecEndPtLocalProtocol,
+                 IPsecEndPtLocalPort,
+                 IPsecEndPtRemoteName,
+                 IPsecEndPtRemoteType,
+                 IPsecEndPtRemoteAddr1,
+                 IPsecEndPtRemoteAddr2,
+                 IPsecEndPtRemoteProtocol,
+                 IPsecEndPtRemotePort,
+
+                 -- The IPsec Phase-2 Security Protection Index Table
+                 -- IPsecSpiIndex,
+                 IPsecSpiDirection,
+                 IPsecSpiValue,
+                 IPsecSpiProtocol,
+                 IPsecSpiStatus
+               }
+       STATUS current
+       DESCRIPTION
+          "This group consists of:
+           1) IPsec Phase-2 Global Statistics
+           2) IPsec Phase-2 Tunnel Table
+           3) IPsec Phase-2 Endpoint Table
+           4) IPsec Phase-2 Security Protection Index Table"
+       ::= { IPsecMIBGroups 3 }
+
+    IPsecHistoryGroup OBJECT-GROUP
+       OBJECTS {
+                 -- IPsec History Global Control Objects
+                 IPsecHistTableSize,
+
+                 -- The IPsec Phase-1 Tunnel History Table
+                 -- ikeTunHistIndex,
+                 ikeTunHistTermReason,
+                 ikeTunHistActiveIndex,
+                 ikeTunHistPeerLocalType,
+                 ikeTunHistPeerLocalValue,
+                 ikeTunHistPeerIntIndex,
+                 ikeTunHistPeerRemoteType,
+                 ikeTunHistPeerRemoteValue,
+                 ikeTunHistLocalAddr,
+                 ikeTunHistLocalName,
+                 ikeTunHistRemoteAddr,
+                 ikeTunHistRemoteName,
+                 ikeTunHistNegoMode,
+                 ikeTunHistDiffHellmanGrp,
+                 ikeTunHistEncryptAlgo,
+                 ikeTunHistHashAlgo,
+                 ikeTunHistAuthMethod,
+                 ikeTunHistLifeTime,
+                 ikeTunHistStartTime,
+                 ikeTunHistActiveTime,
+                 ikeTunHistTotalRefreshes,
+                 ikeTunHistTotalSas,
+                 ikeTunHistInOctets,
+                 ikeTunHistInPkts,
+                 ikeTunHistInDropPkts,
+                 ikeTunHistInNotifys,
+                 ikeTunHistInP2Exchgs,
+                 ikeTunHistInP2ExchgInvalids,
+                 ikeTunHistInP2ExchgRejects,
+                 ikeTunHistInP2SaDelRequests,
+                 ikeTunHistOutOctets,
+                 ikeTunHistOutPkts,
+                 ikeTunHistOutDropPkts,
+                 ikeTunHistOutNotifys,
+                 ikeTunHistOutP2Exchgs,
+                 ikeTunHistOutP2ExchgInvalids,
+                 ikeTunHistOutP2ExchgRejects,
+                 ikeTunHistOutP2SaDelRequests,
+
+                 -- The IPsec Phase-2 Tunnel History Table
+                 -- IPsecTunHistIndex,
+                 IPsecTunHistTermReason,
+                 IPsecTunHistActiveIndex,
+                 IPsecTunHistIkeTunnelIndex,
+                 IPsecTunHistLocalAddr,
+                 IPsecTunHistRemoteAddr,
+                 IPsecTunHistKeyType,
+                 IPsecTunHistEncapMode,
+                 IPsecTunHistLifeSize,
+                 IPsecTunHistLifeTime,
+                 IPsecTunHistStartTime,
+                 IPsecTunHistActiveTime,
+                 IPsecTunHistTotalRefreshes,
+                 IPsecTunHistTotalSas,
+                 IPsecTunHistInSaDiffHellmanGrp,
+                 IPsecTunHistInSaEncryptAlgo,
+                 IPsecTunHistInSaAhAuthAlgo,
+                 IPsecTunHistInSaEspAuthAlgo,
+                 IPsecTunHistInSaDecompAlgo,
+                 IPsecTunHistOutSaDiffHellmanGrp,
+                 IPsecTunHistOutSaEncryptAlgo,
+                 IPsecTunHistOutSaAhAuthAlgo,
+                 IPsecTunHistOutSaEspAuthAlgo,
+                 IPsecTunHistOutSaCompAlgo,
+                 IPsecTunHistInOctets,
+                 IPsecTunHistHcInOctets,
+                 IPsecTunHistInOctWraps,
+                 IPsecTunHistInDecompOctets,
+                 IPsecTunHistHcInDecompOctets,
+                 IPsecTunHistInDecompOctWraps,
+                 IPsecTunHistInPkts,
+                 IPsecTunHistInDropPkts,
+                 IPsecTunHistInReplayDropPkts,
+                 IPsecTunHistInAuths,
+                 IPsecTunHistInAuthFails,
+                 IPsecTunHistInDecrypts,
+                 IPsecTunHistInDecryptFails,
+                 IPsecTunHistOutOctets,
+                 IPsecTunHistHcOutOctets,
+                 IPsecTunHistOutOctWraps,
+                 IPsecTunHistOutUncompOctets,
+                 IPsecTunHistHcOutUncompOctets,
+                 IPsecTunHistOutUncompOctWraps,
+                 IPsecTunHistOutPkts,
+                 IPsecTunHistOutDropPkts,
+                 IPsecTunHistOutAuths,
+                 IPsecTunHistOutAuthFails,
+                 IPsecTunHistOutEncrypts,
+                 IPsecTunHistOutEncryptFails,
+
+                 -- The IPsec Phase-2 End Point History Table
+                 -- IPsecEndPtHistIndex,
+                 IPsecEndPtHistTunIndex,
+                 IPsecEndPtHistActiveIndex,
+                 IPsecEndPtHistLocalName,
+                 IPsecEndPtHistLocalType,
+                 IPsecEndPtHistLocalAddr1,
+                 IPsecEndPtHistLocalAddr2,
+                 IPsecEndPtHistLocalProtocol,
+                 IPsecEndPtHistLocalPort,
+                 IPsecEndPtHistRemoteName,
+                 IPsecEndPtHistRemoteType,
+                 IPsecEndPtHistRemoteAddr1,
+                 IPsecEndPtHistRemoteAddr2,
+                 IPsecEndPtHistRemoteProtocol,
+                 IPsecEndPtHistRemotePort
+               }
+       STATUS current
+       DESCRIPTION
+          "This group consists of:
+           1) IPsec History Global Objects
+           2) IPsec Phase-1 History Objects
+           3) IPsec Phase-2 History Objects"
+       ::= { IPsecMIBGroups 4 }
+
+    IPsecFailuresGroup OBJECT-GROUP
+       OBJECTS {
+                 -- The IPsec Failure Global Control Objects
+                 IPsecFailTableSize,
+
+                 -- The IPsec Phase-1 Failure Table
+                 -- ikeFailIndex,
+                 ikeFailReason,
+                 ikeFailTime,
+                 ikeFailLocalType,
+                 ikeFailLocalValue,
+                 ikeFailRemoteType,
+                 ikeFailRemoteValue,
+                 ikeFailLocalAddr,
+                 ikeFailRemoteAddr,
+
+                 -- The IPsec Phase-2 Failure Table
+                 -- IPsecFailIndex,
+                 IPsecFailReason,
+                 IPsecFailTime,
+                 IPsecFailTunnelIndex,
+                 IPsecFailSaSpi,
+                 IPsecFailPktSrcAddr,
+                 IPsecFailPktDstAddr
+               }
+       STATUS current
+       DESCRIPTION
+          "This group consists of:
+           1) IPsec Failure Global Objects
+           2) IPsec Phase-1 Tunnel Failure Table
+           3) IPsec Phase-2 Tunnel Failure Table"
+       ::= { IPsecMIBGroups 5 }
+
+    IPsecTrapCntlGroup OBJECT-GROUP
+       OBJECTS {
+                 IPsecTrapCntlIkeTunnelStart,
+                 IPsecTrapCntlIkeTunnelStop,
+                 IPsecTrapCntlIkeSysFailure,
+                 IPsecTrapCntlIkeCertCrlFailure,
+                 IPsecTrapCntlIkeProtocolFailure,
+                 IPsecTrapCntlIkeNoSa,
+                 IPsecTrapCntlIPsecTunnelStart,
+                 IPsecTrapCntlIPsecTunnelStop,
+                 IPsecTrapCntlIPsecSysFailure,
+                 IPsecTrapCntlIPsecSetUpFailure,
+                 IPsecTrapCntlIPsecEarlyTunTerm,
+                 IPsecTrapCntlIPsecProtocolFailure,
+                 IPsecTrapCntlIPsecNoSa
+               }
+       STATUS current
+       DESCRIPTION
+          "This group of objects controls the sending of IPsec TRAPs."
+       ::= { IPsecMIBGroups 6 }
+
+    IPsecNotificationGroup    NOTIFICATION-GROUP
+       NOTIFICATIONS {
+                       ikeTunnelStart,
+                       ikeTunnelStop,
+                       ikeSysFailure,
+                       ikeCertCrlFailure,
+                       ikeProtocolFailure,
+                       ikeNoSa,
+                       IPsecTunnelStart,
+                       IPsecTunnelStop,
+                       IPsecSysFailure,
+                       IPsecSetUpFailure,
+                       IPsecEarilyTunTerm,
+                       IPsecProtocolFailure,
+                       IPsecNoSa
+                     }
+       STATUS current
+       DESCRIPTION
+          "This group contains the notifications for the IPsec MIB."
+       ::= { IPsecMIBGroups 7 }
+
+ END
+
+-- 
+--     Copyright (C) The Internet Society (1998).  All Rights Reserved.
+-- 
+--     This document and translations of it may be copied and furnished to others,
+--     and derivative works that comment on or otherwise explain it or assist in its
+--     implementation may be prepared, copied, published and distributed, in whole
+--     or in part, without restriction of any kind, provided that the above
+--     copyright notice and this paragraph are included on all such copies and
+--     derivative works.  However, this document itself may not be modified in any
+--     way, such as by removing the copyright notice or references to the Internet
+--     Society or other Internet organizations, except as needed for the purpose of
+--     developing Internet standards in which case the procedures for copyrights
+--     defined in the Internet Standards process must be followed, or as required to
+--     translate it into languages other than English.
+-- 
+--     The limited permissions granted above are perpetual and will not be revoked
+--     by the Internet Society or its successors or assigns.
+-- 
+--     This document and the information contained herein is provided on an "AS IS"
+--     basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING TASK FORCE
+--     DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+--     ANY WARRANTY THAT THE USE OF THE INFORMATION HEREIN WILL NOT INFRINGE ANY
+--     RIGHTS OR ANY IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A
+--     PARTICULAR PURPOSE.
+

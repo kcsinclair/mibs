@@ -1,0 +1,414 @@
+-- *****************************************************************
+-- CADANT-REMOTE-QUERY-MIB: Cadant C4 Remote Query MIB file
+--
+-- August 2004
+--
+-- Copyright (c) 2004 by ARRIS International
+-- All rights reserved.
+-- *****************************************************************
+
+
+CADANT-REMOTE-QUERY-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+MODULE-IDENTITY,
+        OBJECT-TYPE,
+        NOTIFICATION-TYPE,
+        Integer32,
+        IpAddress,
+        Unsigned32
+                FROM SNMPv2-SMI
+        TruthValue,
+        TimeStamp,
+        DisplayString,
+	MacAddress
+                FROM SNMPv2-TC
+        InetAddressType, 
+        InetAddress
+                FROM INET-ADDRESS-MIB
+        OBJECT-GROUP,
+        MODULE-COMPLIANCE
+                FROM SNMPv2-CONF
+        TenthdBmV,
+        TenthdB
+                FROM DOCS-IF-MIB
+        cadCmRemoteQuery
+                FROM CADANT-PRODUCTS-MIB
+        cadIfCmtsCmStatusEntry
+                FROM CADANT-CMTS-MAC-MIB;
+
+cadCmRemoteQueryMib MODULE-IDENTITY
+        LAST-UPDATED   "200901200000Z" 
+        ORGANIZATION    "Arris International"
+        CONTACT-INFO
+            "        Arris Support
+             Postal: ARRIS
+             Phone:  +1 770 622 8530
+             E-mail: support@arrisi.com"
+        DESCRIPTION
+            "This MIB module provides the management of 
+            the Cadant C4 Cable Modem Termination Systems 
+            (CMTS) Remote Query feature.
+
+            This feature, implemented on a CMTS, facilitates 
+            SNMP polling of remote cable modems (CMs).
+
+            This MIB includes the configuration and 
+            status objects of the CMTS CM Poller and 
+            remote CMs that polled by the CMTS CM Poller"
+
+        REVISION        "200408310000Z"
+        DESCRIPTION
+            "Initial version of this MIB. "
+        REVISION        "200609270000Z"
+        DESCRIPTION
+            "Added IPaddressType and IPaddress. "
+        REVISION        "200901150000Z"
+        DESCRIPTION
+            "Fixed start/stop time for upTime rollover. "
+        REVISION        "200901200000Z"
+        DESCRIPTION
+            "Fixed poll time for upTime rollover. "
+
+        ::= { cadCmRemoteQuery 1}
+
+--
+-- Poller Group  
+--
+-- Allows to configure and monitor the CMTS CM Poller 
+--
+
+-- CMTS CM Poller 
+-- 
+
+cadCmRemoteQueryPoller OBJECT IDENTIFIER ::= { cadCmRemoteQueryMib 1 }
+
+cadCmRemoteQueryPollerEnable OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "An indication of whether the CMTS CM Poller is running.
+
+            When the poller is enabled, it polls the remote CMs 
+            periodically specified in the cadCmRemoteQueryPollerInterval
+            mib object.
+
+            The operation can be expensive depending on how many CMs 
+            that the poller would be polling.  It is suggested to 
+            have it disabled when not needed."
+        DEFVAL { false }
+        ::= { cadCmRemoteQueryPoller 1 }
+
+cadCmRemoteQueryPollerInterval OBJECT-TYPE
+        SYNTAX      Unsigned32(30..86400)
+        UNITS       "seconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "An interval between two polling cycles of the CMTS CM 
+            Poller. 
+
+            The poller will not start the next cycle until it 
+            finished polling for the last CM , even though the 
+            time has expired.  If the cadCmRemoteQueryPollerInterval is 
+            too small with a large number of CMs, the poller would
+            tie up the CPU and resources and possibly degrade the
+            system's performance."
+        DEFVAL { 1800 }
+        ::= { cadCmRemoteQueryPoller 2 }
+
+cadCmRemoteQueryPollerStartTime OBJECT-TYPE
+        SYNTAX      Unsigned32
+        UNITS       "seconds"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The value of sysUpTime in seconds when the last polling
+             cycle started. 
+
+            cadCmRemoteQueryPollerStartTime is set to 0 when the CMTS 
+            is first restarted and doesn't get reset after the 
+            poller is disabled."
+        ::= { cadCmRemoteQueryPoller 3 }
+
+cadCmRemoteQueryPollerStopTime OBJECT-TYPE
+        SYNTAX      Unsigned32
+        UNITS       "seconds"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The value of sysUpTime in seconds when the last polling 
+             cycle finished.
+                
+            cadCmRemoteQueryPollerStopTime is set to 0 when the CMTS 
+            is first restarted and doesn't get reset after the poller
+            is disabled."
+        ::= { cadCmRemoteQueryPoller 4 }
+
+cadCmRemoteQueryPollerCommunity OBJECT-TYPE
+        SYNTAX      OCTET STRING  (SIZE(0..32))
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The read community string is used for polling the CMs.
+
+            Any change in the cadCmRemoteQueryPollerCommunity may not
+            be reflected if the poller has already been enabled."
+        DEFVAL { "public" }
+        ::= { cadCmRemoteQueryPoller 5 }
+
+cadCmRemoteQueryMacAddress OBJECT-TYPE
+	SYNTAX      MacAddress 
+	MAX-ACCESS  read-write
+	STATUS      current
+	DESCRIPTION
+	    "The object is used to trigger an immediate poll of a
+	    specific CM. This object always read back as a value
+	    of 0. The value of sysUpTime should be read and saved
+	    before writing this object. Then, the value of
+	    cadCmRemoteQueryPollTime can be read and compared to the
+	    saved sysUpTime to determine when the immediate poll of
+	    retmoe query data has been completed."
+	DEFVAL { '000000000000'h }
+	::= { cadCmRemoteQueryPoller 6 }
+
+cadCmRemoteQuerySourceIpAddrType OBJECT-TYPE
+   	SYNTAX    InetAddressType
+   	MAX-ACCESS read-only
+   	STATUS     current
+   	DESCRIPTION
+   	"The type of internet address of cadCmRemoteQuerySourceIpAddr."
+   	DEFVAL { ipv4  }
+   	::= { cadCmRemoteQueryPoller 7 }
+   
+cadCmRemoteQuerySourceIpAddr OBJECT-TYPE
+   	SYNTAX      InetAddress
+   	MAX-ACCESS  read-only
+   	STATUS      current
+   	DESCRIPTION
+   	"The source IP address of the SNMP remote queries to the CMs.
+         This value is changed from the Poller when the ifIndex of the
+         cadSysSourceInterfaceRemoteQuery in the CADANT-CMTS-SYSTEM-MIB
+         is changed due to using the cli command ..
+         configure cable modem remote-query source-interface .."
+   	DEFVAL { '00000000'h }
+   	::= { cadCmRemoteQueryPoller 8 }
+   
+
+--
+-- CM Group  
+--
+-- Allows to monitor the status of CM
+--
+--
+-- CMTS Remote Cable modem (CM) Table
+--
+--
+
+cadCmRemoteQueryStatusTable OBJECT-TYPE
+       SYNTAX      SEQUENCE OF CadCmRemoteQueryStatusEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+           "This table contains the status of the cable modems that 
+           are polled by the CMTS CM Poller. The information will be 
+           overwritten when a new polling cycle starts.
+
+           Depending on how many CMs that the poller is polling, 
+           polling this table constantly can be quite expensive; 
+           Excessive polling could degrade performance."
+       ::= { cadCmRemoteQueryMib 2 }
+
+cadCmRemoteQueryStatusEntry OBJECT-TYPE
+        SYNTAX      CadCmRemoteQueryStatusEntry 
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+                "A list of the cable modem's attributes 
+                 that are polled by a CMTS. "
+        AUGMENTS { cadIfCmtsCmStatusEntry }
+        ::= { cadCmRemoteQueryStatusTable 1 } 
+
+CadCmRemoteQueryStatusEntry ::= SEQUENCE {
+        cadCmRemoteQueryPollTime              Unsigned32,
+        cadCmRemoteQueryDownChannelPower      TenthdBmV, 
+        cadCmRemoteQueryStatusTxPower         TenthdBmV,
+        cadCmRemoteQueryUpChnlTxTimingOffset  Unsigned32,
+        cadCmRemoteQuerySigQSignalNoise       TenthdB,
+        cadCmRemoteQuerySigQMicroreflections  Integer32,
+        cadCmRemoteQuerySysDescr              DisplayString
+        }
+
+cadCmRemoteQueryPollTime OBJECT-TYPE
+        SYNTAX      Unsigned32
+        UNITS       "seconds"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The value of sysUpTime when this CM entry was polled.  
+
+            If this value is larger than the cadCmRemoteQueryPollerStopTime,
+            it indicates that the status has already been 
+            overwritten by a new polling cycle.  To avoid this 
+            happening, the NMS can increase the cadCmRemoteQueryPollInterval 
+            so that the cadCmRemoteQueryPollTime 
+            would fall in between the cadCmRemoteQueryPollerStartTime and 
+            the cadCmRemoteQueryPollerStopTime."
+        ::= { cadCmRemoteQueryStatusEntry 1 }
+
+cadCmRemoteQueryDownChannelPower OBJECT-TYPE
+        SYNTAX      TenthdBmV
+        UNITS       "dBmV"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The CM's received power level.  This object
+            may be set to zero if the CM does not support
+            power level measurement.
+
+            If the CM downstream interface is down, this object 
+            either returns the most current value or the value of 0."
+        REFERENCE
+                "DOCSIS Radio Frequency Interface Specification,
+                 Table 4-12 and Table 4-13."
+::={ cadCmRemoteQueryStatusEntry 2 }
+
+cadCmRemoteQueryStatusTxPower OBJECT-TYPE
+        SYNTAX      TenthdBmV
+        UNITS       "dBmV"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The operational transmit power for the CM upstream 
+            channel."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, 
+            Section 4.2.8."
+        ::= { cadCmRemoteQueryStatusEntry 3 }
+
+cadCmRemoteQueryUpChnlTxTimingOffset OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "A measure of the current round trip time.  Used for 
+            timing of CM upstream transmissions to ensure 
+            synchronized arrivals at the CMTS." 
+        REFERENCE
+                "DOCSIS Radio Frequency Interface Specification,
+                Section 6.5."
+        ::= { cadCmRemoteQueryStatusEntry 4 }
+
+cadCmRemoteQuerySigQSignalNoise OBJECT-TYPE
+        SYNTAX      TenthdB
+        UNITS       "dB"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Signal/Noise ratio as perceived for the CM downstream 
+            channel."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification,
+            Table 2-1 and 2-2"
+        ::= { cadCmRemoteQueryStatusEntry 5 }
+
+cadCmRemoteQuerySigQMicroreflections OBJECT-TYPE
+        SYNTAX      Integer32 (0..255)
+        UNITS       "dBc"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Total microreflections including in-channel 
+            response as perceived on the CM downstream, 
+            measured in dBc below the signal level.
+
+            This object is not assumed to return an absolutely
+            accurate value, but is meant to give a rough indication
+            of microreflections received on this interface.
+            It is up to the implementor to provide information
+            as accurate as possible."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification,
+            Table 2-1 and 2-2"
+        ::= { cadCmRemoteQueryStatusEntry 6 }
+
+cadCmRemoteQuerySysDescr OBJECT-TYPE
+        SYNTAX      DisplayString (SIZE (0..255))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "A textual description of the entity."
+        ::= { cadCmRemoteQueryStatusEntry 7 }
+
+
+--
+-- The Remote Query MIB Conformance Statements 
+--
+
+--
+-- Conformance statement
+--
+
+cadCmRemoteQueryConformance              OBJECT IDENTIFIER 
+    ::= { cadCmRemoteQueryMib 3 }
+cadCmRemoteQueryDocsRemoteQueryCompliances               OBJECT IDENTIFIER 
+    ::= { cadCmRemoteQueryConformance 1 }
+cadCmRemoteQueryDocsRemoteQueryGroups                    OBJECT IDENTIFIER 
+    ::= { cadCmRemoteQueryConformance 2 }
+
+
+-- compliance statements
+
+cadCmRemoteQueryDocsRemoteQueryCompliance MODULE-COMPLIANCE
+        STATUS     current
+        DESCRIPTION
+            "The compliance statement for entities which 
+            implement the Remote Query MIB"
+        MODULE        -- this module
+            MANDATORY-GROUPS { 
+                             cadCmRemoteQueryPollerGroup,
+                             cadCmRemoteQueryStatusGroup
+                }    
+
+        ::= { cadCmRemoteQueryDocsRemoteQueryCompliances 1 }
+
+
+-- MIB groupings
+
+cadCmRemoteQueryPollerGroup OBJECT-GROUP
+        OBJECTS {
+                cadCmRemoteQueryPollerEnable,
+                cadCmRemoteQueryPollerInterval,
+                cadCmRemoteQueryPollerStartTime,
+                cadCmRemoteQueryPollerStopTime,
+                cadCmRemoteQueryPollerCommunity
+        }
+        STATUS    current
+        DESCRIPTION
+                "Group of objects implemented in Cable Modem 
+                Termination Systems (CMTS) for configuring and 
+                monitoring the CMTS CM Poller."
+
+        ::= { cadCmRemoteQueryDocsRemoteQueryGroups 1 }
+
+cadCmRemoteQueryStatusGroup OBJECT-GROUP
+        OBJECTS {
+                cadCmRemoteQueryPollTime, 
+                cadCmRemoteQueryDownChannelPower,
+                cadCmRemoteQueryStatusTxPower,
+                cadCmRemoteQueryUpChnlTxTimingOffset,
+                cadCmRemoteQuerySigQSignalNoise,
+                cadCmRemoteQuerySigQMicroreflections,
+                cadCmRemoteQuerySysDescr
+        }
+        STATUS    current
+        DESCRIPTION
+                "Group of objects implemented in Cable Modem 
+                Termination Systems (CMTS) for monitoring cable 
+                modems via CMTS CM Poller."
+
+        ::= { cadCmRemoteQueryDocsRemoteQueryGroups 2 }
+
+
+END

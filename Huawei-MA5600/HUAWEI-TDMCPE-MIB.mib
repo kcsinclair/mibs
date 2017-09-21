@@ -1,0 +1,2454 @@
+-- ============================================================================
+-- Copyright (C) 2012 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description:  Huawei TDM Modem management MIB definition.
+-- Reference:  
+-- Version: V1.01
+-- ============================================================================
+
+HUAWEI-TDMCPE-MIB DEFINITIONS ::= BEGIN
+	IMPORTS
+		MODULE-IDENTITY, OBJECT-TYPE, IpAddress, Gauge32, 
+		Unsigned32, Integer32
+			FROM SNMPv2-SMI
+		DisplayString                    			
+			FROM SNMPv2-TC
+		MODULE-COMPLIANCE, OBJECT-GROUP
+			FROM SNMPv2-CONF
+		ifIndex
+			FROM RFC1213-MIB
+		huaweiMgmt
+			FROM HUAWEI-MIB;
+			
+	hwTdmMIB MODULE-IDENTITY
+		LAST-UPDATED "201201020900Z"
+		ORGANIZATION "Fix-Net Dept, Huawei Technologies Co.,Ltd."
+		CONTACT-INFO
+			"Floor 5, Block 4, R&D Building,
+			Huawei Longgang Production Base,
+			Shenzhen,  P.R.C.
+			http://www.huawei.com
+			Zip:518057
+			"
+		DESCRIPTION 
+			"Huawei TDM Modem management MIB definition."
+
+		--  Revision history
+		REVISION     "201201020900Z"
+		DESCRIPTION	"V1.01,
+				Add new nodes, including hwTdmCommonConfiguration,hwTdmAdtranScriptTable,
+				hwTdmAdtranScriptEntry, hwTdmAdtranScript and hwTdmAdtranScriptResult.
+				modify the description of the whole file."
+		                              
+		REVISION     "200506211000Z"
+		DESCRIPTION	"V1.00,Finishing TDM management basic MIB definition."
+                              
+		::= { huaweiMgmt 30 }
+
+--
+--  Groups in hwTdmMIB
+--	
+	hwTdmMIBObjects	OBJECT IDENTIFIER ::= { hwTdmMIB 1 }
+	hwTdmMIBConformance OBJECT IDENTIFIER ::= { hwTdmMIB 2 }
+	
+--
+--  Groups in hwTdmMIBObjects
+--
+	hwTdmTftpObjects OBJECT IDENTIFIER ::= { hwTdmMIBObjects 1 }
+	hwTdmModemObjects OBJECT IDENTIFIER ::= { hwTdmMIBObjects 2 }
+	hwTdmPortObjects OBJECT IDENTIFIER ::= { hwTdmMIBObjects 3 }
+--	hwTdmTraps OBJECT IDENTIFIER ::= { hwTdmMIBObjects 4 }                             
+	hwTdmCommonConfiguration OBJECT IDENTIFIER ::= { hwTdmMIBObjects 4 }
+
+--
+--  Groups in hwTdmPortObjects
+--	
+	hwTdmPortConfObjects OBJECT IDENTIFIER ::= { hwTdmPortObjects 1 }
+	hwTdmPortStatObjects OBJECT IDENTIFIER ::= { hwTdmPortObjects 2 }
+	
+--
+--  Groups in hwTdmMIBConformance
+--	
+	hwTdmMIBCompliances OBJECT IDENTIFIER ::= { hwTdmMIBConformance 1 }
+	hwTdmMIBGroups OBJECT IDENTIFIER ::= { hwTdmMIBConformance 2 }
+
+--	
+--  ASMi52A Modem TFTP Table
+--	
+	hwTdmTftpTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwTdmTftpEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about 
+			a TDM modem tftp status. This information describe 
+			the TFTP server IP address, the file name, the TFTP 
+			command and TFTP status.The index of this table is ifIndex."
+		::= { hwTdmTftpObjects 1 }	
+
+	hwTdmTftpEntry OBJECT-TYPE
+		SYNTAX HwTdmTftpEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about 
+			a TDM modem tftp status. This information describe 
+			the TFTP server IP address, the file name, the TFTP 
+			command and TFTP status.The index of this entry is ifIndex."
+		INDEX { ifIndex }
+		::= { hwTdmTftpTable 1 }
+		
+	HwTdmTftpEntry ::=
+		SEQUENCE {
+			hwTdmTftpFileServerIP
+				IpAddress,
+			hwTdmTftpFileName
+				DisplayString,
+			hwTdmTftpFileTransCmd
+				INTEGER,
+--			hwTdmTftpRetryTimeout
+--				Unsigned32,
+--			hwTdmTftpTotalTimeout
+--				Unsigned32,
+			hwTdmTftpStatus
+				INTEGER
+		}
+		
+	hwTdmTftpFileServerIP OBJECT-TYPE
+		SYNTAX IpAddress
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This attribute indicates the TFTP server to update the 
+			modem software.This must be set before start the software 
+			download!"
+		::= { hwTdmTftpEntry 1 }
+
+	hwTdmTftpFileName OBJECT-TYPE
+		SYNTAX DisplayString (SIZE(1..14))
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This attribute indicates the name of the file to be sent 
+			to the modem. This must be set before start the software 
+			download!"
+		::= { hwTdmTftpEntry 2 }
+		
+	hwTdmTftpFileTransCmd OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			noOp(1),
+			downloadSW(2),
+			uploadConf(3),
+			downloadConf(4),
+			stop(5)
+			}
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"The command to be executed on hwTdmTftpFileName at 
+			hwTdmTftpFileServerIP.
+			Options:
+			1. noOp(1)  - Indicates that no operation.
+			2. downloadSW(2) - Indicates that down load softwire.
+			3. uploadConf(3) - Indicates that upload configuration.
+			4. downloadConf(4) - Indicates that down load configuration.
+			5. stop(5) - Indicates that stopping the current operation.
+			"
+		DEFVAL { noOp }
+		::= { hwTdmTftpEntry 3 }
+	
+--	hwTdmTftpRetryTimeout OBJECT-TYPE
+--		SYNTAX Unsigned32 (1..255)	
+--		MAX-ACCESS read-write
+--		STATUS current
+--		DESCRIPTION
+--			"TFTP retry timeout."
+--		DEFVAL { 30 }
+--		::= { hwTdmTftpEntry 4 }
+
+--	hwTdmTftpTotalTimeout OBJECT-TYPE
+--		SYNTAX Unsigned32 (1..255)
+--		MAX-ACCESS read-write
+--		STATUS current
+--		DESCRIPTION
+--			"TFTP total timeout."
+--		DEFVAL { 240 }
+--		::= { hwTdmTftpEntry 5 }
+
+	hwTdmTftpStatus OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			noOp(1),
+			connecting(2),
+			transferringData(3),
+			timeOut(4),
+			endedOk(5),
+			error(6)
+			}			
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"Status of tftp session. When a session ended with success,
+ 			the tftpStatus should be endedOk(6). Before restarting a
+ 			tftp session, the modem should set the tftpStatus to noOp(2).
+ 			Options:
+			1. noOp(1)  - Indicates that no operation.
+			2. connecting(2) - Indicates that connecting.
+			3. transferringData(3) - Indicates that transferring data.
+			4. timeOut(4) - Indicates that time-out.
+			5. endedOk(5) - Indicates that end successfully.
+			6. error(6) - Indicates that error occur.
+ 			"
+		::= { hwTdmTftpEntry 4 }
+		
+--	
+--  ASMi52A Modem Information Table
+--
+	hwTdmModemInfoTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwTdmModemInfoEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about a 
+			TDM modem system information. This information describe 
+			the maximum rate, the PSD type, the interface type of the 
+			DTE port, the modem wiring, the actual ASMi52 type, the 
+			modem hardware version, the modem software version, IP 
+			address and MAC address.The index of this table is ifIndex."
+		::= { hwTdmModemObjects 1 }
+	
+	hwTdmModemInfoEntry OBJECT-TYPE
+		SYNTAX HwTdmModemInfoEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about a 
+			TDM modem system information. This information describe 
+			the maximum rate, the PSD type, the interface type of the 
+			DTE port, the modem wiring, the actual ASMi52 type, the 
+			modem hardware version, the modem software version, IP 
+			address and MAC address.The index of this entry is ifIndex."
+		INDEX { ifIndex }
+		::= { hwTdmModemInfoTable 1 }
+	
+	HwTdmModemInfoEntry ::=
+		SEQUENCE {
+			hwTdmModemInfoDteIfType
+				INTEGER,
+			hwTdmModemInfoWireMode
+				INTEGER,
+			hwTdmModemInfoModemType
+				INTEGER,
+			hwTdmModemInfoHwVer
+				OCTET STRING,
+			hwTdmModemInfoSwVer
+				OCTET STRING,
+			hwTdmModemSupportEOC
+				INTEGER,
+			hwTdmModemLowerSpeedOper
+				INTEGER,
+			hwTdmModemDtePortState
+				INTEGER,
+			hwTdmModemE1PortState
+				INTEGER
+		}
+	
+	hwTdmModemInfoDteIfType OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			x21(0),
+			v35(1),
+			v24(2),
+			rs530(3),
+			irETHQN(5),
+			g703r64k(6),
+			irHSSI(7),
+			g704(8),
+			irT1(28),
+			g703(29),
+			other(255)
+			}
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"This object indicates the interface type of the DTE port.
+			Options: 
+			1. x21(0) - Indicates that the interface type of the DTE port is x21.
+			2. v35(1) - Indicates that the interface type of the DTE port is v35.
+			3. v24(2) - Indicates that the interface type of the DTE port is v24.
+			4. rs530(3) - Indicates that the interface type of the DTE port is rs530.
+			5. irETHQN(5) - Indicates that the interface type of the DTE port is irETHQN.
+			6. g703r64k(6) - Indicates that the interface type of the DTE port is g703r64k.
+			7. irHSSI(7) - Indicates that the interface type of the DTE port is irHSSI.
+			8. g704(8) - Indicates that the interface type of the DTE port is g704.
+			9. irT1(28) - Indicates that the interface type of the DTE port is irT1.
+			10. g703(29) - Indicates that the interface type of the DTE port is g703.
+			11. other(255) - Indicates that the interface type of the DTE port is other.
+			"
+		::= { hwTdmModemInfoEntry 2 }
+		
+	hwTdmModemInfoWireMode OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			twoWire(1),
+			fourWire(2),
+			notApplicable(255)
+			}
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"This object indicates the modem wiring.
+			Options: 
+			1. twoWire(1) - Indicates that the modem wiring is twoWire.
+			2. fourWire(2) - Indicates that the modem wiring is fourWire.
+			3. notApplicable(255) - Indicates that the modem wiring isnotApplicable.
+			"
+		::= { hwTdmModemInfoEntry 3 }
+		
+	hwTdmModemInfoModemType OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			none(0),
+			cardData(1),
+			cardE1T1(2),
+			cardDataE1(3),
+			cardEthernet(4),
+			cardDataEthernet(5),
+			cardE1T1Ethernet(6),
+			cardDataE1T1Ethernet(7),
+			cardDataEthm(9),
+			cardE1T1Ethm(10),
+			cardDataE1Ethm(11),
+			cardEthernetEthm(12),
+			cardDataEthernetEthm(13),
+			cardE1T1EthernetEthm(14),
+			cardDataE1T1EthernetEthm(15)
+			}
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"This object indicates the actual ASMi52 type.
+			Options: 
+			1. none(0) - Indicates that the actual ASMi52 type is none.
+			2. cardData(1) - Indicates that the actual ASMi52 type is cardData.
+			3. cardE1T1(2) - Indicates that the actual ASMi52 type is cardE1T1.
+			4. cardDataE1(3) - Indicates that the actual ASMi52 type is cardDataE1.
+			5. cardEthernet(4) - Indicates that the actual ASMi52 type is cardEthernet.
+			6. cardDataEthernet(5) - Indicates that the actual ASMi52 type is cardDataEthernet.
+			7. cardE1T1Ethernet(6) - Indicates that the actual ASMi52 type is cardE1T1Ethernet.
+			8. cardDataE1T1Ethernet(7) - Indicates that the actual ASMi52 type is cardDataE1T1Ethernet.
+			9. cardDataEthm(9) - Indicates that the actual ASMi52 type is cardDataEthm.
+			10. cardE1T1Ethm(10) - Indicates that the actual ASMi52 type is cardE1T1Ethm.
+			11. cardDataE1Ethm(11) - Indicates that the actual ASMi52 type is cardDataE1Ethm.
+			12. cardEthernetEthm(12) - Indicates that the actual ASMi52 type is cardEthernetEthm.
+			13. cardDataEthernetEthm(13) - Indicates that the actual ASMi52 type is cardDataEthernetEthm.
+			14. cardE1T1EthernetEthm(14) - Indicates that the actual ASMi52 type is cardE1T1EthernetEthm.
+			15. cardDataE1T1EthernetEthm(15) - Indicates that the actual ASMi52 type is cardDataE1T1EthernetEthm.
+			"
+		::= { hwTdmModemInfoEntry 4 }
+		
+	hwTdmModemInfoHwVer OBJECT-TYPE
+		SYNTAX OCTET STRING (SIZE(10))
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"This object indicates the display string of the modem 
+			hardware version."
+		::= { hwTdmModemInfoEntry 5 }
+	
+	hwTdmModemInfoSwVer OBJECT-TYPE
+		SYNTAX OCTET STRING (SIZE(10))
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"Display String of the modem software version.
+ 			 Examples: 2.23A8  3.4"
+		::= { hwTdmModemInfoEntry 6 }
+		
+	hwTdmModemSupportEOC OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			yes(1),         			
+			no(2)       			
+			}
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"This object indicates whether the port supports the EOC or not.
+			Options:
+			1. yes(1)  - Indicates that the port supports the EOC.
+			2. no(2) - Indicates that the port does not support the EOC.
+			"
+		::= { hwTdmModemInfoEntry 7 }
+		
+	hwTdmModemLowerSpeedOper OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			yes(1),         			
+			no(2),
+			na(3)       			
+			}
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"This object indicates whether the modem  run  in  lower  speed  or not.
+			When you  download  file with V35 MODEM , it  must  be  yes.If  it is not,
+			you can  change  it  by  reseting to factory  or default configuration. In
+			the case of E1 MODEM, it will return NA.
+			Options:
+			1. yes(1)  - Indicates that the modem  run  in  lower  speed.
+			2. no(2) - Indicates that the modem does not run  in  lower  speed.
+			3. na(3) - NA.
+			"
+		::= { hwTdmModemInfoEntry 8 }
+	
+	hwTdmModemDtePortState OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			connect(1),         			
+			disconnect(2)     			
+			}
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"This object indicates  the down  port state.
+			Options:
+			1. connect(1)  - Indicates that the down port connected.
+			2. disconnect(2) - Indicates that the down port disconnected.
+			"
+		::= { hwTdmModemInfoEntry 9 }
+		
+	hwTdmModemE1PortState OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			connect(1),         			
+			disconnect(2)
+			}
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"This object indicates  the down  port state.
+			Options:
+			1. connect(1)  - Indicates that the down port connected.
+			2. disconnect(2) - Indicates that the down port disconnected.
+			"
+		::= { hwTdmModemInfoEntry 10 }
+				
+--	
+--  ASMi52A Modem Configuration Table
+--
+	hwTdmModemConfTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwTdmModemConfEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about a TDM 
+			Modem configuration that may be used with G.SHDSL modem for 
+			configuration. This information describe the alarm report 
+			mask, the port status report mask, the reset command, the 
+			switch to clear the alarm buffer, the switch to clear 
+			statistics of the selected port, test time out and test command.
+			The index of this table is ifIndex."
+		::= { hwTdmModemObjects 2 }
+		
+	hwTdmModemConfEntry OBJECT-TYPE
+		SYNTAX HwTdmModemConfEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about a TDM 
+			Modem configuration that may be used with G.SHDSL modem for 
+			configuration. This information describe the alarm report 
+			mask, the port status report mask, the reset command, the 
+			switch to clear the alarm buffer, the switch to clear 
+			statistics of the selected port, test time out and test command.
+			The index of this entry is ifIndex."
+		INDEX { ifIndex }
+		::= { hwTdmModemConfTable 1 }
+		
+	HwTdmModemConfEntry ::=
+		SEQUENCE {
+			hwTdmModemConfAlarmAndPortMask
+				INTEGER,
+--			hwTdmModemConfPerformanceMask
+--				INTEGER,
+			hwTdmModemConfReset
+				INTEGER,
+			hwTdmModemAlrBufClear
+				INTEGER,
+			hwTdmModemStatClear
+				INTEGER,
+			hwTdmModemAlarmDevSeverity
+				OCTET STRING,
+			hwTdmModemAlarmPortSeverity
+				OCTET STRING
+--			hwTdmModemTestTimeout
+--				Integer32,
+--			hwTdmModemTestCmd
+--				INTEGER
+		}
+		
+	hwTdmModemConfAlarmAndPortMask OBJECT-TYPE
+		SYNTAX	INTEGER
+			{
+			majorAlarmMask(1),
+			minorAlarmMask(2),
+			portMask(3),
+			majorAndMinorMask(4),
+			majorAndPortMask(5),
+			minorAndPortMask(6),
+			allMask(7),
+			noMask(8)
+			}
+		MAX-ACCESS read-write
+		STATUS obsolete
+		DESCRIPTION
+			"This value identifies the alarm  and port status report mask of the TDM remote modem in 
+			the far-end side. 
+			Options:
+			1. majorAlarmMask(1)  - Indicates that mask is majorAlarmMask.
+			2. minorAlarmMask(2)  - Indicates that mask is minorAlarmMask.
+			3. portMask(3)  - Indicates that mask is portMask.
+			4. majorAndMinorMask(4)  - Indicates that mask is majorAndMinorMask.
+			5. majorAndPortMask(5)  - Indicates that mask is majorAndPortMask.
+			6. minorAndPortMask(6)  - Indicates that mask is minorAndPortMask.
+			7. allMask(7)  - Indicates that mask is allMask.
+			8. noMask(8)  - Indicates that mask is noMask.
+			"
+		DEFVAL { minorAndPortMask }
+		::= { hwTdmModemConfEntry 1 }
+	
+--	hwTdmModemConfPerformanceMask OBJECT-TYPE
+--		SYNTAX	INTEGER
+--			{
+--			on(1),
+--			off(2)
+--			}
+--		MAX-ACCESS read-write
+--		STATUS current
+--		DESCRIPTION
+--			"This value identifies the performance report mask of the TDM remote modem 
+--			in the far-end side. "
+--		DEFVAL { off }
+--		::= { hwTdmModemConfEntry 3 }
+		
+	hwTdmModemConfReset OBJECT-TYPE
+		SYNTAX	INTEGER
+			{
+			off(2),
+			resetToFactory(3),
+			deviceReset(4),
+			lineReset(5),
+			resetConfigwoMng(6)
+			}
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This value identifies the reset command of the TDM remote modem in the 
+			far-end side. Changing this value can reset the device or the line, or 
+			set the configuration to factory setting.
+			reset_config_wo_mng :set all parameters  to default , instead of parameters of management : IP_address, IP_mask and etc
+			Options:
+			1. off(2)  - Indicates that do nothing.
+			2. resetToFactory(3)  - Indicates that reset to factory.
+			3. deviceReset(4)  - Indicates that device reset.
+			4. lineReset(5)  - Indicates that line reset.
+			5. resetConfigwoMng(6)  - Indicates that set all parameters  to default.
+			"
+		DEFVAL { off }
+		::= { hwTdmModemConfEntry 2 }
+			
+	hwTdmModemAlrBufClear OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			on(1),
+			off(2)
+			}
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This value indicates the switch to clear the Alarm buffer 
+			in the remote modem.
+			Options:
+			1. on(1)  - Indicates that the switch is on.
+			2. off(2)  - Indicates that the switch is off.
+			"
+		DEFVAL { off }
+		::= { hwTdmModemConfEntry 3 }
+		
+	hwTdmModemStatClear OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			none(1),
+			clearSHDSLA(2),
+			clearSHDSLB(3),
+			clearE1(4),
+			clearAll(5)
+			}
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This value indicates resetting statistics of the selected port.
+			Options:
+			1. none(1)  - Indicates that do nothing.
+			2. clearSHDSLA(2)  - Indicates that clear SHDSLA statistics.
+			3. clearSHDSLB(3)  - Indicates that clear SHDSLB statistics.
+			4. clearE1(4)  - Indicates that clear E1 statistics.
+			5. clearAll(5)  - Indicates that clear all statistics.
+			"
+		DEFVAL { none }
+		::= { hwTdmModemConfEntry 4 }
+		
+	hwTdmModemAlarmDevSeverity OBJECT-TYPE
+		SYNTAX 	OCTET STRING	(SIZE(2))		
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This object indicates the alarms severity device bit 
+			mapping. "
+		::= { hwTdmModemConfEntry 5 }
+		
+	hwTdmModemAlarmPortSeverity OBJECT-TYPE
+		SYNTAX 	OCTET STRING	(SIZE(12))		
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This object indicates the alarms severity port bit 
+			mapping. "
+		::= { hwTdmModemConfEntry 6 }
+		
+--	hwTdmModemTestTimeout OBJECT-TYPE
+--		SYNTAX Integer32 (0..4095)			
+--		MAX-ACCESS read-write
+--		STATUS current
+--		DESCRIPTION
+--			"This object is applicable only when a single test is 
+--			running. It indicates the test activation timeout in 
+--			minutes. When the timeout expires, the test is stopped.
+ --			Value of 0 indicates test may run Forever."
+--		DEFVAL { 0 }
+--		::= { hwTdmModemConfEntry 7 }
+		
+--	hwTdmModemTestCmd OBJECT-TYPE
+--		SYNTAX INTEGER
+--			{
+--			stop(1),
+--			rlbOnly(2),
+--			llbOnly(3),
+--			rlbAndLlb(4),
+--			reserved(5)
+--			} 			
+--		MAX-ACCESS read-write
+--		STATUS current
+--		DESCRIPTION
+--			"Setting this object to a value as detailed further on 
+ --			 will initiate a test on the specific port. 
+ --			 	                               
+ --			The terminology and order of the first tests is according 
+ --			to the one used for Test Status of DS1 and DS3 standards.
+ --			The notations : RLB, LLB, DIG are the most used in RAD's 
+ --			products, but they can be different. For exact definition 
+ --			see product's spec. 
+ --	
+ --			Setting this object to stop (value=1), will stop all the 
+ --			user requested tests running on the selected port.
+ --	
+ --			When no test is running on the port, the Get value (test status)
+ --			will be stop(1).
+ --	
+ --			PayloadLoop=RLB (Remote Loopback)
+ --			The received signal at this interface is looped
+ --			through the device.  Typically the received signal
+ --			is looped back for retransmission after it has
+ --			passed through the device's framing function.
+ --	
+ --			InwardLoop=LLB (Local Loopback)
+ --			The sent signal at this interface is looped back
+ --			through the device."
+--		DEFVAL { stop }
+--		::= { hwTdmModemConfEntry 8 }
+
+
+--	
+--  ASMi52A Modem Alarm Buffer Table
+--
+	hwTdmModemAlarmBufTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwTdmModemAlarmBufEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about 
+			a TDM Modem alarm buffer that may be used for NMS polling. 
+			This information describe the alarm buffer index, the 
+			status of the alarm and severity of the alarm.The indexes 
+			of this table are ifIndex, hwTdmModemAlarmBufIndex."
+		::= { hwTdmModemObjects 3 }
+	
+	hwTdmModemAlarmBufEntry OBJECT-TYPE
+		SYNTAX HwTdmModemAlarmBufEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about 
+			a TDM Modem alarm buffer that may be used for NMS polling. 
+			This information describe the alarm buffer index, the 
+			status of the alarm and severity of the alarm.The indexes 
+			of this entry are ifIndex, hwTdmModemAlarmBufIndex."
+		INDEX { ifIndex, hwTdmModemAlarmBufIndex }
+		::= { hwTdmModemAlarmBufTable 1 }
+		
+	HwTdmModemAlarmBufEntry ::=
+		SEQUENCE {
+			hwTdmModemAlarmBufIndex
+				Integer32,
+			hwTdmModemAlarmBufCode
+				Integer32,
+			hwTdmModemAlarmBufState
+				INTEGER,
+			hwTdmModemAlarmBufSeverity
+				INTEGER
+		}
+		
+	hwTdmModemAlarmBufIndex OBJECT-TYPE
+		SYNTAX Integer32 (1..100)
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This value indicates the alarm buffer index in the modem."
+		::= { hwTdmModemAlarmBufEntry 1 }
+		
+	hwTdmModemAlarmBufCode OBJECT-TYPE
+		SYNTAX Integer32 (0..255)
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"The code of the alarm. For text description of each Alarm 
+			code see Modem's specification."
+		::= { hwTdmModemAlarmBufEntry 2 }
+		
+	hwTdmModemAlarmBufState OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			on(1),
+			off(2)
+			}
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"The new status of the alarm.
+			Options:
+			1. on(1) - Indicates that the alarm is on.
+			2. off(2) - Indicates that the alarm is off.
+			"
+		::= { hwTdmModemAlarmBufEntry 3 }
+		
+	hwTdmModemAlarmBufSeverity OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			major(1),
+			minor(2),
+			warning(3)
+			}
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"The severity of the alarm.
+			Options:
+			1. major(1) - Indicates that the alarm is major.
+			2. minor(2) - Indicates that the alarm is minor.
+			3. warning(3) - Indicates that the alarm is warning.
+			"
+		::= { hwTdmModemAlarmBufEntry 4 }
+		
+--
+--  ASMi52A SHDSL Port Configuration Table
+--	
+	hwTdmShdslConfTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwTdmShdslConfEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the information about a TDM Modem SHDSL 
+			port configuration. This information describe the SHDSL port 
+			index, power backoff mode, worst case target SNR margin, 
+			current condition target SNR margin, PSD (Power Spectral 
+			Density) Mask, line probe mode, the loop attenuation alarm 
+			threshold, the SNR margin alarm threshold ,the line wiring,
+			the test timeout and test cmd.The index of this table is ifIndex."
+		::= { hwTdmPortConfObjects 1 }
+		
+	hwTdmShdslConfEntry OBJECT-TYPE
+		SYNTAX HwTdmShdslConfEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the information about a TDM Modem SHDSL 
+			port configuration. This information describe the SHDSL port 
+			index, power backoff mode, worst case target SNR margin, 
+			current condition target SNR margin, PSD (Power Spectral 
+			Density) Mask, line probe mode, the loop attenuation alarm 
+			threshold, the SNR margin alarm threshold ,the line wiring,
+			the test timeout and test cmd.The index of this entry is ifIndex."
+		INDEX { ifIndex }
+		::= { hwTdmShdslConfTable 1 }
+	
+	HwTdmShdslConfEntry ::=
+		SEQUENCE {
+			hwTdmShdslConfPowerBackOff
+				INTEGER,
+			hwTdmShdslConfWorstCaseSNRMargin
+				Integer32,
+			hwTdmShdslConfCurrentSNRMargin
+				Integer32,
+			hwTdmShdslConfPSD
+				INTEGER,
+			hwTdmShdslConfLineProbe
+				INTEGER,
+			hwTdmShdslConfThreshLoopAttenuation
+				Integer32,
+			hwTdmShdslConfThreshSNRMargin
+				Integer32,
+			hwTdmShdslConfWireInterface
+				INTEGER,
+			hwTdmShdslConfTestTimeout
+				Integer32,
+			hwTdmShdslConfTestCmd
+				INTEGER
+		}
+		
+	hwTdmShdslConfPowerBackOff OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			enable(1),
+			disable(2)
+			}
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This object configures the receiver at the associated 
+			segment endpoint to operate in power backoff mode.
+			Options:
+			1. enable(1) - Indicates that enable the function.
+			2. disable(2) - Indicates that disable the function.
+			"
+		::= { hwTdmShdslConfEntry 1 }
+		
+	hwTdmShdslConfWorstCaseSNRMargin OBJECT-TYPE
+		SYNTAX Integer32 (-10..11)
+		UNITS "dB"			
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This object specifies the upstream worst case target SNR 
+			margin for a SHDSL line. The SNR margin is the difference 
+			between the desired SNR and the actual SNR. Target SNR 
+			margin is the desired SNR margin for a unit.
+			The normal value is from -10 to 10 , 11 means DSP chip 
+			HANDSHAKE not used this parameters"
+		::= { hwTdmShdslConfEntry 2 }
+		
+	hwTdmShdslConfCurrentSNRMargin OBJECT-TYPE
+		SYNTAX Integer32 (-10..11)
+		UNITS "dB"			
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This object specifies the upstream current condition 
+			target SNR margin for a SHDSL line. The SNR margin is the 
+			difference between the desired SNR and the actual SNR.  
+			Target SNR margin is the desired SNR margin for a unit.
+			The normal value is from -10 to 10 , 11 means DSP chip 
+			HANDSHAKE not used this parameters"
+		::= { hwTdmShdslConfEntry 3 }
+		
+	hwTdmShdslConfPSD OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			asymDisable(0),
+ 			asymEnable(1),
+ 			r1AsymEnable(2),
+ 			r2AsymEnable(3),
+ 			asymSymEnable(4),
+ 			psdUnknown(5)
+			} 
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"This object configures use of symmetric/asymmetric PSD 
+			(Power Spectral Density) Mask for the associated SHDSL Line.  
+			Support for symmetric PSD is mandatory for all supported
+			 data rates. Support for asymmetric PSD is optional.
+			Options:
+			1. asymDisable(0) - Indicates that PSD asymmetric disable.
+			2. asymEnable(1) - Indicates that PSD asymmetric enable.
+			3. r1AsymEnable(2) - Indicates that PSD r1 asymmetric enable.
+			4. r2AsymEnable(3) - Indicates that PSD r2 asymmetric enable.
+			5. asymSymEnable(4) - Indicates that PSD asymmetric and symmetric enable.
+			6. psdUnknown(5) - Indicates that PSD unknown.
+			"
+		::= { hwTdmShdslConfEntry 4 }
+		
+	hwTdmShdslConfLineProbe OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			enable(1),
+ 			disable(2)
+			} 
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"This object enables/disables support for Line Probe of 
+			the units in a SHDSL line.  When Line Probe is enabled, 
+			the system performs Line Probing to find the best possible 
+			rate (adaptive rate). If Line probe is disabled, the rate 
+			adaptation phase is skipped to shorten set up time 
+			(fixed rate).
+			Options:
+			1. enable(1) - Indicates that enable the function.
+			2. disable(2) - Indicates that disable the function.
+			"
+		::= { hwTdmShdslConfEntry 5 }
+		
+	hwTdmShdslConfThreshLoopAttenuation OBJECT-TYPE
+		SYNTAX Integer32 (0..127)
+		UNITS "dB"			 
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This object configures the loop attenuation alarm threshold."
+		DEFVAL { 0 }
+		::= { hwTdmShdslConfEntry 6 }
+		
+	hwTdmShdslConfThreshSNRMargin OBJECT-TYPE
+		SYNTAX Integer32 (0..15)
+		UNITS "dB"			 
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This object configures the SNR margin alarm threshold."
+		DEFVAL { 0 }
+		::= { hwTdmShdslConfEntry 7 }
+		
+	hwTdmShdslConfWireInterface OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			twoWire(1), 
+ 			fourWire(2)
+			}
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This object configures the two-wire or optional four-wire 
+			operation for SHDSL Lines.
+			Options:
+			1. twoWire(1) - Indicates that the operation for SHDSL Lines is two-wire.
+			2. fourWire(2) - Indicates that the operation for SHDSL Lines is four-wire.
+			"
+		DEFVAL { twoWire }
+		::= { hwTdmShdslConfEntry 8 }
+
+	hwTdmShdslConfTestTimeout OBJECT-TYPE
+		SYNTAX Integer32 (0..4095)			
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This object is applicable only when a single test is 
+			running. It indicates the test activation timeout in 
+			minutes. When the timeout expires, the test is stopped.
+ 			Value of 0 indicates test may run Forever."
+		DEFVAL { 5 }
+		::= { hwTdmShdslConfEntry 9 }
+		
+	hwTdmShdslConfTestCmd OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			stop(1),
+			gsrLb(2),
+			dteRlb(3),
+			e1Rlb(4),
+			otherloop(5)
+			} 			
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"Setting this object to a value as detailed further on 
+			 will initiate a test on the specific port. 
+			 	                               
+			The terminology and order of the first tests is according 
+			to the one used for Test Status of DS1 and DS3 standards.
+			The notations : RLB, LLB, DIG are the most used in RAD's 
+			products, but they can be different. For exact definition 
+			see product's spec. 
+	
+			Setting this object to stop (value=1), will stop all the 
+			user requested tests running on the selected port.
+	
+			When no test is running on the port, the Get value (test status)
+			will be stop(1).
+	
+			PayloadLoop=RLB (Remote Loopback)
+			The received signal at this interface is looped
+			through the device.  Typically the received signal
+			is looped back for retransmission after it has
+			passed through the device's framing function.
+	
+			InwardLoop=LLB (Local Loopback)
+			The sent signal at this interface is looped back
+			through the device.
+			
+			Options:
+			1. stop(1) - Indicates that stop all the user requested tests running on the selected port.
+			2. gsrLb(2) - Indicates that initiate gsrLb test.
+			3. dteRlb(3) - Indicates that initiate dteRlb test .
+			4. e1Rlb(4) - Indicates that initiate e1Rlb test.
+			5. otherloop(5) - Indicates that initiate otherloop test.
+			"
+		DEFVAL { stop }
+		::= { hwTdmShdslConfEntry 10 }
+
+--
+--  ASMi52A E1/T1 Port Configuration Table
+--	
+	hwTdmE1ConfTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwTdmE1ConfEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about a 
+			TDM Modem E1 port configuration. This information describe 
+			the E1 port index, line type, sync, idelcode and crc4 value.
+			The index of this table is ifIndex."
+		::= { hwTdmPortConfObjects 2 }
+		
+	hwTdmE1ConfEntry OBJECT-TYPE
+		SYNTAX HwTdmE1ConfEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about a 
+			TDM Modem E1 port configuration. This information describe 
+			the E1 port index, line type, sync, idelcode and crc4 value.
+			The index of this entry is ifIndex."
+		INDEX { ifIndex }
+		::= { hwTdmE1ConfTable 1 }
+	
+	HwTdmE1ConfEntry ::=
+		SEQUENCE {
+			hwTdmE1ConfLineType
+				INTEGER,	
+			hwTdmE1ConfSync
+				INTEGER,
+			hwTdmE1ConfIdleCode
+				Integer32,
+			hwTdmE1ConfCrc4
+				INTEGER
+		}
+		
+	hwTdmE1ConfLineType OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			esf(0),
+			d4(1),
+			e1(2),
+			e1MF(3),
+			unframed(4) 
+			}
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This variable indicates  the  variety  of T1/E1
+ 			Line  implementing  this  circuit.  The type of
+ 			circuit affects the number of bits  per  second
+ 			that  the circuit can reasonably carry, as well
+ 			as the interpretation of the  usage  and  error
+ 			statistics.  The values, in sequence, describe:
+ 	
+ 			TITLE:        SPECIFICATION:
+ 			esf       Extended SuperFrame DS1
+ 			d4        AT&T D4 format DS1  - SF
+ 			e1        CCITT Recommendation G.704
+ 	         		(Table 4a) - G732N
+ 			e1MF      G.704 (Table 4a) with TS16
+ 	         		multiframing enabled - G732S
+ 			unframed  
+			Options:
+			1. esf(0) - Indicates that the variety is esf.
+			2. d4(1) - Indicates that  the variety is d4.
+			3. e1(2) - Indicates that the variety is e1.
+			4. e1MF(3) - Indicates that the variety is e1MF.
+			5. unframed(4) - Indicates that the variety is unframed.
+			"
+
+		::= { hwTdmE1ConfEntry 1 }
+	
+	hwTdmE1ConfSync OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			fast(1),
+			tr62411(2),
+			ccitt(3)			
+			}
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This object enables returning to normal operation, after 
+ 			the end of a main/sub link red alarm event, in reduced time.
+ 	   		'tr62411' - complies with AT&T TR-62411 (after 10 seconds).
+ 	         	            Applicable for both T1 and E1 interfaces.
+ 			'ccitt'   - complies with CCITT standard. Applicable only
+ 	                            for E1 interfaces.
+ 			'fast'    - after 1 second.
+ 			
+			Options:
+			1. fast(1) - Indicates that return to normal operation in fast mode.
+			2. tr62411(2) - Indicates that  return to normal operation in tr62411 mode.
+			3. ccitt(3) - Indicates that return to normal operation in ccitt mode.
+			"
+		::= { hwTdmE1ConfEntry 2 }
+	
+	hwTdmE1ConfIdleCode OBJECT-TYPE
+		SYNTAX Integer32 (0..255)
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This object selects the code transmitted to fill idle 
+ 			(unused) time slots in the main link frame. 
+ 			Valid range: (0 - FF HEX)."
+		::= { hwTdmE1ConfEntry 3 }
+		
+--	hwTdmE1ConfSameFeCnfg OBJECT-TYPE
+--		SYNTAX INTEGER
+--			{
+--			notApplicable(1),
+--			no(2),
+--			yes(3)
+--			}
+--		MAX-ACCESS read-write
+--		STATUS current
+--		DESCRIPTION
+--			"This parameter indicates whether the same E1 configuration 
+--			parameters and TS assignment are set both to the local
+--			and remote device.
+--			Read-Write access is applicable only in G732N framed mode.
+--			For G732S and UNFRAMED this parameter is set by 
+--			agent to YES and is Read Only.
+--			In Case of conflict during power-up between the central 
+--			and remote, the value set by the central unit is the valid one."
+--		::= { hwTdmE1ConfEntry 4 }
+	
+	hwTdmE1ConfCrc4 OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			yes(1),
+			no(2)
+			}
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This parameter indicates whether the CRC-4 is set to the 
+			local and remote device.
+ 			Options:
+			1. yes(1) - Indicates that set CRC-4.
+			2. no(2) - Indicates that no set CRC-4.
+			"
+		DEFVAL { no }
+		::= { hwTdmE1ConfEntry 4 }
+		
+--
+--  ASMi52A DTE Port Configuration Table
+--	
+	hwTdmDTEConfTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwTdmDTEConfEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the information about a TDM Modem DTE 
+			port configuration. This information describe the DTE port 
+			index, local analog loop-back switch, remote loop-back 
+			switch, and Ir rate.The index of this table is ifIndex."
+		::= { hwTdmPortConfObjects 3 }
+		
+	hwTdmDTEConfEntry OBJECT-TYPE
+		SYNTAX HwTdmDTEConfEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the information about a TDM Modem DTE 
+			port configuration. This information describe the DTE port 
+			index, local analog loop-back switch, remote loop-back 
+			switch, and Ir rate.The index of this entry is ifIndex."
+		INDEX { ifIndex }
+		::= { hwTdmDTEConfTable 1 }
+	
+	HwTdmDTEConfEntry ::=
+		SEQUENCE {
+			hwTdmDTEConfLlbEnable
+				INTEGER,
+			hwTdmDTEConfRlbEnable
+				INTEGER,
+			hwTdmDTEConfIrRate
+				INTEGER
+		}
+			
+	hwTdmDTEConfLlbEnable OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			enable(1),
+			disable(2)
+			}
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"Enable/Disable local Analog Loop-Back on this modem, 
+			externally initiated.
+			Options:
+			1. enable(1) - Indicates that enable the function.
+			2. disable(2) - Indicates that disable the function.
+			"
+		::= { hwTdmDTEConfEntry 1 }
+		
+	hwTdmDTEConfRlbEnable OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			enable(1),
+			disable(2)
+			}
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"Enable/Disable Remote Loop-Back on this modem, externally
+ 			initiated.
+			Options:
+			1. enable(1) - Indicates that enable the function.
+			2. disable(2) - Indicates that disable the function.
+			"
+		::= { hwTdmDTEConfEntry 2 }
+		
+	
+		
+	hwTdmDTEConfIrRate OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			r64Kbps(1),
+			r128Kbps(2),
+			r192Kbps(3),
+			r256Kbps(4),
+			r320Kbps(5),
+			r384Kbps(6),
+			r448Kbps(7),
+			r512Kbps(8),
+			r576Kbps(9),
+			r640Kbps(10),
+			r704Kbps(11),
+			r768Kbps(12), 
+			r832Kbps(13),
+			r896Kbps(14),
+			r960Kbps(15),
+			r1024Kbps(16),
+			r1088Kbps(17),
+			r1152Kbps(18),
+			r1216Kbps(19),
+			r1280Kbps(20),
+			r1344Kbps(21),
+			r1408Kbps(22),
+			r1472Kbps(23),
+			r1536Kbps(24),
+			r1600Kbps(25),
+			r1664Kbps(26),
+			r1728Kbps(27),
+			r1792Kbps(28),
+			r1856Kbps(29),
+			r1920Kbps(30),
+			r1984Kbps(31),
+			r2048Kbps(32),
+			r2112Kbps(33),
+			r2176Kbps(34),
+			r2240Kbps(35),
+			r2304Kbps(36),
+			r2432Kbps(37),
+			r2560Kbps(38),
+			r2688Kbps(39),
+			r2816Kbps(40),
+			r2944Kbps(41),
+			r3072Kbps(42),
+			r3200Kbps(43),
+			r3328Kbps(44),
+			r3456Kbps(45),
+			r3584Kbps(46),
+			r3712Kbps(47),
+			r3840Kbps(48),
+			r3968Kbps(49),
+			r4096Kbps(50),
+			r4224Kbps(51),
+			r4352Kbps(52),
+			r4480Kbps(53),
+			r4608Kbps(54),
+			notApplicable(255)
+			}
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"This object indicates the DTE port rate.for mux device.When modem is two_wire model,its
+			max supported value is 2048Kbps.
+			Options:
+			1, r64Kbps(1) - Indicates the DTE port rate is r64Kbps.
+			2, r128Kbps(2) - Indicates the DTE port rate is r128Kbps.
+			3, r192Kbps(3) - Indicates the DTE port rate is r192Kbps.
+			4, r256Kbps(4) - Indicates the DTE port rate is r256Kbps.
+			5, r320Kbps(5) - Indicates the DTE port rate is r320Kbps.
+			6, r384Kbps(6) - Indicates the DTE port rate is r384Kbps.
+			7, r448Kbps(7) - Indicates the DTE port rate is r448Kbps.
+			8, r512Kbps(8) - Indicates the DTE port rate is r512Kbps.
+			9, r576Kbps(9) - Indicates the DTE port rate is r576Kbps.
+			10, r640Kbps(10) - Indicates the DTE port rate is r640Kbps.
+			11, r704Kbps(11) - Indicates the DTE port rate is r704Kbps.
+			12, r768Kbps(12)  - Indicates the DTE port rate is r768Kbps.
+			13, r832Kbps(13) - Indicates the DTE port rate is r832Kbps.
+			14, r896Kbps(14) - Indicates the DTE port rate is r896Kbps.
+			15, r960Kbps(15) - Indicates the DTE port rate is r960Kbps.
+			16, r1024Kbps(16) - Indicates the DTE port rate is r1024Kbps.
+			17, r1088Kbps(17) - Indicates the DTE port rate is r1088Kbps.
+			18, r1152Kbps(18) - Indicates the DTE port rate is r1152Kbps.
+			19, r1216Kbps(19) - Indicates the DTE port rate is r1216Kbps.
+			20, r1280Kbps(20) - Indicates the DTE port rate is r1280Kbps.
+			21, r1344Kbps(21) - Indicates the DTE port rate is r1344Kbps.
+			22, r1408Kbps(22) - Indicates the DTE port rate is r1408Kbps.
+			23, r1472Kbps(23) - Indicates the DTE port rate is r1472Kbps.
+			24, r1536Kbps(24) - Indicates the DTE port rate is r1536Kbps.
+			25, r1600Kbps(25) - Indicates the DTE port rate is r1600Kbps.
+			26, r1664Kbps(26) - Indicates the DTE port rate is r1664Kbps.
+			27, r1728Kbps(27) - Indicates the DTE port rate is r1728Kbps.
+			28, r1792Kbps(28) - Indicates the DTE port rate is r1792Kbps.
+			29, r1856Kbps(29) - Indicates the DTE port rate is r1856Kbps.
+			30, r1920Kbps(30) - Indicates the DTE port rate is r1920Kbps.
+			31, r1984Kbps(31) - Indicates the DTE port rate is r1984Kbps.
+			32, r2048Kbps(32) - Indicates the DTE port rate is r2048Kbps.
+			33, r2112Kbps(33) - Indicates the DTE port rate is r2112Kbps.
+			34, r2176Kbps(34) - Indicates the DTE port rate is r2176Kbps.
+			35, r2240Kbps(35) - Indicates the DTE port rate is r2240Kbps.
+			36, r2304Kbps(36) - Indicates the DTE port rate is r2304Kbps.
+			37, r2432Kbps(37) - Indicates the DTE port rate is r2432Kbps.
+			38, r2560Kbps(38) - Indicates the DTE port rate is r2560Kbps.
+			39, r2688Kbps(39) - Indicates the DTE port rate is r2688Kbps.
+			40, r2816Kbps(40) - Indicates the DTE port rate is r2816Kbps.
+			41, r2944Kbps(41) - Indicates the DTE port rate is r2944Kbps.
+			42, r3072Kbps(42) - Indicates the DTE port rate is r3072Kbps.
+			43, r3200Kbps(43) - Indicates the DTE port rate is r3200Kbps.
+			44, r3328Kbps(44) - Indicates the DTE port rate is r3328Kbps.
+			45, r3456Kbps(45) - Indicates the DTE port rate is r3456Kbps.
+			46, r3584Kbps(46) - Indicates the DTE port rate is r3584Kbps.
+			47, r3712Kbps(47) - Indicates the DTE port rate is r3712Kbps.
+			48, r3840Kbps(48) - Indicates the DTE port rate is r3840Kbps.
+			49, r3968Kbps(49) - Indicates the DTE port rate is r3968Kbps.
+			50, r4096Kbps(50) - Indicates the DTE port rate is r4096Kbps.
+			51, r4224Kbps(51) - Indicates the DTE port rate is r4224Kbps.
+			52, r4352Kbps(52) - Indicates the DTE port rate is r4352Kbps.
+			53, r4480Kbps(53) - Indicates the DTE port rate is r4480Kbps.
+			54, r4608Kbps(54) - Indicates the DTE port rate is r4608Kbps.
+			55, notApplicable(255) - Indicates the DTE port rate is notApplicable.
+			"
+		::= { hwTdmDTEConfEntry 3 }
+		
+-- -----------------------------------------------------------------------------------------	
+--
+--  ASMi52A G.SHDSL Port current statistics Table including 15 minute interval and 24 hour interval
+--
+	hwTdmShdslCurrentStatTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwTdmShdslCurrentStatEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about a TDM Modem SHDSL port 
+			statistics including 15 minute and 1 day interval. This information describe
+			total elapsed seconds, the number of errored seconds, the number of unavailable
+			seconds, the number of severely errored seconds, the number of CRC anomalies, 
+			the number of loss of sync word seconds.
+			The indexes of this table are ifIndex, hwTdmShdslLineIndex."
+		::= { hwTdmPortStatObjects 1 }
+		
+	hwTdmShdslCurrentStatEntry OBJECT-TYPE
+		SYNTAX HwTdmShdslCurrentStatEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about a TDM Modem SHDSL port 
+			statistics including 15 minute and 1 day interval. This information describe
+			total elapsed seconds, the number of errored seconds, the number of unavailable
+			seconds, the number of severely errored seconds, the number of CRC anomalies, 
+			the number of loss of sync word seconds.
+			The indexes of this entry are ifIndex, hwTdmShdslLineIndex."
+		INDEX { ifIndex, hwTdmShdslLineIndex }
+		::= { hwTdmShdslCurrentStatTable 1 }
+	
+	HwTdmShdslCurrentStatEntry ::=
+		SEQUENCE {
+			hwTdmShdslLineIndex 
+				INTEGER,
+			hwTdmShdslCurrentTimeElapsed
+				Unsigned32,
+			hwTdmShdslCurrent15MinES
+				Gauge32,
+			hwTdmShdslCurrent15MinSES
+				Gauge32,
+			hwTdmShdslCurrent15MinCRCanomalies
+				Gauge32,
+			hwTdmShdslCurrent15MinLOSWS
+				Gauge32,
+			hwTdmShdslCurrent15MinUAS
+				Gauge32,
+--			hwTdmShdslCurrent15MinLoswErrors
+--				Gauge32,
+			hwTdmShdslCurrent1DayES
+				Gauge32,
+			hwTdmShdslCurrent1DaySES
+				Gauge32,
+			hwTdmShdslCurrent1DayCRCanomalies
+				Gauge32,
+			hwTdmShdslCurrent1DayLOSWS
+				Gauge32,
+			hwTdmShdslCurrent1DayUAS
+				Gauge32,
+--			hwTdmShdslCurrent1DayLoswErrors
+--				Gauge32,
+			hwTdmShdslCurrentSNRMargin
+				Integer32,
+			hwTdmShdslCurrentLoopAttenuation
+				Integer32,
+--			hwTdmShdslCurrentRcvGain
+--				Integer32,
+			hwTdmShdslCurrentTransPower
+				Integer32,
+			hwTdmShdslCurrentPowerBO
+				Integer32		
+		}
+	
+	hwTdmShdslLineIndex OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			lineA(1),
+			lineB(2)
+			}
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This value indicates the SHDSL line port index.
+			Options:
+			1. lineA(1) - Indicates the SHDSL line port index is lineA.
+			2. lineB(2) - Indicates the SHDSL line port index is lineB.
+			"
+		::= { hwTdmShdslCurrentStatEntry 1 }
+	
+	hwTdmShdslCurrentTimeElapsed OBJECT-TYPE
+		SYNTAX Unsigned32 (0..86399)
+		UNITS "seconds"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Total elapsed seconds in the current interval."
+        	::= { hwTdmShdslCurrentStatEntry 2 } 
+        	
+        hwTdmShdslCurrent15MinES OBJECT-TYPE
+		SYNTAX Gauge32 (0..899)
+		UNITS "seconds"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of Errored Seconds (ES) in the current 15-minute interval."
+        	::= { hwTdmShdslCurrentStatEntry 3 }
+        	
+         hwTdmShdslCurrent15MinSES OBJECT-TYPE
+		SYNTAX Gauge32 (0..900)
+		UNITS "seconds"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of Severely Errored Seconds (SES) in the current 15-minute interval.
+        		when sync is off ,it may be 900"
+        	::= { hwTdmShdslCurrentStatEntry 4 }
+        	
+        hwTdmShdslCurrent15MinCRCanomalies OBJECT-TYPE
+		SYNTAX Gauge32 
+		UNITS "detected CRC Anomalies"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of CRC anomalies in the current 15-minute interval."
+        	::= { hwTdmShdslCurrentStatEntry 5 }
+        	
+        hwTdmShdslCurrent15MinLOSWS OBJECT-TYPE
+		SYNTAX Gauge32 (0..899)
+		UNITS "seconds"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of Loss of Sync Word (LOSW) Seconds in the current 15-minute interval."
+        	::= { hwTdmShdslCurrentStatEntry 6 }
+        
+        hwTdmShdslCurrent15MinUAS OBJECT-TYPE
+		SYNTAX Gauge32 (0..900)
+		UNITS "seconds"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of Unavailable Seconds (UAS) in the current 15-minute interval.
+        		when sync is off ,it may be 900"
+        	::= { hwTdmShdslCurrentStatEntry 7 }
+        
+--	hwTdmShdslCurrent15MinLoswErrors OBJECT-TYPE
+--		SYNTAX Gauge32 
+--		MAX-ACCESS  read-only
+ --       	STATUS  current
+ --       	DESCRIPTION
+ --       		"Count of LOSW errors in the current 15-minute interval."
+--        	::= { hwTdmShdslCurrentStatEntry 8 }
+	
+        hwTdmShdslCurrent1DayES OBJECT-TYPE
+		SYNTAX Gauge32 (0..86399)
+		UNITS "seconds"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of Errored Seconds (ES) in the current day interval."
+        	::= { hwTdmShdslCurrentStatEntry 8 }
+        	
+         hwTdmShdslCurrent1DaySES OBJECT-TYPE
+		SYNTAX Gauge32 (0..86400)
+		UNITS "seconds"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of Severely Errored Seconds (SES) in the current day interval."
+        	::= { hwTdmShdslCurrentStatEntry 9 }
+        	
+        hwTdmShdslCurrent1DayCRCanomalies OBJECT-TYPE
+		SYNTAX Gauge32 
+		UNITS "detected CRC Anomalies"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of CRC anomalies in the current day interval."
+        	::= { hwTdmShdslCurrentStatEntry 10 }
+        	
+        hwTdmShdslCurrent1DayLOSWS OBJECT-TYPE
+		SYNTAX Gauge32 (0..86399)
+		UNITS "seconds"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of Loss of Sync Word (LOSW) Seconds in the current day interval."
+        	::= { hwTdmShdslCurrentStatEntry 11 }
+        
+        hwTdmShdslCurrent1DayUAS OBJECT-TYPE
+		SYNTAX Gauge32 (0..86400)
+		UNITS "seconds"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of Unavailable Seconds (UAS) in the current day interval."
+        	::= { hwTdmShdslCurrentStatEntry 12 }
+		
+--	hwTdmShdslCurrent1DayLoswErrors OBJECT-TYPE
+--		SYNTAX Gauge32 
+--		MAX-ACCESS  read-only
+--        	STATUS  current
+--        	DESCRIPTION
+--        		"Count of LOSW errors in the current 24-hour interval."
+--        	::= { hwTdmShdslCurrentStatEntry 14 }
+        
+        hwTdmShdslCurrentSNRMargin OBJECT-TYPE
+		SYNTAX Integer32 (0..15)
+		UNITS "dB"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"The current SNR margin for this endpoint as reported in a 
+ 			Status Response/SNR message."
+        	::= { hwTdmShdslCurrentStatEntry 13 }
+        	
+        hwTdmShdslCurrentLoopAttenuation OBJECT-TYPE
+		SYNTAX Integer32 (0..127)
+		UNITS "dB"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"The current loop attenuation for this endpoint as reported
+        		in a Network or Customer Side Performance Status message."
+        	::= { hwTdmShdslCurrentStatEntry 14 }
+        	
+--        hwTdmShdslCurrentRcvGain OBJECT-TYPE
+--		SYNTAX Integer32 
+--		UNITS "dB"
+--        	MAX-ACCESS  read-only
+--        	STATUS  current
+--        	DESCRIPTION
+--        		"The current receive gain in hundredth of dB."
+--        	::= { hwTdmShdslCurrentStatEntry 15 }
+        	
+        hwTdmShdslCurrentTransPower OBJECT-TYPE
+		SYNTAX Integer32 
+		UNITS "dBm"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"The current transmit power in tenth of dBm."
+        	::= { hwTdmShdslCurrentStatEntry 15 }	
+        
+        hwTdmShdslCurrentPowerBO OBJECT-TYPE
+		SYNTAX Integer32 (0..6)
+		UNITS "dB"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"The current transceiver actual power packoff from 0dB to 6dB."
+        	::= { hwTdmShdslCurrentStatEntry 16 }
+        	
+--
+--  ASMi52A G.SHDSL Port statistics Table in 15 minute interval 
+--
+	hwTdmShdslIntervalStatTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwTdmShdslIntervalStatEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about a TDM Modem SHDSL port statistics 
+			in 15 minute interval. This information describe the SHDSL port interval index, the number 
+			of errored seconds, the number of unavailable seconds, the number of severely errored 
+			seconds, the number of CRC anomalies and the number of loss of sync word seconds.
+			The indexes of this table are ifIndex, hwTdmShdslLineIndex, hwTdmShdslIntervalIndex."
+		::= { hwTdmPortStatObjects 2 }
+		
+	hwTdmShdslIntervalStatEntry OBJECT-TYPE
+		SYNTAX HwTdmShdslIntervalStatEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about a TDM Modem SHDSL port statistics 
+			in 15 minute interval. This information describe the SHDSL port interval index, the number 
+			of errored seconds, the number of unavailable seconds, the number of severely errored 
+			seconds, the number of CRC anomalies and the number of loss of sync word seconds.
+			The indexes of this entry are ifIndex, hwTdmShdslLineIndex, hwTdmShdslIntervalIndex."
+		INDEX { ifIndex, hwTdmShdslLineIndex, hwTdmShdslIntervalIndex }
+		::= { hwTdmShdslIntervalStatTable 1 }
+	
+	HwTdmShdslIntervalStatEntry ::=
+		SEQUENCE {
+			hwTdmShdslIntervalIndex
+				Integer32,
+			hwTdmShdslIntervalES
+				Gauge32,
+			hwTdmShdslIntervalSES
+				Gauge32,
+			hwTdmShdslIntervalCRCanomalies
+				Gauge32,
+			hwTdmShdslIntervalLOSWS
+				Gauge32,
+			hwTdmShdslIntervalUAS
+				Gauge32
+--			hwTdmShdslIntervalLoswErrors
+--				Gauge32
+		}
+		
+	hwTdmShdslIntervalIndex OBJECT-TYPE
+		SYNTAX Integer32 (1..96)
+		MAX-ACCESS  not-accessible
+        	STATUS  current
+        	DESCRIPTION
+        		"This value indicates the interval SHDSL port statistics index in the remote 
+			modem."
+        	::= { hwTdmShdslIntervalStatEntry 1 } 
+        	
+        hwTdmShdslIntervalES OBJECT-TYPE
+		SYNTAX Gauge32 (0..899)
+		UNITS "seconds"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of Errored Seconds (ES) in 15-minute interval."
+        	::= { hwTdmShdslIntervalStatEntry 2 }
+        	
+         hwTdmShdslIntervalSES OBJECT-TYPE
+		SYNTAX Gauge32 (0..899)
+		UNITS "seconds"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of Severely Errored Seconds (SES) in 15-minute interval.
+        		when sync is off ,it may be 900"
+        	::= { hwTdmShdslIntervalStatEntry 3 }
+        	
+        hwTdmShdslIntervalCRCanomalies OBJECT-TYPE
+		SYNTAX Gauge32 
+		UNITS "detected CRC Anomalies"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of CRC anomalies in 15-minute interval."
+        	::= { hwTdmShdslIntervalStatEntry 4 }
+        	
+        hwTdmShdslIntervalLOSWS OBJECT-TYPE
+		SYNTAX Gauge32 (0..899)
+		UNITS "seconds"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of Loss of Sync Word (LOSW) Seconds in 15-minute interval."
+        	::= { hwTdmShdslIntervalStatEntry 5 }
+        
+        hwTdmShdslIntervalUAS OBJECT-TYPE
+		SYNTAX Gauge32 (0..899)
+		UNITS "seconds"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of Unavailable Seconds (UAS) in 15-minute interval.
+        		when sync is off ,it may be 900"
+        	::= { hwTdmShdslIntervalStatEntry 6 }
+        
+--	hwTdmShdslIntervalLoswErrors OBJECT-TYPE
+--		SYNTAX Gauge32 
+--	       	MAX-ACCESS  read-only
+ --       	STATUS  current
+ --       	DESCRIPTION
+--        		"Count of LOSW errors in 15-minute interval."
+--        	::= { hwTdmShdslIntervalStatEntry 7 }
+		
+--
+--  ASMi52A G.SHDSL Port statistics Table in 1-day interval 
+--
+	hwTdmShdslTotalStatTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwTdmShdslTotalStatEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about a TDM Modem SHDSL port statistics 
+			in 1-day interval. This information describe the SHDSL port interval index, the number 
+			of errored seconds, the number of unavailable seconds, the number of severely errored 
+			seconds, the number of CRC anomalies and the number of loss of sync word seconds.
+			The indexes of this table are ifIndex, hwTdmShdslLineIndex, hwTdmShdslTotalIndex."
+		::= { hwTdmPortStatObjects 3 }
+		
+	hwTdmShdslTotalStatEntry OBJECT-TYPE
+		SYNTAX HwTdmShdslTotalStatEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about a TDM Modem SHDSL port statistics 
+			in 1-day interval. This information describe the SHDSL port interval index, the number 
+			of errored seconds, the number of unavailable seconds, the number of severely errored 
+			seconds, the number of CRC anomalies and the number of loss of sync word seconds.
+			The indexes of this entry are ifIndex, hwTdmShdslLineIndex, hwTdmShdslTotalIndex."
+		INDEX { ifIndex, hwTdmShdslLineIndex, hwTdmShdslTotalIndex }
+		::= { hwTdmShdslTotalStatTable 1 }
+	
+	HwTdmShdslTotalStatEntry ::=
+		SEQUENCE {
+			hwTdmShdslTotalIndex
+				Integer32,
+			hwTdmShdslTotalES
+				Gauge32,
+			hwTdmShdslTotalSES
+				Gauge32,
+			hwTdmShdslTotalCRCanomalies
+				Gauge32,
+			hwTdmShdslTotalLOSWS
+				Gauge32,
+			hwTdmShdslTotalUAS
+				Gauge32
+--			hwTdmShdslTotalLoswErrors				
+--				Gauge32
+		}
+		
+	hwTdmShdslTotalIndex OBJECT-TYPE
+		SYNTAX Integer32 (1..7)
+		MAX-ACCESS  not-accessible
+        	STATUS  current
+        	DESCRIPTION
+        		"This value indicates the total SHDSL port statistics index in the remote 
+			modem."
+        	::= { hwTdmShdslTotalStatEntry 1 } 
+        	
+        hwTdmShdslTotalES OBJECT-TYPE
+		SYNTAX Gauge32 (0..86304)
+		UNITS "seconds"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of Errored Seconds (ES) in 1-day interval."
+        	::= { hwTdmShdslTotalStatEntry 2 }
+        	
+         hwTdmShdslTotalSES OBJECT-TYPE
+		SYNTAX Gauge32 (0..86400)
+		UNITS "seconds"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of Severely Errored Seconds (SES) in 1-day interval."
+        	::= { hwTdmShdslTotalStatEntry 3 }
+        	
+        hwTdmShdslTotalCRCanomalies OBJECT-TYPE
+		SYNTAX Gauge32 
+		UNITS "detected CRC Anomalies"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of CRC anomalies in 1-day interval."
+        	::= { hwTdmShdslTotalStatEntry 4 }
+        	
+        hwTdmShdslTotalLOSWS OBJECT-TYPE
+		SYNTAX Gauge32 (0..86304)
+		UNITS "seconds"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of Loss of Sync Word (LOSW) Seconds in 1-day interval."
+        	::= { hwTdmShdslTotalStatEntry 5 }
+        
+        hwTdmShdslTotalUAS OBJECT-TYPE
+		SYNTAX Gauge32 (0..86400)
+		UNITS "seconds"
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Count of Unavailable Seconds (UAS) in 1-day interval."
+        	::= { hwTdmShdslTotalStatEntry 6 }
+		
+--	hwTdmShdslTotalLoswErrors OBJECT-TYPE
+--		SYNTAX Gauge32
+--		MAX-ACCESS  read-only
+--        	STATUS  current
+--        	DESCRIPTION
+--        		"Count of LOSW errors in 1-day interval."
+--        	::= { hwTdmShdslTotalStatEntry 7 }
+        		
+--
+--  ASMi52A E1 Port statistics in current 15 minute interval Table
+--
+	hwTdmE1CurrentStatTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwTdmE1CurrentStatEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference 
+			information about a TDM Modem E1 port statistics in current 15 minute interval. 
+			This information describe the E1 port current interval index, the number of 
+			BPV (BiPolar Violation) events detected during the last minute, the maximal 
+			number of BPV (BiPolar Violation) events (per minute) detected during the worst 
+			minute, the number of CRC error events, the average number of CRC error events 
+			per second, the number of errored seconds, the number of unavailable seconds,
+			the number of severely errored seconds, the number of bursty errored seconds, 
+			the number of loss of frame events, the number of controlled slip seconds, the 
+			number of degraded minutes and the number of seconds that have elapsed since the 
+			beginning of the near end current error- measurement period.
+			The index of this table is ifIndex."
+		::= { hwTdmPortStatObjects 4 }
+		
+	hwTdmE1CurrentStatEntry OBJECT-TYPE
+		SYNTAX HwTdmE1CurrentStatEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference 
+			information about a TDM Modem E1 port statistics in current 15 minute interval. 
+			This information describe the E1 port current interval index, the number of 
+			BPV (BiPolar Violation) events detected during the last minute, the maximal 
+			number of BPV (BiPolar Violation) events (per minute) detected during the worst 
+			minute, the number of CRC error events, the average number of CRC error events 
+			per second, the number of errored seconds, the number of unavailable seconds,
+			the number of severely errored seconds, the number of bursty errored seconds, 
+			the number of loss of frame events, the number of controlled slip seconds, the 
+			number of degraded minutes and the number of seconds that have elapsed since the 
+			beginning of the near end current error- measurement period.
+			The index of this entry is ifIndex."
+		INDEX { ifIndex }
+		::= { hwTdmE1CurrentStatTable 1 }
+		
+	HwTdmE1CurrentStatEntry ::=
+		SEQUENCE {
+			hwTdmE1CurrentBpvLastMin
+				Gauge32,
+			hwTdmE1CurrentBpvMax
+				Gauge32,	
+			hwTdmE1CurrentCRCErrorEvents
+				Gauge32,
+			hwTdmE1CurrentCRCAvgError
+				Gauge32,
+			hwTdmE1CurrentESs
+				Gauge32,
+			hwTdmE1CurrentUASs
+				Gauge32,
+			hwTdmE1CurrentSESs
+				Gauge32,
+			hwTdmE1CurrentBESs
+				Gauge32,
+			hwTdmE1CurrentLOFC
+				Gauge32,
+			hwTdmE1CurrentCSSs
+				Gauge32,
+			hwTdmE1CurrentDMs
+				Gauge32,
+			hwTdmE1TimeElapsed
+				Gauge32
+		}
+		
+	hwTdmE1CurrentBpvLastMin OBJECT-TYPE
+		SYNTAX Gauge32 (0..1000)
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"This object provides the number of BPV (BiPolar Violation) events detected during 
+			the last minute."
+		::= { hwTdmE1CurrentStatEntry 1 }	
+			
+	hwTdmE1CurrentBpvMax OBJECT-TYPE
+		SYNTAX Gauge32 (0..1000)
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"This object provides the maximal number of BPV (BiPolar Violation) events (per minute) 
+			detected during the worst minute."
+		::= { hwTdmE1CurrentStatEntry 2 }
+		
+	hwTdmE1CurrentCRCErrorEvents OBJECT-TYPE
+        	SYNTAX Gauge32
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Counts the number of CRC error events, encountered in the current 15 minute interval."
+        	::= { hwTdmE1CurrentStatEntry 3 }
+        
+        hwTdmE1CurrentCRCAvgError OBJECT-TYPE
+        	SYNTAX Gauge32
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Counts the average number of CRC error events per second. The average is updated every
+        		 second."
+        	::= { hwTdmE1CurrentStatEntry 4 }	
+        	
+        hwTdmE1CurrentESs OBJECT-TYPE
+        	SYNTAX Gauge32 (0..899)
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Counts the number of errored seconds measured encountered in the current 15 minute 
+        		interval."
+        	::= { hwTdmE1CurrentStatEntry 5 }
+        	
+        hwTdmE1CurrentUASs OBJECT-TYPE
+        	SYNTAX Gauge32 (0..900)
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Counts the number of unavailable seconds measured encountered in the current 15 minute 
+        		interval."
+        	::= { hwTdmE1CurrentStatEntry 6 }
+        	
+        hwTdmE1CurrentSESs OBJECT-TYPE
+        	SYNTAX Gauge32 (0..900)
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Counts the number of severely errored seconds measured encountered in the current 15 
+        		minute interval."
+        	::= { hwTdmE1CurrentStatEntry 7 }
+        	
+        hwTdmE1CurrentBESs OBJECT-TYPE
+        	SYNTAX Gauge32 (0..899)
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Counts the number of bursty errored seconds measured encountered in the current 15 
+        		minute interval."
+        	::= { hwTdmE1CurrentStatEntry 8 }
+        	
+        hwTdmE1CurrentLOFC OBJECT-TYPE
+        	SYNTAX Gauge32 
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Counts the number of loss of frame events measured encountered in the current 15 minute
+        		 interval."
+        	::= { hwTdmE1CurrentStatEntry 9 }
+        	
+        hwTdmE1CurrentCSSs OBJECT-TYPE
+        	SYNTAX Gauge32 (0..899)
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Counts the number of controlled slip seconds measured encountered in the current 15 minute
+        		 interval."
+        	::= { hwTdmE1CurrentStatEntry 10 }
+        
+        hwTdmE1CurrentDMs OBJECT-TYPE
+        	SYNTAX Gauge32 (0..15)
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Counts the number of degraded minutes measured encountered in the current 15 minute interval."
+        	::= { hwTdmE1CurrentStatEntry 11 }
+        	
+        hwTdmE1TimeElapsed OBJECT-TYPE
+        	SYNTAX Gauge32
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"The number of seconds that have elapsed since the beginning of the near end current error- 
+        		measurement period.  If, for some reason, such as an adjustment in the system's time-of-day
+ 	        	clock, the current interval exceeds the maximum value, the agent will return the maximum value."
+        	::= { hwTdmE1CurrentStatEntry 12 }	
+
+--
+--  ASMi52A E1 Port statistics in 15 minute interval Table
+--
+	hwTdmE1IntervalStatTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwTdmE1IntervalStatEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about a TDM Modem E1 
+			port statistics in 15 minute interval. This information describe the 
+			E1 port interval index, the number of errored seconds, the number of 
+			unavailable seconds, the number of severely errored seconds, the number 
+			of bursty errored seconds, the number of loss of frame events, the number 
+			of controlled slip seconds and the number of degraded minutes.The indexes 
+			of this table are ifIndex, hwTdmE1IntervalIndex."
+		::= { hwTdmPortStatObjects 5 }
+		
+	hwTdmE1IntervalStatEntry OBJECT-TYPE
+		SYNTAX HwTdmE1IntervalStatEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the reference information about a TDM Modem E1 
+			port statistics in 15 minute interval. This information describe the 
+			E1 port interval index, the number of errored seconds, the number of 
+			unavailable seconds, the number of severely errored seconds, the number 
+			of bursty errored seconds, the number of loss of frame events, the number 
+			of controlled slip seconds and the number of degraded minutes.The indexes 
+			of this entry are ifIndex, hwTdmE1IntervalIndex."
+		INDEX { ifIndex, hwTdmE1IntervalIndex }
+		::= { hwTdmE1IntervalStatTable 1 }
+	
+	HwTdmE1IntervalStatEntry ::=
+		SEQUENCE {
+			hwTdmE1IntervalIndex
+				Integer32,
+			hwTdmE1IntervalESs
+				Gauge32,
+			hwTdmE1IntervalUASs
+				Gauge32,
+			hwTdmE1IntervalSESs
+				Gauge32,
+			hwTdmE1IntervalBESs
+				Gauge32,
+			hwTdmE1IntervalLOFC
+				Gauge32,
+			hwTdmE1IntervalCSSs
+				Gauge32,
+			hwTdmE1IntervalDMs
+				Gauge32,
+			hwTdmE1TotalIntervalNum
+				Integer32,
+			hwTdmE1Interval1DayESs
+				Gauge32,
+			hwTdmE1Interval1DayUASs
+				Gauge32,
+			hwTdmE1Interval1DaySESs
+				Gauge32,
+			hwTdmE1Interval1DayBESs
+				Gauge32,
+			hwTdmE1Interval1DayLOFC
+				Gauge32,
+			hwTdmE1Interval1DayCSSs
+				Gauge32,
+			hwTdmE1Interval1DayDMs
+				Gauge32,
+			hwTdmE1Interval1DayDEGMinute
+				Gauge32
+		}
+		
+	hwTdmE1IntervalIndex OBJECT-TYPE
+		SYNTAX Integer32 (1..96)
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This value indicates the interval E1 port statistics index in the remote 
+			modem."
+		::= { hwTdmE1IntervalStatEntry 1 }
+		
+	hwTdmE1IntervalESs OBJECT-TYPE
+        	SYNTAX Gauge32 (0..899)
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Counts the number of errored seconds measured encountered in 15 minute 
+        		interval."
+        	::= { hwTdmE1IntervalStatEntry 2 }
+        	
+        hwTdmE1IntervalUASs OBJECT-TYPE
+        	SYNTAX Gauge32 (0..900)
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Counts the number of unavailable seconds measured encountered in 15 minute 
+        		interval."
+        	::= { hwTdmE1IntervalStatEntry 3 }
+        	
+        hwTdmE1IntervalSESs OBJECT-TYPE
+        	SYNTAX Gauge32 (0..900)
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Counts the number of severely errored seconds measured encountered in 15 
+        		minute interval."
+        	::= { hwTdmE1IntervalStatEntry 4 }
+        	
+        hwTdmE1IntervalBESs OBJECT-TYPE
+        	SYNTAX Gauge32 (0..899)
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Counts the number of bursty errored seconds measured encountered in 15 
+        		minute interval."
+        	::= { hwTdmE1IntervalStatEntry 5 }
+        	
+        hwTdmE1IntervalLOFC OBJECT-TYPE
+        	SYNTAX Gauge32 
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Counts the number of loss of frame events measured encountered in 15 minute
+        		 interval."
+        	::= { hwTdmE1IntervalStatEntry 6 }
+        	
+        hwTdmE1IntervalCSSs OBJECT-TYPE
+        	SYNTAX Gauge32 (0..899)
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Counts the number of controlled slip seconds measured encountered in 15 minute
+        		 interval."
+        	::= { hwTdmE1IntervalStatEntry 7 }
+        
+        hwTdmE1IntervalDMs OBJECT-TYPE
+        	SYNTAX Gauge32 (0..15)
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"Counts the number of degraded minutes measured encountered in 15 minute interval."
+        	::= { hwTdmE1IntervalStatEntry 8 }
+        
+	hwTdmE1TotalIntervalNum OBJECT-TYPE
+		SYNTAX Integer32 (1..96)
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"This value indicates the total number of E1 port statistics in 15 minute
+			 interval in 24 hour statistics."
+		::= { hwTdmE1IntervalStatEntry 9 }	
+	
+	hwTdmE1Interval1DayESs OBJECT-TYPE
+        	SYNTAX Gauge32 (0..86304)
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"The sum of Errored Seconds encountered by a E1 interface in the previous 
+        		24 hour interval."
+        	::= { hwTdmE1IntervalStatEntry 10 }
+        	
+        hwTdmE1Interval1DayUASs OBJECT-TYPE
+        	SYNTAX Gauge32 (0..86400)
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"The number of Unavailable Seconds encountered by a E1 interface in the 
+        		previous 24 hour interval."
+        	::= { hwTdmE1IntervalStatEntry 11 }
+        	
+        hwTdmE1Interval1DaySESs OBJECT-TYPE
+        	SYNTAX Gauge32 (0..86400)
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"The number of Severely Errored Seconds encountered by a E1 interface in 
+        		the previous 24 hour interval. "
+        	::= { hwTdmE1IntervalStatEntry 12 }
+        	
+        hwTdmE1Interval1DayBESs OBJECT-TYPE
+        	SYNTAX Gauge32
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"The number of Bursty Errored Seconds (BESs) encountered by a E1 interface
+        		 in the previous 24 hour interval."
+        	::= { hwTdmE1IntervalStatEntry 13 }
+        	
+        hwTdmE1Interval1DayLOFC OBJECT-TYPE
+        	SYNTAX Gauge32 
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"The number of loss of frame events encountered by a E1 interface in the 
+        		previous 24 hour interval."
+        	::= { hwTdmE1IntervalStatEntry 14 }
+        	
+        hwTdmE1Interval1DayCSSs OBJECT-TYPE
+        	SYNTAX Gauge32 
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"The number of Controlled Slip Seconds encountered by a E1 interface in the 
+        		previous 24 hour interval."
+        	::= { hwTdmE1IntervalStatEntry 15 }
+        
+        hwTdmE1Interval1DayDMs OBJECT-TYPE
+        	SYNTAX Gauge32 
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"The number of Degraded Minutes (DMs) encountered by a E1 interface in the 
+        		previous 24 hour interval."
+        	::= { hwTdmE1IntervalStatEntry 16 }        	
+
+	hwTdmE1Interval1DayDEGMinute OBJECT-TYPE
+        	SYNTAX Gauge32 
+        	MAX-ACCESS  read-only
+        	STATUS  current
+        	DESCRIPTION
+        		"The number of DEG Minutes encountered by a E1 interface in the 
+        		previous 24 hour interval."
+        	::= { hwTdmE1IntervalStatEntry 17 }  
+--
+--  ASMi52A E1 Port statistics Table in 1 day interval
+--
+--	hwTdmE1TotalStatTable OBJECT-TYPE
+--		SYNTAX SEQUENCE OF HwTdmE1TotalStatEntry
+--		MAX-ACCESS not-accessible
+--		STATUS current
+--		DESCRIPTION
+--			"The TDM Modem E1 port statistics Table in 1 day interval."
+--		::= { hwTdmPortStatObjects 6 }
+		
+--	hwTdmE1TotalStatEntry OBJECT-TYPE
+--		SYNTAX HwTdmE1TotalStatEntry
+--		MAX-ACCESS not-accessible
+--		STATUS current
+--		DESCRIPTION
+--			"An entry in the TDM Modem E1 port statistics table describes the reference 
+--			information about a TDM Modem E1 port statistics in 24 hour interval. 
+--			This information describe the E1 port total index, the total number of E1 
+--			port statistics in 15 minute interval, the number of errored seconds, the 
+--			number of unavailable seconds, the number of severely errored seconds, the 
+--			number of bursty errored seconds, the number of loss of frame events, the 
+--			number of controlled slip seconds and the number of degraded minutes."
+--		INDEX { ifIndex, hwTdmE1TotalIndex }
+--		::= { hwTdmE1TotalStatTable 1 }
+	
+--	HwTdmE1TotalStatEntry ::=
+--		SEQUENCE {
+--			hwTdmE1TotalIndex
+--				INTEGER,
+--			hwTdmE1TotalIntervalNum
+--				INTEGER,
+--			hwTdmE1TotalESs
+--				Gauge32,
+--			hwTdmE1TotalUASs
+--				Gauge32,
+--			hwTdmE1TotalSESs
+--				Gauge32,
+--			hwTdmE1TotalBESs
+--				Gauge32,
+--			hwTdmE1TotalLOFC
+--				Gauge32,
+--			hwTdmE1TotalCSSs
+--				Gauge32,
+--			hwTdmE1TotalDMs
+--				Gauge32,
+--			hwTdmE1TotalDEGMinute
+--				Gauge32
+--		}
+		
+--	hwTdmE1TotalIndex OBJECT-TYPE
+--		SYNTAX INTEGER (0..6)
+--		MAX-ACCESS not-accessible
+--		STATUS current
+--		DESCRIPTION
+--			"This value indicates the interval E1 port statistics index in the remote 
+--			modem."
+--		::= { hwTdmE1TotalStatEntry 1 }
+	
+--	hwTdmE1TotalIntervalNum OBJECT-TYPE
+--		SYNTAX INTEGER (0..95)
+--		MAX-ACCESS read-only
+--		STATUS current
+--		DESCRIPTION
+--			"This value indicates the total number of E1 port statistics in 15 minute
+--			 interval in 24 hour statistics."
+--		::= { hwTdmE1TotalStatEntry 2 }	
+	
+--	hwTdmE1TotalESs OBJECT-TYPE
+--       	SYNTAX Gauge32 
+--        	MAX-ACCESS  read-only
+--        	STATUS  current
+   --     	DESCRIPTION
+      --  		"The sum of Errored Seconds encountered by a E1 interface in the previous 
+        --		24 hour interval."
+        --	::= { hwTdmE1TotalStatEntry 3 }
+        	
+--        hwTdmE1TotalUASs OBJECT-TYPE
+   --     	SYNTAX Gauge32 
+      --  	MAX-ACCESS  read-only
+        --	STATUS  current
+        --	DESCRIPTION
+        --		"The number of Unavailable Seconds encountered by a E1 interface in the 
+        --		previous 24 hour interval."
+        --	::= { hwTdmE1TotalStatEntry 4 }
+        	
+--        hwTdmE1TotalSESs OBJECT-TYPE
+   --     	SYNTAX Gauge32 
+      --  	MAX-ACCESS  read-only
+        --	STATUS  current
+        --	DESCRIPTION
+        --		"The number of Severely Errored Seconds encountered by a E1 interface in 
+        --		the previous 24 hour interval. "
+        --	::= { hwTdmE1TotalStatEntry 5 }
+        	
+--        hwTdmE1TotalBESs OBJECT-TYPE
+   --     	SYNTAX Gauge32
+      --  	MAX-ACCESS  read-only
+        --	STATUS  current
+        --	DESCRIPTION
+        --		"The number of Bursty Errored Seconds (BESs) encountered by a E1 interface
+        --		 in the previous 24 hour interval."
+        --	::= { hwTdmE1TotalStatEntry 6 }
+        	
+--        hwTdmE1TotalLOFC OBJECT-TYPE
+   --     	SYNTAX Gauge32 
+      --  	MAX-ACCESS  read-only
+        --	STATUS  current
+        --	DESCRIPTION
+        --		"The number of loss of frame events encountered by a E1 interface in the 
+        --		previous 24 hour interval."
+        --	::= { hwTdmE1TotalStatEntry 7 }
+        	
+--        hwTdmE1TotalCSSs OBJECT-TYPE
+   --     	SYNTAX Gauge32 
+      --  	MAX-ACCESS  read-only
+        --	STATUS  current
+        --	DESCRIPTION
+        --		"The number of Controlled Slip Seconds encountered by a E1 interface in the 
+        --		previous 24 hour interval."
+        --	::= { hwTdmE1TotalStatEntry 8 }
+        
+--hwTdmE1TotalDMs OBJECT-TYPE
+   --     	SYNTAX Gauge32 
+      --  	MAX-ACCESS  read-only
+        --	STATUS  current
+        --	DESCRIPTION
+        --		"The number of Degraded Minutes (DMs) encountered by a E1 interface in the 
+        --		previous 24 hour interval."
+        --	::= { hwTdmE1TotalStatEntry 9 }        	
+
+--	hwTdmE1TotalDEGMinute OBJECT-TYPE
+   --     	SYNTAX Gauge32 
+      --  	MAX-ACCESS  read-only
+        --	STATUS  current
+        --	DESCRIPTION
+        --		"The number of DEG Minutes encountered by a E1 interface in the 
+        --		previous 24 hour interval."
+        --	::= { hwTdmE1TotalStatEntry 10 }  
+        
+
+--
+--  ADTRAN Script Configuration Table
+--	
+	hwTdmAdtranScriptTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwTdmAdtranScriptEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the configuration about a TDM Modem 
+			to config TDM SHDSL terminal.The index of this table is ifIndex."
+		::= { hwTdmCommonConfiguration 1 }
+		
+	hwTdmAdtranScriptEntry OBJECT-TYPE
+		SYNTAX HwTdmAdtranScriptEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"This table describes the configuration about a TDM Modem 
+			to config TDM SHDSL terminal.The index of this entry is ifIndex."
+		INDEX { ifIndex }
+		::= { hwTdmAdtranScriptTable 1 }
+		
+	HwTdmAdtranScriptEntry ::=
+		SEQUENCE {
+			hwTdmAdtranScript
+				OCTET STRING,
+			hwTdmAdtranScriptLatestResult
+				INTEGER
+		}
+		
+	-- hwTdmConfigurationScript
+        hwTdmAdtranScript OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..255))
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+            "This object is used to config TDM SHDSL terminal, and it may include sereval commands. Each command
+            ends with one or more '\n', and every '\n' means delay 1 second too. 
+            For example: command '123\r\n\n\n45\n' expects two steps. The first step is send '123\r' to the terminal,
+            then delay 3 seconds, and the second step is send '45' to the terminal, then delay 1 second.
+            "
+             ::= { hwTdmAdtranScriptEntry 1 }
+
+	hwTdmAdtranScriptLatestResult OBJECT-TYPE
+		SYNTAX INTEGER
+			{
+			idle(1),
+			fail(2),
+			busy(3),
+			success(4)
+			}
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"The result of the lastest script configuration.
+			Options:
+			1. idle(1) - Indicates that no configuration.
+			2. fail(2) - Indicates that last configuration failed.
+			3. busy(3) - Indicates that Operating new config.
+			4. success(4) - Indicates that last configuration successed.
+			"
+		::= { hwTdmAdtranScriptEntry 2 }
+        
+--
+-- Compliance statements
+--
+hwTdmMIBTftpCompliance MODULE-COMPLIANCE
+	STATUS       current
+	DESCRIPTION "The compliance statement for TFTP download."
+
+	MODULE       -- this module
+		MANDATORY-GROUPS { hwTdmMIBTftpGroup }
+
+	::= { hwTdmMIBCompliances 1 }
+
+-- Units of compliance
+hwTdmMIBTftpGroup OBJECT-GROUP
+	OBJECTS     {
+	--	ifIndex,
+		hwTdmTftpFileServerIP,
+                hwTdmTftpFileName,
+		hwTdmTftpFileTransCmd
+		}
+	STATUS       current
+	DESCRIPTION "A collection of objects providing for TFTP
+                 uploading and downloading."
+	::= { hwTdmMIBGroups 1 }
+
+
+
+
+
+END

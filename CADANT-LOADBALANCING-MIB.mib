@@ -1,0 +1,764 @@
+CADANT-LOADBALANCING-MIB DEFINITIONS ::= BEGIN
+
+  IMPORTS
+        
+        MODULE-IDENTITY,
+        OBJECT-TYPE,
+        Unsigned32,
+        Integer32,
+        Counter32
+                FROM SNMPv2-SMI
+	    RowStatus,
+        TruthValue
+	        FROM SNMPv2-TC
+        SnmpAdminString
+            FROM SNMP-FRAMEWORK-MIB
+        CardId,
+	    OUIAddress
+                FROM CADANT-TC
+        cadIfCmtsCmStatusMacAddress 
+                FROM CADANT-CMTS-MAC-MIB
+
+        docsLoadbal3BasicRuleEntry,
+        docsLoadbal3ResGrpCfgId
+                FROM DOCS-LOADBAL3-MIB
+        cadSchema
+                FROM CADANT-PRODUCTS-MIB
+        InterfaceIndex, 
+        ifIndex FROM IF-MIB
+        
+        IfDirection FROM DOCS-IF3-MIB;
+        
+ 
+
+
+cadLoadBalMib MODULE-IDENTITY
+        LAST-UPDATED    "201405080000Z" -- May 21, 2014
+        ORGANIZATION    "Arris International"
+        CONTACT-INFO
+            "        Arris Support
+             Postal: ARRIS
+             Phone:  +1 770 622 8530
+             E-mail: support@arrisi.com"
+        DESCRIPTION
+            "This MIB module contains Cadant internal data schema for CAM Load Balancing"
+
+        REVISION "201405080000Z" -- May 21, 2014
+        DESCRIPTION 
+            "Add cadLoadBalTCSMoveUsPrimaryControl and cadLoadBalDbcMoveUsPrimaryControl."
+        REVISION "201402210000Z" -- Feb 21, 2014
+        DESCRIPTION 
+            "Change cadLoadBalRCSControl and cadLoadBalTCSControl,
+             Add cadLoadBalChannelDbcTransfersIn, and cadLoadBalChannelDbcTransfersOut,
+             Remove cadLoadBalTcsDbcDisallowPrimaryUpstream,
+                    cadLoadbal3ResGrpChCfgTable"
+        REVISION "201401160000Z" -- Jan 16, 2014
+        DESCRIPTION 
+            "Change Syntax of cadLoadBalRuleType to BITS
+             Add cadLoadBalRCSControl, 
+                 cadLoadBalTCSControl, and
+                 cadLoadBalTcsDbcDisallowPrimaryUpstream"
+        REVISION "201004070000Z" -- Apr 7, 2010
+        DESCRIPTION 
+            "Add cadLoadBalRuleChannelWeight."
+        REVISION "200909280000Z" -- Sep 28, 2009
+        DESCRIPTION 
+            "Change default value of 
+                 cadLoadBalFailedListExcludeCount from 0 to 1"
+        REVISION "200909210000Z" -- Sep 21, 2009
+        DESCRIPTION 
+            "Add the following objects.
+                 cadLoadBalFailedListAgeOutTime,
+                 cadLoadBalFailedListExcludeCount,
+                 cadLoadBalNumberModemsToCheckPerInterval,
+                 cadLoadBalRuleRegistrationSteeringD2,
+                 cadLoadBalRuleRegistrationSteeringD3,
+                 cadLoadBalRulePeriodicSteeringD2, and
+                 cadLoadBalRulePeriodicSteeringD3 "
+        REVISION "200907280000Z" -- July 28, 2009
+        DESCRIPTION 
+            "Change rule-flexpath to rule-bonded."
+        REVISION "200904170000Z" -- Apr 17, 2009
+        DESCRIPTION 
+            "Add cadLoadBalStartDsUtilizationThreshold and cadLoadBalStartUsUtilizationThreshold."
+        REVISION "200801220000Z" -- Jan 22, 2008
+        DESCRIPTION 
+            "Add cadLoadbal3ResGrpChCfgTable."
+        REVISION "200711210000Z" -- Nov 21, 2007
+        DESCRIPTION 
+            "Major change - references DOCS-LOADBAL3-MIB instead of DOCS-LOADBALANCING-MIB.
+             1. cadLoadBalCmtsCmStatusTable references docsLoadbal3CmtsCmParamsTable.
+                replace the tabular objects in cadLoadBalCmtsCmStatusEntry with cadLoadbal3CmtsCmParamsProvGrpId,
+                cadLoadbal3CmtsCmParamsCurrentGrpId, cadLoadbal3CmtsCmParamsProvServiceTypeID, cadLoadbal3CmtsCmParamsCurrentServiceTypeID,
+                cadLoadbal3CmtsCmParamsPolicyId and cadLoadbal3CmtsCmParamsPriority.
+             2. remove cadLoadBalGrpTable.
+             3. cadLoadBalRuleTable references docsLoadbal3BasicRuleTable
+             4. remove cadBalUpChannelDynamicLoadBalanceInterval, cadLoadBalDownChannelDynamicLoadBalanceInterval.
+             5. cadLoadBalMacDomainLoadBalanceInterval replaces cadLoadBalUpChannelDynamicLoadBalanceIntervalInSecond.
+             6. cadLoadBalAcrossMacDomainLoadBalanceInterval replaces cadLoadBalDownChannelDynamicLoadBalanceIntervalInSecond.
+             7. add enumeration dbcTimeout(11) to cadLoadBalChgOverStatusValue.
+             8. cadLoadBalChannelTable is indexed by channel ifIndex."
+
+
+        REVISION "200704110000Z" -- Apr 11, 2007
+        DESCRIPTION 
+            "Obsolete cadLoadBalDownChannelDynamicLoadBalanceInterval and cadLoadBalUpChannelDynamicLoadBalanceInterval
+             Add cadLoadBalDownChannelDynamicLoadBalanceIntervalInSecond and cadLoadBalUpChannelDynamicLoadBalanceIntervalInSecond."
+
+        REVISION "200605150000Z" -- May 15, 2006
+        DESCRIPTION 
+            "Remove unused counts of failed transfers."
+        REVISION "200603310000Z"
+        DESCRIPTION 
+            "Change cadLoadBalChannelDynamicLoadBalanceInterval to  cadLoadBalUpChannelDynamicLoadBalanceInterval
+             Change cadLoadBalInterCardDynamicLoadBalanceInterval to cadLoadBalDownChannelDynamicLoadBalanceInterval"
+        REVISION "200603080000Z"
+        DESCRIPTION 
+            "Add support for counts and deprecate pre-DOCSIS 3.0 static loadbalancing."
+        REVISION "200508200000Z"
+        DESCRIPTION 
+            "Add support for new load balancing rules and intervals."
+        REVISION "200406090000Z"
+        DESCRIPTION 
+            "Add cadLoadBalChgOverStatusEntry, cadLoadBalCmtsCmStatusEntry, cadLoadBalGrpEntry
+             to mirror the tables defined in DOCS-LOADBALANCING-MIB"
+
+        ::= { cadSchema 1 }
+
+--
+-- The mirror to docsLoadBalChgOverStatusTable using CM MacAddress as index
+--
+
+cadLoadBalChgOverStatusTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadLoadBalChgOverStatusEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+           "A table of CMTS operation entries to reports the status 
+            of cable modems instructed to move to a new downstream and/or 
+            upstream channel."
+        ::= { cadLoadBalMib 1 }
+
+cadLoadBalChgOverStatusEntry OBJECT-TYPE
+        SYNTAX      CadLoadBalChgOverStatusEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The status of the specified DCC/UCC operation"
+        INDEX { cadIfCmtsCmStatusMacAddress }
+        ::= { cadLoadBalChgOverStatusTable 1 }
+
+CadLoadBalChgOverStatusEntry ::= SEQUENCE {
+            cadLoadBalChgOverStatusValue  INTEGER
+        }
+
+cadLoadBalChgOverStatusValue OBJECT-TYPE
+    SYNTAX INTEGER { 
+        messageSent(1), 
+        noOpNeeded(2), 
+        modemDeparting(3), 
+        waitToSendMessage(4), 
+        cmOperationRejected(5), 
+        cmtsOperationRejected(6), 
+        timeOutT13(7), 
+        timeOutT15(8), 
+        rejectinit(9), 
+        success(10),
+        dbcTimeout(11) 
+    } 
+    MAX-ACCESS read-only 
+    STATUS current 
+    DESCRIPTION 
+        "The status of the specified DCC/UCC operation." 
+    ::= { cadLoadBalChgOverStatusEntry 1 }
+
+--
+-- The mirror to docsLoadbal3CmtsCmParamsTable using CM MacAddress as index
+--
+
+cadLoadBalCmtsCmStatusTable OBJECT-TYPE 
+    SYNTAX SEQUENCE OF CadLoadBalCmtsCmStatusEntry 
+    MAX-ACCESS not-accessible 
+    STATUS current 
+    DESCRIPTION 
+        "The list contains the load balancing attributes 
+         associated with the cable modem. " 
+        ::= { cadLoadBalMib 2 }
+
+cadLoadBalCmtsCmStatusEntry OBJECT-TYPE 
+    SYNTAX CadLoadBalCmtsCmStatusEntry 
+    MAX-ACCESS not-accessible 
+    STATUS current 
+    DESCRIPTION 
+        "Additional objects for docsIfCmtsCmStatusTable entry 
+         that relate to load balancing " 
+        INDEX { cadIfCmtsCmStatusMacAddress }
+    ::= { cadLoadBalCmtsCmStatusTable 1 } 
+
+CadLoadBalCmtsCmStatusEntry ::= SEQUENCE { 
+     cadLoadbal3CmtsCmParamsProvGrpId
+                  Unsigned32,
+     cadLoadbal3CmtsCmParamsCurrentGrpId
+                  Unsigned32,
+     cadLoadbal3CmtsCmParamsProvServiceTypeID
+                  SnmpAdminString,
+     cadLoadbal3CmtsCmParamsCurrentServiceTypeID
+                  SnmpAdminString,
+     cadLoadbal3CmtsCmParamsPolicyId
+                  Unsigned32,
+     cadLoadbal3CmtsCmParamsPriority
+                  Unsigned32
+  } 
+
+
+cadLoadbal3CmtsCmParamsProvGrpId OBJECT-TYPE
+     SYNTAX      Unsigned32
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This attribute indicates the provisioned Load Balancing
+        Group ID TLV the CM signaled to the CMTS during
+        registration, or zero if not provisioned in the CM."
+        
+     ::= { cadLoadBalCmtsCmStatusEntry 1 }
+
+cadLoadbal3CmtsCmParamsCurrentGrpId OBJECT-TYPE
+     SYNTAX      Unsigned32
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This attribute references the Load Balancing Group
+        Identifier (Id attribute from the GrpStatus object)
+        associated with the cable modem after the CMTS validates
+        the CM Load Balancing Group ID TLV, Service Type
+        ID TLV and Restricted CM list. The value zero indicates
+        that the Load Balancing Group is invalid, or the
+        General Load Balancing Group is invalid due ambiguous
+        topology resolution."
+     ::= { cadLoadBalCmtsCmStatusEntry 2 }
+
+cadLoadbal3CmtsCmParamsProvServiceTypeID OBJECT-TYPE
+     SYNTAX      SnmpAdminString (SIZE(0..16))
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This attribute indicates the provisioned Service
+        Type ID TLV the CM signaled to the CMTS during registration,
+        or the zero-length string if not provisioned
+        in the CM."
+     ::= { cadLoadBalCmtsCmStatusEntry 3 }
+
+cadLoadbal3CmtsCmParamsCurrentServiceTypeID OBJECT-TYPE
+     SYNTAX      SnmpAdminString (SIZE(0..16))
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This attribute represents the Service Type ID the
+        CMTS picked from the Restricted Group of Restricted
+        CM list, or the Service Type Id TLV the CM signaled to the
+        CMTS during registration, or the zero-length string
+        if none was used."
+     ::= { cadLoadBalCmtsCmStatusEntry 4 }
+
+cadLoadbal3CmtsCmParamsPolicyId OBJECT-TYPE
+     SYNTAX      Unsigned32
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This attribute references the Load Balancing Policy
+        ID associated to the cable modem either from the configuration
+        file or from the General or Restricted
+        Load Balancing Groups CMTS configuration."
+     ::= { cadLoadBalCmtsCmStatusEntry 5 }
+
+cadLoadbal3CmtsCmParamsPriority OBJECT-TYPE
+     SYNTAX      Unsigned32
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "This attribute references the Load Balancing Priority
+        associated to the cable modem either from the configuration
+        file or from the General or Restricted
+        Load Balancing Groups CMTS configuration."
+     ::= { cadLoadBalCmtsCmStatusEntry 6 }
+
+
+--
+-- Extension of docsLoadBalBasicRule table
+--
+
+cadLoadBalBasicRuleTable OBJECT-TYPE 
+    SYNTAX SEQUENCE OF CadLoadBalBasicRuleEntry
+    MAX-ACCESS not-accessible 
+    STATUS current 
+    DESCRIPTION 
+        "This table extends the docsLoadBalBasicRule table with
+         additional methods and thresolds."
+    ::= { cadLoadBalMib 4 }
+
+cadLoadBalBasicRuleEntry OBJECT-TYPE 
+    SYNTAX CadLoadBalBasicRuleEntry 
+    MAX-ACCESS not-accessible 
+    STATUS current 
+    DESCRIPTION 
+        "Load balancing count for Change Over within a load balancing group" 
+    AUGMENTS { docsLoadbal3BasicRuleEntry }
+    ::= { cadLoadBalBasicRuleTable 1 } 
+
+
+CadLoadBalBasicRuleEntry ::= SEQUENCE { 
+    cadLoadBalRuleMethod        INTEGER,
+    cadLoadBalRuleType          BITS,
+    cadLoadBalRuleThreshold     Unsigned32,
+    cadLoadBalRuleRegistrationSteeringD2    TruthValue,
+    cadLoadBalRuleRegistrationSteeringD3    TruthValue,
+    cadLoadBalRulePeriodicSteeringD2        TruthValue,
+    cadLoadBalRulePeriodicSteeringD3        TruthValue,
+    cadLoadBalRuleChannelWeight             INTEGER
+  }
+
+cadLoadBalRuleMethod OBJECT-TYPE 
+    SYNTAX INTEGER {
+        cm-count(1),
+        channel-utilization(2)
+    }
+    MAX-ACCESS read-write
+    STATUS current 
+    DESCRIPTION 
+        "cm-count uses dynamic load balancing of upstream receivers in the same
+         load balancing group to balance the number of CMs per upstream channel.
+         channel-utilization uses dynamic load balancing of the upstream receivers
+         in the same load balancing group to balance the channel utilization of
+         the channels in the group."
+    DEFVAL { cm-count }
+    ::= { cadLoadBalBasicRuleEntry 1 } 
+
+cadLoadBalRuleType OBJECT-TYPE
+    SYNTAX      BITS {
+        rule-static(0),
+        rule-non-bonded-dcc(1),
+        rule-bonded-us-dbc(2),
+        rule-bonded-ds-dbc(3),
+        rule-bonded-dcc(4)
+    }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+       "rule-static enables load balancing at modem initial maintenance
+        ranging time.
+        rule-non-bonded-dcc enables dynamic load balancing by moving non-
+        bonded CMs with DCC just after modem registration time and at
+        regular intervals according to the load balance interval settings.
+	    rule-bonded-dcc enables dynamic load balancing by moving bonded CMs
+        with DCC just after modem registration time and at regular
+	    intervals according to the load balance interval settings.
+	    rule-bonded-us-dbc enables dynamic load balancing by moving upstream
+        bonded CMs with DBC just after modem registration time and at
+        regular intervals according to the load balance interval settings.
+        rule-bonded-ds-dbc enables dynamic load balancing by moving
+        downstream bonded CMs with DBC just after modem registration time
+        and at regular intervals according to the load balance interval
+        settings.
+        Multiple rule types can be set, enabling a combination of load
+        balancing mechanisms to be selected."
+    DEFVAL { { rule-static, rule-non-bonded-dcc } }
+    ::= { cadLoadBalBasicRuleEntry 2 }
+
+
+cadLoadBalRuleThreshold OBJECT-TYPE 
+    SYNTAX Unsigned32 (1..100) 
+    MAX-ACCESS read-write 
+    STATUS current 
+    DESCRIPTION 
+        "This is the size of load difference between channels that is tolerated
+	 before load balancing will be started."
+    DEFVAL { 10 }
+    ::= { cadLoadBalBasicRuleEntry 3 } 
+
+cadLoadBalRuleRegistrationSteeringD2  OBJECT-TYPE 
+    SYNTAX TruthValue
+    MAX-ACCESS read-write 
+    STATUS current 
+    DESCRIPTION 
+        "If this object is set to true the C4 is directed to move any D2.0 CMs registering on a TDMA channel 
+         to an ATDMA channel in the load balance group. 
+         This occurs immediately after the C4 receives a registration-acknowledge from the CM."
+    DEFVAL { false }
+    ::= { cadLoadBalBasicRuleEntry 4 } 
+
+cadLoadBalRuleRegistrationSteeringD3   OBJECT-TYPE 
+    SYNTAX TruthValue
+    MAX-ACCESS read-write 
+    STATUS current 
+    DESCRIPTION 
+        "If this object is set to true the C4 is directed to move any D3.0 CMs registering on a TDMA channel 
+         to an ATDMA channel in the load balance group. 
+         This occurs immediately after the C4 receives a registration-acknowledge from the CM."
+    DEFVAL { false }
+    ::= { cadLoadBalBasicRuleEntry 5 } 
+
+cadLoadBalRulePeriodicSteeringD2    OBJECT-TYPE 
+    SYNTAX TruthValue
+    MAX-ACCESS read-write 
+    STATUS current 
+    DESCRIPTION 
+        "If this object is set to true the C4 is directed to audit all TDMA channels 
+         in an active load balance group and move D2.0 CMs to an ATDMA channel in the load balance group. 
+         One CM is moved per TDMA channel per macdomain-check-interval. "
+    DEFVAL { false }
+    ::= { cadLoadBalBasicRuleEntry 6 } 
+
+cadLoadBalRulePeriodicSteeringD3    OBJECT-TYPE 
+    SYNTAX TruthValue
+    MAX-ACCESS read-write 
+    STATUS current 
+    DESCRIPTION 
+        "If this object is set to true the C4 is directed to audit all TDMA channels 
+         in an active load balance group and move D3.0 CMs to an ATDMA channel in the load balance group. 
+         One CM is moved per TDMA channel per macdomain-check-interval."
+    DEFVAL { false }
+    ::= { cadLoadBalBasicRuleEntry 7 } 
+
+cadLoadBalRuleChannelWeight OBJECT-TYPE
+    SYNTAX     INTEGER  {
+        equal (1),
+        usOnly(2),
+        dsOnly(3),
+        usPlus (4),
+        dsPlus( 5)  
+    }
+
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION  "'equal' directs the load balancer to  use DS and US channel load equally to determine 
+                   load balancing decisions.
+                  'usOnly' directs the load balancer to  only use US channel load to determine 
+                   load balancing decisions.
+                  'dsOnly' directs the load balancer to  only use DS channel load to determine 
+                   load balancing decisions.
+                  'usPlus' directs the load balancer to  double US channel load over  DS channel load to determine 
+                   load balancing decisions.
+                  'dsPlus' directs the load balancer to  double DS channel load over  US channel load to determine 
+                   load balancing decisions."
+      DEFVAL { equal }
+      ::= { cadLoadBalBasicRuleEntry 8 }
+
+
+--
+-- Extension of docsLoadBalBasicRule table
+--
+
+cadLoadBalExcludedOUITable OBJECT-TYPE 
+    SYNTAX SEQUENCE OF CadLoadBalExcludedOUIEntry
+    MAX-ACCESS not-accessible 
+    STATUS current 
+    DESCRIPTION 
+        "This table contains a list of OUIs that should not be
+         moved through dynamic load balancing."
+    ::= { cadLoadBalMib 5 }
+
+cadLoadBalExcludedOUIEntry OBJECT-TYPE 
+    SYNTAX CadLoadBalExcludedOUIEntry 
+    MAX-ACCESS not-accessible 
+    STATUS current 
+    DESCRIPTION 
+        "An OUI that describes a set of modems not to be moved by load balancing."
+    INDEX { cadLoadBalExclOUIAddress }
+    ::= { cadLoadBalExcludedOUITable 1 } 
+
+
+CadLoadBalExcludedOUIEntry ::= SEQUENCE { 
+    cadLoadBalExclOUIAddress    OUIAddress,
+    cadLoadBalExclRowStatus     RowStatus
+  }
+
+cadLoadBalExclOUIAddress OBJECT-TYPE 
+    SYNTAX OUIAddress
+    MAX-ACCESS not-accessible
+    STATUS current 
+    DESCRIPTION 
+        "The OUI of the modem set to exclude from load balancing."
+    ::= { cadLoadBalExcludedOUIEntry 1 } 
+
+cadLoadBalExclRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The status object for adding and removing rows from this table.
+         The only valid values are createAndGo and destroy."
+    ::= { cadLoadBalExcludedOUIEntry 2 }
+
+--
+--  Global load balancing parameters
+--
+cadLoadBalSystemGroup OBJECT IDENTIFIER ::= { cadLoadBalMib 6 }
+
+
+
+
+
+cadLoadBalMacDomainLoadBalanceInterval OBJECT-TYPE
+    SYNTAX      Unsigned32 (0..1000)
+    UNITS       "seconds"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Interval between checking the loading of the MAC domain 
+	 to determine if any modems need to be moved to different channels within a MAC domain.
+	 A value of 0 disables checking."
+    DEFVAL { 300 }
+    ::= { cadLoadBalSystemGroup 5 }
+
+cadLoadBalAcrossMacDomainLoadBalanceInterval OBJECT-TYPE
+    SYNTAX      Unsigned32 (0..1000)
+    UNITS       "seconds"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Interval between checking the loading of multiple MAC domains  
+	 to determine if any modems need to be moved to the channels across different MAC domains.
+         A value of 0 disables checking."
+    DEFVAL { 0 }
+    ::= { cadLoadBalSystemGroup 6 }
+
+cadLoadBalStartDsUtilizationThreshold OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..100)
+    UNITS       "seconds"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Interval to start downstream channel utilization threshold."
+    DEFVAL { 1 }
+    ::= { cadLoadBalSystemGroup 7 }
+
+cadLoadBalStartUsUtilizationThreshold OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..100)
+    UNITS       "seconds"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Interval to start upstream channel utilization threshold."
+    DEFVAL { 1 }
+    ::= { cadLoadBalSystemGroup 8 }
+
+cadLoadBalFailedListAgeOutTime  OBJECT-TYPE
+    SYNTAX      Unsigned32
+    UNITS       "hours"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Remove an entry from the Load-Balance failed list after it has been on the list for the specified number of hours."
+    DEFVAL { 0 }
+    ::= { cadLoadBalSystemGroup 9 }
+
+cadLoadBalFailedListExcludeCount  OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "When attempting to move from one pair of DS/US channels to a target pair of DS/US channels, 
+         a CM will be excluded from attempting to move between this set of channels after the number of failures reaches this object."
+    DEFVAL { 1 }
+    ::= { cadLoadBalSystemGroup 10 }
+
+cadLoadBalNumberModemsToCheckPerInterval  OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..100)
+    UNITS       "hours"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The objects indicates the number of CMs to check for high utilization at each macdomain-check-interval. 
+         A higher number will evaluate more CMs on the overloaded DS/US channels to find the heaviest user to 
+         move to less loaded channels. Therefore, a higher number will cause heavy users to be load balanced more frequently."
+    DEFVAL { 10 }
+    ::= { cadLoadBalSystemGroup 11 }
+---
+--- Load balancing counts
+---
+cadLoadBalChannelTable OBJECT-TYPE 
+    SYNTAX SEQUENCE OF CadLoadBalChannelEntry 
+    MAX-ACCESS not-accessible 
+    STATUS current 
+    DESCRIPTION 
+        "This table contains the count information of the load balancing 
+         group channels present in the C4." 
+        ::= { cadLoadBalMib 7 }
+
+cadLoadBalChannelEntry OBJECT-TYPE 
+    SYNTAX CadLoadBalChannelEntry 
+    MAX-ACCESS not-accessible 
+    STATUS current 
+    DESCRIPTION 
+        "Load balancing counts for a downstream or upstream channel."
+    INDEX { ifIndex } 
+    ::= { cadLoadBalChannelTable 1 } 
+
+
+CadLoadBalChannelEntry ::= SEQUENCE { 
+    cadLoadBalChannelUtilization  Integer32, 
+    cadLoadBalChannelCmCount      Integer32,
+    cadLoadBalChannelDynamicTransfersIn      Counter32,
+    cadLoadBalChannelDynamicTransfersOut     Counter32,
+    cadLoadBalChannelStaticTransfersIn       Counter32,
+    cadLoadBalChannelStaticTransfersOut      Counter32,
+    cadLoadBalChannelDbcTransfersIn          Counter32,
+    cadLoadBalChannelDbcTransfersOut         Counter32
+
+  }
+
+cadLoadBalChannelUtilization OBJECT-TYPE 
+    SYNTAX Integer32 (0..100) 
+    MAX-ACCESS read-only
+    STATUS current 
+    DESCRIPTION 
+        "The downstream channel utilization snapshot captured by the
+         CAM during the last dynamic balancing interval.  This
+         value is valid for both downstream and upstream channels."
+    ::= { cadLoadBalChannelEntry 1 } 
+
+cadLoadBalChannelCmCount OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The count of cable modems associated with the channel.  This
+         value is valid for both downstream and upstream channels."
+    ::= { cadLoadBalChannelEntry 2 }
+
+cadLoadBalChannelDynamicTransfersIn OBJECT-TYPE 
+    SYNTAX Counter32 
+    MAX-ACCESS read-only 
+    STATUS current 
+    DESCRIPTION 
+        "The number of successful modem transfers from other channels
+         initiated by the dynamic load balancer.  This
+         value is valid for both downstream and upstream channels."
+    ::= { cadLoadBalChannelEntry 3 }
+
+cadLoadBalChannelDynamicTransfersOut OBJECT-TYPE 
+    SYNTAX Counter32 
+    MAX-ACCESS read-only 
+    STATUS current 
+    DESCRIPTION 
+        "The number of successful modem transfers to other channels
+         initiated by the dynamic load balancer.  This
+         value is valid for both downstream and upstream channels."
+    ::= { cadLoadBalChannelEntry 4 }
+
+cadLoadBalChannelStaticTransfersIn OBJECT-TYPE 
+    SYNTAX Counter32 
+    MAX-ACCESS read-only 
+    STATUS current 
+    DESCRIPTION 
+        "The number of successful modem transfers from other channels
+         initiated by the static load balancer.  This value is valid
+         for upstream channels only."
+    ::= { cadLoadBalChannelEntry 5 }
+
+cadLoadBalChannelStaticTransfersOut OBJECT-TYPE 
+    SYNTAX Counter32 
+    MAX-ACCESS read-only 
+    STATUS current 
+    DESCRIPTION 
+        "The number of successful modem transfers to other channels
+         initiated by the static load balancer.  This value is valid
+         for upstream channels only."
+    ::= { cadLoadBalChannelEntry 6 }
+
+cadLoadBalChannelDbcTransfersIn OBJECT-TYPE 
+    SYNTAX Counter32 
+    MAX-ACCESS read-only 
+    STATUS current 
+    DESCRIPTION 
+        "The number of times the particular channel has been moved into a  
+         modem's channel-set via DBC load balancing.  This value is valid  
+         for both downstream and upstream channels."
+    ::= { cadLoadBalChannelEntry 7 }
+
+cadLoadBalChannelDbcTransfersOut OBJECT-TYPE 
+    SYNTAX Counter32 
+    MAX-ACCESS read-only 
+    STATUS current 
+    DESCRIPTION 
+        "The number of times the particular channel has been moved out of a  
+         modem's channel-set via DBC load balancing.  This value is valid  
+         for both downstream and upstream channels."
+    ::= { cadLoadBalChannelEntry 8 }
+
+---
+--- Load balancing control
+---
+cadLoadBalControlGroup OBJECT IDENTIFIER ::= { cadLoadBalMib 8 }
+
+cadLoadBalClearCounts OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Setting this value to true will reset the counts associated with
+	 load balancing. Reading this value will always return false."
+    DEFVAL { false }
+    ::= { cadLoadBalControlGroup 1 }
+
+cadLoadBalRCSControl OBJECT-TYPE
+    SYNTAX  INTEGER {
+                enable(1),
+                disable(2)
+    }
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "If set to enable(1), RCS load balancing will always be permitted. 
+         If set to disable(2), RCS load balancing is never permitted"
+    DEFVAL { enable }
+	::= { cadLoadBalControlGroup 2 }
+
+cadLoadBalTCSControl OBJECT-TYPE
+    SYNTAX  INTEGER {
+                enable(1),
+                disable(2)
+    }
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "If set to enable(1), TCS load balancing will always be permitted. 
+         If set to disable(2), TCS load balancing is never permitted"
+    DEFVAL { disable }
+	::= { cadLoadBalControlGroup 3 }
+
+cadLoadBalTCSMoveUsPrimaryControl OBJECT-TYPE
+    SYNTAX  INTEGER {
+                      enable(1),
+                      disable(2)
+                    }
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+       "If set to enable(1), an upstream bonded CM's primary upstream  
+        channel will be allowed 
+        to be moved as part of registration Transmit Channel Set (TCS) load  
+        balancing. 
+        If set to disable(2), an upstream bonded CM's primary upstream 
+        channel will NOT be allowed to be moved as part of registration  
+        Transmit Channel Set (TCS) load balancing."
+    DEFVAL { disable }
+    ::= { cadLoadBalControlGroup 4 }
+
+cadLoadBalDbcMoveUsPrimaryControl OBJECT-TYPE
+    SYNTAX  INTEGER {
+                      enable(1),
+                      disable(2)
+                    }
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+       "If set to enable(1), an upstream bonded CM's primary upstream  
+        channel will be allowed to be moved via DBC load balancing. 
+        If set to disable(2), an upstream bonded CM's primary upstream  
+        channel will NOT be allowed to be moved via DBC load balancing."
+    DEFVAL { disable }
+       ::= { cadLoadBalControlGroup 5 }
+
+
+END

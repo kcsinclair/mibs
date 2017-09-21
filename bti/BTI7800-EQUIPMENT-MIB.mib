@@ -1,0 +1,1097 @@
+BTI7800-EQUIPMENT-MIB DEFINITIONS ::= BEGIN
+IMPORTS
+    enterprises, MODULE-IDENTITY, OBJECT-TYPE,
+    Integer32, Unsigned32, Counter32, Counter64,
+    Gauge32, IpAddress
+        FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION, RowStatus, DateAndTime,
+    TruthValue
+        FROM SNMPv2-TC
+;
+
+bTI7800-EQUIPMENT-MIB MODULE-IDENTITY
+    LAST-UPDATED "201206250000Z"
+    ORGANIZATION "@ORGANIZATION"
+    CONTACT-INFO "@CONTACT-INFO"
+    DESCRIPTION "This YANG module provides the managed object definitions for
+operations, administration and management of the BTI Systems
+Atlas system.
+
+The current version of the Atlas module includes these sub-modules:
+
+  types      - definition of commonly used types
+  system     - configuration and status of system-wide attributes in
+               addition to those defined by the ietf-system module
+  equipment  - configuration and status of provisioned and inventoried
+               equipment
+  logging    - configuration of remote logging sinks, enabling the 
+               trace levels for the modules and actions pertaining to
+               log
+  notif      - notification-related data
+  conditions - retrieval of active alarms and conditions
+  statistics - retrieval of current and historical statistics and
+               performance monitoring counts and values
+debug      - retrieval of debug information for all sub system"
+    REVISION "201206250000Z"
+    DESCRIPTION "@REVISION-DESCRIPTION"
+    ::= { enterprises 18070 2 9 3 1 }
+
+UnsignedByte ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "d"
+    STATUS      current
+    DESCRIPTION "xs:unsignedByte"
+    SYNTAX      Unsigned32 (0 .. 255)
+
+UnsignedShort ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "d"
+    STATUS      current
+    DESCRIPTION "xs:unsignedShort"
+    SYNTAX      Unsigned32 (0 .. 65535)
+
+ConfdString ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "xs: and confd: types mapped to strings"
+    SYNTAX      OCTET STRING
+
+Ipv4Prefix ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1d.1d.1d.1d/1d"
+    STATUS      current
+    DESCRIPTION "confd:ipv4Prefix"
+    SYNTAX      OCTET STRING (SIZE (5))
+
+InetAddressIP ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION "confd:inetAddressIP"
+    SYNTAX      OCTET STRING (SIZE (4|16))
+
+String ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "xs:string"
+    SYNTAX      OCTET STRING
+
+CurrentDBStateType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {ready-to-backup(1),backup-inprogress(2),ready-to-restore(3),restore-inprogress(4),restore-success(5),restore-failed(6),ready-to-remove(8),remove-inprogress(9),remove-success(10),remove-failed(11),clear-inprogress(12),clear-success(13),clear-failed(14)}
+
+BicType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION "        
+   sfp-bic    - can hold sfp and sfpPlus transceivers.
+   cfp-bic    - can hold cfp transceivers
+   qsfp-bic   - can hold qsfp transceivers
+   qsfp28-bic - can hold qsfp28 transceivers"
+    SYNTAX      INTEGER {sfp-bic(1),cfp-bic(2),qsfp-bic(3),qsfp28-bic(4)}
+
+DolOchIdType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "och:<chassis-number>/<slot-number>/<oms-number>/channel-id, where channel-id is an alphanumeric sequence up to 32 characters long"
+    SYNTAX      OCTET STRING
+
+ObsoleteName ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING
+
+UfmType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION "The type of universal forwarding module :
+                   
+   msa with on board switching-UFM1(msa-switching)
+   dual BIC with on board switching-UFM2(dual-bic-switching)
+   dual BIC without on board switching-UFM3(dual-bic-non-switching)
+   msa without on board switching-UFM4(msa-non-switching)
+   msa400 without on board switching and 10x10g client ports-UFM6(msa400-10g-client)
+   msa400 without on board switching and 10x10g/4x100g client ports-UFM6-I02(msa400-10g-100g-client)"
+    SYNTAX      INTEGER {dual-bic-switching(0),dual-bic-non-switching(1),msa-switching(2),msa-non-switching(3),msa400-10g-client(4),msa400-10g-100g-client(5)}
+
+AmpModule ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING
+
+TransportType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {udp(1),tcp(2)}
+
+Role ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {btiuser(0),provisioning(1),superuser(2),surveillance(3)}
+
+DolFconnEndpt1Type ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "source of fiber connect is one of:
+1) The line port of a module
+2) The line port of a muxdemux port:0/<md-number>/0/L1
+3) A client port of a module port:<chassis-number>/<slot-number>/<module-number>/<port-type><port-number>
+4) Interface <interface-name>:<chassis-number>/<slot-number>/<module-number><interface-number>"
+    SYNTAX      OCTET STRING
+
+DolFconnEndpt2Type ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "source of fiber connect is one of:1) The line port of a module2) The line port of a muxdemux port:0/<md-number>/0/L13) A client port of a module port:<chassis-number>/<slot-number>/<module-number>/<port-type><port-number>4) Interface <interface-name>:<chassis-number>/<slot-number>/<module-number><interface-number>  add @ip-address to indicate that the endpoint is not local to this node"
+    SYNTAX      OCTET STRING
+
+DebugLevel ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {trace(1),debug(2),off(3)}
+
+FeGroupNum ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      Unsigned32 (0 .. 255)
+
+PasswdStr ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "<string: Password >"
+    SYNTAX      OCTET STRING
+
+RoadmType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION "A type of an ROADM card determined by the number of client port on the card (2, 8 or 20)."
+    SYNTAX      INTEGER {a2-port(0),a9-port(1),a20-port(2)}
+
+StatisticPointType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {opr(1),opr-min(2),opr-max(3),opr-avg(4),opt(5),opt-min(6),opt-max(7),opt-avg(8),opt-back-ref-power(9),opr-std-avg(10),opt-std-avg(11),opl-rx(12),opl-tx(13),ltemp(14),ltemp-min(15),ltemp-max(16),ltemp-avg(17),lbc(18),lbc-min(19),lbc-max(20),lbc-avg(21),volt(22),volt-min(23),volt-max(24),volt-avg(25),mod-temp(26),mod-temp-min(27),mod-temp-max(28),mod-temp-avg(29),fec-1cr(30),fec-0cr(31),fec-bitcr(32),fec-symcr(33),fec-ucrcw(34),fec-ber(35),fec-ber-min(36),fec-ber-max(37),fec-ber-avg(38),cd(39),cd-min(40),cd-max(41),cd-avg(42),snr(43),snr-min(44),snr-max(45),snr-avg(46),cfo(47),cfo-min(48),cfo-max(49),cfo-avg(50),dgd(51),dgd-min(52),dgd-max(53),dgd-avg(54),otu-eb(55),otu-bbe(56),otu-es(57),otu-ses(58),otu-ofs(59),otu-uas(60),otu-ber(61),otu-ber-min(62),otu-ber-max(63),otu-ber-avg(64),odu-eb(65),odu-bbe(66),odu-es(67),odu-ses(68),odu-uas(69),odu-ber(70),odu-ber-min(71),odu-ber-max(72),odu-ber-avg(73),odu-lat(74),odu-lat-min(75),odu-lat-max(76),odu-lat-avg(77),pcs-ib(78),pcs-ish(79),pcs-es(80),pcs-ses(81),pcs-uas(82),pcs-ber(83),pcs-ber-min(84),pcs-ber-max(85),pcs-ber-avg(86),octs-rx(87),octs-tx(88),octs-ok-rx(89),octs-ok-tx(90),pkts-rx(91),pkts-tx(92),pkts-ok-rx(93),pkts-ok-tx(94),bcast-pkts-rx(95),bcast-pkts-tx(96),mcast-pkts-rx(97),mcast-pkts-tx(98),fcse-pkts-rx(99),fcse-pkts-tx(100),drp-pkts-rx(101),drp-pkts-tx(102),usize-pkts-rx(103),usize-pkts-tx(104),osize-pkts-rx(105),osize-pkts-tx(106),fragments-rx(107),fragments-tx(108),jabbers-rx(109),jabbers-tx(110),pkts-64-oct-rx(111),pkts-64-oct-tx(112),pkts-65-127-oct-rx(113),pkts-65-127-oct-tx(114),pkts-128-255-oct-rx(115),pkts-128-255-oct-tx(116),pkts-256-511-oct-rx(117),pkts-256-511-oct-tx(118),pkts-512-1023-oct-rx(119),pkts-512-1023-oct-tx(120),pkts-1024-1518-oct-rx(121),pkts-1024-1518-oct-tx(122),pkts-over-1518-oct-rx(123),pkts-over-1518-oct-tx(124),pkts-paus-rx(125),pkts-paus-tx(126),cv-s(127),es-s(128),ses-s(129),sefs-s(130),uas-s(131),ber-s(132),ber-min-s(133),ber-max-s(134),ber-avg-s(135),cv-l(136),es-l(137),ses-l(138),uas-l(139),fc-l(140),ber-l(141),ber-min-l(142),ber-max-l(143),ber-avg-l(144),rs-eb(145),rs-bbe(146),rs-es(147),rs-ses(148),rs-ofs(149),rs-uas(150),rs-ber(151),rs-ber-min(152),rs-ber-max(153),rs-ber-avg(154),ms-eb(155),ms-bbe(156),ms-es(157),ms-ses(158),ms-uas(159),ms-ber(160),ms-ber-min(161),ms-ber-max(162),ms-ber-avg(163),cpu-load-avg(164),cpu-load-min(165),cpu-load-max(166),apr(167),apr-min(168),apr-max(169),apr-avg(170),apr-std-avg(171),opl-rx-min(172),opl-rx-max(173),opl-rx-avg(174),opl-tx-min(175),opl-tx-max(176),opl-tx-avg(177),fan-rpm-avg(178),fan-rpm-min(179),fan-rpm-max(180),pem-presence-avg(181),pem-presence-min(182),pem-presence-max(183),osnr(184),osnr-min(185),osnr-max(186),osnr-avg(187),prbs-lsss(188),prbs-be(189),prbs-ber(190),prbs-ber-min(191),prbs-ber-max(192),prbs-ber-avg(193),span-lngth(194),ipv4-ihl-excp(195),ipv4-pkt-len-excp(196),ipv4-rx-ttl0-excp(197),ipv4-sip-eq-dip-excp(198),ipv4-dip0-excp(199),ipv4-sip-mc-excp(200),ipv4-mpls-ttl0-excp(201),ipv4-mpls-ttl1-excp(202),ip-pkts-rx(203),ip-pkts-tx(204),ip-octs-rx(205),ip-octs-tx(206),mpls-pkts-rx(207),mpls-pkts-tx(208),mpls-octs-rx(209),mpls-octs-tx(210),ipv4-hdr-chksum-excp(211),snr-x(212),snr-x-min(213),snr-x-max(214),snr-x-avg(215),snr-y(216),snr-y-min(217),snr-y-max(218),snr-y-avg(219),opt-total(220),opt-total-min(221),opt-total-max(222),opt-total-avg(223),opt-back-ref-ratio(224),opt-back-ref-ratio-min(225),opt-back-ref-ratio-max(226),opt-back-ref-ratio-avg(227),opt-back-ref-ratio-std-avg(228)}
+
+GroupIdType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      Unsigned32 (1 .. 255)
+
+FeDegreeNum ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      Unsigned32 (0 .. 4)
+
+MsaName ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "The name of the MSA transceiver. The format of which is:
+                
+    msa:<chassis_number>/<slot_id>/1/1; where slot_id = ufm slot   
+    msa400:<chassis_number>/<slot_id>/2/1; where slot_id = ufm slot
+    qsfp:<chassis_number>/<slot_id>/1/<port_id>; where slot_id = ufm slot and port_id is between 1 and 10
+    qsfp28:<chassis_number>/<slot_id>/1/<port_id>; where slot_id = ufm slot and port_id is 1,2,6,7
+    "
+    SYNTAX      OCTET STRING
+
+PreamplifierName ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "The name of the preamplifier. The format of which is:
+                
+    pre:<chassis_number>/<slot_id>/<sub_module>; where slot_id = roadm or ila slot and sub_module is 1 for the pluggable preamplifier module  
+                
+"
+    SYNTAX      OCTET STRING
+
+AlarmType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {conditionRaise(1),conditionClear(2)}
+
+RevertiveTimeType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "d"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      Unsigned32 (600 .. 600)
+
+RemoteUrl ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "<string: <sftp|ftp>://[username@]<host>[:port]/[file-path]/[file-name] >"
+    SYNTAX      OCTET STRING
+
+Modulereload ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING
+
+CurrentStateType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {not-initiated(1),url-set(2),download-inprogress(3),download-success(4),download-failed(5),commit-inprogress(6),commit-success(7),commit-failed(8),cancel-inprogress(9),rollback-inprogress(10),rollback-success(11),rollback-failed(12)}
+
+BicName ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "The name of the bic. The format of which is:     
+                 
+   bic:<chassis_number>/<slot_id>/<bic>; where slot_id = ufm slot and bic is either 1 or 2
+   
+   "
+    SYNTAX      OCTET STRING
+
+StatValueType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {counter64(1),decimal64(2),float(3)}
+
+OscIdType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "<type>:<chassis-number>/<slot-number>/BIC-1/<portNum>.<oscNum>"
+    SYNTAX      OCTET STRING
+
+OdccIdType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "<type>:<chassis-number>/<slot-number>/BIC-1/<portNum>.<oscNum>.<odccNum>"
+    SYNTAX      OCTET STRING
+
+WdmIdType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "<type>:<chassis-number>/<slot-number>/BIC-1/<lineNum>"
+    SYNTAX      OCTET STRING
+
+PortIdType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "<port-type>:<chassis-number>/<slot-number>"
+    SYNTAX      OCTET STRING
+
+DolFiberType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {ssmf(1),leaf(2),twrs(3),ndsf(4),teralight(5)}
+
+Files1 ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING
+
+UpgradeStatusObjectType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {system-upgrade-status(1),module-upgrade-status(2)}
+
+CustomValType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING (SIZE (0 .. 255))
+
+GroupConfigType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {none(1),noEqlzTerm(2),eqlzTerm(3),noEqlzLine(4),eqlzLine(5),roadm(6)}
+
+Wavelength ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING
+
+ValueUnion ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING
+
+Wavelength1 ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING
+
+TimeOut ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "d"
+    STATUS      current
+    DESCRIPTION "default 5 seconds, range 1 to 255"
+    SYNTAX      Unsigned32 (1 .. 255)
+
+SysNameType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING (SIZE (0 .. 20))
+
+Validity ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {notAvailable(1),partial(2),complete(3)}
+
+MetaCliDebugLevel ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {trace(1),debug(2),info(3),warning(4),error(5)}
+
+GlobalDebugLevel ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {enable(1),disable(2)}
+
+MacAddr ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING
+
+ModuleName ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "< module:<chassis_number>/<slot_id>; The module name and location>"
+    SYNTAX      OCTET STRING
+
+DolSupportingEquipType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {mdeq(1),roadm2(2),roadm9(3),roadm20(4),ila(5),preamp(6)}
+
+WavelengthProtectionPortIdType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "wpsport:<chassis-number>/<slot-number>/<L or C><group-number><A or B or blank>"
+    SYNTAX      OCTET STRING
+
+SyslogLocalFacility ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {local0(1),local1(2),local2(3),local3(4),local4(5),local5(6),local6(7),local7(8)}
+
+UpgradeLocation ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "<string: <sftp|ftp>://[username@]<host>[:port]/[file-path]/[file-name] >"
+    SYNTAX      OCTET STRING
+
+ChassisName ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "The name of the chassis or passive component. The format of which is:
+
+   chassis:<chassis_number>; where chassis_number is between 1 and 16
+   muxdemux:0/<number>;  This is the 96 ch multiplexer/demultiplexer with 1610 coupler
+   md:0/<number>;        This is the 96 multiplexer/demultiplexer 
+   dcmeqpt:0/<number>;   This is the dispersion compensation module
+   The number must be between 1 and 255. 
+   The passive elements cannot use the same <number>. i.e. you cannot have both a dcmeqpt:0/1 and a muxdemux:0/1 
+   "
+    SYNTAX      OCTET STRING
+
+EqptDegreeType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      Unsigned32 (1 .. 4)
+
+NumSpectSlicesType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "d"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      Integer32 (1 .. 384)
+
+PortGridType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {ghz100(1),ghz50(2),flex(3)}
+
+CustomValType255 ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING (SIZE (0 .. 255))
+
+DolPortIdType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "port:<chassis-number>/<slot-number>/<module-number>/<sub-module>/
+<port-type><port-number>, where sub-module is 0 for the main module and port-types are
+C-client, L-line, PRE-preamplifier"
+    SYNTAX      OCTET STRING
+
+WavelengthProtectionGroupIdType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "wpsgroup:<chassis-number>/<slot-number>/<group-number>"
+    SYNTAX      OCTET STRING
+
+RemoteLocation ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "<string: <sftp|ftp>://[username@]<host>[:port]/[file-path]/[file-name] >"
+    SYNTAX      OCTET STRING
+
+CustomIdType32 ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING (SIZE (0 .. 32))
+
+TransceiverName ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "The name of the transceiver. The format of which is:
+                
+    sfpPlus:<chassis_number>/<slot_id>/<bic>/<port_id>; where slot_id = ufm slot and bic is either 1 or 2 and port_id is between 1 and 12 [sfp+]
+    cfp:<chassis_number>/<slot_id>/<bic>/<port_id>; where slot_id = ufm slot and bic is either 1 or 2 and port_id is 1                    [cfp]
+    qsfp:<chassis_number>/<slot_id>/<bic>/<port_id>; where slot_id = ufm slot and bic is either 1 or 2 and port_id is between 1 and 3     [qsfp]
+    qsfp28:<chassis_number>/<slot_id>/<bic/port-group>/<port_id>; where slot_id = ufm slot and bic/port-group is either 1 or 2, and port_id is 1 [qsfp28]
+                
+"
+    SYNTAX      OCTET STRING
+
+ThresholdType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {warningAlert(1),alarmHigh(2),alarmLow(3)}
+
+ProfileNameType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING
+
+PassStr ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "<string: Password >"
+    SYNTAX      OCTET STRING
+
+BinLengths ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {unTimed(0),a1Minute(1),a15Minute(15),a1Day(1440)}
+
+Files ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING
+
+ChassisType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION "The type of chassis: based on number of slots (1, 2, 6, or 14)."
+    SYNTAX      INTEGER {a14-Slot(0),a6-Slot(1),a2-Slot(2),a1-Slot(3)}
+
+EqptConnType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {eqDuplex(1),loopback(2)}
+
+PortDwdmType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {native(1),alien(2)}
+
+ShmmAutoUpgradeStatus ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {disabled(1),enabled(2)}
+
+InventoryName ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING
+
+FePortIdType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "source of fiber connect is one of:1) The line port of a module2) The line port of a muxdemux port:0/<md-number>/0/L13) A client port of a module port:<chassis-number>/<slot-number>/<module-number>/<port-type><port-number>4) Interface <interface-name>:<chassis-number>/<slot-number>/<module-number><interface-number>  add @ip-address to indicate that the endpoint is not local to this node"
+    SYNTAX      OCTET STRING
+
+DolOchXconSrcType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "source of och cross connect is one of:1) OCH on a module <module-type>:<chassis-number>/<slot-number>/<module-number>/<port-type><port-number>/channel-id>2) Interface <interface-name>:<chassis-number>/<slot-number>/<module-number><interface-number>"
+    SYNTAX      OCTET STRING
+
+DolModule ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING
+
+DolConnectionType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING
+
+ThresholdEntityType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {a10ge(1),a40ge(2),a100ge(3),otu2(4),otu4(5),odu2(6),odu3(7),odu4(8),oc192(9),stm64(10),wanoc192(11),wanstm64(12),osc(13),line(14),client(15),dcm(16),otu2e(17),odu2e(18),och(19)}
+
+EntityNameType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING
+
+DolFixedGridChannelName ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING
+
+CustomIdType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      OCTET STRING (SIZE (0 .. 32))
+
+PortType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {line(1),client(2),dcm(3),chlport(4),expport(5)}
+
+DolOscIdType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "osc:<chassis-number>/<slot-number>/<module-number>/<port-type><port-number> where port-type is C-client, L-line"
+    SYNTAX      OCTET STRING
+
+DolOmsIdType ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "oms:<chassis-number>/<slot-number>/<module-number>/<port-type><port-number> where port-type is C-client, L-line"
+    SYNTAX      OCTET STRING
+
+chassisTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF ChassisEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "System components (chassis, module, BIC, transceiver, preamplifier, etc)"
+    ::= { bTI7800-EQUIPMENT-MIB 1 }
+
+chassisEntry OBJECT-TYPE
+    SYNTAX      ChassisEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    INDEX { IMPLIED chassisName }
+        ::= { chassisTable 1 }
+
+ChassisEntry ::=
+    SEQUENCE {
+        chassisName String,
+        chassisType ChassisType,
+        chassisPEC String,
+        chassisAdminStatus INTEGER,
+        chassisCustom1 String,
+        chassisCustom2 String,
+        chassisCustom3 String,
+        chassisOperationalStatus INTEGER,
+        chassisLocation String
+    }
+
+chassisName OBJECT-TYPE
+    SYNTAX      String
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    ::= { chassisEntry 1 }
+
+chassisType OBJECT-TYPE
+    SYNTAX      ChassisType
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Type of chassis based on [PamS] number of backplane slots"
+    ::= { chassisEntry 2 }
+
+chassisPEC OBJECT-TYPE
+    SYNTAX      String
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Product equipment code assigned by BTI"
+    DEFVAL { "" }
+    ::= { chassisEntry 3 }
+
+chassisAdminStatus OBJECT-TYPE
+    SYNTAX      INTEGER {up(1),down(2),testing(3)}
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Administrative Status of the chassis"
+    DEFVAL { up }
+    ::= { chassisEntry 4 }
+
+chassisCustom1 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { chassisEntry 5 }
+
+chassisCustom2 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { chassisEntry 6 }
+
+chassisCustom3 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { chassisEntry 7 }
+
+chassisOperationalStatus OBJECT-TYPE
+    SYNTAX      INTEGER {unknown(0),up(1),down(2),testing(3),dormant(5),notPresent(6),lowerLayerDown(7)}
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The operational status of the equipment item"
+    ::= { chassisEntry 8 }
+
+chassisLocation OBJECT-TYPE
+    SYNTAX      String
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "The physical location of the chassis"
+    DEFVAL { "" }
+    ::= { chassisEntry 9 }
+
+moduleTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF ModuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "The module type and location"
+    ::= { bTI7800-EQUIPMENT-MIB 2 }
+
+moduleEntry OBJECT-TYPE
+    SYNTAX      ModuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    INDEX { chassisName, IMPLIED moduleName }
+        ::= { moduleTable 1 }
+
+ModuleEntry ::=
+    SEQUENCE {
+        moduleName String,
+        modulePEC String,
+        moduleAdminStatus INTEGER,
+        moduleCustom1 String,
+        moduleCustom2 String,
+        moduleCustom3 String,
+        moduleOperationalStatus INTEGER,
+        moduleType UfmType
+    }
+
+moduleName OBJECT-TYPE
+    SYNTAX      String
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    ::= { moduleEntry 1 }
+
+modulePEC OBJECT-TYPE
+    SYNTAX      String
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Product equipment code assigned by BTI"
+    DEFVAL { "" }
+    ::= { moduleEntry 2 }
+
+moduleAdminStatus OBJECT-TYPE
+    SYNTAX      INTEGER {up(1),down(2),testing(3)}
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Administrative Status of the chassis"
+    DEFVAL { up }
+    ::= { moduleEntry 3 }
+
+moduleCustom1 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { moduleEntry 4 }
+
+moduleCustom2 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { moduleEntry 5 }
+
+moduleCustom3 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { moduleEntry 6 }
+
+moduleOperationalStatus OBJECT-TYPE
+    SYNTAX      INTEGER {unknown(0),up(1),down(2),testing(3),dormant(5),notPresent(6),lowerLayerDown(7)}
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The operational status of the equipment item"
+    ::= { moduleEntry 7 }
+
+moduleType OBJECT-TYPE
+    SYNTAX      UfmType
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Type of ufm based on msa and BIC and switching"
+    ::= { moduleEntry 8 }
+
+msaXcvrTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF MsaXcvrEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "The transceiver type and location"
+    ::= { bTI7800-EQUIPMENT-MIB 3 }
+
+msaXcvrEntry OBJECT-TYPE
+    SYNTAX      MsaXcvrEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    INDEX { chassisName, moduleName, IMPLIED msaXcvrName }
+        ::= { msaXcvrTable 1 }
+
+MsaXcvrEntry ::=
+    SEQUENCE {
+        msaXcvrName String,
+        msaXcvrPEC String,
+        msaXcvrAdminStatus INTEGER,
+        msaXcvrCustom1 String,
+        msaXcvrCustom2 String,
+        msaXcvrCustom3 String,
+        msaXcvrOperationalStatus INTEGER,
+        msaXcvrOpticalFormat INTEGER
+    }
+
+msaXcvrName OBJECT-TYPE
+    SYNTAX      String
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    ::= { msaXcvrEntry 1 }
+
+msaXcvrPEC OBJECT-TYPE
+    SYNTAX      String
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Product equipment code assigned by BTI"
+    DEFVAL { "" }
+    ::= { msaXcvrEntry 2 }
+
+msaXcvrAdminStatus OBJECT-TYPE
+    SYNTAX      INTEGER {up(1),down(2),testing(3)}
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Administrative Status of the chassis"
+    DEFVAL { up }
+    ::= { msaXcvrEntry 3 }
+
+msaXcvrCustom1 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { msaXcvrEntry 4 }
+
+msaXcvrCustom2 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { msaXcvrEntry 5 }
+
+msaXcvrCustom3 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { msaXcvrEntry 6 }
+
+msaXcvrOperationalStatus OBJECT-TYPE
+    SYNTAX      INTEGER {unknown(0),up(1),down(2),testing(3),dormant(5),notPresent(6),lowerLayerDown(7)}
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The operational status of the equipment item"
+    ::= { msaXcvrEntry 7 }
+
+msaXcvrOpticalFormat OBJECT-TYPE
+    SYNTAX      INTEGER {fixedX1(0),fixedX4(1),fixedX10(2),tunableX1(3),tunableX4(4),tunableX10(5),tunableX2(6),none(7)}
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Transceiver format fixed or tunable"
+    ::= { msaXcvrEntry 8 }
+
+bicTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF BicEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "A BTI interface card location"
+    ::= { bTI7800-EQUIPMENT-MIB 4 }
+
+bicEntry OBJECT-TYPE
+    SYNTAX      BicEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    INDEX { chassisName, moduleName, IMPLIED bicName }
+        ::= { bicTable 1 }
+
+BicEntry ::=
+    SEQUENCE {
+        bicName String,
+        bicPEC String,
+        bicAdminStatus INTEGER,
+        bicCustom1 String,
+        bicCustom2 String,
+        bicCustom3 String,
+        bicOperationalStatus INTEGER,
+        bicType BicType
+    }
+
+bicName OBJECT-TYPE
+    SYNTAX      String
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    ::= { bicEntry 1 }
+
+bicPEC OBJECT-TYPE
+    SYNTAX      String
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Product equipment code assigned by BTI"
+    DEFVAL { "" }
+    ::= { bicEntry 2 }
+
+bicAdminStatus OBJECT-TYPE
+    SYNTAX      INTEGER {up(1),down(2),testing(3)}
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Administrative Status of the chassis"
+    DEFVAL { up }
+    ::= { bicEntry 3 }
+
+bicCustom1 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { bicEntry 4 }
+
+bicCustom2 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { bicEntry 5 }
+
+bicCustom3 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { bicEntry 6 }
+
+bicOperationalStatus OBJECT-TYPE
+    SYNTAX      INTEGER {unknown(0),up(1),down(2),testing(3),dormant(5),notPresent(6),lowerLayerDown(7)}
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The operational status of the equipment item"
+    ::= { bicEntry 7 }
+
+bicType OBJECT-TYPE
+    SYNTAX      BicType
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "12x SFP+ or 1x CFP or 3x QSFP or 1x QSFP28"
+    ::= { bicEntry 8 }
+
+xcvrTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF XcvrEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "The transceiver type and location"
+    ::= { bTI7800-EQUIPMENT-MIB 5 }
+
+xcvrEntry OBJECT-TYPE
+    SYNTAX      XcvrEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    INDEX { chassisName, moduleName, bicName, IMPLIED xcvrName }
+        ::= { xcvrTable 1 }
+
+XcvrEntry ::=
+    SEQUENCE {
+        xcvrName String,
+        xcvrPEC String,
+        xcvrAdminStatus INTEGER,
+        xcvrCustom1 String,
+        xcvrCustom2 String,
+        xcvrCustom3 String,
+        xcvrOperationalStatus INTEGER,
+        xcvrOpticalFormat INTEGER
+    }
+
+xcvrName OBJECT-TYPE
+    SYNTAX      String
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    ::= { xcvrEntry 1 }
+
+xcvrPEC OBJECT-TYPE
+    SYNTAX      String
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Product equipment code assigned by BTI"
+    DEFVAL { "" }
+    ::= { xcvrEntry 2 }
+
+xcvrAdminStatus OBJECT-TYPE
+    SYNTAX      INTEGER {up(1),down(2),testing(3)}
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Administrative Status of the chassis"
+    DEFVAL { up }
+    ::= { xcvrEntry 3 }
+
+xcvrCustom1 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { xcvrEntry 4 }
+
+xcvrCustom2 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { xcvrEntry 5 }
+
+xcvrCustom3 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { xcvrEntry 6 }
+
+xcvrOperationalStatus OBJECT-TYPE
+    SYNTAX      INTEGER {unknown(0),up(1),down(2),testing(3),dormant(5),notPresent(6),lowerLayerDown(7)}
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The operational status of the equipment item"
+    ::= { xcvrEntry 7 }
+
+xcvrOpticalFormat OBJECT-TYPE
+    SYNTAX      INTEGER {fixedX1(0),fixedX4(1),fixedX10(2),tunableX1(3),tunableX4(4),tunableX10(5),tunableX2(6),none(7)}
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Transceiver format fixed or tunable"
+    ::= { xcvrEntry 8 }
+
+preamplifierTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF PreamplifierEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "The pluggable preamplifier type and location"
+    ::= { bTI7800-EQUIPMENT-MIB 6 }
+
+preamplifierEntry OBJECT-TYPE
+    SYNTAX      PreamplifierEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    INDEX { chassisName, moduleName, IMPLIED preamplifierName }
+        ::= { preamplifierTable 1 }
+
+PreamplifierEntry ::=
+    SEQUENCE {
+        preamplifierName String,
+        preamplifierPEC String,
+        preamplifierAdminStatus INTEGER,
+        preamplifierCustom1 String,
+        preamplifierCustom2 String,
+        preamplifierCustom3 String,
+        preamplifierOperationalStatus INTEGER
+    }
+
+preamplifierName OBJECT-TYPE
+    SYNTAX      String
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    ::= { preamplifierEntry 1 }
+
+preamplifierPEC OBJECT-TYPE
+    SYNTAX      String
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Product equipment code assigned by BTI"
+    DEFVAL { "" }
+    ::= { preamplifierEntry 2 }
+
+preamplifierAdminStatus OBJECT-TYPE
+    SYNTAX      INTEGER {up(1),down(2),testing(3)}
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Administrative Status of the chassis"
+    DEFVAL { up }
+    ::= { preamplifierEntry 3 }
+
+preamplifierCustom1 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { preamplifierEntry 4 }
+
+preamplifierCustom2 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { preamplifierEntry 5 }
+
+preamplifierCustom3 OBJECT-TYPE
+    SYNTAX      String (SIZE (0 .. 255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Customizable textual field for operator's use"
+    DEFVAL { "" }
+    ::= { preamplifierEntry 6 }
+
+preamplifierOperationalStatus OBJECT-TYPE
+    SYNTAX      INTEGER {unknown(0),up(1),down(2),testing(3),dormant(5),notPresent(6),lowerLayerDown(7)}
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The operational status of the equipment item"
+    ::= { preamplifierEntry 7 }
+
+END

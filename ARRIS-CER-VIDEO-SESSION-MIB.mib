@@ -1,0 +1,1374 @@
+ARRIS-CER-VIDEO-SESSION-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    arrisE6Cer
+        FROM ARRIS-MIB
+    CerProgram, CerVirtualEdgeIndexType,
+    CerMulticastType
+        FROM ARRIS-CER-VIDEO-MIB
+    InterfaceIndex, InterfaceIndexOrZero, ifIndex
+        FROM IF-MIB
+    InetAddressIPv4or6, AdminState
+        FROM CADANT-TC
+    trapCounter, trapSeverity
+        FROM CADANT-CMTS-EQUIPMENT-MIB
+    InetAddressType, InetAddress
+        FROM INET-ADDRESS-MIB
+    Counter32, Gauge32, Unsigned32, OBJECT-TYPE, 
+    MODULE-IDENTITY, NOTIFICATION-TYPE
+        FROM SNMPv2-SMI
+    TruthValue, TEXTUAL-CONVENTION, RowStatus, DisplayString
+        FROM SNMPv2-TC
+    OBJECT-GROUP
+        FROM SNMPv2-CONF;
+        
+cerVideoSessionMib MODULE-IDENTITY
+    LAST-UPDATED "201511040000Z" -- 4 November 2015
+    ORGANIZATION
+        "Arris International"
+    CONTACT-INFO
+        "Network Management
+         Postal: Arris International.
+         4300 Cork Airport Business Park
+         Cork Airport, Kinsale Road
+         Cork, Ireland.
+         Tel: +353 21 7305 800
+         Fax: +353 21 4321 972"
+    DESCRIPTION
+        "This MIB contains objects to display video sessions and control Switched Digital Video on the ARRIS E6000 CER."
+
+    REVISION "201511040000Z" -- 4 November 2015
+    DESCRIPTION
+        "Remove cervSessionTimeout,cervMulticastProxy, and cervMulticastBackupProxy"
+
+    REVISION "201504070000Z" -- 7 April 2015
+    DESCRIPTION
+        "Remove cerErmSessionServerPort.
+         use cerErmSessionRPCServerPort instead of cerErmSessionServerPort in
+         NOTIFICATION-TYPE cerVideoSessionErmConnection"
+
+    REVISION "201503190000Z" -- 19 March 2015
+    DESCRIPTION
+        "Remove cervSessionTransportNtwkIfIndex"
+
+    REVISION "201503180000Z" -- 18 March 2015
+    DESCRIPTION
+        "Removed cervMulticastAutoSwitchback"
+    REVISION "201503050000Z" -- 05 March 2015
+    DESCRIPTION
+        "Change the range of ERM session index"
+    REVISION "201412120000Z" -- 12 December 2014
+    DESCRIPTION
+        "Updated MIB to E6000 IEQ Application PSA v3.2"
+    REVISION "201412020000Z" -- 2 December 2014
+    DESCRIPTION
+        "Add cerErmSessionAnncMsgEnable"
+    REVISION "201410090000Z" -- 9 October 2014
+    DESCRIPTION
+        "Additional session multicast changes."
+    REVISION "201406250000Z" -- 25 June 2014
+    DESCRIPTION
+        "Updated MIB to E6000 IEQ Application PSA v2.1"
+    REVISION "201403080000Z" -- 8 March 2014
+    DESCRIPTION
+        "E6000 CER Initial revision."
+    ::= {arrisE6Cer 2}
+
+CerSessionType ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "A convenient type definition for the type of traffic supported by a session-based ERM.
+         vod - vod-only
+         sdv - sdv-only
+         linear - linear-only
+         any - any type"
+    SYNTAX    INTEGER {
+                        vod(1),
+                        sdv(2),
+                        linear(3),
+                        any(4)
+                      }
+
+CerErmType ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "A convenient type definition for the type of ERM.
+         cvex  - ARRIS CVEX ERM
+         usrm - Cisco ERM"
+    SYNTAX    INTEGER {
+                        cvex(1),
+                        usrm(2)
+                      }
+
+CerTransportState ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+        "A convenient type definition for input TS states. These
+         can be as follows
+            joining    - Primary stream--waiting for video to arrive
+            forwarding - Primary stream-video is arriving and being 
+                         forwarded on a QAM
+            coldspare  - Backup multicast session that has not been joined yet
+            hotspare   - Backup multicast seesion that has been joined, but is
+                         not being forwarded
+            failed     - Primary stream that either timed out or failed."
+    SYNTAX    INTEGER {
+                        joining(1),
+                        forwarding(2),
+                        coldspare(3),
+                        hotspare(4),
+                        failed(5)
+    }
+
+cervSessionGroup OBJECT IDENTIFIER ::= { cerVideoSessionMib 1 }
+
+    cervMulticastProtocol OBJECT-TYPE
+        SYNTAX      CerMulticastType
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The type of multicast signaling for SDV and broadcast."
+        DEFVAL { none }
+        ::= { cervSessionGroup 2 }
+
+    cervMulticastTimeoutInterval   OBJECT-TYPE
+        SYNTAX      Unsigned32 (1..65)
+        UNITS       "seconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The multicast (SDV and linear) TS timeout interval in seconds."
+        DEFVAL { 2 }
+        ::= { cervSessionGroup 3 }
+
+    cervMulticastInterface   OBJECT-TYPE
+        SYNTAX      InterfaceIndexOrZero
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The global interface for IEQ multicast."
+        DEFVAL { 0 }
+        ::= { cervSessionGroup 4 }
+
+    cerErmSessionRPCServerPort OBJECT-TYPE
+         SYNTAX Unsigned32 ( 1024..65535 )
+         MAX-ACCESS   read-write
+         STATUS       current
+         DESCRIPTION
+              "Contains the local TCP server port value used for ERM sessions."
+         DEFVAL { 48573 }
+         ::= { cervSessionGroup 5 }
+
+
+--------------------------------------------------------------------------------------------------
+-- Video session table
+--------------------------------------------------------------------------------------------------
+
+cerVideoSessionTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CerVideoSessionEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "This table lists video sessions. When doing multicast for SDV, there is one row
+         For each replication of the multicast."
+    ::= {cerVideoSessionMib 2}
+
+    cerVideoSessionEntry OBJECT-TYPE
+        SYNTAX CerVideoSessionEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "An entry for the video session table."
+        INDEX {cerveSessionVe, cerveSessionId }
+        ::= {cerVideoSessionTable 1}
+
+        CerVideoSessionEntry ::= SEQUENCE {
+            cerveSessionVe                  CerVirtualEdgeIndexType,
+            cerveSessionId                  OCTET STRING,
+            cerveSessionState               INTEGER,
+            cerveSessionChanCont            Unsigned32,
+            cerveSessionQamIfIndex          InterfaceIndex,
+            cerveSessionTsid                Unsigned32,
+            cerveSessionBandwidth           Unsigned32,
+            cerveSessionBitrate             Unsigned32,
+            cerveSessionTimeActive          Unsigned32,
+            cerveSessionNoPidRemapping      TruthValue,
+            cerveSessionGroupId             Unsigned32,
+            cerveSessionOutProgNumber       CerProgram,
+            cerveSessionIsMulticast         TruthValue,
+            cerveSessionAssetId             Unsigned32,
+            cerveSessionOnDemandId          OCTET STRING,
+            cerveSessionTransportId         Unsigned32
+        }
+
+        cerveSessionVe OBJECT-TYPE
+            SYNTAX CerVirtualEdgeIndexType
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "The Virtual Edge for this session."
+            ::= {cerVideoSessionEntry 1}
+
+        cerveSessionId OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE(1..33))
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Video session identifier. Session ids may not be unique across VEs."
+            ::= {cerVideoSessionEntry 2}
+
+        cerveSessionState OBJECT-TYPE
+            SYNTAX INTEGER {
+                inactive(1),
+                psi(2),
+                data(3),
+                active(4)
+            }
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Video session state. 
+                 inactive-the session has not yet been joined, or was Active and failed
+                 psi--the session is starting and awaiting PSI tables (used for RPC sessions)
+                 data--the session is starting, has seen PSI tables and is awaiting audio/video 
+                 data (used for RPC sessions)
+                 active-the session is forwarding video traffic to this channel"
+            ::= {cerVideoSessionEntry 3}
+
+        cerveSessionChanCont OBJECT-TYPE
+            SYNTAX Unsigned32 (0..65535)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The channel container index. Used for both multicast and unicast sessions for consistency."
+            ::= {cerVideoSessionEntry 4}
+
+        cerveSessionQamIfIndex OBJECT-TYPE
+            SYNTAX InterfaceIndex
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The ifIndex of the output QAM used by this video session."
+            ::= {cerVideoSessionEntry 5}
+
+        cerveSessionTsid OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The TSID of the output QAM channel used by this video session."
+            ::= {cerVideoSessionEntry 6}
+
+        cerveSessionBandwidth OBJECT-TYPE
+            SYNTAX Unsigned32
+            UNITS  "bps"
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Configured video session bandwidth in bits per second."
+            ::= {cerVideoSessionEntry 7}
+
+        cerveSessionBitrate OBJECT-TYPE
+            SYNTAX Unsigned32
+            UNITS "bps"
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Current measured video session bitrate in bits per second."
+            ::= {cerVideoSessionEntry 8}
+
+        cerveSessionTimeActive OBJECT-TYPE
+            SYNTAX Unsigned32
+            UNITS "seconds"
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " The length of time that the input stream has been forwarded 
+                  since last becoming active is stored in  cerveSessionTimeActive. 
+                  If the cerveSessionState is not set to active, then this value is zero."
+            ::= {cerVideoSessionEntry 9}
+
+        cerveSessionNoPidRemapping OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "If true, PIDs are not remapped for this video session."
+            DEFVAL { false } 
+            ::= {cerVideoSessionEntry 10}
+
+        cerveSessionGroupId OBJECT-TYPE
+            SYNTAX Unsigned32(0..1024)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Identifies the group to which this video session belongs.
+                 A value of zero indicates that this session is not part of a group."
+            ::= {cerVideoSessionEntry 11}
+
+        cerveSessionOutProgNumber OBJECT-TYPE
+            SYNTAX CerProgram
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The output program number of the active transport used by this video session."
+           ::= {cerVideoSessionEntry 12}
+
+        cerveSessionIsMulticast OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "If true, this is a multicast session."
+            DEFVAL { false } 
+            ::= {cerVideoSessionEntry 13}
+
+        cerveSessionAssetId OBJECT-TYPE
+            SYNTAX Unsigned32 (1..65535)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The ID tying together all of the transports defined for this video
+                 session. Only important when doing Service Level Redundancy (SLR)."
+            ::= {cerVideoSessionEntry 14}
+
+        cerveSessionOnDemandId OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE(0..40))
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "OnDemand Video session identifier included in an NGOD create session
+                 message. Unused if session was not created using NGOD."
+            ::= {cerVideoSessionEntry 15}
+
+        cerveSessionTransportId OBJECT-TYPE
+            SYNTAX Unsigned32(1..65535)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The transport ID currently in use for this session."
+            ::= {cerVideoSessionEntry 16}
+
+--------------------------------------------------------------------------------------------------
+-- Video IP session table
+--------------------------------------------------------------------------------------------------
+
+cerVideoIpSessionTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CerVideoIpSessionEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "This table maps a DIP address and UPD dport to a video session ID.
+         It is used for both SDV and session-based VOD. There is only one
+         row in the table for each session, even when there is Service
+         Level Redundancy--the one for the current primary
+         source of the input TS."
+    ::= {cerVideoSessionMib 3}
+
+    cerVideoIpSessionEntry OBJECT-TYPE
+        SYNTAX CerVideoIpSessionEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "An entry for the video IP session table."
+        INDEX {cervIpSessionDestIpAddr,cervIpSessionDestUdpPort,
+               cervIpSessionSrcIpAddr,cervIpSessionVe,cervIpSessionId }
+        ::= {cerVideoIpSessionTable 1}
+
+        CerVideoIpSessionEntry ::= SEQUENCE {
+            cervIpSessionDestIpAddr    InetAddressIPv4or6,
+            cervIpSessionDestUdpPort   Unsigned32,
+            cervIpSessionSrcIpAddr     InetAddressIPv4or6,
+            cervIpSessionVe            CerVirtualEdgeIndexType,
+            cervIpSessionId            OCTET STRING,
+            cervIpSessionAddrType      InetAddressType,
+            cervIpSessionAssetId       Unsigned32
+        }
+
+        cervIpSessionDestIpAddr OBJECT-TYPE
+            SYNTAX InetAddressIPv4or6
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "The destination IP address of this video session."
+            ::= {cerVideoIpSessionEntry 1}
+
+        cervIpSessionDestUdpPort OBJECT-TYPE
+            SYNTAX Unsigned32(0..65535)
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "The destination UDP port of this video session."
+            ::= {cerVideoIpSessionEntry 2}
+
+        cervIpSessionSrcIpAddr OBJECT-TYPE
+            SYNTAX InetAddressIPv4or6
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "The source IP address of this video session.
+                 Zero means not specified."
+            ::= {cerVideoIpSessionEntry 3}
+
+        cervIpSessionVe OBJECT-TYPE
+            SYNTAX CerVirtualEdgeIndexType
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "The Virtual Edge for this session."
+            ::= {cerVideoIpSessionEntry 4}
+
+        cervIpSessionId OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE(1..33))
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Video session identifier."
+            ::= {cerVideoIpSessionEntry 5}
+
+        cervIpSessionAddrType OBJECT-TYPE
+            SYNTAX InetAddressType
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Type of source and desttination IP address."
+            ::= {cerVideoIpSessionEntry 6}
+
+        cervIpSessionAssetId OBJECT-TYPE
+            SYNTAX Unsigned32 (1..65535)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The ID tying together all of the transports defined for this video
+                 session. Only important when doing Service Level Redundancy (SLR)."
+            ::= {cerVideoIpSessionEntry 7}
+
+--------------------------------------------------------------------------------------------------
+-- Video session Asset table
+--------------------------------------------------------------------------------------------------
+
+cerVideoSessionAssetTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CerVideoSessionAssetEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "This table maps a DIP address and UPD dport to a video session ID.
+         It is used for both SDV and session-based VOD. There is only one
+         row in the table for each session, even when there is Service
+         Level Redundancy--the one for the current primary
+         source of the input TS."
+    ::= {cerVideoSessionMib 4}
+
+    cerVideoSessionAssetEntry OBJECT-TYPE
+        SYNTAX CerVideoSessionAssetEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "An entry for the video IP session table."
+        INDEX { cervSessionAssetAssetId, cervSessionAssetTransportId }
+        ::= {cerVideoSessionAssetTable 1}
+
+        CerVideoSessionAssetEntry ::= SEQUENCE {
+           cervSessionAssetAssetId       Unsigned32,
+           cervSessionAssetTransportId   Unsigned32,
+           cervSessionAssetChanCont      Unsigned32
+        }
+
+        cervSessionAssetAssetId OBJECT-TYPE
+            SYNTAX Unsigned32 (1..65535)
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "The ID tying together all of the transports defined for this video
+                 session. Only important when doing Service Level Redundancy (SLR)."
+            ::= {cerVideoSessionAssetEntry 1}
+
+        cervSessionAssetTransportId OBJECT-TYPE
+            SYNTAX Unsigned32(1..65535)
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "The Transport Id for this Video Session."
+            ::= {cerVideoSessionAssetEntry 2}
+
+        cervSessionAssetChanCont OBJECT-TYPE
+            SYNTAX Unsigned32 (0..65535)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Contains the channel container index for all sessions."
+            ::= { cerVideoSessionAssetEntry 3}
+
+
+--------------------------------------------------------------------------------------------------
+-- Video session transport table
+--------------------------------------------------------------------------------------------------
+
+cerVideoSessionTransportTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CerVideoSessionTransportEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "This table lists the transports (active and backup) used by video
+         sessions on the CER."
+    ::= {cerVideoSessionMib 5}
+
+    cerVideoSessionTransportEntry OBJECT-TYPE
+        SYNTAX CerVideoSessionTransportEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "An entry for the video session transport table."
+        INDEX {cervSessionTransportId}
+        ::= {cerVideoSessionTransportTable 1}
+
+        CerVideoSessionTransportEntry ::= SEQUENCE {
+            cervSessionTransportId            Unsigned32,
+            cervSessionTransportAddrType      InetAddressType,
+            cervSessionTransportSrcIpAddress  InetAddressIPv4or6,
+            cervSessionTransportDestIpAddress InetAddressIPv4or6,
+            cervSessionTransportDestUdpPort   Unsigned32,
+            cervSessionTransportAssetId       Unsigned32,
+            cervSessionTransportBandwidth     Unsigned32,
+            cervSessionTransportInProgNumber  CerProgram,
+            cervSessionTransportState         CerTransportState
+        }
+
+        cervSessionTransportId OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                "Video session transport identifier."
+            ::= {cerVideoSessionTransportEntry 1}
+
+        cervSessionTransportAddrType OBJECT-TYPE
+            SYNTAX InetAddressType
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Type of source and desttination IP address."
+            ::= {cerVideoSessionTransportEntry 2}
+
+        cervSessionTransportSrcIpAddress OBJECT-TYPE
+            SYNTAX InetAddressIPv4or6
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Video session transport source IP address."
+            ::= {cerVideoSessionTransportEntry 3}
+
+        cervSessionTransportDestIpAddress OBJECT-TYPE
+            SYNTAX InetAddressIPv4or6
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Video session transport destination IP address.
+                 For multicast streams, this is the multicast IP address of the stream.
+                 For unicast streams, this is the IP address of the gigabit Ethernet port where the stream is received."
+            ::= {cerVideoSessionTransportEntry 4}
+
+        cervSessionTransportDestUdpPort OBJECT-TYPE
+            SYNTAX Unsigned32(0..65535)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Video session transport destination UDP port."
+            ::= {cerVideoSessionTransportEntry 5}
+
+        cervSessionTransportAssetId OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The ID tying together all of the transports defined for this video
+                 session. Only important when doing Service Level Redundancy (SLR)."
+            ::= {cerVideoSessionTransportEntry 7}
+
+        cervSessionTransportBandwidth OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS       "bps"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The bandwidth of the SDV or VOD session. Zero means not specified."
+            DEFVAL { 0 }
+            ::= { cerVideoSessionTransportEntry 8}
+
+        cervSessionTransportInProgNumber OBJECT-TYPE
+            SYNTAX      CerProgram
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The incoming program number of the TS. Zero means the first program in the TS."
+            DEFVAL { 0 }
+            ::= { cerVideoSessionTransportEntry 9}
+
+        cervSessionTransportState OBJECT-TYPE
+            SYNTAX      CerTransportState
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The state of this incoming session."
+            ::= { cerVideoSessionTransportEntry 10}
+
+--------------------------------------------------------------------------------------------------
+-- Video multicast transport table
+--------------------------------------------------------------------------------------------------
+
+cerVideoIpTransportTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CerVideoIpTransportEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "This table maps multicast IP address and UPD port to transport ID."
+    ::= {cerVideoSessionMib 6}
+
+    cerVideoIpTransportEntry OBJECT-TYPE
+          SYNTAX CerVideoIpTransportEntry
+          MAX-ACCESS not-accessible
+          STATUS current
+          DESCRIPTION
+              "An entry for the video session multicast transport table."
+          INDEX {cervIpTransportDestIpAddr, cervIpTransportSrcIpAddr, cervIpTransportUdpPort }
+          ::= {cerVideoIpTransportTable 1}
+
+          CerVideoIpTransportEntry ::= SEQUENCE {
+              cervIpTransportDestIpAddr InetAddressIPv4or6,
+              cervIpTransportSrcIpAddr  InetAddressIPv4or6,
+              cervIpTransportUdpPort    Unsigned32,
+              cervIpTransportId         Unsigned32,
+              cervIpTransportAssetId    Unsigned32,
+              cervIpTransportAddrType   InetAddressType
+          }
+
+          cervIpTransportDestIpAddr OBJECT-TYPE
+              SYNTAX InetAddressIPv4or6
+              MAX-ACCESS not-accessible
+              STATUS current
+              DESCRIPTION
+                  "Video session transport destination IP address."
+              ::= {cerVideoIpTransportEntry 1}
+
+          cervIpTransportSrcIpAddr OBJECT-TYPE
+              SYNTAX InetAddressIPv4or6
+              MAX-ACCESS not-accessible
+              STATUS current
+              DESCRIPTION
+                  "Video session transport source IP address. Zero if not set."
+              ::= {cerVideoIpTransportEntry 2}
+
+          cervIpTransportUdpPort OBJECT-TYPE
+              SYNTAX Unsigned32(0..65535)
+              MAX-ACCESS not-accessible
+              STATUS current
+              DESCRIPTION
+                  "Video session transport destination UDP port."
+              ::= {cerVideoIpTransportEntry 3}
+
+          cervIpTransportId OBJECT-TYPE
+              SYNTAX Unsigned32
+              MAX-ACCESS not-accessible
+              STATUS current
+              DESCRIPTION
+                  "Video multicast transport identifier."
+              ::= {cerVideoIpTransportEntry 4}
+
+          cervIpTransportAssetId OBJECT-TYPE
+              SYNTAX Unsigned32
+              MAX-ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "The ID tying together all of the transports defined for this video
+                   session. Only important when doing Service Level Redundancy (SLR)."
+              ::= {cerVideoIpTransportEntry 5}
+
+          cervIpTransportAddrType OBJECT-TYPE
+              SYNTAX InetAddressType
+              MAX-ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "Type of source and desttination IP address."
+              ::= {cerVideoIpTransportEntry 6}
+
+--------------------------------------------------------------------------------------------------
+-- Per VE ERM session  table
+--------------------------------------------------------------------------------------------------
+
+cerveErmSessionTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CerveErmSessionEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "This table stores parameters for each Virtual Edge video ERM object, if defined."
+    ::= { cerVideoSessionMib 7}
+
+    cerveErmSessionEntry OBJECT-TYPE
+        SYNTAX     CerveErmSessionEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "Virtual Edge ERM configuration parameter table"
+        INDEX { cerveErmSessionVeIndex }
+        ::= { cerveErmSessionTable 1 }
+
+        CerveErmSessionEntry ::= SEQUENCE {
+            cerveErmSessionVeIndex        CerVirtualEdgeIndexType,
+            cerveErmSessionErmIndex       Unsigned32,
+            cerveErmSessionAdminState     AdminState,
+            cerveErmSessionAddrType       InetAddressType,
+            cerveErmSessionControlIpAddr  InetAddressIPv4or6,
+            cerveErmSessionControlIfIndex InterfaceIndexOrZero,
+            cerveErmSessionRowStatus      RowStatus
+        }
+
+        cerveErmSessionVeIndex OBJECT-TYPE
+            SYNTAX      CerVirtualEdgeIndexType
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                 "This is the VE controlled by this ERM."
+            ::= { cerveErmSessionEntry 1 } 
+
+        cerveErmSessionErmIndex OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..8)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                 "This is the ERM used for this Virtual Edge.
+                  Multiple VEs may use same ERM."
+            DEFVAL { 0 }
+            ::= { cerveErmSessionEntry 2 } 
+
+        cerveErmSessionAdminState OBJECT-TYPE
+            SYNTAX  AdminState
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "Whether or not the VE session-base ERM interface is enabled.
+                 Not used if cerveErmSessionIndex is zero."
+            DEFVAL { down }
+            ::= { cerveErmSessionEntry 3 }
+
+        cerveErmSessionAddrType OBJECT-TYPE
+            SYNTAX InetAddressType
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Type of control IP address."
+            DEFVAL { ipv4 }
+            ::= { cerveErmSessionEntry 4 }
+
+        cerveErmSessionControlIpAddr OBJECT-TYPE
+            SYNTAX      InetAddressIPv4or6
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                 "This is the source loopback address used when communicating with the ERM and
+                  for receiving messages from the ERM."
+            DEFVAL { "0.0.0.0" }
+            ::= { cerveErmSessionEntry 5 }
+
+        cerveErmSessionControlIfIndex OBJECT-TYPE
+            SYNTAX      InterfaceIndexOrZero
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                 "The ifIndex of the loopback interface for communicating with an ERM."
+            DEFVAL { 0 }
+            ::= { cerveErmSessionEntry 6 }
+
+        cerveErmSessionRowStatus   OBJECT-TYPE
+            SYNTAX      RowStatus
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "The RowStatus for controlling entries in this table. 
+                 Allowed values are createAndGo, destroy, and active."
+            ::= { cerveErmSessionEntry 7 }
+
+--------------------------------------------------------------------------------------------------
+-- ERM session status table
+--------------------------------------------------------------------------------------------------
+
+cerveErmSessionStatusTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CerveErmSessionStatusEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "This table lists video session statistics for a session-based ERM."
+    ::= {cerVideoSessionMib 8}
+
+    cerveErmSessionStatusEntry OBJECT-TYPE
+        SYNTAX CerveErmSessionStatusEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "An entry for the video session qam table."
+        INDEX {cerveSessionVe}
+        ::= {cerveErmSessionStatusTable 1}
+
+        CerveErmSessionStatusEntry ::= SEQUENCE {
+            cerveErmSessionStatusConnected              TruthValue,
+            cerveErmSessionStatusAddrType               InetAddressType,
+            cerveErmSessionStatusRemoteIp               InetAddress,
+            cerveErmSessionStatusCreateSessions         Counter32,
+            cerveErmSessionStatusCreateSessionFails     Counter32,
+            cerveErmSessionStatusDeleteSessions         Counter32,
+            cerveErmSessionStatusDeleteSessionFails     Counter32,
+            cerveErmSessionStatusAnnounces              Counter32,
+            cerveErmSessionStatusAnnounceFails          Counter32,
+            cerveErmSessionStatusQuerySessions          Counter32,
+            cerveErmSessionStatusQuerySessionFails      Counter32,
+            cerveErmSessionStatusQuerySessionInfo       Counter32,
+            cerveErmSessionStatusQuerySessionInfoFails  Counter32
+        }
+
+        cerveErmSessionStatusConnected OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "True if this VE is connected to the session ERM, false otherwise."
+            ::= {cerveErmSessionStatusEntry 2}
+
+        cerveErmSessionStatusAddrType OBJECT-TYPE
+            SYNTAX InetAddressType
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Type of IP Address for session-based ERM. Comes from cerveErmSessionAddrType."
+            ::= {cerveErmSessionStatusEntry 3}
+
+        cerveErmSessionStatusRemoteIp OBJECT-TYPE
+            SYNTAX InetAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "IP Address of session-based ERM."
+            ::= {cerveErmSessionStatusEntry 4}
+
+        cerveErmSessionStatusCreateSessions OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The total number of sessions created for this VE."
+            ::= {cerveErmSessionStatusEntry 5}
+
+        cerveErmSessionStatusCreateSessionFails OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The total number of failures to creaate a session for this VE."
+            ::= {cerveErmSessionStatusEntry 6}
+
+        cerveErmSessionStatusDeleteSessions OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The total number of sessions deleted for this VE."
+            ::= {cerveErmSessionStatusEntry 7}
+
+        cerveErmSessionStatusDeleteSessionFails OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The total number of delete sessions failures for the VE."
+            ::= {cerveErmSessionStatusEntry 8}
+
+        cerveErmSessionStatusAnnounces OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The total number of announce messages for this VE."
+            ::= {cerveErmSessionStatusEntry 9}
+
+        cerveErmSessionStatusAnnounceFails OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The total number of failed announce messages for this VE."
+            ::= {cerveErmSessionStatusEntry 10}
+
+        cerveErmSessionStatusQuerySessions OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The total number of query session requests for this VE."
+            ::= {cerveErmSessionStatusEntry 11}
+
+        cerveErmSessionStatusQuerySessionFails OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The total number of failed session queries for this VE."
+            ::= {cerveErmSessionStatusEntry 12}
+
+        cerveErmSessionStatusQuerySessionInfo OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The total number of query session Info requests for this VE."
+            ::= {cerveErmSessionStatusEntry 13}
+
+        cerveErmSessionStatusQuerySessionInfoFails OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The total number of failed session Info queries for this VE."
+            ::= {cerveErmSessionStatusEntry 14}
+
+--------------------------------------------------------------------------------------------------
+-- ERM session  table
+--------------------------------------------------------------------------------------------------
+
+cerErmSessionTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CerErmSessionEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "This table stores parameters for each Virtual Edge video ERM object, if defined."
+    ::= { cerVideoSessionMib 9}
+
+    cerErmSessionEntry OBJECT-TYPE
+        SYNTAX     CerErmSessionEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "Virtual Edge ERM configuration parameter table"
+        INDEX { cerErmSessionErmIndex }
+        ::= { cerErmSessionTable 1 }
+
+        CerErmSessionEntry ::= SEQUENCE {
+            cerErmSessionErmIndex       Unsigned32,
+            cerErmSessionErmVendorBrand CerErmType,
+            cerErmSessionSessionType    CerSessionType,
+            cerErmSessionDescription    DisplayString,
+            cerErmSessionVendorId       OCTET STRING,
+            cerErmSessionConnTimeout    Unsigned32,
+            cerErmSessionRowStatus      RowStatus,
+            cerErmSessionAnncMsgEnable  TruthValue
+
+        }
+
+        cerErmSessionErmIndex OBJECT-TYPE
+            SYNTAX      Unsigned32 (1..8)
+            MAX-ACCESS  accessible-for-notify
+            STATUS      current
+            DESCRIPTION
+                 "This is the ERM used for this Virtual Edge.
+                  Multiple VEs may use same ERM."
+            ::= { cerErmSessionEntry 1 } 
+    
+        cerErmSessionErmVendorBrand OBJECT-TYPE
+           SYNTAX      CerErmType
+           MAX-ACCESS  read-create
+           STATUS      current
+           DESCRIPTION
+               "The ERM vendor brand."
+            DEFVAL { cvex }
+           ::= { cerErmSessionEntry 2 }
+   
+        cerErmSessionSessionType OBJECT-TYPE
+           SYNTAX      CerSessionType
+           MAX-ACCESS  read-create
+           STATUS      current
+           DESCRIPTION
+               "The type of sessions controlled by this ERM."
+            DEFVAL { any }
+           ::= { cerErmSessionEntry 3 }
+ 
+        cerErmSessionDescription OBJECT-TYPE 
+           SYNTAX       DisplayString
+           MAX-ACCESS   read-create
+           STATUS       current
+           DESCRIPTION
+                "Contains a text description of the ERM configuration."
+            DEFVAL { "" }
+           ::= { cerErmSessionEntry 4 } 
+   
+        cerErmSessionVendorId   OBJECT-TYPE
+           SYNTAX      OCTET STRING (SIZE(0..32))
+           MAX-ACCESS  read-create
+           STATUS      current
+           DESCRIPTION
+               "The ERM configuration file vendor ID."
+           DEFVAL { "" }
+           ::= { cerErmSessionEntry 5 }
+
+        cerErmSessionConnTimeout OBJECT-TYPE
+           SYNTAX Unsigned32 ( 0..100 )
+           UNITS "seconds"
+           MAX-ACCESS   read-create
+           STATUS       current
+           DESCRIPTION
+                "Contains the control plane timeout for a session ERM."
+           DEFVAL { 25 }
+           ::= { cerErmSessionEntry 6 }
+
+        cerErmSessionRowStatus   OBJECT-TYPE
+           SYNTAX      RowStatus
+           MAX-ACCESS  read-create
+           STATUS      current
+           DESCRIPTION
+               "The RowStatus for controlling entries in this table. 
+                Allowed values are createAndGo, destroy, and active."
+           ::= { cerErmSessionEntry 8 }
+
+        cerErmSessionAnncMsgEnable OBJECT-TYPE
+           SYNTAX TruthValue
+           MAX-ACCESS   read-create
+           STATUS       current
+           DESCRIPTION
+                "Whether or not to do Announce RPC messages to this ERM."
+           DEFVAL { false }
+           ::= { cerErmSessionEntry 9 }
+
+
+cerVideoChanContTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CerVideoChanContEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "This table contains the list of QAM channel-container memberships.
+             All members of a given CC are transmitting the same multicast stream.
+             A single QAM can be a member of multiple channel containers,
+             meaning that it is transmitting multiple session-based streams."
+    ::= { cerVideoSessionMib 10 }
+
+    cerVideoChanContEntry OBJECT-TYPE
+        SYNTAX     CerVideoChanContEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "Channel Container row"
+        INDEX { cervChanContIndex, cervChanContQamIfIndex }
+        ::= { cerVideoChanContTable 1 }
+
+        CerVideoChanContEntry ::= SEQUENCE {
+            cervChanContIndex            Unsigned32,
+            cervChanContQamIfIndex       InterfaceIndex,
+            cervChanContOutProgNumber    CerProgram,
+            cervChanContVe               CerVirtualEdgeIndexType,
+            cervChanContSessionId        OCTET STRING
+        }
+
+        cervChanContIndex OBJECT-TYPE
+            SYNTAX Unsigned32 (1..65535)
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "For multicast sessions, the channel container index."
+            ::= { cerVideoChanContEntry 1}
+
+        cervChanContQamIfIndex   OBJECT-TYPE
+            SYNTAX      InterfaceIndex
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The ifIndex of the QAM channel."
+
+            ::= { cerVideoChanContEntry 2 }
+         cervChanContOutProgNumber   OBJECT-TYPE
+            SYNTAX      CerProgram
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The output program number associated with this session."
+            ::= { cerVideoChanContEntry 3 }
+
+        cervChanContVe OBJECT-TYPE
+            SYNTAX CerVirtualEdgeIndexType
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "The ID tying together all of the transports defined for this video
+                 session. Only important when doing Service Level Redundancy (SLR).
+                 Zero is reserved for future use when the channel container might be
+                 manually configured."
+            ::= { cerVideoChanContEntry 4}
+
+        cervChanContSessionId OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE(0..33))
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Video session identifier. Session ids may not be unique across VEs.
+                 The null string is reserved for manually configured CC in the future."
+            ::= { cerVideoChanContEntry 5}
+
+cervLookupOutPortToIfIndexTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CervLookupOutPortToIfIndexEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+           "This table maps the session ERM output port number in, for example,
+            a create session message to the IfIndex of a QAM channel."
+    ::= { cerVideoSessionMib 11 }
+
+    cervLookupOutPortToIfIndexEntry OBJECT-TYPE
+        SYNTAX     CervLookupOutPortToIfIndexEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+                "The ERM output port number (channel) to ifIndex mapping table"
+        INDEX { cervLookupOutPortVeIndex, cervLookupOutPortOutPort }
+        ::= { cervLookupOutPortToIfIndexTable 1 }
+
+        CervLookupOutPortToIfIndexEntry ::= SEQUENCE {
+            cervLookupOutPortVeIndex     CerVirtualEdgeIndexType,
+            cervLookupOutPortOutPort     Unsigned32,    
+            cervLookupOutPortIfIndex     InterfaceIndexOrZero
+        }
+
+        cervLookupOutPortVeIndex OBJECT-TYPE
+             SYNTAX      CerVirtualEdgeIndexType
+             MAX-ACCESS  not-accessible
+             STATUS      current
+             DESCRIPTION
+                 "Index of Session-based VE using this virtual port number."
+             ::= { cervLookupOutPortToIfIndexEntry 1 }
+
+        cervLookupOutPortOutPort OBJECT-TYPE
+             SYNTAX      Unsigned32 (1..65535)
+             MAX-ACCESS  not-accessible
+             STATUS      current
+             DESCRIPTION
+                 "Session ERM output port number for this channel."
+             ::= { cervLookupOutPortToIfIndexEntry 2 }
+
+        cervLookupOutPortIfIndex OBJECT-TYPE
+            SYNTAX      InterfaceIndexOrZero
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The ifIndex for the QAM channel corresponding to this ERM output
+                 Port number. Zero means that this output port number is not yet assigned."
+            ::= { cervLookupOutPortToIfIndexEntry 3 }
+
+
+cervLookupConnToVirtPortTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CervLookupConnToVirtPortEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+         "This table maps the physical RF port number to the virtual RF port
+          number used in the exported session ERM configuration file."
+    ::= { cerVideoSessionMib 12 }
+
+    cervLookupConnToVirtPortEntry OBJECT-TYPE
+        SYNTAX     CervLookupConnToVirtPortEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+             "Physical RF port to ERM virtual RF port number mapping table"
+        INDEX { cervLookupConnVeIndex, cervLookupConnSlot, cervLookupConnRfPort }
+        ::= { cervLookupConnToVirtPortTable 1 }
+
+        CervLookupConnToVirtPortEntry ::= SEQUENCE {
+            cervLookupConnVeIndex      CerVirtualEdgeIndexType,
+            cervLookupConnSlot         Unsigned32,
+            cervLookupConnRfPort       Unsigned32, 
+            cervLookupConnVirtRfPort   Unsigned32
+        }
+
+        cervLookupConnVeIndex OBJECT-TYPE
+             SYNTAX      CerVirtualEdgeIndexType
+             MAX-ACCESS  not-accessible
+             STATUS      current
+             DESCRIPTION
+                 "Index of Session-based VE using this virtual port number."
+             ::= { cervLookupConnToVirtPortEntry 1 }
+
+        cervLookupConnSlot OBJECT-TYPE
+            SYNTAX      Unsigned32 (1..14)
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The DCAM slot number."
+            ::= { cervLookupConnToVirtPortEntry 2 }
+
+        cervLookupConnRfPort OBJECT-TYPE
+            SYNTAX      Unsigned32 (1..8)
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The DCAM RF port number."
+            ::= { cervLookupConnToVirtPortEntry 3 }
+
+        cervLookupConnVirtRfPort OBJECT-TYPE
+            SYNTAX      Unsigned32 (1..60)
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Session ERM virtual RF port number."
+            ::= { cervLookupConnToVirtPortEntry 4 }
+
+cervLookupIfIndexToOutPortTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CervLookupIfIndexToOutPortEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+        "This table maps the ifIndex of a QAM channel to the session ERM output port number 
+         in, for example, a create session message."
+    ::= { cerVideoSessionMib 13 }
+
+    cervLookupIfIndexToOutPortEntry OBJECT-TYPE
+        SYNTAX     CervLookupIfIndexToOutPortEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "Channel ifIndex to ERM output port number to mapping table"
+        INDEX { cervLookupIfIndexChan }
+        ::= { cervLookupIfIndexToOutPortTable 1 }
+
+        CervLookupIfIndexToOutPortEntry ::= SEQUENCE {
+            cervLookupIfIndexChan        InterfaceIndex,
+            cervLookupIfIndexVeIndex     CerVirtualEdgeIndexType,
+            cervLookupIfIndexOutPort     Unsigned32,
+            cervLookupIfIndexVirtChan    Unsigned32,
+            cervLookupIfIndexVirtRfPort  Unsigned32,
+            cervLookupIfIndexChanPerConn Unsigned32,
+            cervLookupIfIndexRowStatus   RowStatus
+        }
+
+        cervLookupIfIndexChan OBJECT-TYPE
+            SYNTAX      InterfaceIndex
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The ifIndex for the QAM channel corresponding to this ERM output
+                 Port number."
+            ::= { cervLookupIfIndexToOutPortEntry 1 }
+
+        cervLookupIfIndexVeIndex OBJECT-TYPE
+            SYNTAX      CerVirtualEdgeIndexType
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                 "Index of Session-based VE using this virtual port number."
+            ::= { cervLookupIfIndexToOutPortEntry 2 } 
+
+        cervLookupIfIndexOutPort OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..65535)
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Session ERM output port number for this channel."
+            ::= { cervLookupIfIndexToOutPortEntry 3 }
+
+        cervLookupIfIndexVirtChan OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..64)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "Session ERM virtual channel number. CVEX allows 64 channels per virtual RF port.
+                 USRM allows 36."
+            ::= { cervLookupIfIndexToOutPortEntry 4 }
+
+        cervLookupIfIndexVirtRfPort OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..60)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "Session ERM virtual RF port number. CVEX allows a total of 60 virtual RF ports.
+                 USRM allows 24 total."
+            ::= { cervLookupIfIndexToOutPortEntry 5 }
+
+        cervLookupIfIndexChanPerConn OBJECT-TYPE
+            SYNTAX      Unsigned32 (16 | 32)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "There are 16 channels per Virtual port for a vod-only ERM and 32 otherwise."
+            DEFVAL { 16 }
+            ::= { cervLookupIfIndexToOutPortEntry 6 }
+
+        cervLookupIfIndexRowStatus   OBJECT-TYPE
+           SYNTAX      RowStatus
+           MAX-ACCESS  read-create
+           STATUS      current
+           DESCRIPTION
+               "The RowStatus for controlling entries in this table. 
+                Allowed values are createAndGo, destroy, and active."
+           ::= { cervLookupIfIndexToOutPortEntry 7 }
+
+-- ---------------------------------------------------------------------------------
+-- cerVideoSessTraps
+-- ---------------------------------------------------------------------------------
+cerVideoSessTrapsInfo OBJECT IDENTIFIER ::= { cerVideoSessionMib 14 }
+
+    cerVideoSessErrorStr         OBJECT-TYPE
+        SYNTAX                   DisplayString (SIZE(0..100))
+        MAX-ACCESS               accessible-for-notify
+        STATUS                   current
+        DESCRIPTION
+            "Description of error encountered on the ERM interface. "
+        ::= {  cerVideoSessTrapsInfo 1 }
+    
+
+cerVideoSessNotifs OBJECT IDENTIFIER ::= { cerVideoSessionMib 15 }
+cerVideoSessTraps  OBJECT IDENTIFIER ::= { cerVideoSessNotifs 0 }
+
+    cerVideoSessionErmConnection   NOTIFICATION-TYPE
+        OBJECTS                  { trapCounter, trapSeverity, 
+                                   cerErmSessionErmIndex,
+                                   cerErmSessionRPCServerPort, 
+                                   cerVideoSessErrorStr}
+        STATUS                   current
+        DESCRIPTION
+            "This trap is sent when the session ERM connection fails."
+    ::= { cerVideoSessTraps 1 }
+
+    cerVideoSessionNoStart       NOTIFICATION-TYPE
+        OBJECTS                  { trapCounter, trapSeverity, 
+                                   cerErmSessionErmIndex,
+                                   cervSessionTransportId,
+                                   cervSessionTransportDestIpAddress, 
+                                   cervSessionTransportSrcIpAddress,
+                                   cervSessionTransportDestUdpPort }
+        STATUS                   current
+        DESCRIPTION
+            "This trap is sent a Session-based input stream never starts."
+    ::= { cerVideoSessTraps 2 }
+
+    cerVideoSessionStreamFail      NOTIFICATION-TYPE
+        OBJECTS                  { trapCounter, trapSeverity, 
+                                   cerErmSessionErmIndex,
+                                   cervSessionTransportId,
+                                   cervSessionTransportDestIpAddress, 
+                                   cervSessionTransportSrcIpAddress,
+                                   cervSessionTransportDestUdpPort }
+        STATUS                   current
+        DESCRIPTION
+            "This trap is sent a session-based input stream was being received has failed."
+    ::= { cerVideoSessTraps 3 }
+
+    cerVideoSessionMsgError        NOTIFICATION-TYPE
+        OBJECTS                  { trapCounter, trapSeverity, 
+                                   cerErmSessionErmIndex,
+                                   cerVideoSessErrorStr }
+        STATUS                   current
+        DESCRIPTION
+            "This trap is sent when the E6000 rejects a request from an SRM."
+    ::= { cerVideoSessTraps 4 }
+
+    cerVideoSessionMcLinkFail      NOTIFICATION-TYPE
+        OBJECTS                  { trapCounter, trapSeverity, 
+                                   ifIndex }
+        STATUS                   current
+        DESCRIPTION
+            "This trap is sent when the NSI link that was being used for multicast Joins/Leaves fails."
+    ::= { cerVideoSessTraps 5 }
+
+END

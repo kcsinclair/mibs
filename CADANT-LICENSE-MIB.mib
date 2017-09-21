@@ -1,0 +1,297 @@
+--
+-- Cadant License MIB
+--
+
+CADANT-LICENSE-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    cadLicense
+        FROM CADANT-PRODUCTS-MIB
+    OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE, Unsigned32
+        FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION, RowStatus, TruthValue
+        FROM SNMPv2-TC;
+
+cadLicenseMib MODULE-IDENTITY
+    LAST-UPDATED  "201506170000Z" -- June 17, 2015
+    ORGANIZATION
+        "ARRIS Group, Inc."
+    CONTACT-INFO
+        "Arris Technical Support
+         Phone:  +1 630 281 3000
+         E-Mail: support@arris.com"
+    DESCRIPTION
+        "Arris E6000 licensing parameters"
+
+    REVISION "201506170000Z" -- June 17, 2015
+    DESCRIPTION
+        "Change maximum value of cadLicenseSpareChannelCount from 5000 to 250000."
+
+    REVISION "201506090000Z" -- June 9, 2015
+    DESCRIPTION
+        "Add docsisDownstreamOfdm and docsisUpstreamOfdma as possible chassis
+         license types.  Rename docsisUpstream to docsisUpstream30 to better
+         delineate the docsisUpstream30 license type from the docsisUpstreamofdma
+         license type.  Update maximum cadLicenseChannelCount value to 500000.
+         Update cadLicenseChannelCount and cadLicenseSpareChannelCount
+         descriptions."
+
+    REVISION "201408200000Z" -- August 20, 2014
+    DESCRIPTION
+        "Change cadLicenseKey from 16 hex digits to 20 hex digits to accommodate
+         a version number."
+
+    REVISION "201408140000Z" -- August 14, 2014
+    DESCRIPTION
+        "Add the cadChassisLicensesApplied and cadChassisLicensesValid objects to the
+         cadChassisLicenseStatusTable."
+
+    REVISION "201407170000Z" -- July 17, 2014
+    DESCRIPTION
+        "Update MIB object names based on PSA changes."
+
+    REVISION "201407100000Z" -- July 10, 2014
+    DESCRIPTION
+        "Fix enumeration values for CadChassisLicenseIndexType."
+
+    REVISION "201406250000Z" -- June 25, 2014
+    DESCRIPTION
+        "Add chassis-based and CAM-based license objects and counts."
+    ::= { cadLicense 1 }
+
+--
+-- Chassis-based license MIBs
+--
+CadChassisLicenseIndexType ::= TEXTUAL-CONVENTION
+    STATUS    current
+    DESCRIPTION
+        "The Type of Chassis License:
+            videoNarrowcastB - Annex B QAM configured for SDV and/or VOD
+            videoReplicaNarrowcastB - QAM replication channel of a 
+            videoNarrowcastB base channel
+            videoNarrowcastA - Annex A QAM configured for SDV and/or VOD
+            videoReplicaNarrowcastA - QAM replication channel of a  videoNarrowcastA base channel
+            docsisDownstreamOfdm - 1MHz of frequency spectrum for a downstream OFDM channel"
+
+    SYNTAX INTEGER {
+        reserved(1),
+        videoNarrowcastB(2),
+        videoReplicaNarrowcastB(3), 
+        videoBroadcastB(4),
+        videoReplicaBroadcastB(5),
+        videoNarrowcastA(6),
+        videoReplicaNarrowcastA(7), 
+        videoBroadcastA(8),   
+        videoReplicaBroadcastA(9),
+        docsisUpstream30(10),
+        docsisDownstream30B(11),
+        docsisDownstream30A(12),
+        docsisDownstreamOfdm(13),
+        docsisUpstreamOfdma(14)
+    }
+
+cadChassisLicenseTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadChassisLicenseEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "This table stores licensing configuration data on a per license type basis."
+    ::= { cadLicenseMib 1 }
+
+cadChassisLicenseEntry OBJECT-TYPE
+    SYNTAX      CadChassisLicenseEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "Chassis License related data."
+    INDEX { cadLicenseIndex }
+    ::= { cadChassisLicenseTable 1 }
+    
+CadChassisLicenseEntry ::= SEQUENCE  {
+    cadLicenseIndex              CadChassisLicenseIndexType,
+    cadLicenseKey                OCTET STRING,      
+    cadLicenseChannelCount       Unsigned32,
+    cadLicenseSpareChannelCount  Unsigned32,
+    cadLicenseRowStatus          RowStatus
+}
+
+cadLicenseIndex OBJECT-TYPE
+    SYNTAX      CadChassisLicenseIndexType
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This object is the type of license."
+    ::= { cadChassisLicenseEntry 1 }
+
+cadLicenseKey OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE (20))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object indicates the 20 hex digit license key (ASCII).
+         The first 16 hex digits are the license key and the last
+         4 hex digits are the version number."
+    ::= { cadChassisLicenseEntry 2 }
+
+cadLicenseChannelCount OBJECT-TYPE
+    SYNTAX      Unsigned32(1.. 500000)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object indicates the number of licenses configured, 
+         i.e., the license level, for the license type."
+    ::= { cadChassisLicenseEntry 3 }
+
+cadLicenseSpareChannelCount OBJECT-TYPE
+    SYNTAX      Unsigned32(0.. 250000)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object indicates the number of spare licenses configured 
+         for the license type."
+    DEFVAL { 0 }
+    ::= { cadChassisLicenseEntry 4 }
+
+cadLicenseRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object is for controlling entries in this table."
+    ::= { cadChassisLicenseEntry 5 }
+
+cadChassisLicenseStatusTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadChassisLicenseStatusEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "This table stores the number of each license type requested and the number used
+         within the chassis."
+    ::= { cadLicenseMib 2 }
+
+cadChassisLicenseStatusEntry OBJECT-TYPE
+    SYNTAX      CadChassisLicenseStatusEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "Chassis license counts across all CAMs."
+    INDEX { cadChassisLicenseStatusType }
+    ::= { cadChassisLicenseStatusTable 1 }
+
+CadChassisLicenseStatusEntry ::= SEQUENCE {
+    cadChassisLicenseStatusType   CadChassisLicenseIndexType,
+    cadChassisLicensesUsed        Unsigned32,
+    cadChassisLicensesRequested   Unsigned32,
+    cadChassisLicensesApplied     Unsigned32,
+    cadChassisLicensesValid       TruthValue
+}
+
+cadChassisLicenseStatusType OBJECT-TYPE
+    SYNTAX      CadChassisLicenseIndexType
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This object is the type of license."
+    ::= { cadChassisLicenseStatusEntry 1 }
+
+cadChassisLicensesUsed OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION	
+        "This object provides a total of the licenses in use  
+         for the license type."
+    ::= { cadChassisLicenseStatusEntry 2 }
+
+cadChassisLicensesRequested OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION	
+        "This object provides a total for the number of licenses requested 
+         for the license type."
+    ::= { cadChassisLicenseStatusEntry 3 }
+
+cadChassisLicensesApplied OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "This object shows the total for the number of valid licenses
+         associated with the configured license key.  A value of 0 implies
+         the configured license is invalid."
+    ::= { cadChassisLicenseStatusEntry 4 }
+
+cadChassisLicensesValid OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Set to TRUE to indicate that the license key was properly formed and
+         was able to be successfully parsed, else set to FALSE."
+    ::= { cadChassisLicenseStatusEntry 5 }
+
+
+--
+-- CAM-based license MIBs
+--
+cerCardDataLicenseStatusTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CerCardDataLicenseStatusEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "This table stores the number of each license type requested and the number used
+         in each CAM in the chassis."
+    ::= { cadLicenseMib 3 }
+
+cerCardDataLicenseStatusEntry  OBJECT-TYPE
+    SYNTAX      CerCardDataLicenseStatusEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "Chassis and Card license usage counts."
+    INDEX { cerCardDataLicenseSlot, cerCardDataLicenseType }
+    ::= { cerCardDataLicenseStatusTable 1 }
+
+CerCardDataLicenseStatusEntry ::= SEQUENCE { 
+    cerCardDataLicenseSlot        Unsigned32, 
+    cerCardDataLicenseType        CadChassisLicenseIndexType,
+    cerCardDataLicensesUsed       Unsigned32,  
+    cerCardDataLicensesRequested  Unsigned32
+}
+
+cerCardDataLicenseSlot OBJECT-TYPE
+    SYNTAX      Unsigned32(1..6 | 9..14)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This object defines the CAM slot number."
+    ::= { cerCardDataLicenseStatusEntry 1 }
+
+cerCardDataLicenseType  OBJECT-TYPE
+    SYNTAX      CadChassisLicenseIndexType
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This object is the type of license."
+    ::= { cerCardDataLicenseStatusEntry 2 }
+
+cerCardDataLicensesUsed OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION	
+        "This object provides a total for the number of licenses in use  
+         for the license type."
+    ::= { cerCardDataLicenseStatusEntry 3 }
+
+cerCardDataLicensesRequested OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION	
+        "This object provides a total for the number licenses requested
+         for the license type."
+    ::= { cerCardDataLicenseStatusEntry 4 }
+
+END

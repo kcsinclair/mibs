@@ -1,0 +1,418 @@
+CADANT-TIME-MIB DEFINITIONS ::= BEGIN
+
+  IMPORTS
+        
+        MODULE-IDENTITY,
+        OBJECT-TYPE,
+        Unsigned32,
+        Integer32,
+        Counter32,
+        IpAddress
+                FROM SNMPv2-SMI
+        TEXTUAL-CONVENTION, DisplayString, DateAndTime, TruthValue, RowStatus
+                FROM SNMPv2-TC
+        CadDouble
+                FROM CADANT-TC
+        cadSystem
+                FROM CADANT-PRODUCTS-MIB;
+
+cadTimeMib MODULE-IDENTITY
+        LAST-UPDATED "201510190000Z"    -- October 19, 2015
+        ORGANIZATION "Arris International, Inc."
+        CONTACT-INFO "Arris Technical Support
+              Postal: ARRIS
+              Phone: +1 770 622 8530
+              E-Mail: support@arrisi.com"
+        DESCRIPTION
+            "This MIB contains objects for controlling and reporting on the various Time of Day
+             Services in the Cadant C4 CMTS. These Time of Day services include the TOD protocol,
+             the NTP protocol, and manual configuration."
+        REVISION "201510190000Z"
+        DESCRIPTION "Changed the typos in the wording of the description of cadTZAbbrev."
+        REVISION "201102070000Z"
+        DESCRIPTION "Changed the cadNtpSourceMaxPollDefault from 10 to 7 representing a change from 1024 seconds to 128 seconds."
+        REVISION "200603070000Z"
+        DESCRIPTION "Changed the size of cadNtpAuthKeyValue from exact 16 to (1..16) character long."
+        REVISION "200507260000Z"
+        DESCRIPTION "Added cadNtpAuthKeyTable. Removed cadNtpMaster objects."
+        REVISION "200309110000Z"
+        DESCRIPTION "Changed ranged objects from Unsigned32 to Integer32"
+        REVISION "200304290000Z"
+        DESCRIPTION "Promoted cadTimeMib from cadExperimental.13 to cadSystem.2"
+        REVISION "200210280000Z"
+        DESCRIPTION "Removed manycastPeer(6) value from cadNtpSourceEntryType."
+        REVISION "200210230000Z"
+        DESCRIPTION "created  and Temporarily removed all master scalar objects."
+        ::= { cadSystem 2 }
+
+--
+-- Local Clock Objects
+--
+cadClock OBJECT IDENTIFIER ::= { cadTimeMib 1 }
+
+cadTimeZone OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Canonical TZ location name or GMT offset in hours and optionally
+                 minutes. Setting this object causes the active TZ and DST rules
+                 to change in the local time of day clock."
+    DEFVAL { "GMT" } -- Greenich Mean Time
+    ::= { cadClock 1 }
+
+cadIsDST OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "If true, then cadLocalDateAndTime is in Daylight Savings Time mode.
+                 If false, then cadLocalDateAndTime is expressed in standard time."
+    DEFVAL { false }
+    ::= { cadClock 2 }
+
+cadTZAbbrev OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Current TZ abbreviation based on either the TZ rules or a GMT
+                 offset, e.g. CST, CDT, GMT+2, GMT-3:30, GMT"
+    ::= { cadClock 3 }
+
+cadLocalDateAndTime OBJECT-TYPE
+    SYNTAX      DateAndTime
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "CMTS local date and time displayed as 
+                 yyyy-mm-dd,hh:mm:ss.d,+/-hh:mm, where the date is yyyy-mmmm-dd and 
+                 time in deci-seconds is hh:mm:ss.d, adn teh current offset from 
+                 GMT is +/-hh:mm. This object is adjusted by teh TZ and DST rules.
+                 E.g. 2002-5-26,13;30:15.0,-4:0"
+    ::= { cadClock 4 }
+
+cadLocalTime OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "CMTS local date and time displayed as a 32-bit number of
+                 seconds since teh epoch Jan. 1, 1970. This object is adjusted
+                 by the current TZ and DST rules."
+    ::= { cadClock 5 }
+
+cadUTCtime OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "UTC (GMT) time mainted by the CMTS local time of day clock
+                 represented as a 32-bit number of seconds since the epoch
+                 Jan. 1, 1970. If NetTimeSyncProto is TOD(1) or NTP(2) then this
+                 value is maintained by the network time sync protocol and
+                 any attempt to change this object is ignored. If NetTimeSyncProto
+                 is None(0), then the local time of day clock may be set manually
+                 via this object."
+    ::= { cadClock 6 }
+
+cadNetTimeSyncProto OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    none (0),
+                    tod (1),
+                    ntp (2)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Active network time synchronization protocol to be used by this
+                 managed device."
+    DEFVAL       { none }
+    ::= { cadClock 7 }
+
+--
+-- TOD Protocol Configuration Objects
+--
+cadTod OBJECT IDENTIFIER ::= { cadTimeMib 2 }
+
+cadTodServerIpAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "If cadNetTimeSyncProto is tod(1), then this object is used as
+                 to provide the IPv4 address of the network TOD server."
+    DEFVAL      { '00000000'h }
+    ::= { cadTod 1 }
+
+cadTodServerConnType OBJECT-TYPE
+    SYNTAX      INTEGER {
+                  tcp (1),
+                  udp (2)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "If cadNetTimeSyncProto is tod(1), then this object is used as
+                 to provide the connection type for communitcating with the
+                 server specified in cadTodServerIpAddress."
+    DEFVAL      { udp }
+    ::= { cadTod 2 }
+
+--
+-- NTP Objects
+--
+cadNtp OBJECT IDENTIFIER ::= { cadTimeMib 3 }
+
+cadNtpVersionDefault OBJECT-TYPE
+    SYNTAX      Integer32 (2..4)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Default NTP version used when sending messages to NTP
+                 clients, servers, or peers."
+    DEFVAL      { 4 } -- NPTv4
+    ::= { cadNtp 1 }
+
+cadNtpAuthenticate OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "If set to true(1), then all NTP operations will require
+                 authentication keys. Otherwise, if false(2), then NTP
+                 authentication is not required."
+    DEFVAL      { false } -- no authentication
+    ::= { cadNtp 2 }
+
+cadNtpClockDrift OBJECT-TYPE
+    SYNTAX      CadDouble
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The latest SCM local clock drift value. This value is
+                 used when restarting the NTP daemon process."
+    ::= { cadNtp 3 }
+
+--
+-- NTP Server and Peer Configuration Scalar Objects
+--
+cadNtpSource OBJECT IDENTIFIER ::= { cadNtp 10 }
+
+cadNtpSourceMinPollDefault OBJECT-TYPE
+    SYNTAX      Integer32 (4..11)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Default minimum polling interval for NTP clients and
+                 peers. This object is expressed is powers of 2 seconds
+                 in the range of 4 through 11, for an effective minimum
+                 polling interval of between 16 and 2048 seconds. This
+                 object may not be set to a value greater than
+                 cadNtpSourceMaxPollDefault. The value in this object is
+                 ignored if cadNtpSourceMinPoll is non-zero."
+    DEFVAL      { 6 } -- 64 seconds
+    ::= { cadNtpSource 1 }
+
+cadNtpSourceMaxPollDefault OBJECT-TYPE
+    SYNTAX      Integer32 (4..11)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Default maximum polling interval for NTP clients and
+                 peers. This object is expressed is powers of 2 seconds
+                 in the range of 4 through 11, for an effective minimum
+                 polling interval of between 16 and 2048 seconds. This
+                 object may not be set to a value less than
+                 cadNtpSourceMinPollDefault. The value in this object is
+                 ignored if cadNtpSourceMaxPoll is non-zero."
+    DEFVAL      { 7 } -- 128 seconds, or approximately 2 minutes
+    ::= { cadNtpSource 2 }
+
+--
+-- NTP Server and Peer Configuration Table
+--
+cadNtpSourceTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadNtpSourceEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Configuration and display table for NTP servers and/or peers."
+    ::= { cadNtpSource 10 }
+
+cadNtpSourceEntry OBJECT-TYPE
+    SYNTAX      CadNtpSourceEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Each entry represents an association this device has with
+                 an NTP server or peer."
+    INDEX       { cadNtpSourceIpAddress }
+    ::= { cadNtpSourceTable 1 }
+
+CadNtpSourceEntry ::= SEQUENCE {
+    cadNtpSourceIpAddress    IpAddress, -- IPv4 address
+    cadNtpSourceType         INTEGER,
+    cadNtpSourceBurstEnabled TruthValue,
+    cadNtpSourcePreferred    TruthValue,
+    cadNtpSourceAuthKeyId    Unsigned32,
+    cadNtpSourceMinPoll      Integer32,
+    cadNtpSourceMaxPoll      Integer32,
+    cadNtpSourceVersion      Integer32,
+    cadNtpSourceTtl          Integer32,
+    cadNtpSourceRowStatus    RowStatus
+}
+
+cadNtpSourceIpAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "The IPv4 address associated with this NTP server or peer."
+    ::= { cadNtpSourceEntry 1 }
+
+cadNtpSourceType OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    unicastServer (1),
+                    broadcastServer (2),
+                    multicastServer (3),
+                    manycastServer (4),
+                    unicastPeer (5),
+                    manycastPeer (6)
+                }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "This table may only contain entries of one type.
+                 Attempts to create additional rows which have a
+                 cadNtpSourceType different from the other rows will
+                 fail."
+    DEFVAL { unicastServer } -- the most likely type of NTP source for the C4 CMTS
+    ::= { cadNtpSourceEntry 2 }
+
+cadNtpSourceBurstEnabled OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "If set to true(1), then burst mode is enabled. If
+                 set to false(2), then burst mode is disabled."
+    DEFVAL      { false } -- burst mode disabled
+    ::= { cadNtpSourceEntry 3 }
+
+cadNtpSourcePreferred OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "If set to true(1), then this NTP server or peer entry
+                 is a preferred server or peer and will be considered
+                 before other non-preferred servers or peers, even if those
+                 other servers or peers have a better/lower Stratum value."
+    DEFVAL      { false } -- not preferred
+    ::= { cadNtpSourceEntry 4 }
+
+cadNtpSourceAuthKeyId OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "The id-id of the MD5 authentication key-string as
+                 stored in the cadNtpAuthKeyTable. A value of 0 for
+                 this object denotes that no authentication is to
+                 be used for communication."
+    DEFVAL      { 0 } -- no authentication
+    ::= { cadNtpSourceEntry 5 }
+
+cadNtpSourceMinPoll OBJECT-TYPE
+    SYNTAX      Integer32 (0|4..11)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "If non-zero, this will override cadNtpMinPoll. See
+                 the DESCRIPTION of cadNtpMinPoll for more details."
+    DEFVAL      { 0 } -- do not override cadNtpMinPoll
+    ::= { cadNtpSourceEntry 6 }
+
+cadNtpSourceMaxPoll OBJECT-TYPE
+    SYNTAX      Integer32 (0|4..11)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "If non-zero, this will override cadNtpMaxPoll. See
+                 the DESCRIPTION of cadNtpMaxPoll for more details."
+    DEFVAL      { 0 } -- do not override cadNtpMaxPoll
+    ::= { cadNtpSourceEntry 7 }
+
+cadNtpSourceVersion OBJECT-TYPE
+    SYNTAX      Integer32 (0|2..4)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "The version of NTP used when sending messages
+                 to this server or peer. Setting this to 2, 3, or 4 will
+                 override the cadNtpVersion default value. Setting
+                 this object to 0 will cause the value in cadNtpVersion
+                 to be used for this server or peer."
+    DEFVAL      { 0 } -- do not override cadNtpVersion
+    ::= { cadNtpSourceEntry 8 }
+
+cadNtpSourceTtl OBJECT-TYPE
+    SYNTAX      Integer32 (1..255)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "The Time-To-Live (TTL) value used in the IP header
+                 when trying to locate nearby members of its manycast
+                 group. This object is only applicable for rows which
+                 have a cadNtpSourceType value of either manycastServer(4)
+                 or manycastPeer(6)."
+    DEFVAL      { 5 }
+    ::= { cadNtpSourceEntry 9 }
+
+cadNtpSourceRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "Control object for this row. The only values supported
+                 by the C4 CMTS are active(1), createAndGo(4), and destroy(6).
+                 Setting this object to createAndGo(4) will cause the row
+                 to be created. Reading this object should always return
+                 active(1). Setting this object to destroy(6) will remove
+                 the row from the C4 CMTS."
+    DEFVAL      { createAndGo }
+    ::= { cadNtpSourceEntry 10 }
+
+--
+-- NTP Authentication Key Table
+--
+cadNtpAuthKeyTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadNtpAuthKeyEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Table for provisioning NTP authentication keys"
+    ::= { cadNtp 30 }
+
+cadNtpAuthKeyEntry OBJECT-TYPE
+    SYNTAX      CadNtpAuthKeyEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Each entry represents an NTP authentication key."
+    INDEX       { cadNtpAuthKeyId }
+    ::= { cadNtpAuthKeyTable 1 }
+
+CadNtpAuthKeyEntry ::= SEQUENCE {
+    cadNtpAuthKeyId          Unsigned32,
+    cadNtpAuthKeyType        INTEGER, 
+    cadNtpAuthKeyValue       DisplayString,
+    cadNtpAuthKeyRowStatus   RowStatus
+}
+
+cadNtpAuthKeyId OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..65534)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "The ID of this NTP authentication key"
+    ::= { cadNtpAuthKeyEntry 1 }
+
+cadNtpAuthKeyType OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    md5(1)
+                }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "The type of key this row represents. Future versions
+                 may support more authentication algorithms than MD5."
+    DEFVAL { md5 }
+    ::= { cadNtpAuthKeyEntry 2 }
+
+cadNtpAuthKeyValue OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (1..16)) 
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "The ASCII value of this key"
+    ::= { cadNtpAuthKeyEntry 3 }
+
+cadNtpAuthKeyRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "Control object for this row"
+    DEFVAL { createAndGo }
+    ::= { cadNtpAuthKeyEntry 4 }
+END

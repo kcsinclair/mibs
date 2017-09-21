@@ -1,0 +1,755 @@
+-- ============================================================================
+-- Copyright (C) 2012 by HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description: This MIB object provides functions of active/standby switchover, 
+--              data saving and duplication, and query of data synchronization   
+--              status between the active and standby control boards. 
+-- Reference:  
+-- Version: V3.27
+-- ============================================================================
+    HUAWEI-SWITCHOVER-MIB DEFINITIONS ::= BEGIN
+ 
+        IMPORTS
+            hwFrameIndex, hwSlotIndex           
+                FROM HUAWEI-DEVICE-MIB
+            huaweiUtility           
+                FROM HUAWEI-MIB 
+             --FROM RFC1155-SMI     
+            TimeTicks,Unsigned32,Integer32,OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE          
+                FROM SNMPv2-SMI;
+        
+        hwSwitchOver MODULE-IDENTITY 
+            LAST-UPDATED "201202100000Z"
+            ORGANIZATION "Huawei Technologies Co.,Ltd."
+            CONTACT-INFO                                        
+                         "Huawei Industrial Base                
+                          Bantian, Longgang                     
+                          Shenzhen 518129                       
+                          People's Republic of China            
+                          Website: http://www.huawei.com        
+                          Email: support@huawei.com             
+                         "                                      
+            DESCRIPTION                        
+              "This MIB object provides functions of active/standby switchover, 
+               data saving and duplication, and query of data synchronization   
+               status between the active and standby control boards.
+              "   
+--  Revision history
+            REVISION    "201206140000Z"
+            DESCRIPTION "V3.27, 1. Modified the description of hwTrapSaveResult and the index of hwSaveConfigCompleteTrap."
+
+            REVISION    "201202100000Z"
+            DESCRIPTION "V3.26, 1. Modified the description of hwSaveRequestID."
+
+            REVISION    "201011090000Z"
+            DESCRIPTION "V3.25, The description of this MIB is modified according to the tool."
+
+            REVISION    "201010080000Z"
+            DESCRIPTION "V3.24, 1.the status of hwRollBackOper was changed to current.
+                         2. Values rollback(1) was changed to rollback(2).
+                         3. Values active(1) was added for hwRollBackOper."
+
+            REVISION    "201008250000Z"
+            DESCRIPTION "V3.23, modified the contact-info and the revision history."
+
+            REVISION    "201006130000Z"
+            DESCRIPTION "V3.22, 1. the MIB description was modified. The objects hwRollBackOper and hwCloneRequestID were abandoned.                               
+                         2. The name of hwInLossUpgradeTrap was changed to hwInUpgradeTrap."                                
+              
+            REVISION    "201004140000Z"
+            DESCRIPTION "V3.21, DT requirements were implemented and the syntax and semantics of SIMPLETEST were changed."                                
+        
+            REVISION    "201002250000Z"
+            DESCRIPTION "V3.20, hwhwSoftVersionInconsistentTrap in the MIB file was changed to hwSoftVersionInconsistentTrap."
+              
+            REVISION    "201002030000Z"
+            DESCRIPTION "V3.19, DT requirements were implemented. 
+                         Certain added or modified MIB nodes supported the status-enumerated value of the get operation."
+        
+            REVISION    "201001290000Z"
+            DESCRIPTION "V3.18, the system supported the definitions of standard trap nodes 
+                         and associated trap parameter nodes."    
+                        
+            REVISION    "201001260000Z"
+            DESCRIPTION "V3.17, used SimpleTest clean warning and error.
+                         Used MIB browser clean warning and error. Added MIB description." 
+               
+            REVISION    "200910120000Z"
+            DESCRIPTION "V3.16, modified the minimal value of the hwAutoSavecfgChangedtimer."
+            
+            REVISION    "200909140000Z"
+            DESCRIPTION "V3.15, added an object (hwSystemDataState)."
+            
+            REVISION    "200904210000Z"
+            DESCRIPTION "V3.14, added the description of certain objects."
+            
+            REVISION    "200701220000Z"
+            DESCRIPTION "V3.04, normalized MIB."
+            
+            REVISION    "200611240000Z"
+            DESCRIPTION "V3.03, added a leaf object to record ID of current saving operation."
+            
+            REVISION    "200611070000Z"
+            DESCRIPTION "V3.02, added an object of the active/standby switchover function."
+        
+            REVISION    "200607310000Z"
+            DESCRIPTION "V3.01, added four leaf objects including autosaving function."
+            
+            REVISION    "200304280000Z"
+            DESCRIPTION "V1.00, submitted interface specifications." 
+            ::= { huaweiUtility 22 }
+            
+--
+-- Type definitions
+--  
+        --Time ::= OCTET STRING         
+--
+-- Node definitions
+--
+    
+        switchoverMibObject OBJECT IDENTIFIER ::= { hwSwitchOver 1 }
+        
+        hwDataswitchover OBJECT IDENTIFIER ::= { switchoverMibObject 1 }
+        
+        hwQrydatasyncondition OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+             synccompleteness(1), 
+             flashsyncincompleteness(2),   
+             configbasicdatasyncincompleteness(3),  
+             syncswitchoff(4),  
+             peerboardfailure(5),
+             dynamicdatasyncincompleteness(6),
+             patchinconsistent(7),  
+             patchinconsistentdynamicdatasyncincompleteness(8)
+            }
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+         "The query of the status of data synchronization between 
+          the active and standby control boards. Data synchronization
+          between the active and standby control boards refers to 
+          that when the active and standby control boards work normally. 
+          The data on the standby control board is synchronized with 
+          that on the active control board.The data synchronization 
+          between the active and standby boards has the following status:
+          Options:          
+          1. synccompleteness(1)
+             -indicates that synchronization complete.
+          2. flashsyncincompleteness(2) 
+             -indicates that operation (loading/backuping/ duplicating/saving/...) is being performed.
+          3. configbasicdatasyncincompleteness(3) 
+             -indicates that configuration data or basic operation data synchronized incompletely.
+          4. syncswitchoff(4) 
+             -indicates that the synchronization switch off.
+          5. peerboardfailure(5)
+             -indicates that the standby board doesn't exist or fail.
+          6. dynamicdatasyncincompleteness(6)
+             -indicates that dynamic service data synchronization is incomplete.
+          7. patchinconsistent(7)
+             -indicates that patch files of active board and standby board are inconsistent.
+          8. patchinconsistentdynamicdatasyncincompleteness(8)
+             -indicates that patch files of active board and standby board are inconsistent and 
+             dynamic service data synchronization is incomplete.               
+         "
+        ::= { hwDataswitchover 1 }
+        
+        
+        hwswitchoverAdminStatus OBJECT-TYPE
+        SYNTAX INTEGER 
+            { 
+             nooperation(-1), 
+             switch(1)                  
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "           
+            Manual active/standby switchover. Active/standby switchover 
+            refers to the process that the standby control board works 
+            as the active control board when the active control board 
+            is faulty or reset, or when the switchover command is issued 
+            manually. If the hwSwitchOverStatus value of the 
+            hwSwitchOverControl object in the table is off(2), 
+            it indicates that the switchover in the system is disabled. 
+            In this case, the manual active/standby switchover cannot be 
+            performed.It is advised to query the value of hwQrydatasyncondition 
+            before setting this value. If the returned value of 
+            hwQrydatasyncondition is synccompleteness(1), the operation is reasonable.
+            This command will take no effect when the values of 
+            hwAutoswitchoverSwitchStatus, hwAutoswitchoverTime,
+            hwAutoswitchoverCycle and hwDayNo are set at the same time,
+            and their original values will remain unchanged. 
+            Options:
+            1. nooperation(-1) -No operation. 
+            2. switch(1)       -Active/standby switchover. 
+            "
+        ::= { hwDataswitchover 2 }
+        
+        
+        hwDataSYNSWStatus OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+             on(1),
+             off(2),
+             abnormal(3)                  
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "The switch of data synchronization. This object is not supported currently.
+          Options:
+          1. on(1)       -The switch of data synchronization is on.
+          2. off(2)      -The switch of data synchronization is off.
+          3. abnormal(3) -System abnormity, switch is on but can't synchronize data 
+                          and does not support setting.
+         "
+        ::= { hwDataswitchover 3 }
+        
+        hwDataSave OBJECT IDENTIFIER ::= { switchoverMibObject 2 }
+        
+        hwAutoSaveSwitch OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+             on(1),
+             off(2)
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "The switch of automatic data saving.
+          Options:
+          1. on(1)  -indicates that the automatic data saving is enabled. 
+                     The system saves the data and configuration files periodically at the specified time.
+          2. off(2) -indicates that the automatic data saving is disabled. 
+                     The system does not save the data and configuration files. 
+          DEFVAL { off }
+         "
+        ::= { hwDataSave 1 }
+        
+        
+        hwAutoSaveCycle OBJECT-TYPE
+        SYNTAX TimeTicks
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "The period of automatic data saving. The period is in the unit of 10 ms,
+          with a value range of 60000-60480000 (10 minutes to one week).                
+          If the data saving is enabled, the default value of this object is 360000 (one hour),  
+          which indicates that the data saving is performed automatically once an hour. 
+          Default: 360000           
+         "
+        ::= { hwDataSave 2 }                                        
+
+                
+        hwImmediateSave OBJECT-TYPE
+        SYNTAX INTEGER 
+            { 
+             saveDBBDRN(1),
+             notInSave(2)                   
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "It is the object for saving the data and the configuration file. 
+          Options:
+          1. saveDBBDRN(1) -indicates that the data and the configuration file are saved
+                            at the same time.
+          2. notInSave(2)  -indicates that the operation of saving the data and 
+                            the configuration file at the same time is not being performed.
+         "
+        ::= { hwDataSave 3 }
+            
+        hwAutoSaveTimeSwitch OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+             on(1),
+             off(2)
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "The switch of automatic data saving at the absolute time.
+          Options:
+          1. on(1)  -indicates that the automatic data saving at the absolute time is enabled. 
+                     That is, the data is saved automatically at the absolute time.
+          2. off(2) -indicates that the automatic data saving at the absolute time is disabled. 
+                     That is, the data is not saved automatically at the absolute time. 
+          Default { off }
+         "
+        ::= { hwDataSave 4 }
+            
+        hwAutoSaveTime OBJECT-TYPE
+        SYNTAX TimeTicks
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "The time of automatic data saving. This value can be converted into the hexadecimal 
+          number 0x00hhmmss (hh representing hour, mm representing minute, 
+          and ss representing second), and then can be converted into the value of 
+          the object through a decimal conversion. If the time of automatic data saving 
+          needs to be set to 22:30:00 the corresponding value is 0x00161E00=1449472, 
+          with 1449472 being the set value.
+          DEFVAL { 0 }
+         "
+        ::= { hwDataSave 5 }    
+        
+        hwSaveData OBJECT-TYPE
+        SYNTAX INTEGER 
+            { 
+             nosavedata(-1),
+             savedata(1)                    
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "Immediate saving of the database. Only database is saved through the operation
+          on this object.   
+          Options:
+          1. nosavedata(-1) -No database saving is performed in the system.
+          2. savedata(1)    -The command for saving the database is being issued or the database is being saved.
+         "
+        ::= { hwDataSave 6 }
+            
+        hwSaveConfiguration OBJECT-TYPE
+        SYNTAX INTEGER 
+            { 
+             saveconfiguration(1),
+             notInsaveconfiguration(2)                  
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "It is the object for saving the configuration file. 
+          Options:
+          1. saveconfiguration(1)      -indicates that only the configuration file is saved, 
+                                        the data is not saved. 
+          2. notInsaveconfiguration(2) -indicates that the operation of saving only the 
+                                        configuration file is not being performed. 
+         "
+        ::= { hwDataSave 7 }
+            
+        hwSaveRequestID OBJECT-TYPE
+        SYNTAX Integer32
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "The saving of the operation request ID. The request ID is 
+          used for identifying each saving operation. 
+          It must be unique, and cannot be issued separately.
+          The operation request ID is used for loading the 
+          reliability table and querying whether each saving operation is successful.   
+          The hwSaveRequestID value of -1 indicates there is no saving operation.
+         "
+        ::= { hwDataSave 8 }            
+
+        hwActiveConfiguration OBJECT-TYPE
+        SYNTAX INTEGER 
+            { 
+             noactiveConfiguration(-1), 
+             activeConfiguration(1),
+             activeStandbyConfiguration(2)                  
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "The activation of the configuration files. 
+          Options:
+          1. noactiveConfiguration(-1)     -indicates that the configuration files are not activated.
+          2. activeConfiguration(1)        -indicates the activation of the configuration files of the active control board.
+                                            The activation of the configuration files of the control board causes the system 
+                                            to reset; therefore, it is recommended that you perform the object hwImmediateSave 
+                                            before performing this object to save the data and configuration files. 
+          3. activeStandbyConfiguration(2) -indicates the activation of the configuration files of 
+                                            the standby control board. The activation of the configuration files of the 
+                                            standby control board causes the standby control board to reset.                
+        "
+        ::= { hwDataSave 9 }
+        
+        hwActiveConfigurationResult OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+             partialFailure(1),
+             success(2)
+            }
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+         "The result of Configuration Actived.
+          Options:
+          1. partialFailure(1) -indicates that activating the configuration files 
+                                of the active control board fails.
+          2. success(2)        -indicates that activating the configuration files of 
+                                the active control board is successful.
+          Default { success }           
+         "
+        ::= { hwDataSave 10 }
+
+        hwAutoSaveCfgChangedtimer OBJECT-TYPE
+        SYNTAX TimeTicks
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "The time of saving configuration files automatically. 
+          The time is in the unit of 10 ms,with a value range of 
+          12000-8640000 (two minutes to one day). If the value of
+          the object hwAutoSaveType is configuration(2), it is 
+          180000 (30 minutes) by default, which indicates that the 
+          configuration files are saved automatically each 30 minutes.
+          Default: 180000
+         "
+        ::= { hwDataSave 11 }
+
+        hwAutoSaveType OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+             database(1),
+             configuration(2),
+             all(3)
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "The type of automatic saving. 
+          Options:
+          1. database(1)      -indicates the saving of only the database. 
+          2. configuration(2) -indicates the saving of only the configuration files. 
+          3. all(3)           -indicates the saving of both database and configuration files.
+          Default { database } 
+        "
+        ::= { hwDataSave 12 }   
+            
+        hwEraseData OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+             active(1),
+             standby(2),
+             all(3),
+             noEraseData(4)
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION 
+         "The erasing of the database. If the configuration data of the active or 
+          standby control board needs to be erased, the database requires to be 
+          erased. After the database is erased, the associated active or standby 
+          control board needs to be reset to make the erasing of the database take effect.
+          Options:
+          1. active(1)      -indicates the erasing of only the database of the active control board. 
+          2. standby(2)     -indicates the erasing of only the database of the standby control board. 
+          3. all(3)         -indicates the erasing of both databases of the active and standby control boards.
+          4. noEraseData(4) -indicates that the operation of erasing the database is not being performed. 
+         "
+        ::= { hwDataSave 13 }
+    
+        hwRollBack OBJECT IDENTIFIER ::= { switchoverMibObject 3 }
+        
+        hwRollBackOper OBJECT-TYPE
+        SYNTAX INTEGER 
+            { 
+             initial(1),
+             rollback(2)
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "This object is used to roll back the system.
+          Options:
+          1. initial(1)       -Indicates the initial value.
+          2. rollback(2)      -Indicates the system is to be rolled back.
+         "
+        ::= { hwRollBack 1 }
+        
+        
+        hwDuplicate OBJECT IDENTIFIER ::= { switchoverMibObject 4 }
+        
+        hwSynDataAdminStatus OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+             program(1),
+             data(2),
+             resLocal(3),
+             resGeneral(4),
+             configuration(5),
+             packetfile(6),
+             nosyscontent(255)              
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "Duplication of the host programs, databases, multi-lingual files, 
+          configuration files, and package files from the active control 
+          board to the standby control board.   
+          Options:
+          1. program(1)        -indicates the duplication of the host programs.
+          2. data(2)           -indicates the duplication of the databases.
+          3. resLocal(3)       -indicates the duplication of local multi-lingual files.
+          4. resGeneral(4)     -indicates the duplication of universal multi-lingual files.
+          5. configuration(5)  -indicates the duplication of configuration files.
+          6. packetfile(6)     -indicates the duplication of package files.
+          7. nosyscontent(255) -indicates that no file is duplicated.           
+         "
+        ::= { hwDuplicate 1 }
+            
+        hwDuplicateProcess OBJECT-TYPE
+        SYNTAX Integer32 (0..100)
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+         "The process of duplication. 
+         Range: 0-100
+         "
+        ::= { hwDuplicate 2 }    
+                                               
+        hwCloneRequestID OBJECT-TYPE
+        SYNTAX Integer32
+        MAX-ACCESS read-write
+        STATUS obsolete
+        DESCRIPTION
+         "The request ID for operation information table. 
+          This object is not supported currently. 
+         "
+        ::= { hwDuplicate 3 }
+
+        -- 1.3.6.1.4.1.2011.6.22.1.5
+        hwDataChange OBJECT IDENTIFIER ::= { switchoverMibObject 5 }
+        
+        -- 1.3.6.1.4.1.2011.6.22.1.5.1
+        hwSystemDataChange OBJECT-TYPE
+        SYNTAX Unsigned32
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+         "Querying whether the system configuration (database and configuration files) 
+          changes. For the value of this object, 0 indicates that the system configuration 
+          does not change, and other values indicate that the system configuration changes.
+          When the system is just started and the system configuration does not change, 
+          the initial value of this object is 0. Each time the host configuration changes, 
+          the value of this object increases by 1 continuously. If the system is reset, 
+          the value turns to 0 again.               
+         "
+        ::= { hwDataChange 1 }
+        
+        -- 1.3.6.1.4.1.2011.6.22.1.5.2
+        hwSystemDataState OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+             blank(1),
+             modified(2)
+            }
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+         "Querying whether the current database is null. A null database refers to the database 
+          with no configuration data.
+          Options:
+          1. blank(1)    -indicates that the database is null.
+          2. modified(2) -indicates that the database is not null.              
+          Default { blank }
+          "
+        ::= { hwDataChange 2 }
+
+        hwSwitchOverTraps OBJECT IDENTIFIER ::= { hwSwitchOver 2 }
+        
+        
+        hwSwitchOverTrapsOids OBJECT IDENTIFIER ::= { hwSwitchOverTraps 1 }             
+        
+        hwConfigSN OBJECT-TYPE
+        SYNTAX Integer32
+        MAX-ACCESS accessible-for-notify
+        STATUS current
+        DESCRIPTION
+         "The count of saving the system configurations.
+         "
+        ::= { hwSwitchOverTrapsOids 1 }
+            
+        hwSynSchedulguage OBJECT-TYPE
+        SYNTAX Integer32
+        MAX-ACCESS accessible-for-notify
+        STATUS current
+        DESCRIPTION
+         "Progress of the synchronization between the active and standby control boards.
+          Range: 0-100
+         "
+        ::= { hwSwitchOverTrapsOids 2 }
+
+        hwTrapSaveResult OBJECT-TYPE
+        SYNTAX Integer32
+        MAX-ACCESS accessible-for-notify
+        STATUS current
+        DESCRIPTION
+         "Result of the data saving. 
+          The returned value 0 indicates that the data is saved successfully. 
+          The returned value 1 indicates that the data saving fails.
+         "
+        ::= { hwSwitchOverTrapsOids 3 }
+        
+        hwSwitchOverCommonTraps OBJECT IDENTIFIER ::= { hwSwitchOverTraps 2 }
+        hwSwitchOverCommonTrapsPrefix OBJECT IDENTIFIER ::= { hwSwitchOverCommonTraps 0 }
+        hwSysCfgChangedTrap NOTIFICATION-TYPE
+        OBJECTS { hwConfigSN }
+        STATUS current
+        DESCRIPTION 
+         "This trap message is reported when the system database is being saved.
+         "
+        ::= { hwSwitchOverCommonTrapsPrefix 1 }
+            
+        hwSynScheduleTrap   NOTIFICATION-TYPE   
+        OBJECTS {hwFrameIndex, hwSlotIndex,  hwSynSchedulguage }                     
+        STATUS current
+        DESCRIPTION
+        "This trap message, indicating the synchronization progress, is reported during the data synchronization 
+        between the active and standby control boards.
+        "
+        ::= { hwSwitchOverCommonTrapsPrefix 2 }                                 
+                    
+        hwSaveConfigStartTrap   NOTIFICATION-TYPE   
+        OBJECTS { hwFrameIndex, hwSlotIndex}            
+        STATUS current
+        DESCRIPTION
+         "This trap is reported when configuration file starts to be saved.
+         "
+        ::= { hwSwitchOverCommonTrapsPrefix 3 }
+            
+        hwSaveConfigCompleteTrap   NOTIFICATION-TYPE
+        OBJECTS { hwFrameIndex, hwSlotIndex, hwTrapSaveResult }				
+        STATUS current
+        DESCRIPTION
+         "This trap is reported when configuration file is saved completely.
+         "                      
+        ::= { hwSwitchOverCommonTrapsPrefix 4 }
+        
+        hwSwitchOverAlarmTraps OBJECT IDENTIFIER ::= { hwSwitchOverTraps 3 }
+        hwSwitchOverAlarmTrapsPrefix OBJECT IDENTIFIER ::= { hwSwitchOverAlarmTraps 0 }
+        hwSwitchoverTrap NOTIFICATION-TYPE
+        OBJECTS { hwFrameIndex, hwSlotIndex, hwSlotIndex }      
+        STATUS current
+        DESCRIPTION 
+         "This trap is reported when the switchover occurs between the active and standby boards.
+         "
+        ::= { hwSwitchOverAlarmTrapsPrefix 1 }
+    
+        hwBatchBackupStartTrap NOTIFICATION-TYPE
+        STATUS current
+        DESCRIPTION 
+         "This trap is reported when the system batch hot backup starts.
+         "
+        ::= { hwSwitchOverAlarmTrapsPrefix 2 }
+
+        hwBatchBackupCompleteTrap NOTIFICATION-TYPE
+        STATUS current
+        DESCRIPTION 
+         "This trap is reported when the system batch hot backup is complete.
+         "
+        ::= { hwSwitchOverAlarmTrapsPrefix 3 }
+        
+        hwInUpgradeTrap NOTIFICATION-TYPE
+        STATUS current
+        DESCRIPTION 
+         "This trap is reported when the system enters the in-service upgrade scenario.   
+         "
+        ::= { hwSwitchOverAlarmTrapsPrefix 4 }
+            
+        hwSoftVersionInconsistentTrap NOTIFICATION-TYPE
+        STATUS current
+        DESCRIPTION 
+         "This trap is reported when software versions of active and standby boards are inconsistent.
+         "
+        ::= { hwSwitchOverAlarmTrapsPrefix 5 }      
+        
+        hwSwitchOverControl OBJECT IDENTIFIER ::= { hwSwitchOver 3 }
+        
+        hwSwitchOverStatus OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+             on(1),
+             off(2)
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "The switch of the active/standby switchover.
+          Options:
+          1. on(1)  -indicates that the active/standby switchover is enabled.
+          2. off(2) -indicates that the active/standby switchover is disabled. 
+          If the active/standby switchover is disabled, the system cannot 
+          perform data synchronization between the active and standby control 
+          boards, manual active/standby switchover, 
+          and automatic active/standby switchover.  
+          Default:on(1)         
+         "
+        ::= { hwSwitchOverControl 1 }
+        
+        hwSwitchOverPeriod OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+             day(1),
+             week(2),
+             month(3)
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "The period of the active/standby switchover. 
+          Options:
+          1. day(1)   -indicates that the switchover is performed once a day.
+          2. week(2)  -indicates that the switchover is performed once a week. 
+          3. month(3) -indicates that the switchover is performed once a month. 
+          Default { day }
+         "
+        ::= { hwSwitchOverControl 2 }
+        
+        hwSwitchOverInverseDayNo OBJECT-TYPE
+        SYNTAX Integer32 (1..31)
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "Days since the periodic switchover has been started. Its value 
+          range depends on the value of object hwSwitchOverPeriod.
+          When hwSwitchOverPeriod is set to day(1), the default value of this object is 1;
+          When hwSwitchOverPeriod is set to week(2), the value range of this object is 1-7
+          When hwSwitchOverPeriod is set to month(3), the value range of this object is 1-31.
+          Default:1.
+         "
+        ::= { hwSwitchOverControl 3 }
+        
+        hwSwitchOverTime OBJECT-TYPE
+        SYNTAX OCTET STRING
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "Time when switchover will happen. Time is set by a string in the format of hh:mm:ss.
+          The value range of hh is from 00 to 23. The value range of mm is from 00 to 59. 
+          The value range of ss is from 00 to 59.
+          Default:03:00:00
+         "
+        ::= { hwSwitchOverControl 4 }
+            
+        hwAutoSwitchOverStatus OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+             on(1),
+             off(2)
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "Status of auto switchover function. If the value of switchover switch hwSwitchOverStatus
+          is off(2), the system cannot perform the active/standby switchover. 
+          Options:
+          1.on(1)   -indicates that the automatic switchover is enabled. In this case,
+                     if the values of the hwSwitchOverPeriod, hwSwitchOverInverseDayNo, 
+                     and hwSwitchOverTime are set, the system performs the automatic switchover periodically; 
+                     if the values of the hwSwitchOverPeriod, hwSwitchOverInverseDayNo, and hwSwitchOverTime 
+                     are not set or only partially set, the objects that are not set with values use the default 
+                     value, and the system also performs the automatic switchover periodically.
+          2.off(2)  -indicates that the automatic switchover is disabled. If this object is not set with a value,
+                     the system does not perform the automatic switchover. 
+          Default { off }           
+         "
+        ::= { hwSwitchOverControl 5 }           
+
+    END
+
+
+
+

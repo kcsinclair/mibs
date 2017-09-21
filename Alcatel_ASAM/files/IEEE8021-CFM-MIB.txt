@@ -1,0 +1,3121 @@
+-- orig IEEE8021_CFM_MIB
+
+IEEE8021-CFM-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    InterfaceIndex, InterfaceIndexOrZero
+        FROM ITF-MIB
+    VlanId, VlanIndex 
+        FROM Q-BRIDGE-MIB
+    OBJECT-TYPE
+        FROM RFC-1212
+    TRAP-TYPE
+        FROM RFC-1215
+    Counter, Gauge
+        FROM RFC1155-SMI
+    MacAddress, RowStatus, TAddress, TDomain, TimeInterval, TimeStamp, 
+    TruthValue
+        FROM SNMPv2-TC;
+
+ieee8021CfmMIB OBJECT IDENTIFIER ::= { iso(1) org(3) ieee(111)
+         standards-association-numbered-series-standards (2)
+         lan-man-stds (802) ieee802dot1(1) ieee802dot1mibs(1) 8 }
+
+dot1agNotifications      OBJECT IDENTIFIER ::= { ieee8021CfmMIB 0 }
+dot1agMIBObjects         OBJECT IDENTIFIER ::= { ieee8021CfmMIB 1 }
+dot1agCfmConformance     OBJECT IDENTIFIER ::= { ieee8021CfmMIB 2 }
+
+dot1agCfmStack           OBJECT IDENTIFIER ::= { dot1agMIBObjects 1 }
+dot1agCfmDefaultMd       OBJECT IDENTIFIER ::= { dot1agMIBObjects 2 }
+dot1agCfmVlan            OBJECT IDENTIFIER ::= { dot1agMIBObjects 3 }
+dot1agCfmConfigErrorList OBJECT IDENTIFIER ::= { dot1agMIBObjects 4 }
+dot1agCfmMd              OBJECT IDENTIFIER ::= { dot1agMIBObjects 5 }
+dot1agCfmMa              OBJECT IDENTIFIER ::= { dot1agMIBObjects 6 }
+dot1agCfmMep             OBJECT IDENTIFIER ::= { dot1agMIBObjects 7 }
+
+Dot1agCfmMaintDomainNameType ::=
+    INTEGER { dnsLikeName(1), macAddressAndUint(2), charString(3) }
+
+Dot1agCfmMaintDomainName ::=
+    OCTET STRING (SIZE(1..43))
+
+Dot1agCfmMaintAssocNameType ::=
+    INTEGER { primaryVid(1), charString(2), unsignedInt16(3), 
+                    rfc2865VpnId(4) }
+
+Dot1agCfmMaintAssocName ::=
+    OCTET STRING (SIZE(1..45))
+
+Dot1agCfmMDLevel ::=
+    INTEGER (0..7)
+
+Dot1agCfmMDLevelOrNone ::=
+    INTEGER (-1..7)
+
+Dot1agCfmMpDirection ::=
+    INTEGER { down(1), up(2) }
+
+Dot1agCfmPortStatus ::=
+    INTEGER { psNoPortStateTLV(0), psBlocked(1), psUp(2) }
+
+Dot1agCfmInterfaceStatus ::=
+    INTEGER { isNoInterfaceStatusTLV(0), isUp(1), isDown(2), 
+                    isTesting(3), isUnknown(4), isDormant(5), 
+                    isNotPresent(6), isLowerLayerDown(7) }
+
+Dot1agCfmHighestDefectPri ::=
+    INTEGER { none(0), defRDICCM(1), defMACstatus(2), defRemoteCCM(3), 
+                    defErrorCCM(4), defXconCCM(5) }
+
+Dot1agCfmLowestAlarmPri ::=
+    INTEGER { allDef(1), macRemErrXcon(2), remErrXcon(3), errXcon(4), 
+                    xcon(5), noXcon(6) }
+
+Dot1agCfmMepId ::=
+    Gauge (1..8191)
+
+Dot1agCfmMepIdOrZero ::=
+    Gauge (0..8191)
+
+Dot1agCfmMhfCreation ::=
+    INTEGER { defMHFnone(1), defMHFdefault(2), defMHFexplicit(3), 
+                    defMHFdefer(4) }
+
+Dot1agCfmIdPermission ::=
+    INTEGER { sendIdNone(1), sendIdChassis(2), sendIdManage(3), 
+                    sendIdChassisManage(4), sendIdDefer(5) }
+
+Dot1agCfmCcmInterval ::=
+    INTEGER { intervalInvalid(0), interval300Hz(1), interval10ms(2), 
+                    interval100ms(3), interval1s(4), interval10s(5), 
+                    interval1min(6), interval10min(7) }
+
+Dot1agCfmFngState ::=
+    INTEGER { fngReset(1), fngDefect(2), fngReportDefect(3), 
+                    fngDefectReported(4), fngDefectClearing(5) }
+
+Dot1agCfmRelayActionFieldValue ::=
+    INTEGER { rlyHit(1), rlyFdb(2), rlyMpdb(3) }
+
+Dot1agCfmIngressActionFieldValue ::=
+    INTEGER { ingOk(1), ingDown(2), ingBlocked(3), ingVid(4) }
+
+Dot1agCfmEgressActionFieldValue ::=
+    INTEGER { egrOK(1), egrDown(2), egrBlocked(3), egrVid(4) }
+
+Dot1agCfmRemoteMepState ::=
+    INTEGER { rMepIdle(1), rMepStart(2), rMepFailed(3), rMepOk(4) }
+
+Dot1afCfmIndexIntegerNextFree ::=
+    Gauge (0..4294967295)
+
+Dot1agCfmMepDefects ::=
+    OCTET STRING
+
+Dot1agCfmConfigErrors ::=
+    OCTET STRING
+
+dot1agCfmStackTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF Dot1agCfmStackEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "There is one CFM Stack table per bridge. It permits
+         the retrieval of information about the Maintenance Points
+         configured on any given interface.
+         ALCATEL NOTE:
+             TABLESIZE: NA
+             DESCR: The stack table lists all the MEPs and MIPs of the 
+                   operational LTs in the system. There is no fixed limits;                 
+                   it is dependent on the number of MEPs configured and the 
+                   number of MIPs applied."
+
+    ::= { dot1agCfmStack 1 }
+
+dot1agCfmStackEntry OBJECT-TYPE
+    SYNTAX      Dot1agCfmStackEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+     "The Stack table entry.
+       ALCATEL NOTE:
+       Row creation : Auto-instantiated as a result of an MP creation.
+       Row deletion : Auto-deleted as a result of an MP deletion. 
+       Index usage  : See INDEX below.
+       lexicographical order : Sorted on StackifIndex, then StackVlanIndex,
+                               then StackMdLevel, and then StackDirection.
+            dot1agCfmStackVlanIdOrNone has been replaced with 
+            dot1agCfmStackVlanIndex in order to support S+C notation."
+
+    INDEX { dot1agCfmStackifIndex, dot1agCfmStackVlanIndex, 
+                  dot1agCfmStackMdLevel, dot1agCfmStackDirection }
+    ::= { dot1agCfmStackTable 1 }
+
+Dot1agCfmStackEntry ::= SEQUENCE {
+    dot1agCfmStackifIndex          InterfaceIndex,
+
+    dot1agCfmStackVlanIndex        VlanIndex,
+    dot1agCfmStackMdLevel          Dot1agCfmMDLevel,
+    dot1agCfmStackDirection        Dot1agCfmMpDirection,
+    dot1agCfmStackMdIndex          Gauge,
+    dot1agCfmStackMaIndex          Gauge,
+    dot1agCfmStackMepId            Dot1agCfmMepIdOrZero,
+    dot1agCfmStackMacAddress       MacAddress
+}
+
+dot1agCfmStackifIndex OBJECT-TYPE
+    SYNTAX      InterfaceIndex
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "This object represents the  Bridge Port or aggregated port
+         on which MEPs or MHFs might be configured.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      NA
+                PERSIST:    NO       INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      NA"
+
+    ::= { dot1agCfmStackEntry 1 }
+
+ dot1agCfmStackVlanIndex OBJECT-TYPE
+    SYNTAX      VlanIndex
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "VLAN ID to which the MP is attached.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      NA
+                PERSIST:    NO       INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      dot1agCfmStackVlanIdOrNone has been replaced to
+                            dot1agCfmStackVlanIndex in order to support
+                            S+C notation."
+
+    ::= { dot1agCfmStackEntry 2 }
+
+dot1agCfmStackMdLevel OBJECT-TYPE
+    SYNTAX      Dot1agCfmMDLevel
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "MD Level of the Maintenance Point.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      NA
+                PERSIST:    NO       INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      NA"
+
+    ::= { dot1agCfmStackEntry 3 }
+
+dot1agCfmStackDirection OBJECT-TYPE
+    SYNTAX      Dot1agCfmMpDirection
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "Direction in which the MP faces on the Bridge Port.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      NA
+                PERSIST:    NO       INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      NA"
+
+    ::= { dot1agCfmStackEntry 4 }
+
+dot1agCfmStackMdIndex OBJECT-TYPE
+    SYNTAX      Gauge
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The index of the Maintenance Domain in the dot1agCfmMdTable
+         to which the MP is associated, or 0, if none.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      NA
+                PERSIST:    NO       INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      NA"
+
+    ::= { dot1agCfmStackEntry 5 }
+
+dot1agCfmStackMaIndex OBJECT-TYPE
+    SYNTAX      Gauge
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The index of the MA in the dot1agCfmMaTable to which the MP
+         is associated, or 0, if none.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      NA
+                PERSIST:    NO       INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      NA"
+
+    ::= { dot1agCfmStackEntry 6 }
+
+dot1agCfmStackMepId OBJECT-TYPE
+    SYNTAX      Dot1agCfmMepIdOrZero
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "If an MEP is configured, the MEPID, the value 0 indicates a MIP.
+        ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      NA
+                PERSIST:    NO       INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      NA"
+
+    ::= { dot1agCfmStackEntry 7 }
+
+dot1agCfmStackMacAddress OBJECT-TYPE
+    SYNTAX      MacAddress
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "MAC address of the MP.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      NA
+                PERSIST:    NO       INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      NA"
+
+    ::= { dot1agCfmStackEntry 8 }
+
+dot1agCfmDefaultMdDefLevel OBJECT-TYPE
+    SYNTAX      Dot1agCfmMDLevel
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "A value indicating the MD Level at which MHFs are to be
+         created, and Sender ID TLV transmission by those MHFs is to
+         be controlled, for each dot1agCfmDefaultMdEntry whose
+         dot1agCfmDefaultMdLevel object contains the value -1.
+         
+         After this initialization, this object needs to be persistent
+         upon reboot or restart of a device.
+        ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { 0 }
+    ::= { dot1agCfmDefaultMd 1 }
+
+dot1agCfmDefaultMdDefMhfCreation OBJECT-TYPE
+    SYNTAX      Dot1agCfmMhfCreation
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "A value indicating if the Management entity can create MHFs
+         (MIP Half Function) for the VID, for each
+         dot1agCfmDefaultMdEntry whose dot1agCfmDefaultMdMhfCreation
+         object contains the value defMHFdefer.  Since, in this
+         variable, there is no encompassing Maintenance Domain, the
+         value defMHFdefer takes the meaning of defMHFnone.
+         
+         After this initialization, this object needs to be persistent
+         upon reboot or restart of a device.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { defMHFnone }
+    ::= { dot1agCfmDefaultMd 2 }
+
+dot1agCfmDefaultMdDefIdPermission OBJECT-TYPE
+    SYNTAX      Dot1agCfmIdPermission
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "Enumerated value indicating what, if anything, is to be
+         included in the Sender ID TLV (21.5.3) transmitted by MHFs
+         created by the Default Maintenance Domain, for each
+         dot1agCfmDefaultMdEntry whose dot1agCfmDefaultMdIdPermission
+         object contains the value sendIdDefer.  Since, in this
+         variable, there is no encompassing Maintenance Domain, the
+         value sendIdDefer takes the meaning of sendIdChassisManage.
+         
+         After this initialization, this object needs to be persistent
+         upon reboot or restart of a device.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { sendIdNone }
+    ::= { dot1agCfmDefaultMd 3 }
+
+dot1agCfmDefaultMdTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF Dot1agCfmDefaultMdEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Default MD Level Managed Object controls MHF creation for
+         VIDs that are not attached to a specific Maintenance
+         Association Managed Object, and Sender ID TLV transmission by
+         those MHFs.
+         
+         For each Bridge Port, and for each VLAN ID whose data can
+         pass through that Bridge Port, an entry in this table is
+         used by the algorithm in subclause 22.2.3 only if there is no
+         entry in the Maintenance Association table defining an MA
+         for the same VLAN ID and MD Level as this table's entry, and
+         on which MA an Up MEP is defined.  If there exists such an
+         MA, that MA's objects are used by the algorithm in
+         subclause 22.2.3 in place of this table entry's objects.  The
+         agent maintains the value of dot1agCfmDefaultMdStatus to
+         indicate whether this entry is overridden by an MA.
+         
+         When first initialized, the agent creates this table
+         automatically with entries for all VLAN IDs,
+         with the default values specified for each object.
+         
+         After this initialization, the writable objects in this
+         table need to be persistent upon reboot or restart of a
+         device.
+         ALCATEL NOTE:
+            TABLESIZE: N/A 
+            DESCR:     This Table is not supported in ISAM"
+
+    ::= { dot1agCfmDefaultMd 4 }
+
+dot1agCfmDefaultMdEntry OBJECT-TYPE
+    SYNTAX      Dot1agCfmDefaultMdEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Default MD Level table entry.
+         ALCATEL NOTE:
+            Row creation : N/A 
+            Row deletion : N/A 
+            Index usage  : N/A
+            lexicographical order : N/A 
+            This Entry is not supported in ISAM"
+    INDEX       { dot1agCfmDefaultMdPrimaryVid }
+    ::= { dot1agCfmDefaultMdTable 1 }
+
+Dot1agCfmDefaultMdEntry ::= SEQUENCE {
+    dot1agCfmDefaultMdPrimaryVid    VlanId,
+    dot1agCfmDefaultMdStatus        TruthValue,
+    dot1agCfmDefaultMdLevel         Dot1agCfmMDLevelOrNone,
+    dot1agCfmDefaultMdMhfCreation   Dot1agCfmMhfCreation,
+    dot1agCfmDefaultMdIdPermission  Dot1agCfmIdPermission
+}
+
+dot1agCfmDefaultMdPrimaryVid OBJECT-TYPE
+    SYNTAX      VlanId
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Primary VID of the VLAN to which this entry's objects
+         apply.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+    ::= { dot1agCfmDefaultMdEntry 1 }
+
+dot1agCfmDefaultMdStatus OBJECT-TYPE
+    SYNTAX      TruthValue
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "State of this Default MD Level table entry.  True if there is
+         no entry in the Maintenance Association table defining an MA
+         for the same VLAN ID and MD Level as this table's entry, and
+         on which MA an Up MEP is defined, else false.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmDefaultMdEntry 2 }
+
+dot1agCfmDefaultMdLevel OBJECT-TYPE
+    SYNTAX      Dot1agCfmMDLevelOrNone
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "A value indicating the MD Level at which MHFs are to be
+         created, and Sender ID TLV transmission by those MHFs is to
+         be controlled, for the VLAN to which this entry's objects
+         apply.  If this object has the value -1, the MD Level for MHF
+         creation for this VLAN is controlled by
+         dot1agCfmDefaultMdDefLevel.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { -1 }
+    ::= { dot1agCfmDefaultMdEntry 3 }
+
+dot1agCfmDefaultMdMhfCreation OBJECT-TYPE
+    SYNTAX      Dot1agCfmMhfCreation
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "A value indicating if the Management entity can create MHFs
+         (MIP Half Function) for this VID at this MD Level.  If this
+         object has the value defMHFdefer, MHF creation for this VLAN
+         is controlled by dot1agCfmDefaultMdDefMhfCreation.
+         
+         The value of this variable is meaningless if the values of
+         dot1agCfmDefaultMdStatus is false.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { defMHFdefer }
+    ::= { dot1agCfmDefaultMdEntry 4 }
+
+dot1agCfmDefaultMdIdPermission OBJECT-TYPE
+    SYNTAX      Dot1agCfmIdPermission
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "Enumerated value indicating what, if anything, is to be
+         included in the Sender ID TLV (21.5.3) transmitted by MHFs
+         created by the Default Maintenance Domain.  If this object
+         has the value sendIdDefer, Sender ID TLV transmission for
+         this VLAN is controlled by dot1agCfmDefaultMdDefIdPermission.
+         
+         The value of this variable is meaningless if the values of
+         dot1agCfmDefaultMdStatus is false.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { sendIdDefer }
+    ::= { dot1agCfmDefaultMdEntry 5 }
+
+dot1agCfmVlanTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF Dot1agCfmVlanEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "This table defines the association of VIDs into VLANs.  There
+         is an entry in this table for each VID that is:
+             a) a VID belonging to a VLAN associated with more than
+                one VID; and
+             b) not the Primary VLAN of that VID.
+         The entry in this table contains the Primary VID of the VLAN.
+         
+         By default, this table is empty, meaning that every VID is
+         the Primary VID of a single-VID VLAN.
+         
+         VLANs that are associated with only one VID SHOULD NOT have
+         an entry in this table.
+         
+         The writable objects in this table need to be persistent
+         upon reboot or restart of a device.
+         ALCATEL NOTE:
+            TABLESIZE: N/A 
+            DESCR:     This Table is not supported in ISAM"
+
+    ::= { dot1agCfmVlan 1 }
+
+dot1agCfmVlanEntry OBJECT-TYPE
+    SYNTAX      Dot1agCfmVlanEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The VLAN table entry.
+         ALCATEL NOTE:
+            Row creation : N/A 
+            Row deletion : N/A 
+            Index usage  : N/A
+            lexicographical order : N/A 
+            This Entry is not supported in ISAM"
+    INDEX       { dot1agCfmVlanVid }
+    ::= { dot1agCfmVlanTable 1 }
+
+Dot1agCfmVlanEntry ::= SEQUENCE {
+    dot1agCfmVlanVid            VlanId,
+    dot1agCfmVlanPrimaryVid     VlanId,
+    dot1agCfmVlanRowStatus      RowStatus
+}
+
+dot1agCfmVlanVid OBJECT-TYPE
+    SYNTAX      VlanId
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "This is a VLAN ID belonging to a VLAN that is associated with
+         more than one VLAN ID, and this is not the Primary VID of the
+         VLAN.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+    ::= { dot1agCfmVlanEntry 1 }
+
+dot1agCfmVlanPrimaryVid OBJECT-TYPE
+    SYNTAX      VlanId
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "This is the Primary VLAN ID of the VLAN with which this
+         entry's dot1agCfmVlanVid is associated.  This value must not
+         equal the value of dot1agCfmVlanVid.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+    ::= { dot1agCfmVlanEntry 2 }
+
+dot1agCfmVlanRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The status of the row.
+         
+         The writable columns in a row can not be changed if the row
+         is active. All columns must have a valid value before a row
+         can be activated.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+    ::= { dot1agCfmVlanEntry 3 }
+
+dot1agCfmConfigErrorListTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF Dot1agCfmConfigErrorListEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The CFM Configuration Error List table provides a list of
+         Interfaces and VIDs that are incorrectly configured.
+         ALCATEL NOTE:
+            TABLESIZE: N/A 
+            DESCR:     This Table is not supported in ISAM"
+
+    ::= { dot1agCfmConfigErrorList 1 }
+
+dot1agCfmConfigErrorListEntry OBJECT-TYPE
+    SYNTAX      Dot1agCfmConfigErrorListEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Config Error List Table  entry.
+         ALCATEL NOTE:
+            Row creation : N/A 
+            Row deletion : N/A 
+            Index usage  : N/A
+            lexicographical order : N/A 
+            This Entry is not supported in ISAM"
+    INDEX       { dot1agCfmConfigErrorListVid, 
+                  dot1agCfmConfigErrorListIfIndex }
+    ::= { dot1agCfmConfigErrorListTable 1 }
+
+Dot1agCfmConfigErrorListEntry ::= SEQUENCE {
+    dot1agCfmConfigErrorListVid         VlanId,
+    dot1agCfmConfigErrorListIfIndex     InterfaceIndex,
+    dot1agCfmConfigErrorListErrorType   Dot1agCfmConfigErrors
+}
+
+dot1agCfmConfigErrorListVid OBJECT-TYPE
+    SYNTAX      VlanId
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The VLAN ID of the VLAN with interfaces in error.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmConfigErrorListEntry 1 }
+
+dot1agCfmConfigErrorListIfIndex OBJECT-TYPE
+    SYNTAX      InterfaceIndex
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "This object is the IfIndex of the interface.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmConfigErrorListEntry 2 }
+
+dot1agCfmConfigErrorListErrorType OBJECT-TYPE
+    SYNTAX      Dot1agCfmConfigErrors
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "A vector of Boolean error conditions from 22.2.4, any of
+         which may be true:
+         
+         0) CFMleak;
+         1) ConflictingVids;
+         2) ExcessiveLevels;
+         3) OverlappedLevels.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmConfigErrorListEntry 3 }
+
+dot1agCfmMdTableNextIndex OBJECT-TYPE
+    SYNTAX      Dot1afCfmIndexIntegerNextFree
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "This object contains an unused value for dot1agCfmMdIndex in
+         the dot1agCfmMdTable, or a zero to indicate that none exist.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NO            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       NA" 
+    ::= { dot1agCfmMd 1 }
+
+dot1agCfmMdTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF Dot1agCfmMdEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Maintenance Domain table. Each row in the table
+         represents a different Maintenance Domain.
+         
+         A Maintenance Domain is described in 802.1ag (3.22) as the
+         network or the part of the network for which faults in
+         connectivity are to be managed. The boundary of a Maintenance
+         Domain is defined by a set of DSAPs, each of which can become
+         a point of connectivity to a service instance.
+         ALCATEL NOTE:
+             TABLESIZE: 130 
+             DESCR: ISAM supports at most 130 MDs"
+
+    ::= { dot1agCfmMd 2 }
+
+dot1agCfmMdEntry OBJECT-TYPE
+    SYNTAX      Dot1agCfmMdEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Maintenance Domain table entry. This entry is not lost
+         upon reboot. It is backed up by stable storage.
+         ALCATEL NOTE:
+            Row creation : Instantiated as a result of an MD creation.
+            Row deletion : Deleted as a result of an MD deletion. 
+            Index usage  : See INDEX below.
+            lexicographical order : Sorted on MD index."
+    INDEX       { dot1agCfmMdIndex }
+    ::= { dot1agCfmMdTable 1 }
+
+Dot1agCfmMdEntry ::= SEQUENCE {
+    dot1agCfmMdIndex                Gauge,
+    dot1agCfmMdFormat               Dot1agCfmMaintDomainNameType,
+    dot1agCfmMdName                 Dot1agCfmMaintDomainName,
+    dot1agCfmMdMdLevel              Dot1agCfmMDLevel,
+    dot1agCfmMdMhfCreation          Dot1agCfmMhfCreation,
+    dot1agCfmMdMhfIdPermission      Dot1agCfmIdPermission,
+    dot1agCfmMdMaTableNextIndex     Dot1afCfmIndexIntegerNextFree,
+    dot1agCfmMdRowStatus            RowStatus
+}
+
+dot1agCfmMdIndex OBJECT-TYPE
+    SYNTAX      Gauge 
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The index to the Maintenance Domain table.
+         
+         dot1agCfmMdTableNextIndex needs to be inspected to find an
+         available index for row-creation.
+         
+         Referential integrity is required i.e. the index needs to be
+         persistent upon a reboot or restart of a device.  The index
+         can never be reused for other Maintenance Domain.  The index
+         value should keep increasing up to the time that they wrap
+         around. This is to facilitate access control based on OID.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      NA
+                PERSIST:    NO       INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      NA"
+    ::= { dot1agCfmMdEntry 1 }
+
+dot1agCfmMdFormat OBJECT-TYPE
+    SYNTAX      Dot1agCfmMaintDomainNameType
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The type (and thereby format) of the Maintenance Domain Name.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      MAND 
+                PERSIST:    YES      INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      MD Format cannot be modified."
+
+    DEFVAL      { charString }
+    ::= { dot1agCfmMdEntry 2 }
+
+dot1agCfmMdName OBJECT-TYPE
+    SYNTAX      Dot1agCfmMaintDomainName
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Maintenance Domain name. The type/format of this object
+         is determined by the value of the dot1agCfmMdNameType object.
+           
+         Each Maintenance Domain has unique name amongst all those
+         used or available to a service provider or operator.  It
+         facilitates easy identification of administrative
+         responsibility for each Maintenance Domain.
+         
+         Clause 3.24 defines a Maintenance Domain name as the
+         identifier, unique over the domain for which CFM is to
+         protect against accidental concatenation of Service
+         Instances, of a particular Maintenance Domain.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      MAND 
+                PERSIST:    YES      INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      MD name cannot be modified."
+
+    DEFVAL      { "DEFAULT" }
+    ::= { dot1agCfmMdEntry 3 }
+
+dot1agCfmMdMdLevel OBJECT-TYPE
+    SYNTAX      Dot1agCfmMDLevel
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Maintenance Domain Level.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      MAND 
+                PERSIST:    YES      INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      MD Level cannot be modified."
+
+    DEFVAL      { 0 }
+    ::= { dot1agCfmMdEntry 4 }
+
+dot1agCfmMdMhfCreation OBJECT-TYPE
+    SYNTAX      Dot1agCfmMhfCreation
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "Enumerated value indicating whether the management entity can
+         create MHFs (MIP Half Function) for this Maintenance Domain.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { defMHFnone }
+    ::= { dot1agCfmMdEntry 5 }
+
+dot1agCfmMdMhfIdPermission OBJECT-TYPE
+    SYNTAX      Dot1agCfmIdPermission
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "Enumerated value indicating what, if anything, is to be
+         included in the Sender ID TLV (21.5.3) transmitted by MPs
+         configured in this Maintenance Domain.  Since, in this
+         variable, there is no encompassing Maintenance Domain, the
+         value sendIdDefer takes the meaning of sendIdChassisManage.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { sendIdNone }
+    ::= { dot1agCfmMdEntry 6 }
+
+dot1agCfmMdMaTableNextIndex OBJECT-TYPE
+    SYNTAX      Dot1afCfmIndexIntegerNextFree
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Value to be used as the index of the MA table entries for
+         this Maintenance Domain when the management entity wants to
+         create a new row in the MA table.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NO            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       NA"
+    ::= { dot1agCfmMdEntry 7 }
+
+dot1agCfmMdRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The status of the row.
+         
+         The writable columns in a row can not be changed if the row
+         is active. All columns must have a valid value before a row
+         can be activated.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      MAND 
+                PERSIST:    NO       INSRVMOD:   YES 
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      NA"
+    ::= { dot1agCfmMdEntry 8 }
+
+dot1agCfmMaTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF Dot1agCfmMaEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Maintenance Association table.  Each row in the table
+         represents an MA.  An MA is a set of MEPs, each configured
+         with a single service instance.
+         
+         Creation of a Service Instance establishes a connectionless
+         association among the selected DSAPs.  Configuring a
+         Maintenance association End Point (MEP) at each of the
+         DSAPs creates a Maintenance Association (MA) to monitor
+         that connectionless connectivity.  The MA is identified by a
+         Short MA Name that is unique within the Maintenance Domain
+         and chosen to facilitate easy identification of the Service
+         Instance.  Together, the Maintenance Domain Name and the
+         Short MA Name form the Maintenance Association Identifier
+         (MAID) that is carried in CFM Messages to identify
+         incorrect connectivity among Service Instances.  A small
+         integer, the Maintenance association End Point Identifier
+         (MEPID), identifies each MEP among those configured on a
+         single MA (802.1ag clauses 3.17 and 18.2).
+         
+         This table uses two indices, first index is the index of the
+         Maintenance Domain table.
+         
+         The writable objects in this table need to be persistent
+         upon reboot or restart of a device.
+         ALCATEL NOTE:
+             TABLESIZE: 20000
+             DESCR: ISAM supports at most 20000 MAs"
+
+    ::= { dot1agCfmMa 1 }
+
+dot1agCfmMaEntry OBJECT-TYPE
+    SYNTAX      Dot1agCfmMaEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The MA table entry.
+         ALCATEL NOTE:
+            Row creation : Instantiated as a result of an MA creation.
+            Row deletion : Deleted as a result of an MA deletion. 
+            Index usage  : See INDEX below.
+            lexicographical order : Sorted on MdIndex and then MaIndex."
+    INDEX       { dot1agCfmMdIndex, dot1agCfmMaIndex }
+    ::= { dot1agCfmMaTable 1 }
+
+Dot1agCfmMaEntry ::= SEQUENCE {
+    dot1agCfmMaIndex            Gauge,
+
+    dot1agCfmMaPrimaryVlanId    VlanIndex,
+    dot1agCfmMaFormat           Dot1agCfmMaintAssocNameType,
+    dot1agCfmMaName             Dot1agCfmMaintAssocName,
+    dot1agCfmMaMhfCreation      Dot1agCfmMhfCreation,
+    dot1agCfmMaIdPermission     Dot1agCfmIdPermission,
+    dot1agCfmMaCcmInterval      Dot1agCfmCcmInterval,
+    dot1agCfmMaNumberOfVids     Gauge,
+    dot1agCfmMaRowStatus        RowStatus
+}
+
+dot1agCfmMaIndex OBJECT-TYPE
+    SYNTAX      Gauge 
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "Index of the MA table dot1agCfmMdMaTableNextIndex needs to
+         be inspected to find an available index for row-creation.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      NA
+                PERSIST:    NO       INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      NA"
+    ::= { dot1agCfmMaEntry 1 }
+
+dot1agCfmMaPrimaryVlanId OBJECT-TYPE
+
+    SYNTAX      VlanIndex
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Primary VLAN ID with which the Maintenance Association is
+         associated.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      MAND 
+                PERSIST:    YES      INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      PrimaryVlanId cannot be modified.
+                            VlanIdOrNone has been replaced with VlanIndex
+                            in order to support S+C notation.
+	 It shall be possible to support an MA creation without 
+	 association to a VLAN (the VLAN ID in that case takes a unique 
+	 value 0x01000001 (see default value for PVID)) An MA not 
+	 associated to a VLAN shall only be possible when the 
+	 ' dot1agCfmMaBridgeport' is set to a value different from the 
+	 zero ifIndex. An MA not associated to a particular VLAN and being 
+	 associated to a valid bridgePort automatically defines a MA for 
+	 the 'UNI'. It allows the creation of down-MEPs on this 
+	 UNI/bridgePort. An MA associated to a particular VLAN and being 
+	 associated to a valid bridgePort automatically defines a MA for 
+	 the 'UNI-vlan'. It allows the creation of down-MEPs on this 
+	 UNI/BridgePort which results in the creation of the down MEP on 
+	 the port-VLAN. An  MA associated to a particular VLAN and not 
+	 being associated to a valid bridgePort automatically defines 
+	 allows the creation of up-MEPs on this UNI/BridgePort or 
+	 down-MEPs on the LT-GEport."
+
+    ::= { dot1agCfmMaEntry 2 }
+
+dot1agCfmMaFormat OBJECT-TYPE
+    SYNTAX      Dot1agCfmMaintAssocNameType
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The type (and thereby format) of the Maintenance Association
+         Name.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMaEntry 3 }
+
+dot1agCfmMaName OBJECT-TYPE
+    SYNTAX      Dot1agCfmMaintAssocName
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Short Maintenance Association name. The type/format of
+         this object is determined by the value of the
+         dot1agCfmMaNameType object.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMaEntry 4 }
+
+dot1agCfmMaMhfCreation OBJECT-TYPE
+    SYNTAX      Dot1agCfmMhfCreation
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "Indicates if the Management entity can create MHFs (MIP Half
+         Function) for this MA.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      OPT 
+                PERSIST:    YES      INSRVMOD:   NO
+                RANGE:      defMHFnone, defMHFdefault
+                DEFVALUE:   defMHFnone 
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      NA"
+
+    DEFVAL      { defMHFnone }
+    ::= { dot1agCfmMaEntry 5 }
+
+dot1agCfmMaIdPermission OBJECT-TYPE
+    SYNTAX      Dot1agCfmIdPermission
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "Enumerated value indicating what, if anything, is to be
+         included in the Sender ID TLV (21.5.3) transmitted by MPs
+         configured in this MA.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { sendIdDefer }
+    ::= { dot1agCfmMaEntry 6 }
+
+dot1agCfmMaCcmInterval OBJECT-TYPE
+    SYNTAX      Dot1agCfmCcmInterval
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "Interval between CCM transmissions to be used by all MEPs
+         in the MA.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { interval1s }
+    ::= { dot1agCfmMaEntry 7 }
+
+dot1agCfmMaNumberOfVids OBJECT-TYPE
+    SYNTAX      Gauge
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The number of VIDs associated with the MA.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMaEntry 8 }
+
+dot1agCfmMaRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The status of the row.
+         
+         The writable columns in a row can not be changed if the row
+         is active. All columns must have a valid value before a row
+         can be activated.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      MAND 
+                PERSIST:    NO       INSRVMOD:   YES 
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      NA"
+    ::= { dot1agCfmMaEntry 9 }
+
+dot1agCfmMaMepListTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF Dot1agCfmMaMepListEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "List of MEPIDs (in any bridge) that belong to the same MA.
+         
+         Clause 12.14.6.1.3 specifies that a list of MEPIDs in all
+         bridges in that MA, but since SNMP SMI does not allow to
+         state in a MIB that an object in a table is an array, the 
+         information has to be stored in another table with two
+         indices, being the first index, the index of the table that 
+         contains the list or array.
+         ALCATEL NOTE:
+            TABLESIZE: N/A 
+            DESCR:     This Table is not supported in ISAM"
+
+    ::= { dot1agCfmMa 3 }
+
+dot1agCfmMaMepListEntry OBJECT-TYPE
+    SYNTAX      Dot1agCfmMaMepListEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The known MEPS table entry.
+         ALCATEL NOTE:
+            Row creation : N/A 
+            Row deletion : N/A 
+            Index usage  : N/A
+            lexicographical order : N/A 
+            This Entry is not supported in ISAM"
+    INDEX       { dot1agCfmMdIndex, dot1agCfmMaIndex, 
+                  dot1agCfmMaMepListIdentifier }
+    ::= { dot1agCfmMaMepListTable 1 }
+
+Dot1agCfmMaMepListEntry ::= SEQUENCE {
+    dot1agCfmMaMepListIdentifier    Dot1agCfmMepId,
+    dot1agCfmMaMepListRowStatus     RowStatus
+}
+
+dot1agCfmMaMepListIdentifier OBJECT-TYPE
+    SYNTAX      Dot1agCfmMepId
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "MEPID.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMaMepListEntry 1 }
+
+dot1agCfmMaMepListRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The status of the row. Read SNMPv2-TC (RFC1903) for an
+         explanation of the possible values this object can take.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+    ::= { dot1agCfmMaMepListEntry 2 }
+
+dot1agCfmMepTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF Dot1agCfmMepEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Maintenance Association End Point (MEP) table.
+         
+         Each row in the table represents a different MEP.  A MEP is
+         an actively managed CFM entity, associated with a specific
+         DSAP of a Service Instance, which can generate and receive
+         CFM PDUs and track any responses.  It is an end point of a
+         single Maintenance Association, and is an endpoint of a
+         separate Maintenance Entity for each of the other MEPs in
+         the same Maintenance Association (802.1ag clause 3.18).
+         
+         This table uses three indices. The first two indices are the
+         indices of the Maintenance Domain and MA tables, the reason
+         being that a MEP is always related to an MA and Maintenance
+         Domain.
+         
+         The Transmit Loopback table.  Entries in this table are
+         created/removed at the same time than entries in the MEP
+         table are created/removed.
+         
+         The MEP table also stores all the managed objects for sending
+         LBM and LTM.
+         
+         *LBM Managed objects
+         
+         LBM Managed objects in the MEP table 
+         enables the management entity to initiate
+         transmission of Loopback messages.  It will signal the MEP
+         that it should transmit some number of Loopback messages
+         and detect the detection (or lack thereof) of the
+         corresponding Loopback messages.
+         
+         Steps to use entries in this table:
+         
+         1) Wait for dot1agCfmMepTransmitLbmStatus value to be
+            'ready'.  To do this do this sequence:
+            a. an SNMP GET for both SnmpSetSerialNo and
+               dot1agCfmMepTransmitLbmStatus objects (in same SNMP
+               PDU).
+            b. Check if value for dot1agCfmMepTransmitLbmStatus is
+               'ready'
+               - if not, wait x seconds, go to step a above.
+               - if yes, save the value of SnmpSetSerialNo and go
+                 to step 2) below
+         2) Change dot1agCfmMepTransmitLbmStatus value from 'ready' to
+            'notReady' to ensure no other management entity will use
+            the service. In order to not disturb a possible other NMS
+            do this by sending an SNMP SET for both SnmpSetSerialNo 
+            and dot1agCfmMepTransmitLbmStatus objects (in same SNMP
+            PDU,  and make sure SNmpSetSerialNo is the first varBind).
+            For the SnmpSetSerialNo varBind, use the value that you
+            obtained in step 1)a.. This ensures that two cooperating
+            NMSes will not step on each others toes.
+         3) Setup the different data to be sent (number of messages,
+            optional TLVs,...).
+         4) Record the current values of dot1agCfmMepLbrIn,
+            dot1agCfmMepLbrInOutOfOrder, and dot1agCfmMepLbrBadMsdu.
+         6) Change dot1agCfmMepTransmitLbmStatus value from 'notReady'
+            to 'transmit' to initiate transmission of Loopback
+            messages.
+         7) Check the value of dot1agCfmMepTransmitLbmResultOK to
+            find out if the operation was successfully initiated or
+            not.
+         8) Monitor the value of dot1agCfmMepTransmitLbmMessages.
+            When it reaches 0, the last LBM has been transmitted.
+            Wait an additional 5 seconds to ensure that all LBRs have
+            been returned.
+         9) Compare dot1agCfmMepLbrIn, dot1agCfmMepLbrInOutOfOrder,
+            and dot1agCfmMepLbrBadMsdu to their old values from step
+            4, above, to get the results of the test.
+         10) Change the dot1agCfmMepTransmitLbmStatus value back to
+            'ready' to allow other management entities to use the
+            table.
+         
+         *LTM Managed objects
+         The LTM Managed objects in the MEP table are used in a manner
+         similar to that described for LBM transmission, above.  Upon
+         successfully initiating the transmission, the variables
+         dot1agCfmMepTransmitLtmSeqNumber and
+         dot1agCfmMepTransmitLtmEgressIdentifier return the information
+         required to recover the results of the LTM from the
+         dot1agCfmLtrTable.
+         ALCATEL NOTE:
+             TABLESIZE: 20000
+             DESCR: ISAM supports at most 20000 MEPs"
+
+    ::= { dot1agCfmMep 1 }
+
+dot1agCfmMepEntry OBJECT-TYPE
+    SYNTAX      Dot1agCfmMepEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The MEP table entry.
+         ALCATEL NOTE:
+            Row creation : Instantiated as a result of MEP creation.
+            Row deletion : Deleted as a result of MEP deletion. 
+            Index usage  : See INDEX below.
+            lexicographical order : Sorted on MdIndex, then MaIndex and then MepIdentifier."
+    INDEX       { dot1agCfmMdIndex, dot1agCfmMaIndex, 
+                  dot1agCfmMepIdentifier }
+    ::= { dot1agCfmMepTable 1 }
+
+Dot1agCfmMepEntry ::= SEQUENCE {
+    dot1agCfmMepIdentifier                      Dot1agCfmMepId,
+    dot1agCfmMepIfIndex                         InterfaceIndexOrZero,
+    dot1agCfmMepDirection                       Dot1agCfmMpDirection,
+    dot1agCfmMepPrimaryVid                      Gauge,
+    dot1agCfmMepActive                          TruthValue,
+    dot1agCfmMepFngState                        Dot1agCfmFngState,
+    dot1agCfmMepCciEnabled                      TruthValue,
+    dot1agCfmMepCcmLtmPriority                  Gauge,
+    dot1agCfmMepMacAddress                      MacAddress,
+    dot1agCfmMepLowPrDef                        Dot1agCfmLowestAlarmPri,
+    dot1agCfmMepFngAlarmTime                    TimeInterval,
+    dot1agCfmMepFngResetTime                    TimeInterval,
+    dot1agCfmMepHighestPrDefect                 Dot1agCfmHighestDefectPri,
+    dot1agCfmMepDefects                         Dot1agCfmMepDefects,
+    dot1agCfmMepErrorCcmLastFailure             OCTET STRING,
+    dot1agCfmMepXconCcmLastFailure              OCTET STRING,
+    dot1agCfmMepCcmSequenceErrors               Counter,
+    dot1agCfmMepCciSentCcms                     Counter,
+    dot1agCfmMepNextLbmTransId                  Gauge,
+    dot1agCfmMepLbrIn                           Counter,
+    dot1agCfmMepLbrInOutOfOrder                 Counter,
+    dot1agCfmMepLbrBadMsdu                      Counter,
+    dot1agCfmMepLtmNextSeqNumber                Gauge,
+    dot1agCfmMepUnexpLtrIn                      Counter,
+    dot1agCfmMepLbrOut                          Counter,
+    dot1agCfmMepTransmitLbmStatus               TruthValue,
+    dot1agCfmMepTransmitLbmDestMacAddress       MacAddress,
+    dot1agCfmMepTransmitLbmDestMepId            Dot1agCfmMepIdOrZero,
+    dot1agCfmMepTransmitLbmDestIsMepId          TruthValue,
+    dot1agCfmMepTransmitLbmMessages             INTEGER,
+    dot1agCfmMepTransmitLbmDataTlv              OCTET STRING,
+    dot1agCfmMepTransmitLbmVlanPriority         INTEGER,
+    dot1agCfmMepTransmitLbmVlanDropEnable       TruthValue,
+    dot1agCfmMepTransmitLbmResultOK             TruthValue,
+    dot1agCfmMepTransmitLbmSeqNumber            Gauge,
+    dot1agCfmMepTransmitLtmStatus               TruthValue,
+    dot1agCfmMepTransmitLtmFlags                OCTET STRING,
+    dot1agCfmMepTransmitLtmTargetMacAddress     MacAddress,
+    dot1agCfmMepTransmitLtmTargetMepId          Dot1agCfmMepIdOrZero,
+    dot1agCfmMepTransmitLtmTargetIsMepId        TruthValue,
+    dot1agCfmMepTransmitLtmTtl                  Gauge,
+    dot1agCfmMepTransmitLtmResult               TruthValue,
+    dot1agCfmMepTransmitLtmSeqNumber            Gauge,
+    dot1agCfmMepTransmitLtmEgressIdentifier     OCTET STRING,
+    dot1agCfmMepRowStatus                       RowStatus
+}
+
+dot1agCfmMepIdentifier OBJECT-TYPE
+    SYNTAX      Dot1agCfmMepId
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "Integer that is unique among all the MEPs in the same MA.
+         Other definition is: a small integer, unique over a given
+         Maintenance Association, identifying a specific Maintenance
+         association End Point (3.19).
+         
+         MEP Identifier is also known as the MEPID.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      NA
+                PERSIST:    YES      INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      NA"
+
+    ::= { dot1agCfmMepEntry 1 }
+
+dot1agCfmMepIfIndex OBJECT-TYPE
+    SYNTAX      InterfaceIndexOrZero
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "This object is the interface index of the interface either a
+         bridge port, or an aggregated IEEE 802.1 link within a bridge
+         port, to which the MEP is attached.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      NA
+                PERSIST:    NO       INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      NA"
+
+    ::= { dot1agCfmMepEntry 2 }
+
+dot1agCfmMepDirection OBJECT-TYPE
+    SYNTAX      Dot1agCfmMpDirection
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The direction in which the MEP faces on the Bridge port.
+         ALCATEL NOTE:
+                ACCESS:     read     USAGE:      NA
+                PERSIST:    YES      INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      MEP Direction cannot be specified (Read-ONLY)."
+
+    ::= { dot1agCfmMepEntry 3 }
+
+dot1agCfmMepPrimaryVid OBJECT-TYPE
+    SYNTAX      Gauge 
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "An integer indicating the Primary VID of the MEP, always
+         one of the VIDs assigned to the MEP's MA.  The value 0
+         indicates that either the Primary VID is that of the
+         MEP's MA, or that the MEP's MA is associated with no VID.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { 0 }
+    ::= { dot1agCfmMepEntry 4 }
+
+dot1agCfmMepActive OBJECT-TYPE
+    SYNTAX      TruthValue
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "Administrative state of the MEP
+         
+         A Boolean indicating the administrative state of the MEP.
+         
+         True indicates that the MEP is to function normally, and
+         false that it is to cease functioning.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { false }
+    ::= { dot1agCfmMepEntry 5 }
+
+dot1agCfmMepFngState OBJECT-TYPE
+    SYNTAX      Dot1agCfmFngState
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Current state of the MEP Fault Notification Generator
+         State Machine.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { fngReset }
+    ::= { dot1agCfmMepEntry 6 }
+
+dot1agCfmMepCciEnabled OBJECT-TYPE
+    SYNTAX      TruthValue
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "If set to true, the MEP will generate CCM messages.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { false }
+    ::= { dot1agCfmMepEntry 7 }
+
+dot1agCfmMepCcmLtmPriority OBJECT-TYPE
+    SYNTAX      Gauge 
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The priority value for CCMs and LTMs transmitted by the MEP.
+         Default Value in the highest priority value allowed to pass
+         through the bridge port for any of this MEPs VIDs.
+         The management entity can obtain the default value for this 
+         variable from the priority regeneration table by extracting the 
+         highest priority value in this table on this MEPs bridge port.
+         (1 is lowest, then 2, then 0, then 3-7).
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 8 }
+
+dot1agCfmMepMacAddress OBJECT-TYPE
+    SYNTAX      MacAddress
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "MAC address of the MEP.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      NA
+                PERSIST:    NO       INSRVMOD:   NO
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 9 }
+
+dot1agCfmMepLowPrDef OBJECT-TYPE
+    SYNTAX      Dot1agCfmLowestAlarmPri
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "An integer value specifying the lowest priority defect 
+         that is allowed to generate fault alarm.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { macRemErrXcon }
+    ::= { dot1agCfmMepEntry 10 }
+
+dot1agCfmMepFngAlarmTime OBJECT-TYPE
+    SYNTAX      TimeInterval 
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The time that defects must be present before a Fault Alarm is
+         issued (fngAlarmTime. 20.33.3) (default 2.5s).
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { 250 }
+    ::= { dot1agCfmMepEntry 11 }
+
+dot1agCfmMepFngResetTime OBJECT-TYPE
+    SYNTAX      TimeInterval 
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The time that defects must be absent before re-enabling a
+         Fault Alarm (fngResetTime, 20.33.4) (default 10s).
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { 1000 }
+    ::= { dot1agCfmMepEntry 12 }
+
+dot1agCfmMepHighestPrDefect OBJECT-TYPE
+    SYNTAX      Dot1agCfmHighestDefectPri
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The highest priority defect that has been present since the
+         MEPs Fault Notification Generator State Machine was last in
+         the FNG_RESET state.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 13 }
+
+dot1agCfmMepDefects OBJECT-TYPE
+    SYNTAX      Dot1agCfmMepDefects
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "A vector of Boolean error conditions from Table 20-1, any of
+         which may be true:
+         
+         DefRDICCM(0)
+         DefMACstatus(1)
+         DefRemoteCCM(2)
+         DefErrorCCM(3)
+         DefXconCCM(4)
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 14 }
+
+dot1agCfmMepErrorCcmLastFailure OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(1..1522))
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The last-received CCM that triggered an DefErrorCCM fault.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 15 }
+
+dot1agCfmMepXconCcmLastFailure OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(1..1522))
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The last-received CCM that triggered a DefXconCCM fault.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 16 }
+
+dot1agCfmMepCcmSequenceErrors OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The total number of out-of-sequence CCMs received from all
+         remote MEPs.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 17 }
+
+dot1agCfmMepCciSentCcms OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Total number of Continuity Check messages transmitted.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 18 }
+
+dot1agCfmMepNextLbmTransId OBJECT-TYPE
+    SYNTAX      Gauge
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Next sequence number/transaction identifier to be sent in a
+         Loopback message. This sequence number can be zero because
+         it wraps around.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 19 }
+
+dot1agCfmMepLbrIn OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Total number of valid, in-order Loopback Replies received.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 20 }
+
+dot1agCfmMepLbrInOutOfOrder OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The total number of valid, out-of-order Loopback Replies
+         received.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 21 }
+
+dot1agCfmMepLbrBadMsdu OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "(optional) The total number of LBRs received whose
+         mac_service_data_unit did not match (except for the OpCode)
+         that of the corresponding LBM (20.2.3).
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 22 }
+
+dot1agCfmMepLtmNextSeqNumber OBJECT-TYPE
+    SYNTAX      Gauge
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Next transaction identifier/sequence number to be sent in a
+         Linktrace message. This sequence number can be zero because
+         it wraps around.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 23 }
+
+dot1agCfmMepUnexpLtrIn OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The total number of unexpected LTRs received (20.39.1).
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 24 }
+
+dot1agCfmMepLbrOut OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Total number of Loopback Replies transmitted.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 25 }
+
+dot1agCfmMepTransmitLbmStatus OBJECT-TYPE
+    SYNTAX      TruthValue
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "A Boolean flag set to true by the bridge port to indicate
+         that another LBM may be transmitted. 
+         Reset to false by the MEP Loopback Initiator State Machine.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+    DEFVAL      { true }
+    ::= { dot1agCfmMepEntry 26 }
+
+dot1agCfmMepTransmitLbmDestMacAddress OBJECT-TYPE
+    SYNTAX      MacAddress
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Target MAC Address Field to be transmitted: A unicast
+         destination MAC address.
+         This address will be used if the value of the column
+         dot1agCfmMepTransmitLbmDestIsMepId is 'false'.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 27 }
+
+dot1agCfmMepTransmitLbmDestMepId OBJECT-TYPE
+    SYNTAX      Dot1agCfmMepIdOrZero
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Maintenance association End Point Identifier of another
+         MEP in the same Maintenance Association to which the LBM is
+         to be sent.
+         This address will be used if the value of the column
+         dot1agCfmMepTransmitLbmDestIsMepId is 'true'.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 28 }
+
+dot1agCfmMepTransmitLbmDestIsMepId OBJECT-TYPE
+    SYNTAX      TruthValue
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "True indicates that MEPID of the target MEP is used for
+         Loopback transmission.
+         False indicates that unicast destination MAC address of the
+         target MEP is used for Loopback transmission.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 29 }
+
+dot1agCfmMepTransmitLbmMessages OBJECT-TYPE
+    SYNTAX      INTEGER (1..1024)
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The number of Loopback messages to be transmitted.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { 1 }
+    ::= { dot1agCfmMepEntry 30 }
+
+dot1agCfmMepTransmitLbmDataTlv OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(0..1500))
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "An arbitrary amount of data to be included in the Data TLV,
+         if the Data TLV is selected to be sent.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 31 }
+
+dot1agCfmMepTransmitLbmVlanPriority OBJECT-TYPE
+    SYNTAX      INTEGER (0..7)
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "Priority. 3 bit value to be used in the VLAN tag, if present
+         in the transmitted frame.
+         
+         The default value is CCM priority.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 32 }
+
+dot1agCfmMepTransmitLbmVlanDropEnable OBJECT-TYPE
+    SYNTAX      TruthValue
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "Drop Enable bit value to be used in the VLAN tag, if present
+         in the transmitted frame.
+         
+         For more information about VLAN Drop Enable, please check
+         IEEE 802.1ad.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { true }
+    ::= { dot1agCfmMepEntry 33 }
+
+dot1agCfmMepTransmitLbmResultOK OBJECT-TYPE
+    SYNTAX      TruthValue
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Indicates the result of the operation:
+         
+         - true       The Loopback Message(s) will be
+                      (or has been) sent.
+         - false      The Loopback Message(s) will not
+                      be sent.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { true }
+    ::= { dot1agCfmMepEntry 34 }
+
+dot1agCfmMepTransmitLbmSeqNumber OBJECT-TYPE
+    SYNTAX      Gauge
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Loopback Transaction Identifier
+         (dot1agCfmMepNextLbmTransId) of the first LBM (to be) sent.
+          The value returned is undefined if
+          dot1agCfmMepTransmitLbmResultOK is false.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 35 }
+
+dot1agCfmMepTransmitLtmStatus OBJECT-TYPE
+    SYNTAX      TruthValue
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "A Boolean flag set to true by the bridge port to indicate
+         that another LTM may be transmitted. 
+         Reset to false by the MEP Linktrace Initiator State Machine.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+    DEFVAL      { true }
+    ::= { dot1agCfmMepEntry 36 }
+
+dot1agCfmMepTransmitLtmFlags OBJECT-TYPE
+    SYNTAX      OCTET STRING
+
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The flags field for LTMs transmitted by the MEP.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { '80'H }
+    ::= { dot1agCfmMepEntry 37 }
+
+dot1agCfmMepTransmitLtmTargetMacAddress OBJECT-TYPE
+    SYNTAX      MacAddress
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Target MAC Address Field to be transmitted: A unicast
+         destination MAC address.
+         This address will be used if the value of the column
+         dot1agCfmMepTransmitLtmTargetIsMepId is 'false'.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 38 }
+
+dot1agCfmMepTransmitLtmTargetMepId OBJECT-TYPE
+    SYNTAX      Dot1agCfmMepIdOrZero
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "An indication of the Target MAC Address Field to be
+         transmitted:
+         The Maintenance association End Point Identifier of
+         another MEP in the same Maintenance Association
+         This address will be used if the value of the column
+         dot1agCfmMepTransmitLtmTargetIsMepId is 'true'.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 39 }
+
+dot1agCfmMepTransmitLtmTargetIsMepId OBJECT-TYPE
+    SYNTAX      TruthValue
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "True indicates that MEPID of the target MEP is used for
+         Linktrace transmission.
+         False indicates that unicast destination MAC address of the
+         target MEP is used for Loopback transmission.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 40 }
+
+dot1agCfmMepTransmitLtmTtl OBJECT-TYPE
+    SYNTAX      Gauge 
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The LTM TTL field. Default value, if not specified, is 64.
+         The TTL field indicates the number of hops remaining to the
+         LTM.  Decremented by 1 by each Linktrace Responder that
+         handles the LTM.  The value received in the LTM is returned
+         in the LTR.  If 0 on input, the LTM is not transmitted to the
+         next hop.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { 64 }
+    ::= { dot1agCfmMepEntry 41 }
+
+dot1agCfmMepTransmitLtmResult OBJECT-TYPE
+    SYNTAX      TruthValue
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Indicates the result of the operation:
+         
+         - true    The Linktrace Message will be (or has been) sent.
+         - false   The Linktrace Message will not be sent.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { true }
+    ::= { dot1agCfmMepEntry 42 }
+
+dot1agCfmMepTransmitLtmSeqNumber OBJECT-TYPE
+    SYNTAX      Gauge
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The LTM Transaction Identifier
+         (dot1agCfmMepLtmNextSeqNumber) of the LTM sent.
+         The value returned is undefined if
+         dot1agCfmMepTransmitLtmResult is false.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 43 }
+
+dot1agCfmMepTransmitLtmEgressIdentifier OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(8))
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "Identifies the MEP Linktrace Initiator that is originating,
+         or the Linktrace Responder that is forwarding, this LTM.
+         The low-order six octets contain a 48-bit IEEE MAC address
+         unique to the system in which the MEP Linktrace Initiator
+         or Linktrace Responder resides.  The high-order two octets
+         contain a value sufficient to uniquely identify the MEP
+         Linktrace Initiator or Linktrace Responder within that system.
+         
+         For most Bridges, the address of any MAC attached to the
+         Bridge will suffice for the low-order six octets, and 0 for
+         the high-order octets.  In some situations, e.g. if multiple
+         virtual Bridges utilizing emulated LANs are implemented in a
+         single physical system, the high-order two octets can be used
+         to differentiate among the transmitting entities.
+         
+         The value returned is undefined if
+         dot1agCfmMepTransmitLtmResult is false.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepEntry 44 }
+
+dot1agCfmMepRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The status of the row.
+         
+         The writable columns in a row can not be changed if the row
+         is active. All columns must have a valid value before a row
+         can be activated.
+         ALCATEL NOTE:
+                ACCESS:     NA       USAGE:      MAND 
+                PERSIST:    NO       INSRVMOD:   YES
+                RANGE:      NA       DEFVALUE:   NA
+                UNITS:      NA       SPARSE:     NA
+                DESCR:      NA"
+    ::= { dot1agCfmMepEntry 45 }
+
+dot1agCfmLtrTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF Dot1agCfmLtrEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "This table extends the MEP table and contains a list of
+         Linktrace replies received by a specific MEP in response to
+         a linktrace message.
+         
+         SNMP SMI does not allow to state in a MIB that an object in
+         a table is an array.  The solution is to take the index (or
+         indices) of the first table and add one or more indices.
+         ALCATEL NOTE:
+            TABLESIZE: N/A 
+            DESCR:     This Table is not supported in ISAM"
+
+    ::= { dot1agCfmMep 2 }
+
+dot1agCfmLtrEntry OBJECT-TYPE
+    SYNTAX      Dot1agCfmLtrEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Linktrace Reply table entry.
+         ALCATEL NOTE:
+            Row creation : N/A 
+            Row deletion : N/A 
+            Index usage  : N/A
+            lexicographical order : N/A 
+            This Entry is not supported in ISAM"
+    INDEX       { dot1agCfmMdIndex, dot1agCfmMaIndex, 
+                  dot1agCfmMepIdentifier, dot1agCfmLtrSeqNumber, 
+                  dot1agCfmLtrReceiveOrder }
+    ::= { dot1agCfmLtrTable 1 }
+
+Dot1agCfmLtrEntry ::= SEQUENCE {
+    dot1agCfmLtrSeqNumber                   Gauge,
+    dot1agCfmLtrReceiveOrder                Gauge,
+    dot1agCfmLtrTtl                         Gauge,
+    dot1agCfmLtrForwarded                   TruthValue,
+    dot1agCfmLtrTerminalMep                 TruthValue,
+    dot1agCfmLtrLastEgressIdentifier        OCTET STRING,
+    dot1agCfmLtrNextEgressIdentifier        OCTET STRING,
+    dot1agCfmLtrRelay                       Dot1agCfmRelayActionFieldValue,
+
+    dot1agCfmLtrManAddressDomain            TDomain,
+    dot1agCfmLtrManAddress                  TAddress,
+    dot1agCfmLtrIngress                     Dot1agCfmIngressActionFieldValue,
+    dot1agCfmLtrIngressMac                  MacAddress,
+
+    dot1agCfmLtrEgress                      Dot1agCfmEgressActionFieldValue,
+    dot1agCfmLtrEgressMac                   MacAddress,
+
+    dot1agCfmLtrOrganizationSpecificTlv     OCTET STRING
+}
+
+dot1agCfmLtrSeqNumber OBJECT-TYPE
+    SYNTAX      Gauge 
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "Transaction identifier/Sequence number returned by a previous
+         transmit linktrace message command, indicating which LTM's
+         response is going to be returned.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmLtrEntry 1 }
+
+dot1agCfmLtrReceiveOrder OBJECT-TYPE
+    SYNTAX      Gauge 
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "An index to distinguish among multiple LTRs with the same LTR
+         Transaction Identifier field value.  dot1agCfmLtrReceiveOrder
+         are assigned sequentially from 1, in the order that the
+         Linktrace Initiator received the LTRs.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmLtrEntry 2 }
+
+dot1agCfmLtrTtl OBJECT-TYPE
+    SYNTAX      Gauge 
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "TTL field value for a returned LTR.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmLtrEntry 3 }
+
+dot1agCfmLtrForwarded OBJECT-TYPE
+    SYNTAX      TruthValue
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Indicates if a LTM was forwarded by the responding MP, as
+         returned in the 'FwdYes' flag of the flags field.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmLtrEntry 4 }
+
+dot1agCfmLtrTerminalMep OBJECT-TYPE
+    SYNTAX      TruthValue
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "A boolean value stating whether the forwarded LTM reached a
+         MEP enclosing its MA, as returned in the Terminal MEP flag of
+         the Flags field.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmLtrEntry 5 }
+
+dot1agCfmLtrLastEgressIdentifier OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(8))
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "An octet field holding the Last Egress Identifier returned
+         in the LTR Egress Identifier TLV of the LTR.
+         The Last Egress Identifier identifies the MEP Linktrace 
+         Initiator that originated, or the Linktrace Responder that 
+         forwarded, the LTM to which this LTR is the response.  This
+         is the same value as the Egress Identifier TLV of that LTM.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmLtrEntry 6 }
+
+dot1agCfmLtrNextEgressIdentifier OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(8))
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "An octet field holding the Next Egress Identifier returned
+         in the LTR Egress Identifier TLV of the LTR.  The Next Egress
+         Identifier Identifies the Linktrace Responder that
+         transmitted this LTR, and can forward the LTM to the next
+         hop.  This is the same value as the Egress Identifier TLV of
+         the forwarded LTM, if any. If the FwdYes bit of the Flags
+         field is false, the contents of this field are undefined,
+         i.e. any value can be transmitted, and the field is ignored
+         by the receiver.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmLtrEntry 7 }
+
+dot1agCfmLtrRelay OBJECT-TYPE
+    SYNTAX      Dot1agCfmRelayActionFieldValue
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Value returned in the Relay Action field.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmLtrEntry 8 }
+
+dot1agCfmLtrManAddressDomain OBJECT-TYPE
+    SYNTAX      TDomain
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The TDomain that identifies the type and format of
+         the related dot1agCfmMepDbManAddress object, used to access
+         the SNMP agent of the system transmitting the LTR.  Received
+         in the LTR Sender ID TLV from that system.
+         
+         Typical values will be one of (not all inclusive) list:
+         
+            snmpUDPDomain          (from SNMPv2-TM, RFC3417)
+            snmpIeee802Domain      (from SNMP-IEEE802-TM-MIB, RFC4789)
+         
+         The value 'zeroDotZero' (from RFC2578) indicates 'no LTR
+         Sender ID TLV received', in which case the related object
+         dot1agCfmMepDbManAddress must have a zero-length OCTET STRING
+         as a value.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmLtrEntry 11 }
+
+dot1agCfmLtrManAddress OBJECT-TYPE
+    SYNTAX      TAddress
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The TAddress that can be used to access the SNMP
+         agent of the system transmitting the CCM, received in the CCM
+         Sender ID TLV from that system.
+         
+         If the related object dot1agCfmLtrManAddressDomain contains
+         the value 'zeroDotZero', this object dot1agCfmLtrManAddress
+         must have a zero-length OCTET STRING as a value.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmLtrEntry 12 }
+
+dot1agCfmLtrIngress OBJECT-TYPE
+    SYNTAX      Dot1agCfmIngressActionFieldValue
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The value returned in the Ingress Action Field of the LTM."
+
+    ::= { dot1agCfmLtrEntry 13 }
+
+dot1agCfmLtrIngressMac OBJECT-TYPE
+    SYNTAX      MacAddress
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "MAC address returned in the ingress MAC address field.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmLtrEntry 14 }
+
+dot1agCfmLtrEgress OBJECT-TYPE
+    SYNTAX      Dot1agCfmEgressActionFieldValue
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The value returned in the Egress Action Field of the LTM.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmLtrEntry 17 }
+
+dot1agCfmLtrEgressMac OBJECT-TYPE
+    SYNTAX      MacAddress
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "MAC address returned in the egress MAC address field.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmLtrEntry 18 }
+
+dot1agCfmLtrOrganizationSpecificTlv OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(0|4..1500))
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "All Organization specific TLVs returned in the LTR, if
+         any.  Includes all octets including and following the TLV
+         Length field of each TLV, concatenated together.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmLtrEntry 21 }
+
+dot1agCfmMepDbTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF Dot1agCfmMepDbEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The MEP Database. A database, maintained by every MEP, that
+         maintains received information about other MEPs in the
+         Maintenance Domain.
+         
+         The SMI does not allow to state in a MIB that an object in
+         a table is an array. The solution is to take the index (or
+         indices) of the first table and add one or more indices.
+         ALCATEL NOTE:
+            TABLESIZE: N/A 
+            DESCR:     This Table is not supported in ISAM"
+
+    ::= { dot1agCfmMep 3 }
+
+dot1agCfmMepDbEntry OBJECT-TYPE
+    SYNTAX      Dot1agCfmMepDbEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The MEP Database table entry.
+         ALCATEL NOTE:
+            Row creation : N/A 
+            Row deletion : N/A 
+            Index usage  : N/A
+            lexicographical order : N/A 
+            This Entry is not supported in ISAM"
+    INDEX       { dot1agCfmMdIndex, dot1agCfmMaIndex, 
+                  dot1agCfmMepIdentifier, dot1agCfmMepDbRMepIdentifier }
+    ::= { dot1agCfmMepDbTable 1 }
+
+Dot1agCfmMepDbEntry ::= SEQUENCE {
+    dot1agCfmMepDbRMepIdentifier        Dot1agCfmMepId,
+    dot1agCfmMepDbRMepState             Dot1agCfmRemoteMepState,
+    dot1agCfmMepDbRMepFailedOkTime      TimeStamp,
+    dot1agCfmMepDbMacAddress            MacAddress,
+    dot1agCfmMepDbRdi                   TruthValue,
+    dot1agCfmMepDbPortStatusTlv         Dot1agCfmPortStatus,
+    dot1agCfmMepDbInterfaceStatusTlv    Dot1agCfmInterfaceStatus,
+
+    dot1agCfmMepDbManAddressDomain      TDomain,
+    dot1agCfmMepDbManAddress            TAddress
+}
+
+dot1agCfmMepDbRMepIdentifier OBJECT-TYPE
+    SYNTAX      Dot1agCfmMepId
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "Maintenance association End Point Identifier of a remote MEP
+         whose information from the MEP Database is to be returned.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepDbEntry 1 }
+
+dot1agCfmMepDbRMepState OBJECT-TYPE
+    SYNTAX      Dot1agCfmRemoteMepState
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The operational state of the remote MEP IFF State machines.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepDbEntry 2 }
+
+dot1agCfmMepDbRMepFailedOkTime OBJECT-TYPE
+    SYNTAX      TimeStamp
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The time (SysUpTime) at which the IFF Remote MEP state machine
+         last entered either the RMEP_FAILED or RMEP_OK state.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepDbEntry 3 }
+
+dot1agCfmMepDbMacAddress OBJECT-TYPE
+    SYNTAX      MacAddress
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The MAC address of the remote MEP.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepDbEntry 4 }
+
+dot1agCfmMepDbRdi OBJECT-TYPE
+    SYNTAX      TruthValue
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "State of the RDI bit in the last received CCM (true for
+         RDI=1), or false if none has been received.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepDbEntry 5 }
+
+dot1agCfmMepDbPortStatusTlv OBJECT-TYPE
+    SYNTAX      Dot1agCfmPortStatus
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "An enumerated value of the Port status TLV received in the
+         last CCM from the remote MEP or the default value
+         psNoPortStateTLV indicating either no CCM has been received,
+         or that nor port status TLV was received in the last CCM.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { psNoPortStateTLV }
+    ::= { dot1agCfmMepDbEntry 6 }
+
+dot1agCfmMepDbInterfaceStatusTlv OBJECT-TYPE
+    SYNTAX      Dot1agCfmInterfaceStatus
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "An enumerated value of the Interface status TLV received
+         in the last CCM from the remote MEP or the default value
+         isNoInterfaceStatus TLV indicating either no CCM has been
+         received, or that no interface status TLV was received in
+         the last CCM.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    DEFVAL      { isNoInterfaceStatusTLV }
+    ::= { dot1agCfmMepDbEntry 7 }
+
+dot1agCfmMepDbManAddressDomain OBJECT-TYPE
+    SYNTAX      TDomain
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The TDomain that identifies the type and format of
+         the related dot1agCfmMepDbManAddress object, used to access
+         the SNMP agent of the system transmitting the CCM.  Received
+         in the CCM Sender ID TLV from that system.
+         
+         Typical values will be one of (not all inclusive) list:
+         
+            snmpUDPDomain          (from SNMPv2-TM, RFC3417)
+            snmpIeee802Domain      (from SNMP-IEEE802-TM-MIB, RFC4789)
+         
+         The value 'zeroDotZero' (from RFC2578) indicates 'no LTR
+         Sender ID TLV received', in which case the related object
+         dot1agCfmMepDbManAddress must have a zero-length OCTET STRING
+         as a value.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepDbEntry 10 }
+
+dot1agCfmMepDbManAddress OBJECT-TYPE
+    SYNTAX      TAddress
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The TAddress that can be used to access the SNMP
+         agent of the system transmitting the CCM, received in the CCM
+         Sender ID TLV from that system.
+         
+         If the related object dot1agCfmMepDbManAddressDomain contains
+         the value 'zeroDotZero', this object dot1agCfmMepDbManAddress
+         must have a zero-length OCTET STRING as a value.
+         ALCATEL NOTE:
+            ACCESS:      NA            USAGE:       NA
+            PERSIST:     NA            INSRVMOD:    NA
+            RANGE:       NA            DEFVALUE:    NA
+            UNITS:       NA            SPARSE:      NA
+            DESCR:       This object is not supported in ISAM"
+
+    ::= { dot1agCfmMepDbEntry 11 }
+
+dot1agCfmCompliances OBJECT IDENTIFIER
+    ::= { dot1agCfmConformance 1 }
+
+dot1agCfmGroups OBJECT IDENTIFIER
+    ::= { dot1agCfmConformance 2 }
+
+dot1agCfmStackGroup OBJECT IDENTIFIER
+    ::= { dot1agCfmGroups 1 }
+
+dot1agCfmDefaultMdGroup OBJECT IDENTIFIER
+    ::= { dot1agCfmGroups 2 }
+
+dot1agCfmVlanIdGroup OBJECT IDENTIFIER
+    ::= { dot1agCfmGroups 3 }
+
+dot1agCfmConfigErrorListGroup OBJECT IDENTIFIER
+    ::= { dot1agCfmGroups 4 }
+
+dot1agCfmMdGroup OBJECT IDENTIFIER
+    ::= { dot1agCfmGroups 5 }
+
+dot1agCfmMaGroup OBJECT IDENTIFIER
+    ::= { dot1agCfmGroups 6 }
+
+dot1agCfmMepGroup OBJECT IDENTIFIER
+    ::= { dot1agCfmGroups 7 }
+
+dot1agCfmMepDbGroup OBJECT IDENTIFIER
+    ::= { dot1agCfmGroups 8 }
+
+dot1agCfmNotificationsGroup OBJECT IDENTIFIER
+    ::= { dot1agCfmGroups 9 }
+
+dot1agCfmCompliance OBJECT IDENTIFIER
+    ::= { dot1agCfmCompliances 1 }
+
+END 
+
+
+-- orig VoiceHost-MIB
+
+    VoiceHost-MIB DEFINITIONS ::= BEGIN
+
+        IMPORTS
+            InetAddressType, InetAddress, InetAddressPrefixLength,InetPortNumber
+                FROM INET-ADDRESS-MIB			
+            InterfaceIndex, ifIndex		
+                FROM ITF-MIB	
+            OBJECT-TYPE	
+                FROM RFC-1212			
+            RowStatus			
+                FROM SNMPv2-TC	
+            asam, alcatel		
+                FROM SYSTEM-MIB;
+
+        voiceHostMIB OBJECT IDENTIFIER ::= { asam 79 }
+
+        hostZInterface OBJECT IDENTIFIER ::= { voiceHostMIB 1}
+
+    hostServiceTermActionTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF HostServiceTermActionEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+                "The hostServiceTermAction  table."
+            ::= {  hostZInterface 1 } 
+		
+    hostServiceTermActionEntry OBJECT-TYPE
+            SYNTAX HostServiceTermActionEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+                "Each entry containing the information of a termination" 
+            INDEX { hsTermItfId, hsTermActionType }
+            ::= { hostServiceTermActionTable 1 }
+
+    HostServiceTermActionEntry ::=    SEQUENCE 
+            { 
+            hsTermItfId              INTEGER,
+            hsTermActionType         INTEGER,
+            hsTermActionIntValue     INTEGER,
+            hsTermActionStrValue     OCTET STRING
+            }
+		
+    hsTermItfId OBJECT-TYPE
+        SYNTAX INTEGER (0..4294967295)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Interface id of the termination, which is one of the INDEX of this entry.
+            ALCATEL NOTE:
+                SUPPORT:    YES
+                PERSIST:    NO 
+                INSRVMOD:   NA
+                RANGE:      (0..4294967295)
+                DEFVALUE:   NA
+                UNITS:      NA "
+        ::= { hostServiceTermActionEntry 1 }
+
+    hsTermActionType OBJECT-TYPE
+        SYNTAX INTEGER (0..4294967295) 
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            " Action type to the termination, which is one of the INDEX of this entry.
+            ALCATEL NOTE:
+                SUPPORT:    YES
+                PERSIST:    NO 
+                INSRVMOD:   YES
+                RANGE:      (0..4294967295)	
+                DEFVALUE:   NA
+                UNITS:      NA				 "
+        ::= { hostServiceTermActionEntry 2}
+
+    hsTermActionIntValue OBJECT-TYPE
+        SYNTAX INTEGER 
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            " Action value of integer type corresponding to the hsTermActionType.
+            ALCATEL NOTE:
+                SUPPORT:    YES
+                PERSIST:    NO	
+                INSRVMOD:   NO
+                RANGE:      NA  
+                DEFVALUE:   NA
+                UNITS:      NA				 "
+        ::= { hostServiceTermActionEntry 3 }
+
+    hsTermActionStrValue OBJECT-TYPE
+        SYNTAX OCTET STRING (SIZE (0..64))
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "  Action value of string type corresponding to the hsTermActionType
+            ALCATEL NOTE:
+                SUPPORT:    YES
+                PERSIST:    NO	
+                INSRVMOD:   YES
+                RANGE:      SIZE (0..64)
+                DEFVALUE:   '' 
+                UNITS:      NA "
+        DEFVAL { "" }
+        ::= { hostServiceTermActionEntry 4 }
+
+	END
+
+
+-- orig rfc2127.mib
+
+ISDN-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+
+			OBJECT-TYPE			
+				FROM RFC-1212			
+        DisplayString,
+        TruthValue,
+        TimeStamp,
+        RowStatus,
+        TestAndIncr 
+
+                 FROM SNMPv2-TC
+        ifIndex,
+        InterfaceIndex
+
+                FROM ITF-MIB
+        IANAifType
+                FROM IANAifType-MIB
+        transmission
+                FROM RFC1213-MIB;
+
+isdnMib OBJECT IDENTIFIER ::= { transmission 20 }
+
+isdnMibObjects OBJECT IDENTIFIER ::= { isdnMib 1 }
+
+isdnBasicRateGroup      OBJECT IDENTIFIER ::= { isdnMibObjects 1 }
+
+isdnBasicRateTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF IsdnBasicRateEntry
+
+		ACCESS not-accessible
+		STATUS mandatory
+        DESCRIPTION
+
+            "Table containing configuration and operational
+             parameters for all physical Basic Rate
+             interfaces on this managed device
+             ALCATEL NOTE: 
+             SUPPORT: NO 
+             PERSIST: NA 
+             INSRVMOD: NA 
+             RANGE: NA 
+             DEFVALUE: NA 
+             UNITS: NA ."
+        ::= { isdnBasicRateGroup 1 }
+
+isdnBasicRateEntry OBJECT-TYPE
+        SYNTAX      IsdnBasicRateEntry
+
+        ACCESS  not-accessible
+        STATUS      mandatory
+        DESCRIPTION
+            "An entry in the ISDN Basic Rate Table
+             ALCATEL NOTE: 
+             SUPPORT: NO 
+             PERSIST: NA 
+             INSRVMOD: NA 
+             RANGE: NA 
+             DEFVALUE: NA 
+             UNITS: NA."
+        INDEX { ifIndex }
+        ::= { isdnBasicRateTable 1 }
+
+IsdnBasicRateEntry ::= SEQUENCE {
+
+            isdnBasicRateLineTopology   INTEGER
+
+        }
+
+isdnBasicRateLineTopology OBJECT-TYPE
+        SYNTAX      INTEGER {
+            pointToPoint(1),
+            pointToMultipoint(2)
+        }
+
+        ACCESS  read-write
+        STATUS      mandatory
+        DESCRIPTION
+            "The line topology to be used for this interface.
+             Note that setting isdnBasicRateIfType to isdns(75)
+             does not necessarily mean a line topology of
+
+             point-to-multipoint
+             ALCATEL NOTE: 
+             SUPPORT: NO 
+             PERSIST: YES 
+             INSRVMOD: NO 
+             RANGE: 1 ! 2 
+             DEFVALUE: NA 
+             UNITS: NA."
+        ::= { isdnBasicRateEntry 2 }
+
+END
+
+-- orig WECU_MIB
+
+WECU-MIB DEFINITIONS ::= BEGIN
+
+   IMPORTS
+           OBJECT-TYPE
+ 			       FROM RFC-1212
+           RowStatus, TruthValue, DisplayString
+      			       FROM SNMPv2-TC
+   	   Counter, enterprises, TimeTicks
+       			       FROM RFC1155-SMI
+    	   ifIndex
+        		       FROM ITF-MIB
+    	   asam
+        	               FROM SYSTEM-MIB;
+
+    wecuMIB OBJECT IDENTIFIER ::= { asam 66 }
+
+    WettingCurrentConfig ::= INTEGER {
+		enabled(1),
+		disabled(2)
+    }
+
+    WettingCurrentState ::= INTEGER {
+		enabled(1),
+		disabled(2)
+    }
+
+    wettingCurrentTable OBJECT-TYPE
+       SYNTAX  SEQUENCE OF WettingCurrentEntry
+       ACCESS  not-accessible
+       STATUS  mandatory
+       DESCRIPTION
+          "This table supports configuration of wetting current per line."         
+       ::= { wecuMIB 1 }
+
+    wettingCurrentEntry OBJECT-TYPE
+       SYNTAX  WettingCurrentEntry
+       ACCESS  not-accessible
+       STATUS  mandatory
+       DESCRIPTION
+          "An entry in this table corresponds the wetting current
+           configuration and state of a line. This table only suitable for
+           the DSL physical line. 
+           The entry is indexed by the ifIndex."
+        
+       INDEX   { ifIndex }
+       ::= { wettingCurrentTable 1 }
+
+    WettingCurrentEntry ::= SEQUENCE {
+       wettingCurrentConfig              WettingCurrentConfig,
+       wettingCurrentState               WettingCurrentState,
+       wettingCurrentPulseDuration	  INTEGER,
+
+       wettingCurrentPulseAmplitude      INTEGER,
+
+       wettingCurrentResult              INTEGER,
+       wettingCurrentPulseInterval       INTEGER
+    }
+
+    wettingCurrentConfig OBJECT-TYPE
+       SYNTAX  WettingCurrentConfig
+       ACCESS  read-write
+       STATUS  mandatory
+       DESCRIPTION
+          "This object configures wetting current on a line. 
+           ALCATEL NOTE:
+              SUPPORT: YES   INSRVMOD: NA   	RANGE: [1,2]
+              PERSIST: YES   DEFVALUE: 2 	UNITS: -"
+       ::= { wettingCurrentEntry 1 }
+
+    wettingCurrentState OBJECT-TYPE
+       SYNTAX  WettingCurrentState
+       ACCESS  read-only
+       STATUS  mandatory
+       DESCRIPTION 
+          "This object provides the state of the wetting current on a  line. 
+           ALCATEL NOTE:
+              SUPPORT: YES   INSRVMOD: NA 	RANGE: [1,2]
+              PERSIST: NO    DEFVALUE: 2	UNITS: -"
+       ::= { wettingCurrentEntry 2 }
+ 
+    wettingCurrentPulseDuration OBJECT-TYPE
+       SYNTAX  INTEGER (-1|22..250)
+       ACCESS  read-write
+       STATUS  mandatory
+       DESCRIPTION 
+       	  "This object provides the duration of the pulse in 0.1 second. Valid            values are nonnegative integer and -1. If set to -1, the value                 wettingCurrentDefaultPulseDuration is taken by the system.
+           For any other value, badvalue will be returned.
+           ALCATEL NOTE:
+              SUPPORT: YES   INSRVMOD: YES   	RANGE: [22..250] and -1
+              PERSIST: YES   DEFVALUE: -1      	UNITS: 0.1s"
+       ::= { wettingCurrentEntry 3 }
+ 
+   wettingCurrentResult OBJECT-TYPE
+      SYNTAX  INTEGER 
+    		{
+			fail(0),
+			success(1),
+			pending(2)
+		}
+      ACCESS  read-only
+      STATUS  mandatory
+      DESCRIPTION 
+         "Stores the result of the last attempt to put wetting current on the 
+          line.
+          ALCATEL NOTE:
+             SUPPORT: YES   INSRVMOD: NA   	RANGE: [0,1]
+             PERSIST: NO    DEFVALUE:1		UNITS: -"
+      ::= { wettingCurrentEntry 6 }
+
+    wettingCurrentPulseAmplitude   OBJECT-TYPE
+       SYNTAX                  INTEGER (-1|1..20)
+       ACCESS                  read-write
+       STATUS                  mandatory
+       DESCRIPTION 
+          "This object indicates the amplitude of the wetting current applied 
+           to the physical Line.
+
+           ALCATEL NOTE: 
+              SUPPORT: YES   INSRVMOD:YES  	RANGE: -1|[1..20]
+              PERSIST: YES   DEFVALUE: -1	UNITS: 0.1mA"
+       ::= { wettingCurrentEntry 7 }
+
+    wettingCurrentPulseInterval   OBJECT-TYPE
+       SYNTAX                  INTEGER (-1|1..24)
+       ACCESS                  read-write
+       STATUS                  mandatory
+       DESCRIPTION 
+          "This object indicates the time interval of the wetting current                 applied to the physical Line.
+
+           ALCATEL NOTE: 
+              SUPPORT: YES   INSRVMOD:YES  	RANGE: -1|[1..24]
+              PERSIST: YES   DEFVALUE: -1	UNITS: 1hour"
+       ::= { wettingCurrentEntry 8 }
+
+   wettingCurrentDefaultPulseDuration OBJECT-TYPE
+      SYNTAX  INTEGER (22..250)
+      ACCESS  read-write
+      STATUS  mandatory
+      DESCRIPTION 
+         "This object provides the default duration of the pulse in seconds.             If wettingCurrentPulseDuration is set to -1,                                   the wettingCurrentDefaultPulseDuration is taken.
+          ALCATEL NOTE:
+             SUPPORT: YES   INSRVMOD: YES   	RANGE: [22..250]
+             PERSIST: YES   DEFVALUE: 40	UNITS: 0.1second"
+         
+      ::= { wecuMIB 2 }
+
+   wettingCurrentDefaultPulseAmplitude  OBJECT-TYPE
+      SYNTAX                  INTEGER (1..20)
+      ACCESS                  read-write
+      STATUS                  mandatory
+      DESCRIPTION 
+         "This object provides the default amplitude of the wetting current in           mA.If the wettingCurrentPulseAmplitude is set to -1, the
+          wettingCurrentDefaultPulseAmplitudeis taken.
+
+          ALCATEL NOTE: 
+             SUPPORT: YES   INSRVMOD: YES       RANGE: [1..20]
+             PERSIST: YES   DEFVALUE: 10	UNITS: 0.1mA"
+      ::= { wecuMIB 4 }
+
+   wettingCurrentDefaultPulseInterval   OBJECT-TYPE
+      SYNTAX                  INTEGER (1..24)
+      ACCESS                  read-write
+      STATUS                  mandatory
+      DESCRIPTION 
+         "This object provides the default time interval of the wetting current          in hours. If the wettingCurrentPulseInterval is set to -1, the
+          wettingCurrentDefaultPulseInterval is taken.
+
+          ALCATEL NOTE: 
+             SUPPORT: YES   INSRVMOD: YES   		RANGE: [1..24]
+             PERSIST: YES	   DEFVALUE: 6			UNITS: 1hour"
+      ::= { wecuMIB 5 }
+
+END

@@ -1,0 +1,1376 @@
+--
+-- Cadant CMTS PacketCable MIB
+--
+
+CADANT-CMTS-PACKETCABLE-MIB DEFINITIONS ::= BEGIN
+
+
+IMPORTS
+    MODULE-IDENTITY,
+    OBJECT-TYPE,
+    Integer32,
+    IpAddress,
+    Unsigned32,
+    Counter32
+        FROM SNMPv2-SMI
+
+    TEXTUAL-CONVENTION,
+    RowStatus,
+    TruthValue,
+    DisplayString,
+    TimeStamp
+        FROM SNMPv2-TC
+
+    ifIndex,
+    InterfaceIndex
+        FROM IF-MIB
+    IfDirection
+        FROM DOCS-QOS3-MIB
+
+    cadCable
+        FROM CADANT-PRODUCTS-MIB
+
+    CardId,
+    AdminState
+        FROM CADANT-TC
+
+    cadOvSysCpuStatus
+        FROM CADANT-CMTS-PROCESS-MIB
+
+    cadIfCmtsCardNumber
+        FROM CADANT-CMTS-DOWNCHANNEL-MIB;
+
+cadPCMIB   MODULE-IDENTITY
+        
+
+    LAST-UPDATED    "201512210000Z" -- December 21, 2015
+    ORGANIZATION    "Arris Internaional"
+    CONTACT-INFO    "Kathy Ashe"
+    DESCRIPTION     "PacketCable general-purpose management MIB. This MIB
+                     contains objects which are specific to PacketCable but
+                     not covered in any of the more-specialized MIBS."
+
+    REVISION        "201512210000Z" -- December 21, 2015
+    DESCRIPTION     "Add cadPCPEPIDHostname"
+
+    REVISION        "201108040000Z" -- Aug 4, 2011
+    DESCRIPTION     "Replace cerCardId with cadPCCardId in cadPCCAMEntry.
+                     Replace cerCardId with cadPCConnRateOverloadRejCardId in cadPCConnRateOverloadRejEntry."
+
+    REVISION        "201107260000Z" -- July 26, 2011
+    DESCRIPTION     "Replace cardId with cerCardId"
+
+    REVISION        "200902260000Z" -- February 26, 2009
+    DESCRIPTION     "For DQOS1.5-N-06.0339-4, added cadPCSendSubId."
+
+    REVISION        "200711120000Z" -- November 12, 2007
+    DESCRIPTION     "Removed cadPCAuthModuleEnabled. No longer needed in R7.0.
+                     For I-CMTS, added cadPCCAMCblMacTable for populating 12U cards"
+
+    REVISION        "200710240000Z" -- October 24, 2007
+    DESCRIPTION     "Move from cadExperimental tree to cadCable in the hierarchy"
+
+    REVISION        "200709060000Z" -- September 6, 2007
+    DESCRIPTION     "Replace DOCS-QOS-MIB with DOCS-QOS3-MIB"
+
+    REVISION        "200508100000Z" -- August 10, 2005
+    DESCRIPTION     "Add admission control for PacketCable MultiMedia."
+
+    REVISION        "200505160000Z" -- May 16, 2005
+    DESCRIPTION     "For bug 68227, added gateReportState to CadPCGateCtlCountEntry opcodes. Steve Nolle"
+
+    REVISION        "200411100000Z" -- November 10, 2004
+    DESCRIPTION     "Add MIB entries for improved deployment troubleshooting (phase 1)"
+
+    REVISION        "200410040000Z" -- October 4, 2004
+    DESCRIPTION     "Obsoleting cadPCMaxOverloadCalls, cadPCMaxYellowOverloadCalls,
+                     and cadPCMaxRedOverloadCalls and replacing them with
+                     cadPCMaxOverloadGateMsgs, cadPCMaxYellowOverloadGateMsgs, and
+                     cadPCMaxRedOverloadGateMsgs."
+
+    REVISION        "200402190000Z" -- February 19, 2004
+    DESCRIPTION     "Change defaults to match those in down/up channel mibs."
+
+    REVISION        "200402180000Z" -- February 18, 2004
+    DESCRIPTION     "Change preemption default to true."
+
+    REVISION        "200402150000Z" -- February 15, 2004
+    DESCRIPTION     "Rename some variables to support setting channel
+                     default values from the global settings."
+
+    REVISION        "200309040000Z" -- September 4, 2003
+    DESCRIPTION     "Add cadPCMaxRedOverloadDSaCalls, cadPCMaxYellowOverloadDSaCalls,
+                    and cadPCMaxOverloadDSaCalls -- by Brian Barker"
+         
+    REVISION        "200307280000Z" -- July 25, 2003
+    DESCRIPTION     "Add cadPCMaxRedOverloadCalls, cadPCMaxYellowOverloadCalls,
+                    and cadPCMaxOverloadCalls -- by Steve Nolle"
+
+    REVISION        "200305200000Z" --  May 20, 2003
+    DESCRIPTION     "Add cadPCAdminState, obsoleted cadPCMixedDQoSFlag"
+
+    REVISION        "200208260000Z" -- August 26, 2002
+    DESCRIPTION     "Put cadPCAuthModuleEnabled into a table to make it per-CAM"
+
+    REVISION        "200107240000Z" -- July 24, 2001
+    DESCRIPTION     "Original Version"
+
+        ::= { cadCable 115 }
+
+
+CadPCAnomalyCode ::= TEXTUAL-CONVENTION
+    STATUS          current
+    DESCRIPTION     "Corresponds to the PacketCable Reason and PacketCable 
+                     Error codes documented in PKT-SP-DQOS-I06-030415.
+         
+                     To get index for PacketCable Error, mask off the low-order 
+                     16-bit Error Sub-code.
+                    
+                     The PacketCable Reasons match the combination Reason-Code 
+                     and Reason Sub-code.
+         
+                     Normal operation is not pegged and therefor is not 
+                     included below."
+    SYNTAX INTEGER {
+        deletedLocalGateCoordinationFailure     (1),        -- 0x00000001
+        deletedRemoteGateCoordinationFailure    (2),        -- 0x00000002
+        deletedRevokedAuthorization             (3),        -- 0x00000003
+        deletedUnexpectedGateOpen               (4),        -- 0x00000004
+        deletedLocalGateCloseFailure            (5),        -- 0x00000005
+        deletedUnknownReason                    (127),      -- 0x0000007f
+        failedNoGatesAvailable                  (65535),    -- 0x00010000
+        closedPreemptionOfResources             (65537),    -- 0x00010001
+        closedLackOfReservationMaintenance      (65538),    -- 0x00010002
+        closedMTADeregistration                 (65539),    -- 0x00010003
+        closedTimerT0Expiry                     (65540),    -- 0x00010004
+        closedTimerT1Rxpiry                     (65541),    -- 0x00010005
+        closedTimerT7Rxpiry                     (65542),    -- 0x00010006
+        closedTimerT8Rxpiry                     (65543),    -- 0x00010007
+        closedUnknownReason                     (65663),    -- 0x0001007f
+        failedUnknownGateId                     (131072),   -- 0x00020000
+        failedIllegalSessionClassValue          (196608),   -- 0x00030000
+        failedMTAExceededGateLimit              (262144),   -- 0x00040000
+        failedGateAlreadySet                    (327680),   -- 0x00050000
+        failedMissingRequiredObject             (393216),   -- 0x00060000
+        failedInvalidObject                     (458752),   -- 0x00070000
+        failedUnknownReason                     (8323072)   -- 0x007f0000
+    }
+
+CadPCAdmCtlPriority ::= TEXTUAL-CONVENTION
+    STATUS          current
+    DESCRIPTION     "Symbolic description of CAC priority levels for PacketCable
+                     sessions.  Note that the MIB values are one greater than
+                     the Session Class priority values defined in the
+                     PacketCable MultiMedia Specification."
+    SYNTAX INTEGER {
+        eightPriority     (1),
+        seventhPriority   (2),
+        sixthPriority     (3),
+        fifthPriority     (4),
+        fourthPriority    (5),
+        thirdPriority     (6),
+        secondPriority    (7),
+        firstPriority     (8)
+    }
+
+cadPCMibObjects OBJECT IDENTIFIER ::= { cadPCMIB 1 }
+cadPCMibBase OBJECT IDENTIFIER ::= { cadPCMibObjects 1 }
+
+--==============================================================================
+--
+-- Resource Usage Limits
+--
+-- There are two admission policies that must be implemented. One is for general 
+-- telephony use, the otheris for higher priority (E911) use. The upstream and 
+-- downstream portions of a particular policy are managed independently. The 
+-- policies may overlap or they may be disjoint.
+--
+--  The bandwidth map would look like
+--
+--  0.......................................................................100
+--  |======NormMin=====|
+--  |================NormMax===========|
+--                     |==EmergMin==|
+--                     |========EmergMax=======|
+--
+--
+--  If all minimums are zero, the bandwidth map would look like:
+--
+--  0.......................................................................100
+--  |================NormMax===========|
+--  |===============EmergMax=============|
+--
+--  Notice that there are cases when invalid combinations may result. Therefore,
+--  the following rules MUST be enforced
+--
+--  NormMin MUST be less than or equal to NormMax
+--
+--  EmergMin MUST be less than or equal to EmergMax
+--
+--  NormMin + EmergMin MUST be less than or equal to Total Allowed
+--
+--      
+--
+--==============================================================================
+
+cadPCPreemptionAllowed OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Indicates whether the system will preempt another 
+                     session for an emergency call."
+    DEFVAL          { true }
+    ::= { cadPCMibBase 3 }
+    
+cadPCUpNormAllowedUsage OBJECT-TYPE
+    SYNTAX          INTEGER (0..100)
+    UNITS           "percent"       
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Maximum percentage of upstream resources that may be used by
+                     non-emergency telephony services. This is also the maximum 
+                     amount of resources non-exclusively allocated to sessions of 
+                     this type"
+    REFERENCE       "Cadant CMTS Requirements for PacketCable requirement 3.3.3.0.2"
+    DEFVAL          { 50 }
+    ::= { cadPCMibBase 4 }
+
+cadPCUpNormResUsage OBJECT-TYPE
+    SYNTAX          INTEGER (0..100)
+    UNITS           "percent"       
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Minimum percentage of upstream resources that may be used by
+                     non-emergency telephony services. This is also the maximum amount 
+                     of resources exclusively allocated to sessions of this type. If
+                     the value of this object is non-zero, then a portion of the upstream
+                     bandwidth will be set aside for normal telephony use only - reducing
+                     the bandwidth that is available for normal data."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+    DEFVAL          { 0 }
+    ::= { cadPCMibBase 5 }
+
+cadPCUpEmerAllowedUsage OBJECT-TYPE
+    SYNTAX          INTEGER (0..100)
+    UNITS           "percent"       
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Maximum percentage of upstream resources that may be used by
+                     emergency telephony services."
+    REFERENCE       "Cadant CMTS Requirements for PacketCable requirement 3.3.3.0.2"
+    DEFVAL          { 70 }
+    ::= { cadPCMibBase 6 }
+
+cadPCUpEmerResUsage OBJECT-TYPE
+    SYNTAX          INTEGER (0..100)
+    UNITS           "percent"       
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Minimum percentage of upstream resources that may be used by
+                     emergency telephony services. If the value of this object is 
+                     non-zero, then a portion of the upstream bandwidth will be set 
+                     aside for emercency telephony use only - reducing the bandwidth 
+                     that is available for normal data."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+    DEFVAL          { 0 }
+    ::= { cadPCMibBase 7 }
+
+cadPCDownNormAllowedUsage OBJECT-TYPE
+    SYNTAX          INTEGER (0..100)
+    UNITS           "percent"       
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Maximum percentage of downstream resources that may be used by
+                     non-emergency telephony services. This is also the maximum 
+                     amount of resources non-exclusively allocated to sessions of 
+                     this type"
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+    DEFVAL          { 50 }
+    ::= { cadPCMibBase 8 }
+
+cadPCDownNormResUsage OBJECT-TYPE
+    SYNTAX          INTEGER (0..100)
+    UNITS           "percent"       
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Minimum percentage of downstream resources that may be used by
+                     non-emergency telephony services. This is also the maximum amount 
+                     of resources exclusively allocated to sessions of this type. If
+                     the value of this object is non-zero, then a portion of the upstream
+                     bandwidth will be set aside for normal telephony use only - reducing
+                     the bandwidth that is available for normal data."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+    DEFVAL          { 0 }
+    ::= { cadPCMibBase 9 }
+
+cadPCDownEmerAllowedUsage OBJECT-TYPE
+    SYNTAX          INTEGER (0..100)
+    UNITS           "percent"       
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Maximum percentage of downstream resources that may be used by
+                     emergency telephony services."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+    DEFVAL          { 70 }
+    ::= { cadPCMibBase 10 }
+
+cadPCDownEmerResUsage OBJECT-TYPE
+    SYNTAX          INTEGER (0..100)
+    UNITS           "percent"       
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Minimum percentage of downstream resources that may be used by
+                     emergency telephony services. If the value of this object is non-zero, 
+                     then a portion of the upstream bandwidth will be set aside for normal 
+                     telephony use only - reducing the bandwidth that is available for 
+                     normal data."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+    DEFVAL          { 0 }
+    ::= { cadPCMibBase 11 }
+
+
+--=============================================================================
+--  cadPCCAMTable
+--
+--  The cadPCCAMTable provides the ability to manage PacketCable parameters on
+--  a per-CAM basis for 2D12U only.
+--
+--  All objects are read-write
+--
+--=============================================================================
+cadPCCAMTable   OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadPCCAMEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Table of Per-CAM PacketCable Data for 2D12U only"
+    ::= { cadPCMibBase 12 }
+
+cadPCCAMEntry   OBJECT-TYPE
+    SYNTAX      CadPCCAMEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "This entry contains all of the PacketCable data that
+                is to be managed on a per-CAM basis."
+    INDEX { cadPCCardId }    --  cardIds are 1-based!
+    ::= { cadPCCAMTable 1 }
+
+CadPCCAMEntry ::= SEQUENCE {
+    cadFreeDSxAllowed               TruthValue,
+    cadPCMaxOverloadDSaCalls        Unsigned32,
+    cadPCMaxYellowOverloadDSaCalls  Unsigned32,
+    cadPCMaxRedOverloadDSaCalls     Unsigned32,
+    cadPCCardId                         CardId
+    }
+
+cadFreeDSxAllowed OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Indicates whether the authorization module will allow a
+                    DOCSIS MAC Messaging Dynamic Services request (DSx) without
+                    a gate-ID in an authorization block."
+    DEFVAL          { true }
+    ::= { cadPCCAMEntry 1 }
+
+cadPCMaxOverloadDSaCalls  OBJECT-TYPE
+    SYNTAX          Unsigned32(1..10000)
+    UNITS           "connections per 10 seconds"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "the max number of connections we will allow per 10 second interval
+                           when the system cpu is in a normal condition, i.e. no overload."
+    DEFVAL          { 10000 }
+    ::= { cadPCCAMEntry 2 }
+
+cadPCMaxYellowOverloadDSaCalls  OBJECT-TYPE
+    SYNTAX          Unsigned32(1..10000)
+    UNITS           "connections per 10 seconds"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "the max number of connections we will allow per 10 second interval
+                           when the system cpu is in a yellow overload condition."
+    DEFVAL          { 10000 }
+    ::= { cadPCCAMEntry 3 }
+
+cadPCMaxRedOverloadDSaCalls  OBJECT-TYPE
+    SYNTAX          Unsigned32(1..10000)
+    UNITS           "connections per 10 seconds"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "the max number of connections we will allow per 10 second interval
+                           when the system cpu is in a red overload condition."
+    DEFVAL          { 3000 }
+    ::= { cadPCCAMEntry 4 }
+
+cadPCCardId OBJECT-TYPE
+        SYNTAX      CardId
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The unique id of this card within the shelf."
+    ::= { cadPCCAMEntry 5 }
+
+cadPCAdminState OBJECT-TYPE
+    SYNTAX          AdminState
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "The administrative state of PacketCable services on the CMTS."
+    DEFVAL          { down }
+    ::= { cadPCMibBase 13 }
+
+cadPCMaxOverloadCalls  OBJECT-TYPE
+    SYNTAX          Unsigned32(1..10000)
+    UNITS           "connections per 10 seconds"
+    MAX-ACCESS      read-write
+    STATUS          obsolete
+    DESCRIPTION     "the max number of connections we will allow per 10 second interval
+                           when the system cpu is in a normal condition, i.e. no overload."
+    DEFVAL          { 450 }
+    ::= { cadPCMibBase 14 }
+
+cadPCMaxYellowOverloadCalls  OBJECT-TYPE
+    SYNTAX          Unsigned32(1..10000)
+    UNITS           "connections per 10 seconds"
+    MAX-ACCESS      read-write
+    STATUS          obsolete
+    DESCRIPTION     "the max number of connections we will allow per 10 second interval
+                           when the system cpu is in a yellow overload condition."
+    DEFVAL          { 450 }
+    ::= { cadPCMibBase 15 }
+
+cadPCMaxRedOverloadCalls  OBJECT-TYPE
+    SYNTAX          Unsigned32(1..10000)
+    UNITS           "connections per 10 seconds"
+    MAX-ACCESS      read-write
+    STATUS          obsolete
+    DESCRIPTION     "the max number of connections we will allow per 10 second interval
+                           when the system cpu is in a red overload condition."
+    DEFVAL          { 41 }
+    ::= { cadPCMibBase 16 }
+
+cadPCDownTotalAllowedUsage OBJECT-TYPE
+    SYNTAX          INTEGER (0..100)
+    UNITS           "percent"       
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Maximum percentage of downstream resources that may be
+                     used by both normal and emergency telephony services."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+    DEFVAL          { 70 }
+    ::= { cadPCMibBase 17 }
+
+cadPCUpTotalAllowedUsage OBJECT-TYPE
+    SYNTAX          INTEGER (0..100)
+    UNITS           "percent"       
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Maximum percentage of upstream resources that may be
+                     used by both normal and emergency telephony services."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+    DEFVAL          { 70 }
+    ::= { cadPCMibBase 18 }
+
+cadPCMaxOverloadGateMsgs  OBJECT-TYPE
+    SYNTAX          Unsigned32(1..10000)
+    UNITS           "gate messages per 10 seconds"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "the max number of gate messages that the system will process per 10 
+                     second interval when the system cpu is in a normal condition, i.e. 
+                     no overload."
+    DEFVAL          { 900 }
+    ::= { cadPCMibBase 19 }
+
+cadPCMaxYellowOverloadGateMsgs  OBJECT-TYPE
+    SYNTAX          Unsigned32(1..10000)
+    UNITS           "gate messages per 10 seconds"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "the max number of gate messages that the system will process per 10 
+                     second interval when the system cpu is in a yellow overload condition."
+    DEFVAL          { 900 }
+    ::= { cadPCMibBase 20 }
+
+cadPCMaxRedOverloadGateMsgs  OBJECT-TYPE
+    SYNTAX          Unsigned32(1..10000)
+    UNITS           "gate messages per 10 seconds"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "the max number of gate messages that the system will process per 10 
+                     second interval when the system cpu is in a red overload condition."
+    DEFVAL          { 300 }
+    ::= { cadPCMibBase 21 }
+
+cadPCClearGateCounts  OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "set to true to clear the gate counts, always false when read"
+    DEFVAL          { false }
+    ::= { cadPCMibBase 25 }
+
+cadPCClearAnomalyCounts  OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "set to true to clear the anomaly counts, always false when read"
+    DEFVAL          { false }
+    ::= { cadPCMibBase 26 }
+
+cadPCClearConnRateOverloadCounts  OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "set to true to clear the connection rate overload counts, always false when read"
+    DEFVAL          { false }
+    ::= { cadPCMibBase 27 }
+
+cadPCClearEvMsgCounts  OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "set to true to clear the event messaging counts, always false when read"
+    DEFVAL          { false }
+    ::= { cadPCMibBase 28 }
+
+cadPCClearCopsCounts  OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "set to true to clear the COPS counts, always false when read"
+    DEFVAL          { false }
+    ::= { cadPCMibBase 29 }
+
+cadPCClearGateCtlCounts  OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "set to true to clear the gate control counts, always false when read"
+    DEFVAL          { false }
+    ::= { cadPCMibBase 30 }
+
+
+--=============================================================================
+--
+--  cadPCMibGateCounts
+--
+--=============================================================================
+cadPCMibGateCounts OBJECT IDENTIFIER ::= { cadPCMibBase 40 }
+
+cadPCTotalGateCount  OBJECT-TYPE
+    SYNTAX          Counter32
+    UNITS           "gates"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Total number of gates that have been created since the last reboot 
+                     of the system or since the last time that this counter was manually 
+                     reset."
+    REFERENCE       "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                     on the C4 CMTS' requirement 2.3.1.2-30"
+    ::= { cadPCMibGateCounts 1 }
+
+cadPCGateAllocatedStateCount OBJECT-TYPE
+    SYNTAX          Counter32
+    UNITS           "gates"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Total number of gates that are currently in the ALLOCATED state"
+    REFERENCE       "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                     on the C4 CMTS' requirement 2.3.1.2-40"
+    ::= { cadPCMibGateCounts 2 }
+
+cadPCGateAuthorizedStateCount OBJECT-TYPE
+    SYNTAX          Counter32
+    UNITS           "gates"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Total number of gates that are currently in the AUTHORIZED state"
+    REFERENCE       "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                     on the C4 CMTS' requirement 2.3.1.2-40"
+    ::= { cadPCMibGateCounts 3 }
+
+cadPCGateReservedStateCount OBJECT-TYPE
+    SYNTAX          Counter32
+    UNITS           "gates"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Total number of gates that are currently in the RESERVED state"
+    REFERENCE       "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                     on the C4 CMTS' requirement 2.3.1.2-40"
+    ::= { cadPCMibGateCounts 4 }
+
+cadPCGateCommittedStateCount OBJECT-TYPE
+    SYNTAX          Counter32
+    UNITS           "gates"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Total number of gates that are currently in the COMMITTED state"
+    REFERENCE       "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                     on the C4 CMTS' requirement 2.3.1.2-40"
+    ::= { cadPCMibGateCounts 5 }
+
+cadPCGateLastCleared OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sysUptime when the gate counts were last cleared."
+    DEFVAL          { 0 }
+    ::= { cadPCMibGateCounts 6 }
+
+--=============================================================================
+--  cadPCAnomalyCountTable
+--
+--  The cadPCAnomalyCountTable lists counts for anomalies found during calls.
+--  These anomaly counts increase continuously from boot or from last counter
+--  reset.
+--
+--  All objects are read-write
+--
+--=============================================================================
+cadPCAnomalyCountTable   OBJECT-TYPE
+    SYNTAX          SEQUENCE OF CadPCAnomalyCountEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "Table of anomaly counts"
+    REFERENCE       "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                     on the C4 CMTS' requirement 2.3.1.2-50"
+    ::= { cadPCMibBase 45 }
+
+cadPCAnomalyCountEntry   OBJECT-TYPE
+    SYNTAX          CadPCAnomalyCountEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "Entry of anomaly counts"
+    INDEX           { cadPCAnomalyCode }
+    ::= { cadPCAnomalyCountTable 1 }
+
+CadPCAnomalyCountEntry ::= SEQUENCE {
+    cadPCAnomalyCode  CadPCAnomalyCode,
+    cadPCAnomalyCount Counter32
+    }
+
+cadPCAnomalyCode  OBJECT-TYPE
+    SYNTAX          CadPCAnomalyCode
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "PacketCable anomaly code"
+    REFERENCE       "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                     on the C4 CMTS' requirement 2.3.1.2-50"
+    ::= { cadPCAnomalyCountEntry 1 }
+
+cadPCAnomalyCount OBJECT-TYPE
+    SYNTAX          Counter32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Count of anomalies of the corresponding type that have occurred
+                     since boot or since the last manual reset of this count."
+    REFERENCE       "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                     on the C4 CMTS' requirement 2.3.1.2-50"
+    ::= { cadPCAnomalyCountEntry 2 }
+
+cadPCAnomalyLastCleared OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sysUptime when the anomaly counts were last cleared."
+    DEFVAL          { 0 }
+    ::= { cadPCMibBase 46 }
+
+cadPCSendSubId OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Indicates whether the C4 will send a subscriber ID in every DQoS gate-open
+                     and gate-close message. This is provisioned per-CMTS. ECN DQOS1.5-N-06.0339-4"
+    DEFVAL          { false }
+    ::= { cadPCMibBase 47 }
+
+
+--=============================================================================
+--  cadPCConnReqRateHistoryTable
+--
+--  The cadPCConnRateHistoryTable contains a historical view of the number of
+--  new PC connections (gates) that have been requested (but not necessarily 
+--  granted) per second.
+--
+--  This table may be maintained in a "lazy" manner whereby the maintaining 
+--  algorithm only gets invoked when the counts are read or pegged.
+--  
+--  One entry should exist for each of the last 60 seconds. As time progresses,
+--  older entried get deleted. If the algorithm that maintains this history 
+--  does not get invoked for greater than 1 second, the algorithm should indicate 
+--  a value of "-1" for each of the seconds that passed without an invocation.
+--
+--=============================================================================
+cadPCConnRateReqHistoryTable   OBJECT-TYPE
+    SYNTAX          SEQUENCE OF CadPCConnRateReqHistoryEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "Table of connection request rate history"
+    REFERENCE       "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                     on the C4 CMTS' requirement 2.3.1.2-60, 2.3.1.2-65"
+    ::= { cadPCMibBase 50 }
+
+cadPCConnRateReqHistoryEntry   OBJECT-TYPE
+    SYNTAX          CadPCConnRateReqHistoryEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "Entry of connection request rate"
+    INDEX           { cadPCConnRateReqHistoryTimeStamp }
+    ::= { cadPCConnRateReqHistoryTable 1 }
+
+CadPCConnRateReqHistoryEntry ::= SEQUENCE {
+    cadPCConnRateReqHistoryTimeStamp TimeStamp,
+    cadPCConnRateReqHistoryCount Counter32
+    }
+
+cadPCConnRateReqHistoryTimeStamp  OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "Value of sysUpTime (rounded down to the nearest second) when 
+                     this entry was created"
+    REFERENCE       "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                     on the C4 CMTS' requirement 2.3.1.2-60, 2.3.1.2-65"
+    ::= { cadPCConnRateReqHistoryEntry 1 }
+
+cadPCConnRateReqHistoryCount OBJECT-TYPE
+    SYNTAX          Counter32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Count of connection requests (gates) made during the second"
+    REFERENCE       "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                     on the C4 CMTS' requirement 2.3.1.2-60, 2.3.1.2-65"
+    ::= { cadPCConnRateReqHistoryEntry 2 }
+
+cadPCConnReqMaxHistRate OBJECT-TYPE
+    SYNTAX          Counter32
+    UNITS           "gates"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Maximum value of any cadPCConnReqRateCount since system boot or
+                     reset of this value."
+    REFERENCE       "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                     on the C4 CMTS' requirement 2.3.1.2-60"
+    ::= { cadPCMibBase 51 }
+
+--=============================================================================
+--  cadPCConnRateOverloadRejTable
+--
+--  Table of counts for rejected connections due to rate-overload protection
+--  for the individual card
+--
+--  These counts continuously increase unless manually reset by the user.
+--
+--  The system-level counts shall use a cardId of 99 (the "invalid cardId").
+--=============================================================================
+cadPCConnRateOverloadRejTable OBJECT-TYPE
+    SYNTAX          SEQUENCE OF CadPCConnRateOverloadRejEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "Table of Per-card rate overload reject connection counts"
+    REFERENCE       "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                     on the C4 CMTS' requirement 2.3.1.2-70"
+    ::= { cadPCMibBase 55 }
+
+cadPCConnRateOverloadRejEntry   OBJECT-TYPE
+    SYNTAX          CadPCConnRateOverloadRejEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "This entry contains the connection rate overload rejection counts."
+    INDEX           { cadPCConnRateOverloadRejCardId,      --  cardIds are 1-based!
+                      cadOvSysCpuStatus }        
+    ::= { cadPCConnRateOverloadRejTable 1 }
+
+CadPCConnRateOverloadRejEntry ::= SEQUENCE {
+    cadPCConnRateOverloadRejCount Counter32,
+    cadPCConnRateOverloadRejCardId   CardId
+    }
+
+cadPCConnRateOverloadRejCount OBJECT-TYPE
+    SYNTAX          Counter32
+    UNITS           "connections"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Number of connections that have been rejected as a result of rate
+                     overload protection while the system is in the corresponding
+                     system-wide overload state since the last system reboot or since
+                     the last time that this counter was reset."
+    REFERENCE       "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                     on the C4 CMTS' requirement 2.3.1.2-70"
+    ::= { cadPCConnRateOverloadRejEntry 1 }
+
+cadPCConnRateOverloadRejCardId OBJECT-TYPE
+    SYNTAX      CardId
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                    "The unique id of this card within the shelf."
+    ::= { cadPCConnRateOverloadRejEntry 2 }
+
+cadPCConnRateOverloadLastCleared OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sysUptime when the connection rate overload counts were last cleared."
+    DEFVAL          { 0 }
+    ::= { cadPCMibBase 56 }
+
+--=============================================================================
+--  cadPCEvMsgCountTable
+--
+--  The cadPCEvMsgCountTable lists counts of event messages that have been
+--  transmitted to each RKS or DF (for Electronic Surveillance Call Data) server
+--
+--=============================================================================
+cadPCEvMsgCountTable    OBJECT-TYPE
+    SYNTAX              SEQUENCE OF CadPCEvMsgCountEntry
+    MAX-ACCESS          not-accessible
+    STATUS              current
+    DESCRIPTION         "Table of counts of event messages that have been
+                         transmitted to each RKS or DF (for Electronic Surveillance 
+                         Call Data) server"
+    ::= { cadPCMibBase 60 }
+
+cadPCEvMsgCountEntry   OBJECT-TYPE
+    SYNTAX              CadPCEvMsgCountEntry
+    MAX-ACCESS          not-accessible
+    STATUS              current
+    DESCRIPTION         "This entry contains counts of event messages that have been
+                         transmitted"
+    INDEX               { cadPCEvMsgCountServer, cadPCEvMsgServerIsDF }
+    ::= { cadPCEvMsgCountTable 1 }
+
+CadPCEvMsgCountEntry ::= SEQUENCE {
+    cadPCEvMsgCountServer   IpAddress,
+    cadPCEvMsgServerIsDF    TruthValue,
+    cadPCEvMsgType          INTEGER,
+    cadPCEvMsgCount         Counter32
+    }
+
+cadPCEvMsgCountServer OBJECT-TYPE
+    SYNTAX              IpAddress
+    MAX-ACCESS          not-accessible
+    STATUS              current
+    DESCRIPTION         "IP address of RKS or DF server"
+    ::= { cadPCEvMsgCountEntry 1 }
+
+cadPCEvMsgServerIsDF OBJECT-TYPE
+    SYNTAX              TruthValue
+    MAX-ACCESS          not-accessible
+    STATUS              current
+    DESCRIPTION         "Indicator of type of server. Set to true(1) if server is a
+                         delivery function server."
+    REFERENCE           "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                         on the C4 CMTS' requirement 2.3.1.2-100"
+    DEFVAL              { false }
+    ::= { cadPCEvMsgCountEntry 2 }
+
+cadPCEvMsgType OBJECT-TYPE
+    SYNTAX              INTEGER {
+                            qos-reserve(7),
+                            qos-release(8),
+                            time-change(17),
+                            qos-commit(19),
+                            total-packets(9999)
+                        }
+    MAX-ACCESS          read-only
+    STATUS              current
+    DESCRIPTION         "Type of message being counted. These map directly to the event
+                         message opcodes in the Event Messaging reference"
+    REFERENCE           "'PacketCable Event Messages Specification: PKT-SP-EM-I07-030815';
+                         'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                         on the C4 CMTS' requirement 2.3.1.2-100"
+    ::= { cadPCEvMsgCountEntry 3 }
+
+cadPCEvMsgCount OBJECT-TYPE
+    SYNTAX          Counter32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION         "Count of rejected connections due to channel bandwidth
+                         congestion since boot or since the last manual reset of
+                         this count."
+    REFERENCE           "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                         on the C4 CMTS' requirement 2.3.1.2-100"
+    ::= { cadPCEvMsgCountEntry 4 }
+
+cadPCEvMsgCountLastCleared OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sysUptime when the event messaging counts were last cleared."
+    DEFVAL          { 0 }
+    ::= { cadPCMibBase 61 }
+
+--=============================================================================
+--  cadPCCopsCountTable
+--
+--  The cadPCCopsCountTable lists counts of COPS messages
+--  that have been received from and sent to individual servers.
+--
+--=============================================================================
+cadPCCopsCountTable    OBJECT-TYPE
+    SYNTAX              SEQUENCE OF CadPCCopsCountEntry
+    MAX-ACCESS          not-accessible
+    STATUS              current
+    DESCRIPTION         "Table of counts of event messages that have been
+                         sent to or received from each server."
+    ::= { cadPCMibBase 65 }
+
+cadPCCopsCountEntry   OBJECT-TYPE
+    SYNTAX              CadPCCopsCountEntry
+    MAX-ACCESS          not-accessible
+    STATUS              current
+    DESCRIPTION         "This entry contains counts of COPS messages."
+    INDEX               { cadPCCopsServer, 
+                          cadPCCopsDirection, 
+                          cadPCCopsOpcode }
+    ::= { cadPCCopsCountTable 1 }
+
+CadPCCopsCountEntry ::= SEQUENCE {
+    cadPCCopsServer     IpAddress,
+    cadPCCopsDirection  INTEGER,
+    cadPCCopsOpcode     INTEGER,
+    cadPCCopsCount      Counter32
+    }
+
+cadPCCopsServer OBJECT-TYPE
+    SYNTAX              IpAddress
+    MAX-ACCESS          not-accessible
+    STATUS              current
+    DESCRIPTION         "IP address of CMS or PS server"
+    ::= { cadPCCopsCountEntry 1 }
+
+cadPCCopsDirection OBJECT-TYPE
+    SYNTAX              INTEGER {
+                            receive(1),
+                            transmit(2)
+                        }
+    MAX-ACCESS          not-accessible
+    STATUS              current
+    DESCRIPTION         "direction of message flow from viewpoint of the CMTS"
+    ::= { cadPCCopsCountEntry 2 }
+
+cadPCCopsOpcode OBJECT-TYPE
+    SYNTAX              INTEGER {
+                            tcpCxt(0),      -- indicates a TCP layer connection
+                            copsReq(1),
+                            copsDec(2),
+                            copsRpt(3),
+                            copsDrq(4),
+                            copsSsq(5),
+                            copsOpn(6),
+                            copsCat(7),
+                            copsCC(8),
+                            copsKa(9),
+                            copsSsc(10)
+                        }
+    MAX-ACCESS          not-accessible
+    STATUS              current
+    DESCRIPTION         "Type of message being counted. These map directly to the COPS
+                         opcodes in RFC 2748."
+    REFERENCE           "'The COPS (Common Open Policy Service) Protocol: RFC2748';
+                         'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                         on the C4 CMTS' requirement 2.3.1.2-110"
+    ::= { cadPCCopsCountEntry 3 }
+
+cadPCCopsCount OBJECT-TYPE
+    SYNTAX              Counter32
+    MAX-ACCESS          read-only
+    STATUS              current
+    DESCRIPTION         "Count of COPS messages"
+    REFERENCE           "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                         on the C4 CMTS' requirement 2.3.1.2-110"
+    ::= { cadPCCopsCountEntry 4 }
+
+cadPCCopsCountLastCleared OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sysUptime when the COPS counts were last cleared."
+    DEFVAL          { 0 }
+    ::= { cadPCMibBase 66 }
+
+--=============================================================================
+--  cadPCGateCtlCountTable
+--
+--  The cadPCGateCtlCountTable lists counts of Gate Control messages
+--  that have been received from and sent to individual servers.
+--
+--=============================================================================
+cadPCGateCtlCountTable  OBJECT-TYPE
+    SYNTAX              SEQUENCE OF CadPCGateCtlCountEntry
+    MAX-ACCESS          not-accessible
+    STATUS              current
+    DESCRIPTION         "Table of counts of event messages that have been
+                         sent to or received from each server."
+    ::= { cadPCMibBase 70 }
+
+cadPCGateCtlCountEntry   OBJECT-TYPE
+    SYNTAX              CadPCGateCtlCountEntry
+    MAX-ACCESS          not-accessible
+    STATUS              current
+    DESCRIPTION         "This entry contains counts of gate control messages."
+    INDEX               { cadPCCopsServer, cadPCGateCtlOpcode }
+    ::= { cadPCGateCtlCountTable 1 }
+
+CadPCGateCtlCountEntry ::= SEQUENCE {
+    cadPCGateCtlOpcode        INTEGER,
+    cadPCGateCtlCount         Counter32
+    }
+
+cadPCGateCtlOpcode      OBJECT-TYPE
+    SYNTAX              INTEGER {
+                            gateAllocReq(1),
+                            gateAllocAck(2),
+                            gateAllocErr(3),
+                            gateSetReq(4),
+                            gateSetAck(5),
+                            gateSetErr(6),
+                            gateInfoReq(7),
+                            gateInfoAck(8),
+                            gateInfoErr(9),
+                            gateDeleteReq(10),
+                            gateDeleteAck(11),
+                            gateDeleteErr(12),
+                            gateOpen(13),
+                            gateClose(14),
+				    gateReportState(15)
+                        }
+    MAX-ACCESS          not-accessible
+    STATUS              current
+    DESCRIPTION         "Type of message being counted. These map directly to the gate
+                         command type opcodes in the DQoS spec."
+    REFERENCE           "'PacketCable Dynamic Quality of Service Specification: 
+                         PKT-SP-DQOS-I07-0300815';
+                         'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                         on the C4 CMTS' requirement 2.3.1.2-120"
+    ::= { cadPCGateCtlCountEntry 1 }
+
+cadPCGateCtlCount       OBJECT-TYPE
+    SYNTAX              Counter32
+    MAX-ACCESS          read-only
+    STATUS              current
+    DESCRIPTION         "Count of messages since boot or since the last manual reset of
+                         this count."
+    REFERENCE           "'C4 Product Specification Agreement: PacketCable Deployment Tools 
+                         on the C4 CMTS' requirement 2.3.1.2-120"
+    ::= { cadPCGateCtlCountEntry 2 }
+
+cadPCGateCtlCountLastCleared OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sysUptime when the gate control counts were last cleared."
+    DEFVAL          { 0 }
+    ::= { cadPCMibBase 71 }
+
+--=============================================================================
+--  cadPCDefAdmCtlTable
+--
+--  The cadPCDefAdmCtlTable provides the ability to manage the default 
+--  PacketCable admission control policy per priority.
+--
+--  Upon boot, this table must be populated with sixteen rows - one for
+--  each possible PacketCable Multimedia priority and direction. Rows may 
+--  be neither created nor destroyed.
+--
+--=============================================================================
+
+cadPCDefAdmCtlTable OBJECT-TYPE
+    SYNTAX          SEQUENCE OF CadPCDefAdmCtlEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "Table of Per-Priority PacketCable admission 
+                     control policies"
+    ::= { cadPCMibBase 75 }
+
+cadPCDefAdmCtlEntry   OBJECT-TYPE
+    SYNTAX          CadPCDefAdmCtlEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "This entry contains all of the default PacketCable 
+                     admission policy data."
+    INDEX { cadPCDefAdmCtlDirection, cadPCDefAdmCtlPriority }
+    ::= { cadPCDefAdmCtlTable 1 }
+
+CadPCDefAdmCtlEntry ::= SEQUENCE {
+    cadPCDefAdmCtlDirection     IfDirection,
+    cadPCDefAdmCtlPriority      CadPCAdmCtlPriority,
+    cadPCDefAdmCtlAllowedUsage  INTEGER,
+    cadPCDefAdmCtlReservedUsage INTEGER
+}
+
+cadPCDefAdmCtlDirection OBJECT-TYPE
+    SYNTAX          IfDirection
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "Direction for this default policy data."
+    ::= { cadPCDefAdmCtlEntry 1 }
+
+cadPCDefAdmCtlPriority OBJECT-TYPE
+    SYNTAX          CadPCAdmCtlPriority
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "Priority value assigned to this row."
+    ::= { cadPCDefAdmCtlEntry 2 }
+
+cadPCDefAdmCtlAllowedUsage OBJECT-TYPE
+    SYNTAX          INTEGER (0..90)
+    UNITS           "percent"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Maximum percentage of resources that may be used by
+                     requests at the corresponding priority level. This is
+                     also the maximum amount of resources non-exclusively
+                     allocated to sessions of this type"
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 
+                      3.3.3.0.2"
+    DEFVAL          { 50 }
+    ::= { cadPCDefAdmCtlEntry 3 }
+
+cadPCDefAdmCtlReservedUsage OBJECT-TYPE
+    SYNTAX          INTEGER (0..90)
+    UNITS           "percent"       
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Minimum percentage of resources that may be used by
+                     requests at the corresponding priority level. This is
+                     also the maximum amount of resources exclusively 
+                     allocated to sessions of this type. If the value of this
+                     object is non-zero, then a portion of the bandwidth will
+                     be set aside for this priority only - reducing the
+                     bandwidth that is available for normal data."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 
+                     3.3.3.0.2"
+    DEFVAL           { 0 }
+    ::= { cadPCDefAdmCtlEntry 4 }
+
+--=============================================================================
+--  cadPC1xAdmCtlMapTable
+--
+--  The cadPC1xAdmCtlMapTable provides the ability to map the PacketCable 1.x 
+--  admission control policy into the PacketCable Multimedia admission control
+--  policy.
+--
+--  Upon boot, this table must be populated with three rows - one for
+--  each possible PacketCable 1.x admission control policy. Rows may be neither
+--  created nor destroyed.
+--
+--=============================================================================
+
+    cadPC1xAdmCtlMapTable   OBJECT-TYPE
+    SYNTAX          SEQUENCE OF CadPC1xAdmCtlMapEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "Table of mappings of PacketCable 1.x to PacketCable 
+                     Multimedia admission control policies"
+    ::= { cadPCMibBase 80 }
+
+cadPC1xAdmCtlMapEntry OBJECT-TYPE
+    SYNTAX          CadPC1xAdmCtlMapEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "This entry contains mapping of one PacketCable 1.x 
+                     admission policy to a PacketCable Multimedia policy."
+    INDEX { cadPC1xAdmCtlMapPriority }
+    ::= { cadPC1xAdmCtlMapTable 1 }
+
+CadPC1xAdmCtlMapEntry ::= SEQUENCE {
+    cadPC1xAdmCtlMapPriority    INTEGER,
+    cadPCAdmCtlMapPriority      CadPCAdmCtlPriority
+}
+
+cadPC1xAdmCtlMapPriority OBJECT-TYPE 
+    SYNTAX INTEGER { 
+        undefined(1), 
+        normal(2), 
+        emergency(3) 
+    }
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "PacketCable 1.x session class priority value"
+    ::= { cadPC1xAdmCtlMapEntry 1 }
+
+cadPCAdmCtlMapPriority OBJECT-TYPE
+    SYNTAX          CadPCAdmCtlPriority
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "PacketCable Multimedia Priority value assigned to this row."
+    ::= { cadPC1xAdmCtlMapEntry 2 }
+
+--=============================================================================
+--  cadPCInterfaceAdmCtlTable
+--
+--  The cadPCInterfaceAdmCtlTable provides the ability to manage the default 
+--  PacketCable admission control policy per priority.
+--
+--  Upon boot, this table must be populated with rows per downstream and
+--  rows per upstream for each CadPcAdmCtlPriority. Rows may be neither
+--  created nor destroyed.
+--
+--=============================================================================
+cadPCInterfaceAdmCtlTable   OBJECT-TYPE
+    SYNTAX          SEQUENCE OF CadPCInterfaceAdmCtlEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "Table of Per-Priority PacketCable admission control 
+                     policies.  There exists a row per cable downstream and 
+                     per cable upstream for each of the CadPCAdmCtlPriorities.
+                     For 1D:8U CAMs, the ifTypes populated are 128(downstream)
+                     and 129(upstream). For DOCSIS 2.0 CAMs (2D:12U), the
+                     ifTypes covered are 128(downstream) and 
+                     205(logical upstream)."
+    ::= { cadPCMibBase 85 }
+
+cadPCInterfaceAdmCtlEntry   OBJECT-TYPE
+    SYNTAX          CadPCInterfaceAdmCtlEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "This entry contains all of the default PacketCable 
+                     admission policy data."
+    INDEX { ifIndex, cadPCInterfaceAdmCtlPriority }
+    ::= { cadPCInterfaceAdmCtlTable 1 }
+
+CadPCInterfaceAdmCtlEntry ::= SEQUENCE {
+    cadPCInterfaceAdmCtlPriority        CadPCAdmCtlPriority,
+    cadPCInterfaceAdmCtlAllowedUsage    INTEGER,
+    cadPCInterfaceAdmCtlReservedUsage   INTEGER
+}
+
+cadPCInterfaceAdmCtlPriority OBJECT-TYPE
+    SYNTAX          CadPCAdmCtlPriority
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "Priority value assigned to this row."
+    ::= { cadPCInterfaceAdmCtlEntry 1 }
+
+cadPCInterfaceAdmCtlAllowedUsage OBJECT-TYPE
+    SYNTAX          INTEGER (0..90)
+    UNITS           "percent"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Maximum percentage of resources that may be used by 
+                     requests at the corresponding priority level. This is 
+                     also the maximum amount of resources non-exclusively 
+                     allocated to sessions of this type"
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 
+                     3.3.3.0.2"
+    DEFVAL          { 50 }
+    ::= { cadPCInterfaceAdmCtlEntry 2 }
+
+cadPCInterfaceAdmCtlReservedUsage OBJECT-TYPE
+    SYNTAX          INTEGER (0..90)
+    UNITS           "percent"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Minimum percentage of resources that may be used by 
+                     requests at the corresponding priority level. This is 
+                     also the maximum amount of resources exclusively 
+                     allocated to sessions of this type. If the value of this
+                     object is non-zero, then a portion of the bandwidth will
+                     be set aside for this priority only - reducing the 
+                     bandwidth that is available for normal data."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 
+                     3.3.3.0.2"
+    DEFVAL          { 0 }
+    ::= { cadPCInterfaceAdmCtlEntry 3 }
+
+--=============================================================================
+--  cadPCCAMCblMacTable
+--
+--  The cadPCCAMCblMacTable provides the ability to manage PacketCable parameters on
+--  a per-mac domain basis.
+--
+--  All objects are read-write
+--
+--=============================================================================
+cadPCCAMCblMacTable   OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadPCCAMCblMacEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Table of Per-CAM PacketCable Data"
+    ::= { cadPCMibBase 86 }
+
+cadPCCAMCblMacEntry   OBJECT-TYPE
+    SYNTAX      CadPCCAMCblMacEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "This entry contains all of the PacketCable data that
+                is to be managed on a per-mac domain basis."
+    INDEX { cadPCCAMCblMacIfIndex }    
+    ::= { cadPCCAMCblMacTable 1 }
+
+CadPCCAMCblMacEntry ::= SEQUENCE {
+    cadPCCAMCblMacIfIndex                     InterfaceIndex,
+    cadPCCAMCblMacFreeDSxAllowed              TruthValue,
+    cadPCCblMacMaxOverloadDSaCalls            Unsigned32,
+    cadPCCblMacMaxYellowOverloadDSaCalls      Unsigned32,
+    cadPCCblMacMaxRedOverloadDSaCalls         Unsigned32
+    }
+
+cadPCCAMCblMacIfIndex OBJECT-TYPE
+    SYNTAX          InterfaceIndex   
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "Indicates whether the authorization module will allow a
+                    DOCSIS MAC Messaging Dynamic Services request (DSx) without
+                    a gate-ID in an authorization block."
+    ::= { cadPCCAMCblMacEntry 1 }
+
+cadPCCAMCblMacFreeDSxAllowed OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Indicates whether the authorization module will allow a
+                    DOCSIS MAC Messaging Dynamic Services request (DSx) without
+                    a gate-ID in an authorization block."
+    DEFVAL          { true }
+    ::= { cadPCCAMCblMacEntry 2 }
+
+cadPCCblMacMaxOverloadDSaCalls  OBJECT-TYPE
+    SYNTAX          Unsigned32(1..10000)
+    UNITS           "connections per 10 seconds"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "the max number of connections we will allow per 10 second interval
+                           when the system cpu is in a normal condition, i.e. no overload."
+    DEFVAL          { 10000 }
+    ::= { cadPCCAMCblMacEntry 3 }
+
+cadPCCblMacMaxYellowOverloadDSaCalls  OBJECT-TYPE
+    SYNTAX          Unsigned32(1..10000)
+    UNITS           "connections per 10 seconds"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "the max number of connections we will allow per 10 second interval
+                           when the system cpu is in a yellow overload condition."
+    DEFVAL          { 10000 }
+    ::= { cadPCCAMCblMacEntry 4 }
+
+cadPCCblMacMaxRedOverloadDSaCalls  OBJECT-TYPE
+    SYNTAX          Unsigned32(1..10000)
+    UNITS           "connections per 10 seconds"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "the max number of connections we will allow per 10 second interval
+                           when the system cpu is in a red overload condition."
+    DEFVAL          { 3000 }
+    ::= { cadPCCAMCblMacEntry 5 }
+
+cadPCPEPIDHostname OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "If set to true, the PEP-ID on the COPS connection will set to the currently
+                     configured hostname of the CMTS.  If false, the PEP-ID will will be set to
+                     the local IP address of the COPS connection."
+    DEFVAL          { false }
+    ::= { cadPCMibBase 90 } 
+
+END
+
+
+
+
+

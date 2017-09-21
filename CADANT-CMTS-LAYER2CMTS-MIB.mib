@@ -1,0 +1,2285 @@
+CADANT-CMTS-LAYER2CMTS-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    OBJECT-TYPE, MODULE-IDENTITY, Integer32, Counter32, Unsigned32
+        FROM SNMPv2-SMI
+    DisplayString, TEXTUAL-CONVENTION, 
+    RowStatus, TimeInterval, TruthValue, MacAddress
+        FROM SNMPv2-TC
+    OBJECT-GROUP
+        FROM SNMPv2-CONF
+    BridgeId, Timeout
+        FROM BRIDGE-MIB
+    cadLayer2
+        FROM CADANT-PRODUCTS-MIB
+    CardId, PortId, CerCardType, CerCardSubType, CadBridgeGroupId, CadBridgePortType,
+    PrimaryState, SecondaryState, DuplexStatus, AdminState, MacPortId,
+    MacPortIdWithInvalid, PortType
+        FROM CADANT-TC
+    AttributeMask, IfDirection
+        FROM DOCS-IF3-MIB
+    InetVersion
+        FROM INET-ADDRESS-MIB
+    InterfaceIndex, InterfaceIndexOrZero
+        FROM IF-MIB;
+    
+cadLayer2Mib MODULE-IDENTITY
+    LAST-UPDATED "201508250000Z" -- August 25, 2015
+    ORGANIZATION "ARRIS Group, Inc."
+    CONTACT-INFO "support@arris.com"
+    DESCRIPTION 
+      " This MIB module contains the following information:
+          1) The concept of bridge groups and bridge ports
+          2) The policy governed the assigment of
+         Internet Service Provider's subnet addresses
+         per bridge group
+          3) Support for per bridge group spanning tree"
+
+
+    REVISION "201508250000Z" -- August 25, 2015
+    DESCRIPTION 
+        "Change range of cadIfMacDomainDsOfdmProfileRecoveryGuardTime to (0..3600)"
+
+    REVISION "201506170000Z" -- June 17, 2015
+    DESCRIPTION 
+        "Add cadIfMacDomainGracefulTcsReductionEnabled for the US Channel
+         Bonding Graceful Reduction feature."
+
+    REVISION "201504150000Z" -- April 15, 2015
+    DESCRIPTION 
+        "Add cadIfMacDomainDsOfdmProfileRecoveryGuardTime"	
+
+    REVISION "201504010000Z" -- April 1, 2015
+    DESCRIPTION 
+        "Add cadIfMacDomainEnergyMgt1x1Enabled"	  
+
+    REVISION "201501210000Z" -- Jan 21, 2015
+    DESCRIPTION
+        "Add cadDot3adAggSystemID to cadDot3adAggTable."
+
+    REVISION "201501200000Z" -- Jan 20, 2015
+    DESCRIPTION
+        "Add cadMacChlDirection."
+
+    REVISION "201412090000Z" -- Dec 9, 2014
+    DESCRIPTION
+        "Support OFDM capability in MAC port."
+
+    REVISION "201412080000Z" -- Dec 8, 2014
+    DESCRIPTION
+        "Support CerCardSubType dcamOfdmAnnexB"
+
+    REVISION "201412030000Z" -- Dec 3, 2014
+    DESCRIPTION
+        "Add dchannelOfdm to PortType"
+
+    REVISION "201411180000Z" -- Nov 18, 2014
+    DESCRIPTION
+        "Add cadIfMacDomainDocsis31Enabled to cadIfMacDomain table."
+
+    REVISION "201410150000Z" -- Oct 15, 2014
+    DESCRIPTION
+        "Change default value of cadDot3adSystemPriority from 0 to 32768"
+
+    REVISION "201410140000Z" -- Oct 14, 2014
+    DESCRIPTION
+        "Support 384 downstream channels per DCAM-B"
+
+    REVISION "201409190000Z" -- Sep 19, 2014
+    DESCRIPTION 
+             "Add   cadAgingArpCacheSearchingCableUnicast,
+                    cadAgingArpCacheSearchingCableBroadcast,
+                    cadAgingNDCacheSearchingCableUnicast,
+                    cadAgingNDCacheSearchingCableMulticast"
+
+    REVISION "201408010000Z" -- Aug 1, 2014
+    DESCRIPTION
+        "PortType change:
+         remove dchannelSdv(13) and dchannelBroadcast(14)"
+    REVISION "201407030000Z" -- Jul 3, 2014
+    DESCRIPTION 
+        "Update cadIfMacDomainTcsSizeLimit description"
+
+    REVISION "201406240000Z" -- Jun 24, 2014
+    DESCRIPTION 
+        "Change cadDot3adAggId maximum value from 10 to 8"
+
+    REVISION "201403100000Z" -- Mar 10, 2014
+    DESCRIPTION 
+        "Add cadIfMacDomainTcsSizeLimit" 
+
+    REVISION "201401150000Z" -- Jan 15, 2014
+    DESCRIPTION 
+        "Add cerIpGroup."
+
+    REVISION "201310300000Z" -- Oct 30, 2013
+    DESCRIPTION 
+        "Add cadDot3adAggTable and cadDot3adSystemPriority."
+
+    REVISION "201308080000Z" -- Aug 8, 2013
+    DESCRIPTION 
+        "Add cadIfMacDomainDynamicRccMultiTunerEnabled" 
+
+    REVISION "201305300000Z" -- May 30, 2013
+    DESCRIPTION 
+        "Change default value of cadIfMacDomainT4TimeoutMultiplierEnabled
+         to false"
+
+    REVISION "201305170000Z" -- May 17, 2013
+    DESCRIPTION 
+        "Add cadIfMacDomainT4TimeoutMultiplierEnabled" 
+
+    REVISION "201305080000Z" -- May 8, 2013
+    DESCRIPTION 
+        "Add cadIfMacDomainCmTxPwrExtentionPreRegistrationEnabled 
+             cadIfMacDomainCmTxPwrExtentionPostRegistrationEnabled"
+
+    REVISION "201304290000Z" -- April 29, 2013
+    DESCRIPTION 
+        "Add cadIfMacDomainEnforceRulesEnabled. "
+
+    REVISION "201303250000Z" -- March 25, 2013
+    DESCRIPTION 
+             "Add 85000000 to cadIfMacDomainUpChannelMaxFrequency"
+
+    REVISION "201301030000Z" -- January 03, 2013
+    DESCRIPTION 
+             "Add support for configuring legacy DSG or DSG 3.0 support on a cable-mac."
+
+    REVISION "201211200000Z" -- November 20, 2012
+    DESCRIPTION
+             "Support loopback interfaces."
+    REVISION "201110050000Z" -- Oct 5, 2011
+    DESCRIPTION
+             "Change SYNTAX of cadMacChlCardSubType to CerCardSubType."
+    REVISION "201108170000Z" -- Aug 17, 2011
+    DESCRIPTION
+             "Change SYNTAX of cadBgpCardType to CerCardType."
+    REVISION "201103030000Z" -- March 3, 2011
+    DESCRIPTION 
+             "Change CadTftpEnforceType and CadDynamicSecretType."
+    REVISION "201008100000Z" -- Aug 10, 2010
+    DESCRIPTION 
+             "Change minimum of cadAgingArpCacheAgingInterval to 10 minutes from 3 minutes"
+    REVISION "201006230000Z" -- Jun 23, 2010
+    DESCRIPTION 
+            "change MAX-ACCESS of cadifMacDomainMulticastEncryption to read-only."
+    REVISION "201003010000Z" -- Mar 1, 2010
+    DESCRIPTION 
+             "Change  cadIfMacDomainDownChannelMaxFrequency highest center frequency to 999MHz."
+    REVISION "200910220000Z" -- October 22, 2009
+    DESCRIPTION 
+             "Use a single port type."
+    REVISION "200910120000Z" -- Oct 12, 2009
+    DESCRIPTION 
+             "Change  cadIfMacDomainDownChannelMaxFrequency highest frequency edge to 1002MHz."
+    REVISION "200909020000Z" -- Sep 2, 2009
+    DESCRIPTION 
+             "Add   cadAgingNDCacheAgingInterval, 
+                    cadAgingNDCacheSearchingRateLimit,
+                    cadAgingNDCacheSearchingMaxNumber, 
+                    cadAgingNDCacheNotPresentRateLimit,
+                    cadAgingNDCacheNotPresentMaxNumber, 
+                    cadAgingNDCacheNotPresentMaxTime,
+                    cadAgingNDCacheNotPresentMinTime, 
+                    cadAgingNDCacheSearchingGlobalMaxRate,
+                    cadAgingNDCacheNotPresentGlobalMaxRate"
+    REVISION "200907170000Z" -- July 17, 2009
+    DESCRIPTION 
+             "Add cadIfMacDomainBpi2Mandatory."
+    REVISION "200901120000Z" -- Jan 12, 2009
+    DESCRIPTION 
+             "Add cadIfMacDomainDownChannelMaxFrequency, cadIfMacDomainDownChannelMinFrequency and
+              cadIfMacDomainUpChannelMaxFrequency to support mixed Annex configuration."
+    REVISION "200901070000Z" -- Jan 7, 2009
+    DESCRIPTION 
+             " Change MAX-ACCESS of cadIfMacDomainAnnex to read-write."
+    REVISION "200901050000Z" -- January 5, 2008
+    DESCRIPTION 
+             "Restrict size of name and description strings."
+    REVISION "200811110000Z" -- Nov 11, 2008
+    DESCRIPTION 
+             "Change SYNTAX of cadAgingArpCacheAgingInterval."
+    REVISION "200809300000Z" -- Sep 30, 2008
+    DESCRIPTION 
+             " Add cadIfMacDomainUsbgDynEnable."
+    REVISION "200802080000Z" -- Feb 8, 2008
+    DESCRIPTION 
+             " Change MAX-ACCESS of cadIfMacDomainAnnex to read-only."
+    REVISION "200802060000Z" -- Feb 06, 2008
+    DESCRIPTION 
+             " Add cadIfMacDomainDpId."
+    REVISION "200801220000Z" -- January 22, 2008
+    DESCRIPTION 
+             " Change default value of cadMacChlSfProvAttrMask back to 00000000H."
+    REVISION "200801030000Z" -- January 3, 2008
+    DESCRIPTION 
+             " Change default for MAC domain multicast encryption."
+    REVISION "200712140000Z" -- Dec 14, 2007
+    DESCRIPTION 
+            "Add cadIfMacDomainRccDynEnalbe, cadIfMacDomainDsbgDynEnable, 
+             cadIfMacDomainDsbgReseqWaitTime and cadIfMacDomainDsbgReseqWarnThrshld to cadIfMacDomain table."
+    REVISION "200708280000Z" -- August 28, 2007
+    DESCRIPTION 
+            "Add cadIfMacDomainRcpReportMode, cadIfMacDomainRegRspToOverride, 
+             , cadIfMacDomainMultRxChModeEnabled, 
+             cadIfMacDomainCmUdcEnabled, cadIfMacDomainSendUdcRulesEnabled.
+             Removed cadIfMacDomainTftpForce, cadIfMacDomainAltProvModeEnabled and
+             cadIfMacDomainIpMgmtMode.
+             Modified Syntax of cadIfMacDomainIpProvMode."
+    REVISION "200708130000Z" -- August 13, 2007
+    DESCRIPTION 
+            "Add cadifMacDomainMulticastEncryption to cadIfMacDomain table."
+    REVISION "200705310000Z" -- May 31, 2007
+    DESCRIPTION 
+            "Add cadMacChlIsPriCapableDs and cadMacChlSfProvAttrMask MIB objects to cadMacChlTable."   
+    REVISION "200705140000Z" -- May 14, 2007
+    DESCRIPTION 
+            "replace cadUpSupervisionTable with cadUpSupervisionCfgTable and cadUpSupervisionStatusTable."    
+    REVISION "200705080000Z" -- May 8, 2007
+    DESCRIPTION 
+            "set default value of cadMacPortTrapInh to e0h"    
+    REVISION "200703010000Z" -- Mar 1, 2007
+    DESCRIPTION 
+            "change status of cadBgLeaderBgpId to current."
+    REVISION "200702070000Z" -- Feb 7, 2007
+    DESCRIPTION 
+            "Remove cadIfMacDomainDsTokenBucket."
+    REVISION "200702050000Z" -- Feb 5, 2007
+    DESCRIPTION 
+            "Remove cadMacPortBgIndex and cadMacPortBundle."    
+    REVISION "200611270000Z" -- November 27, 2006
+    DESCRIPTION 
+            "Remove more unused STP parameters."
+    REVISION "200611010000Z" -- November 1, 2006
+    DESCRIPTION 
+            "Remove unused CadStp objects."
+    REVISION "200610130000Z" -- Octobor 13, 2006
+    DESCRIPTION 
+            "Add cadMacChlCardNumber, cadMacChlPortId, and cadMacChlPortType."
+    REVISION "200609120000Z" -- September 12, 2006
+    DESCRIPTION 
+            "Add cadIfMacDomainAnnex. Change syntax of cadMacPortBundle from MacPortId to MacPortIdWithInvalid"
+    REVISION "200609010000Z" -- September 1, 2006
+    DESCRIPTION 
+            "Add cadMacPortDescription, cadMacPortTrapInh, and cadMacPortDplxStatus."
+    REVISION "200608020000Z" -- August 2, 2006
+    DESCRIPTION 
+            "Add cadMacPortTable, cadIfMacDomainTable, cadMacChlTable, and cadUpSupervisionTable."
+    REVISION "200601310000Z"
+    DESCRIPTION "Change MIB objects cadAgingCPEAgingInterval and cadAgingSFAgingInterval   
+            to accept only default value." 
+    REVISION "200601270000Z"
+    DESCRIPTION 
+             "Change default value of cadAgingArpCacheNotPresentMinTime from 3 to 1"
+    REVISION "200601040000Z"
+    DESCRIPTION 
+             "Add MIB objects for ARP global throttling"
+    REVISION "200510240000Z"
+    DESCRIPTION 
+            "Add MIB objects for Arp Throttling feature."
+    REVISION "200309260000Z"
+    DESCRIPTION 
+            "Refresh SCM bridge port handling."
+    REVISION "200210210000Z"
+    DESCRIPTION 
+            "Add idle MAC aging interval to aging group."
+    REVISION "200110180000Z"
+    DESCRIPTION 
+            "Created cadBridgeGroupStatsTable."
+    REVISION "200109220000Z"
+    DESCRIPTION 
+            "Add arp aging interval to aging group."
+    ::= { cadLayer2 1 }
+
+--=======================================================
+--=   SECTION 1: Textual Conventions =
+--=======================================================
+CadTftpEnforceType ::= TEXTUAL-CONVENTION
+    STATUS     current
+    DESCRIPTION 
+        "Cable TFTP Enforce configuration option types.  The value `disabled'
+        implies cable TFTP Enforce is inhibited.  Any value other than
+        `disabled' indicates some form of TFTP Enforce is active.  The value
+        `enabled' implies that if the TFTP Enforce checks fail, the modem will be
+         denied registration.  `mark-only ' implies that if the TFTP Enforce
+         checks fail, the modem will be marked as having failed but will be
+         allowed to register. ` lock ' implies that if the TFTP Enforce
+         checks fail, the modem will be marked as having failed and will be
+         allowed to register, but will have its bandwidth limited. ` block ' implies
+         that if the TFTP Enforce checks fail, the modem will be marked as
+         having failed and will be allowed to register, but will have its bandwidth
+         limited and will not be allowed to learn any CPEs." 
+    SYNTAX INTEGER {
+        disabled(0),
+        enabled(1),
+        mark-only(2),
+        lock(3),
+        block(4)
+    }
+
+CadDynamicSecretType ::= TEXTUAL-CONVENTION
+    STATUS     current
+    DESCRIPTION 
+        "Cable Dynamic Secret configuration option types.  The value `disabled'
+        implies cable Dynamic Secret is inhibited.  Any value other than
+        `disabled' indicates some form of Dynamic Secret is active.  The value
+        `enabled' implies that if the Dynamic Secret checks fail, the modem will be
+         denied registration.  `mark' implies that if the Dynamic Secret
+         checks fail, the modem will be marked as having failed but will be
+         allowed to register.  ` lock ' implies that if the Dynamic Secret
+         checks fail, the modem will be marked as having failed and will be
+         allowed to register, but will have its bandwidth limited. ` block ' implies
+         that if the Dynamic Secret checks fail, the modem will be marked as
+         having failed and will be allowed to register, but will have its bandwidth
+         limited and will not be allowed to learn any CPEs."
+    SYNTAX INTEGER {
+        disabled(0),
+        reject(1),
+        mark(2),
+        lock(3),
+        block(4)
+    }
+
+--=======================================================
+--=   SECTION 2: The Bridge Group Definiton =
+--=======================================================
+
+cadBridgeGroup  OBJECT IDENTIFIER ::= { cadLayer2Mib 1 }
+
+cadBridgeGroupGeneral OBJECT IDENTIFIER ::= { cadBridgeGroup 1 }
+
+cadBridgeGroupMaxNum OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        " The maximum number of bridge groups supported. "
+    ::= { cadBridgeGroupGeneral 1 }
+
+--
+-- The Bridge Group configuration table
+--
+cadBridgeGroupTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadBridgeGroupEntry
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A table (and along with other supported tables)
+        contains bridge group information. 
+        A bridge group is actually a Port-Vlan concept
+        which consists of one or more E-ports and one 
+        or more D-ports. 
+        
+        Each D-port includes its associated U-ports and is
+        further subdivided into 3 sub-ports associated with
+        different types of traffic.  The CM sub-port carries
+        traffic for the cable-modem itself.  The CPEAUTH sub-port
+        carries traffic for an authorized CPE behind a cable-modem.
+        The CPEUNAUTH sub-port carries traffic for an unauthorized
+        CPE behind a cable-modem.
+
+        Initially, all ports belong to the OAM&P bridge group when
+        a card is first provisioned.  Bridge ports can only exist
+        in one bridge group at a time and can be moved between them.
+
+        Generally, the CPEAUTH sub-port on the D card would be in a
+        bridge group with an E port that had access to the internet
+        and the DHCP servers for the ISP used by the subscriber.
+        The CM sub-port would be in a bridge group with an E port that
+        had access to the DHCP servers and administrative controls
+        for the MSO. The CPEUNAUTH sub-port would be in a bridge 
+        group that included access to a sign-on server. "
+
+    ::= { cadBridgeGroup 2 }
+
+cadBridgeGroupEntry OBJECT-TYPE
+    SYNTAX  CadBridgeGroupEntry
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A conceptual row containing information about different types of CMTS's
+        broadcast domains and their configuration parameters. "
+    INDEX   { cadBgIndex }
+    ::= { cadBridgeGroupTable 1 }
+
+CadBridgeGroupEntry ::=
+    SEQUENCE {
+        cadBgIndex              CadBridgeGroupId,
+        cadBgName               DisplayString,
+        cadBgRowStatus          RowStatus
+    }
+
+cadBgIndex OBJECT-TYPE
+    SYNTAX CadBridgeGroupId
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        " CMTS broadcast domain Id. Used as index.
+          It has a value from 1 to the value of bridgeGroupMaxNum "
+    ::= { cadBridgeGroupEntry 1 }
+
+cadBgName OBJECT-TYPE
+    SYNTAX DisplayString (SIZE(0..32))
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        " Symbolic Name of the domain. "
+    ::= { cadBridgeGroupEntry 2 }
+
+cadBgRowStatus OBJECT-TYPE
+    SYNTAX RowStatus
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        " Control Object for row creation and deletion. "
+    ::= { cadBridgeGroupEntry 11 }
+
+--
+-- The Bridge Group status table
+--
+cadBridgeGroupStatsTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF CadBridgeGroupStatsEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION
+            "A table which contains read-only (status) information on bridge groups."
+        ::= { cadBridgeGroup 10 }
+
+cadBridgeGroupStatsEntry OBJECT-TYPE
+        SYNTAX  CadBridgeGroupStatsEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION
+            "A conceptual row containing read-only information on bridge groups."
+    AUGMENTS { cadBridgeGroupEntry }
+    ::= { cadBridgeGroupStatsTable 1 }
+
+CadBridgeGroupStatsEntry ::=
+    SEQUENCE {
+                cadBgLeaderBgpId InterfaceIndexOrZero,
+                cadBgMacAddress  MacAddress
+    }
+
+cadBgLeaderBgpId OBJECT-TYPE
+        SYNTAX InterfaceIndexOrZero
+    MAX-ACCESS read-only
+        STATUS current
+    DESCRIPTION
+        " The bridge port that is the leader for this bridge
+            group. If there are no bridge ports in this bridge
+            group or there are multiple bridge ports in this
+            bridge group but none of them make a clear leader,
+            then cadBgLeaderBgpId is zero. Otherwise,
+            it is the cadBgpId of the leader bridge port for this
+            bridge group."
+    ::= { cadBridgeGroupStatsEntry 1 }
+
+cadBgMacAddress OBJECT-TYPE
+        SYNTAX MacAddress
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            " The mac address of the layer 2 entity associated with this
+            bridge group. If there are no layer 2 entities associated
+            with the bridge group, this value will be zero. In the
+            case of a bundle, this will be the mac address of the
+            bundle group leader."
+        ::= { cadBridgeGroupStatsEntry 2 }
+
+--==============Bridge Group Port Table==========================
+--= As mentioned in the bridgeGroupTable definition.        =
+--= Each bridge group (i.e. each                =
+--= entry in the table) contains a list of configured           =
+--= E-port(s), D-port(s) and/or M-port(s).          =
+--= Each row in the table contains identification of the port.  =
+--===============================================================
+
+cadBridgePortTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadBridgePortEntry
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A table contain broadcast domain Ports Configuration
+        (i.e. E ports, D-ports, M-Ports...etc)"
+    ::= {  cadBridgeGroup 11 }
+
+cadBridgePortEntry OBJECT-TYPE
+    SYNTAX  CadBridgePortEntry
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A conceptual row containing port configuration within a 
+        bridge group. "
+    INDEX   { cadBgpId, cadBgpType }
+    ::= {  cadBridgePortTable 1 }
+
+CadBridgePortEntry ::=
+    SEQUENCE {
+            cadBgpGroupId       CadBridgeGroupId,
+            cadBgpId            InterfaceIndex,
+            cadBgpCardId        CardId,
+            cadBgpCardType      CerCardType,
+            cadBgpPortId        PortId,
+            cadBgpType          CadBridgePortType,
+            cadBgpBundleGroupId InterfaceIndexOrZero,
+            cadBgpMacAddress    MacAddress
+        }
+
+cadBgpGroupId OBJECT-TYPE
+    SYNTAX  CadBridgeGroupId
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+           "Bridge group index. 
+            The same index used in bridgeGroupTable to 
+            identify a bridge group. "
+    ::= {  cadBridgePortEntry 1 }
+
+cadBgpId OBJECT-TYPE
+    SYNTAX  InterfaceIndex
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+           "The secondary index of this table identifies
+            a port in a given bridge group." 
+    ::= {  cadBridgePortEntry 2 }
+
+cadBgpCardId OBJECT-TYPE
+    SYNTAX  CardId
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        " The slot number of the card containing this bridge port. "
+    ::= {  cadBridgePortEntry 3 }
+
+cadBgpCardType OBJECT-TYPE
+    SYNTAX  CerCardType
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        " The primary Card Type. 
+        Refer to Cadant's Equipment Mib for CerCardType definition."
+    ::= {  cadBridgePortEntry 4 }
+
+cadBgpPortId OBJECT-TYPE
+    SYNTAX  PortId
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        " The port number of the physical port containing this bridge port. "
+    ::= {  cadBridgePortEntry 5 }
+
+cadBgpType OBJECT-TYPE
+    SYNTAX  CadBridgePortType
+    MAX-ACCESS not-accessible
+    STATUS  current
+    DESCRIPTION
+            " The type of this bridge port. "
+    ::= {  cadBridgePortEntry 6 }
+
+cadBgpBundleGroupId OBJECT-TYPE
+    SYNTAX      InterfaceIndexOrZero
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+            "The bridge port which is the bundle leader.
+             If this value is 0, then this port is not
+             part of a bundle group. If this value is equal
+             to its cadBgpId, then this port is the
+             bundle leader for its group. Otherwise, this
+             value must point to a valid bridge port."
+        DEFVAL { 0 } -- invalid
+    ::= { cadBridgePortEntry 10 }
+
+cadBgpMacAddress OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The current mac address associated with
+         the bridge port.  Initially, this is the address
+         associated with the MAC or Ethernet port, but can
+         change as a result of bundling or sparing operations."
+    ::= { cadBridgePortEntry 11 }
+
+--
+-- The bridge group port status table
+--
+cadBridgeGroupPortStatusTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF CadBridgeGroupPortStatusEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION
+            "A table which contains status information
+             on bridge group members. "
+        ::= { cadBridgeGroup 12 }
+
+cadBridgeGroupPortStatusEntry OBJECT-TYPE
+        SYNTAX  CadBridgeGroupPortStatusEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION
+            "A conceptual row containing status information
+             on possible bridge group members. "
+        INDEX { cadBgpStatGroupId, 
+                cadBgpStatMacIfIndex, 
+                cadBgpStatPhyIfIndex }
+        ::= { cadBridgeGroupPortStatusTable 1 }
+
+CadBridgeGroupPortStatusEntry ::=
+        SEQUENCE {
+                cadBgpStatGroupId      CadBridgeGroupId,
+                cadBgpStatMacIfIndex   InterfaceIndex,
+                cadBgpStatPhyIfIndex   InterfaceIndex,
+                cadBgpStatPhyCardId    CardId,
+                cadBgpStatPhyPortId    PortId
+        }
+
+cadBgpStatGroupId OBJECT-TYPE
+        SYNTAX CadBridgeGroupId
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            " The bridge group id to which this physical interface belongs. "
+        ::= { cadBridgeGroupPortStatusEntry 1 }
+
+cadBgpStatMacIfIndex OBJECT-TYPE
+        SYNTAX InterfaceIndex
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            " The ifIndex of the layer 2 entity associated with the bridge group. "
+        ::= { cadBridgeGroupPortStatusEntry 2 }
+
+cadBgpStatPhyIfIndex OBJECT-TYPE
+        SYNTAX InterfaceIndex
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            " The ifIndex of the physical entity associated with the 
+              bridge group. This ifIndex corresponds to an actual physical
+              port on the C4. For NAM ports that are both a layer 2 and 
+              physical entity, this value may be the same as as the
+              cadBgmemStatMacIfIndex. "
+        ::= { cadBridgeGroupPortStatusEntry 3 }
+
+cadBgpStatPhyCardId OBJECT-TYPE
+        SYNTAX CardId
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            " The cardId of the slot associated with the physical ifindex. "
+        ::= { cadBridgeGroupPortStatusEntry 4 }
+
+cadBgpStatPhyPortId OBJECT-TYPE
+        SYNTAX PortId
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            " The portId of the port associated with the physical ifindex. "
+        ::= { cadBridgeGroupPortStatusEntry 5 }
+
+--================== cadDot3adAggTable =======================--
+
+cadDot3adAggTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadDot3adAggEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table extends the dot3adAggTable to control LACP."
+       ::= { cadBridgeGroup 13 }
+
+cadDot3adAggEntry OBJECT-TYPE
+    SYNTAX      CadDot3adAggEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This is an extension of the dot3adAggEntry
+         table that adds a LAG-level LACP enable."
+    INDEX { cadDot3adAggId }
+       ::= { cadDot3adAggTable 1 }
+
+CadDot3adAggEntry::= SEQUENCE {
+    cadDot3adAggId                     INTEGER,
+    cadDot3adAggIndex                  InterfaceIndex,
+    cadDot3adAggMacAddress             MacAddress,
+    cadDot3adAggLacpEnable             TruthValue,
+    cadDot3adAggLacpMode               INTEGER,
+    cadDot3adAggLacpRate               INTEGER,
+    cadDot3adAggMinLinks               INTEGER,
+    cadDot3adAggDescription            DisplayString,
+    cadDot3adAggTrapInh                BITS,
+    cadDot3adAggAdminState             AdminState,
+    cadDot3adAggPrState                PrimaryState,
+    cadDot3adAggSecState               SecondaryState,
+    cadDot3adAggRowStatus              RowStatus,
+    cadDot3adAggSystemID               MacAddress
+    }
+
+cadDot3adAggId OBJECT-TYPE
+    SYNTAX     INTEGER (1..8)
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "The unique identifier allocated to this Aggregator by the CMTS system."
+       ::= { cadDot3adAggEntry 1 }
+
+cadDot3adAggIndex OBJECT-TYPE
+    SYNTAX     InterfaceIndex
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The unique ifInex to identify this Aggregator."
+       ::= { cadDot3adAggEntry 2 }
+
+cadDot3adAggMacAddress OBJECT-TYPE
+    SYNTAX     MacAddress
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The MAC address of this Aggregator."
+       ::= { cadDot3adAggEntry 3 }
+
+cadDot3adAggLacpEnable OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "TRUE if LACP is enabled for this LAG, FALSE if it is disabled."
+    DEFVAL { true }
+       ::= { cadDot3adAggEntry 4 }
+
+cadDot3adAggLacpMode OBJECT-TYPE
+    SYNTAX INTEGER {
+        active(1),
+        passive(2)
+    }
+    MAX-ACCESS read-create
+    STATUS current
+    DESCRIPTION
+        "The default administrative status of the LACP protocol for ports
+         In this LAG. Controls bit 0 of dot3adAggPortPartnerOperState
+         to zero for passive and is set to one for active. "
+    DEFVAL { active }
+    ::= { cadDot3adAggEntry 5 }
+
+cadDot3adAggLacpRate OBJECT-TYPE
+    SYNTAX INTEGER {
+        slow(1),
+        fast(2)
+        }
+    MAX-ACCESS read-create
+    STATUS current
+    DESCRIPTION
+        "Specifies the default requested exchange rate of LACP packets for ports
+        In this LAG. Controls bit 1 (LACP_Timeout) in dot3adAggPortActorOperState
+        slow(1):    The device requests its peers to send LACP packets
+                      at a slow rate to this interface. LACP_Timeout equals 0
+                    (transmission interval of 30 seconds, long timeout of 90 seconds)
+        fast(2)  :    The device requests its peers to send LACP packets 
+                      at fast rate to this interface. LACP_Timeout equals 1
+                   (transmission interval of 1 second, short timeout of 3 seconds)."
+    DEFVAL { slow }
+    ::= { cadDot3adAggEntry 6 }
+
+cadDot3adAggMinLinks OBJECT-TYPE
+    SYNTAX INTEGER (1..8) 
+    MAX-ACCESS read-create
+    STATUS current
+    DESCRIPTION
+        "Sets the minimum number of ports that must be able to pass 
+         dataplane traffic for this LAG to be in-service. If the number of 
+         such ports in this LAG falls below this value, the entire LAG
+         goes OOS."
+    DEFVAL { 1 }
+    ::= { cadDot3adAggEntry 7 }
+
+cadDot3adAggDescription OBJECT-TYPE
+    SYNTAX DisplayString (SIZE(0..64))
+    MAX-ACCESS  read-create
+    STATUS  current
+    DESCRIPTION
+        "The description of the Link Aggregation Group."
+    ::= { cadDot3adAggEntry 8 }
+
+cadDot3adAggTrapInh OBJECT-TYPE
+    SYNTAX BITS { primary(0), secondary(1), duplex(2), linkUpLinkDown(3) }
+    MAX-ACCESS  read-create
+    STATUS  current
+    DESCRIPTION
+        " If a bit is set, the corresponding state change trap will not be sent. 
+          By default only linkUp and linkDown notifications are enabled."
+    DEFVAL { 'e0'h }
+    ::= { cadDot3adAggEntry 9 }
+
+cadDot3adAggAdminState OBJECT-TYPE
+    SYNTAX  AdminState 
+    MAX-ACCESS  read-create
+    STATUS  current
+    DESCRIPTION
+        "The administrative state of the Link Aggregation Group."
+    DEFVAL { down }
+    ::= { cadDot3adAggEntry 10 }
+
+cadDot3adAggPrState OBJECT-TYPE
+    SYNTAX  PrimaryState 
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The primary state of the Link Aggregation Group."
+    DEFVAL { oos }
+    ::= { cadDot3adAggEntry 11 }
+
+cadDot3adAggSecState OBJECT-TYPE
+    SYNTAX  SecondaryState 
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The secondary state of the Link Aggregation Group."
+    DEFVAL { manual }
+    ::= { cadDot3adAggEntry 12 }
+
+cadDot3adAggRowStatus OBJECT-TYPE
+    SYNTAX RowStatus
+    MAX-ACCESS read-create
+    STATUS current
+    DESCRIPTION
+        " Control Object for row creation and deletion. "
+    ::= { cadDot3adAggEntry 13}
+
+cadDot3adAggSystemID OBJECT-TYPE
+    SYNTAX     MacAddress
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "Equivalent to the dot3adAggActorSystemID in the dot3adAggTable.
+         A 6-octet read-write MAC address value used as a unique
+         identifier for the System that contains this Aggregator."
+    ::= { cadDot3adAggEntry 14}
+
+
+--==================== Link Aggregation Group global object ================--
+
+cadDot3adParams OBJECT IDENTIFIER ::= { cadBridgeGroup 14 }
+
+cadDot3adSystemPriority OBJECT-TYPE
+    SYNTAX       INTEGER (0..65535)
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION
+        "A 2-octet value that indicates the priority
+        value associated with the Actor's System ID."
+    REFERENCE
+        "6.3.1.1.11"
+    DEFVAL { 32768 }
+    ::= { cadDot3adParams 1 }
+
+
+
+--==================== Aging group ====================--
+
+-- Definition of Cadant proprietary CMTS wide properties for aging.
+
+cadAging OBJECT IDENTIFIER ::= { cadLayer2Mib 2 }
+
+cadAgingCPEAgingInterval OBJECT-TYPE
+        SYNTAX      TimeInterval (10..10)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+        "MAC Aging counter granularity."
+        DEFVAL { 10 }
+        ::= { cadAging 1 }
+
+cadAgingSFAgingInterval OBJECT-TYPE
+        SYNTAX      TimeInterval (1..1)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+        "Service Flow Aging granularity."
+        DEFVAL { 1 }
+        ::= { cadAging 2 }
+
+cadAgingStaleMACAgingInterval OBJECT-TYPE
+    SYNTAX   Integer32 (10..100000000)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+        "Stale MAC Flow Aging time in seconds."
+        DEFVAL { 604800 } -- 1 week
+        ::= { cadAging 3 }
+
+cadAgingArpCacheAgingInterval OBJECT-TYPE
+		SYNTAX   Integer32 (0 | 600..360000) -- 10 minutes to 100 hours
+		UNITS	 "seconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+        "Arp cache Aging time in seconds."
+        DEFVAL { 1200 } -- 20 minutes
+        ::= { cadAging 4 }
+
+cadAgingIdleMACAgingInterval OBJECT-TYPE
+        SYNTAX   Integer32 (10..1000000)
+        MAX-ACCESS   read-write
+        STATUS   current
+        DESCRIPTION
+            "The timeout period in seconds for aging out
+             dynamically learned MAC information."
+        DEFVAL { 1800 } -- 30 minutes
+        ::= { cadAging 5 }
+
+cadAgingArpCacheSearchingRateLimit OBJECT-TYPE
+        SYNTAX   Integer32 (100..86400000)
+        UNITS       "milliseconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The minimum amount of time between transmitting ARP requests while
+             an ARP cache entry is in the searching state."
+        DEFVAL { 333 }
+        ::= { cadAging 6 }
+
+cadAgingArpCacheSearchingMaxNumber OBJECT-TYPE
+        SYNTAX   Integer32 (0..65535)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The maximum number of ARP requests transmitted while an ARP cache entry
+             is in the searching state. When the number of ARPs indicated by this
+             variable have been transmitted, the next packet that arrives for an ARP
+             cache entry in the searching state will cause that entry to transition to
+             the notPresent state."
+        DEFVAL { 3 }
+        ::= { cadAging 7 }
+
+cadAgingArpCacheNotPresentRateLimit OBJECT-TYPE
+        SYNTAX   Integer32 (100..86400000)
+        UNITS       "milliseconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The minimum amount of time between transmitting ICMP unreachables
+             while an ARP cache entry is in the notPresent state."
+        DEFVAL { 333 }
+        ::= { cadAging 8 }
+
+cadAgingArpCacheNotPresentMaxNumber OBJECT-TYPE
+        SYNTAX   Integer32 (0..65535)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The maximum number of ICMP unreachables transmitted while an ARP cache
+             entry is in the notPresent state. When the number of ICMPs indicated by
+             this variable have been transmitted, the next packet that arrives for an
+             ARP cache entry in the notPresent state will cause that entry to transition
+             to the searching state, unless cadAgingArpCacheNotPresentMinTime has not
+             been reached yet."
+        DEFVAL { 3 }
+        ::= { cadAging 9 }
+
+cadAgingArpCacheNotPresentMaxTime OBJECT-TYPE
+        SYNTAX   Integer32 (1..604800)
+        UNITS       "seconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The maximum amount of time an ARP cache entry is in the notPresent state.
+             When the amount of time indicated by this variable has elapsed, the next
+             packet that arrives for an ARP cache entry in the notPresent state will
+             cause that entry to transition to the searching state, unless
+             cadAgingArpCacheNotPresentMinTime has not been reached yet."
+        DEFVAL { 3 }
+        ::= { cadAging 10 }
+
+cadAgingArpCacheNotPresentMinTime OBJECT-TYPE
+        SYNTAX   Integer32 (1..604800)
+        UNITS       "seconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The minimum amount of time an ARP cache entry is in the notPresent state.
+             This variable takes precedence over cadAgingArpCacheNotPresentMaxNumber
+             and cadAgingArpCacheNotPresentMaxTime. However, and ARP entry aged out
+             due to inactivity will be removed regardless of whether the amount of
+             time indicated by cadAgingArpCacheNotPresentMinTime has elapsed or not."
+        DEFVAL { 1 }
+        ::= { cadAging 11 }
+
+cadAgingArpCacheSearchingGlobalMaxRate OBJECT-TYPE
+        SYNTAX   Integer32 (0..65535)
+        UNITS    "packets/second"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The maximum global ARP request transmit rate for all IP's with an ARP cache 
+             entry in the searching state. Units are in packets sent per second."
+        DEFVAL { 65535 }
+        ::= { cadAging 12 }
+
+cadAgingArpCacheNotPresentGlobalMaxRate OBJECT-TYPE
+        SYNTAX   Integer32 (0..65535)
+        UNITS    "packets/second"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The maximum global ICMP unreachable transmit rate for all IP's with an ARP cache 
+             entry in the notPresent state. Units are in packets sent per second."
+        DEFVAL { 65535 }
+        ::= { cadAging 13 }
+
+cadAgingNDCacheAgingInterval OBJECT-TYPE
+		SYNTAX   Integer32 (0 | 180..360000) -- 5 minutes to 100 hours
+		UNITS	 "seconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+        "ND cache Aging time in seconds."
+        DEFVAL { 1200 } -- 20 minutes
+        ::= { cadAging 14 }
+
+cadAgingNDCacheSearchingRateLimit OBJECT-TYPE
+        SYNTAX   Integer32 (100..86400000)
+        UNITS       "milliseconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The minimum amount of time between transmitting ND requests while
+             an ND cache entry is in the searching state."
+        DEFVAL { 333 }
+        ::= { cadAging 15 }
+
+cadAgingNDCacheSearchingMaxNumber OBJECT-TYPE
+        SYNTAX   Integer32 (0..65535)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The maximum number of ND requests transmitted while an ND cache entry
+             is in the searching state. When the number of NDs indicated by this
+             variable have been transmitted, the next packet that arrives for an ND
+             cache entry in the searching state will cause that entry to transition to
+             the notPresent state."
+        DEFVAL { 3 }
+        ::= { cadAging 16 }
+
+cadAgingNDCacheNotPresentRateLimit OBJECT-TYPE
+        SYNTAX   Integer32 (100..86400000)
+        UNITS       "milliseconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The minimum amount of time between transmitting ICMP unreachables
+             while an ND cache entry is in the notPresent state."
+        DEFVAL { 333 }
+        ::= { cadAging 17 }
+
+cadAgingNDCacheNotPresentMaxNumber OBJECT-TYPE
+        SYNTAX   Integer32 (0..65535)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The maximum number of ICMP unreachables transmitted while an ND cache
+             entry is in the notPresent state. When the number of ICMPs indicated by
+             this variable have been transmitted, the next packet that arrives for an
+             ND cache entry in the notPresent state will cause that entry to transition
+             to the searching state, unless cadAgingNDCacheNotPresentMinTime has not
+             been reached yet."
+        DEFVAL { 3 }
+        ::= { cadAging 18 }
+
+cadAgingNDCacheNotPresentMaxTime OBJECT-TYPE
+        SYNTAX   Integer32 (1..604800)
+        UNITS       "seconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The maximum amount of time an ND cache entry is in the notPresent state.
+             When the amount of time indicated by this variable has elapsed, the next
+             packet that arrives for an ND cache entry in the notPresent state will
+             cause that entry to transition to the searching state, unless
+             cadAgingNDCacheNotPresentMinTime has not been reached yet."
+        DEFVAL { 3 }
+        ::= { cadAging 19 }
+
+cadAgingNDCacheNotPresentMinTime OBJECT-TYPE
+        SYNTAX   Integer32 (1..604800)
+        UNITS       "seconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The minimum amount of time an ARP cache entry is in the notPresent state.
+             This variable takes precedence over cadAgingArpCacheNotPresentMaxNumber
+             and cadAgingArpCacheNotPresentMaxTime. However, and ARP entry aged out
+             due to inactivity will be removed regardless of whether the amount of
+             time indicated by cadAgingArpCacheNotPresentMinTime has elapsed or not."
+        DEFVAL { 1 }
+        ::= { cadAging 20 }
+
+cadAgingNDCacheSearchingGlobalMaxRate OBJECT-TYPE
+        SYNTAX   Integer32 (0..65535)
+        UNITS    "packets/second"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The maximum global ND request transmit rate for all IP's with an ND cache 
+             entry in the searching state. Units are in packets sent per second."
+        DEFVAL { 65535 }
+        ::= { cadAging 21 }
+
+cadAgingNDCacheNotPresentGlobalMaxRate OBJECT-TYPE
+        SYNTAX   Integer32 (0..65535)
+        UNITS    "packets/second"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The maximum global ICMP unreachable transmit rate for all IP's with an ND cache 
+             entry in the notPresent state. Units are in packets sent per second."
+        DEFVAL { 65535 }
+        ::= { cadAging 22 }
+
+cadAgingArpCacheSearchingCableUnicast OBJECT-TYPE
+        SYNTAX   Integer32 (0..65535)
+        MAX-ACCESS  read-write
+        STATUS      current
+DESCRIPTION
+            "The maximum number of unicast ARP requests transmitted while an ARP
+             cache entry is in the searching state where the MAC/IP binding is previously
+             known. After the number of unicast ARPs indicated by this variable have
+             been transmitted, additional ARP requests will be sent as broadcast until the
+             cadAgingArpCacheSearchingMaxNumber limit is reached, at which point the
+             next packet that arrives for an ARP cache entry in the searching state will
+             cause that entry to transition to the notPresent state."
+        DEFVAL { 0 }
+        ::= { cadAging 23 }
+
+cadAgingArpCacheSearchingCableBroadcast OBJECT-TYPE
+        SYNTAX   TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This variable controls whether broadcast ARP packets can be sent for an
+            IPv4 address where there is no stored previous knowledge about a MAC/IP
+            binding. The total number of broadcast ARPs to send before switching to the
+            not-present state is limited by the cadAgingArpCacheSearchingMaxNumber
+            variable. If cadAgingArpCacheSearchingCableBroadcast is false and there is
+            no stored previous knowledge about a MAC/IP binding, the ARP cache entry
+            will transition immediately to the not-present state."
+        DEFVAL { true }
+        ::= { cadAging 24 }
+
+cadAgingNDCacheSearchingCableUnicast OBJECT-TYPE
+        SYNTAX   Integer32 (0..65535)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The maximum number of unicast NS requests transmitted while an ND
+             cache entry is in the searching state where the MAC/IP binding is previously
+             known. After the number of unicast NSs indicated by this variable have
+             been transmitted, additional NS requests will be sent as multicast until the
+             cadAgingNDCacheSearchingMaxNumber limit is reached, at which point the
+             next packet that arrives for an ND cache entry in the searching state will
+             cause that entry to transition to the notPresent state."
+        DEFVAL { 0 }
+        ::= { cadAging 25 }
+
+cadAgingNDCacheSearchingCableMulticast OBJECT-TYPE
+        SYNTAX   TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This variable controls whether multicast NS packets can be sent for an
+            IPv6 address where there is no stored previous knowledge about a MAC/IP
+            binding. The total number of multicast NSs to send before switching to the
+            not-present state is limited by the cadAgingNDCacheSearchingMaxNumber
+            variable. If cadAgingNDCacheSearchingCableMulticast is false and there is
+            no stored previous knowledge about a MAC/IP binding, the ND cache entry will
+            transition immediately to the not-present state."
+        DEFVAL { true }
+        ::= { cadAging 26}
+
+
+
+--==================== CER IP group ====================--
+
+-- Definition of ARRIS proprietary CER IP configuration objects for IEQ.
+
+arrisCerIpGroup OBJECT IDENTIFIER ::= { cadLayer2Mib 5 }
+
+cerIpGratuitousArpPeriod OBJECT-TYPE
+   SYNTAX       Unsigned32
+   MAX-ACCESS   read-write
+   STATUS       current
+   DESCRIPTION
+       "Configure the global time in seconds between gratuitous ARP transmission."
+   DEFVAL { 60 }
+   ::= { arrisCerIpGroup 1 }
+
+--================== Mib groups =======================--
+
+cadLayer2MibGroup OBJECT IDENTIFIER ::= { cadLayer2Mib 3 }
+
+cadAgingGroup  OBJECT-GROUP
+    OBJECTS {
+        cadAgingCPEAgingInterval,       
+        cadAgingSFAgingInterval,    
+        cadAgingStaleMACAgingInterval,
+        cadAgingArpCacheAgingInterval,
+        cadAgingNDCacheAgingInterval, 
+        cadAgingNDCacheSearchingRateLimit,
+        cadAgingNDCacheSearchingMaxNumber, 
+        cadAgingNDCacheNotPresentRateLimit,
+        cadAgingNDCacheNotPresentMaxNumber, 
+        cadAgingNDCacheNotPresentMaxTime,
+        cadAgingNDCacheNotPresentMinTime, 
+        cadAgingNDCacheSearchingGlobalMaxRate,
+        cadAgingNDCacheNotPresentGlobalMaxRate
+        }
+    STATUS  current
+    DESCRIPTION
+        " This group contains a collection of objects specific to MAC aging. "
+    ::= { cadLayer2MibGroup 1 }
+
+cerIpGroup  OBJECT-GROUP
+    OBJECTS {
+        cerIpGratuitousArpPeriod
+        }
+    STATUS  current
+    DESCRIPTION
+        "A collection of objects providing IP configuration for IEQ."
+    ::= { cadLayer2MibGroup 2 }
+
+
+--================== cadMacPort =======================--
+
+
+cadMacPortMIBObjects OBJECT IDENTIFIER ::= { cadLayer2Mib 4 }
+
+cadMacPortTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadMacPortEntry
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "MAC port table. "
+    ::= { cadMacPortMIBObjects 1 }
+
+cadMacPortEntry OBJECT-TYPE
+    SYNTAX  CadMacPortEntry
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        ""
+    INDEX { cadMacPortId } 
+    ::= { cadMacPortTable 1 }
+
+CadMacPortEntry ::=
+    SEQUENCE {
+        cadMacPortId            MacPortId,
+        cadMacPortAdminState    AdminState,
+        cadMacPortPrState       PrimaryState,
+        cadMacPortSecState      SecondaryState,
+        cadMacPortDplxStatus    DuplexStatus,
+        cadMacPortMacAddress    MacAddress,
+        cadMacPortIfIndex       InterfaceIndex,
+        cadMacPortDescription   DisplayString,
+        cadMacPortTrapInh       BITS,
+        cadMacPortRowStatus     RowStatus,
+        cadMacPortOfdm          TruthValue
+    }
+
+cadMacPortId OBJECT-TYPE
+    SYNTAX  MacPortId 
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "MAC port id which uniquely identifies a MAC port. Mac port Id range from 417 to 448 are reserved for 
+        2D12U CAMs."
+    ::= { cadMacPortEntry 1 }
+
+cadMacPortAdminState OBJECT-TYPE
+    SYNTAX  AdminState 
+    MAX-ACCESS  read-create
+    STATUS  current
+    DESCRIPTION
+        "The administrative state of the MAC port."
+    DEFVAL { down }
+    ::= { cadMacPortEntry 4 }
+
+cadMacPortPrState OBJECT-TYPE
+    SYNTAX  PrimaryState 
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The primary state of the MAC port."
+    DEFVAL { oos }
+    ::= { cadMacPortEntry 5 }
+
+cadMacPortSecState OBJECT-TYPE
+    SYNTAX  SecondaryState 
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The secondary state of the MAC port."
+    DEFVAL { manual }
+    ::= { cadMacPortEntry 6 }
+
+cadMacPortDplxStatus OBJECT-TYPE
+    SYNTAX  DuplexStatus
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The duplex status of the MAC port."
+    ::= { cadMacPortEntry 7 }
+
+cadMacPortMacAddress OBJECT-TYPE
+    SYNTAX  MacAddress
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The MAC address of the MAC port."
+    ::= { cadMacPortEntry 8 }
+
+cadMacPortIfIndex OBJECT-TYPE
+    SYNTAX InterfaceIndex
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The ifIndex of the MAC port."
+    ::= { cadMacPortEntry 9 }
+
+cadMacPortDescription OBJECT-TYPE
+    SYNTAX DisplayString (SIZE(0..64))
+    MAX-ACCESS  read-create
+    STATUS  current
+    DESCRIPTION
+        "The description of the MAC port."
+    ::= { cadMacPortEntry 10 }
+
+cadMacPortTrapInh OBJECT-TYPE
+    SYNTAX BITS { primary(0), secondary(1), duplex(2), linkUpLinkDown(3) }
+    MAX-ACCESS  read-create
+    STATUS  current
+    DESCRIPTION
+        " If a bit is set, the corresponding state change trap will not be sent. 
+          By default only linkUp and linkDown notifications are enabled."
+    DEFVAL { 'e0'h }
+    ::= { cadMacPortEntry 11 }
+
+cadMacPortRowStatus OBJECT-TYPE
+    SYNTAX RowStatus
+    MAX-ACCESS  read-create
+    STATUS  current
+    DESCRIPTION
+        "Control object for row creation and deletion."
+    ::= { cadMacPortEntry 12 }
+
+cadMacPortOfdm OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "If set to true, DOCSIS 3.1 is enabled for this MAC Port."
+    DEFVAL { false }
+    ::= { cadMacPortEntry 13}
+
+--================== cadIfMacDomainTable =======================--
+cadIfMacDomainTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadIfMacDomainEntry
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "The cadIfMacDomainTable maintains configuration information specific to
+             each MAC domain. The table is indexed by the MAC domain ifIndex(from the 
+         ifTable or the cadMacPortTable)." 
+    ::= { cadMacPortMIBObjects 2 }
+
+cadIfMacDomainEntry OBJECT-TYPE
+    SYNTAX  CadIfMacDomainEntry
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        ""
+    INDEX { cadIfMacDomainIfIndex } 
+    ::= { cadIfMacDomainTable 1 }
+
+CadIfMacDomainEntry ::=
+    SEQUENCE {
+        cadIfMacDomainIfIndex           InterfaceIndex,
+        cadIfMacDomainCapabilities      BITS,
+        cadIfMacDomainSyncInterval      Integer32,
+        cadIfMacDomainUcdInterval       Integer32,
+        cadIfMacDomainMaxServiceIds     Integer32,
+        cadIfMacDomainInvitedRangingAttempts    Integer32,
+        cadIfMacDomainInsertInterval        INTEGER,
+        cadIfMacDomainRangingInterval       TimeInterval,
+        cadIfMacDomainTftpEnforce       CadTftpEnforceType,
+        cadIfMacDomainRangeOpportunityCycle TimeInterval,
+        cadIfMacDomainDynamicSecret     CadDynamicSecretType,
+        cadIfMacDomainAnnex             INTEGER,
+        cadIfMacDomainMddInterval       Unsigned32,
+        cadIfMacDomainIpProvMode        INTEGER,
+        cadIfMacDomainCmStatusEvCtlEnabled  TruthValue,
+        cadIfMacDomainUsFreqRange       INTEGER,
+        cadIfMacDomainMcastDsidFwdEnabled   TruthValue,
+        cadIfMacDomainDsBondingEnabled  TruthValue,
+        cadIfMacDomainMultTxChModeEnabled   TruthValue,
+        cadIfMacDomainEarlyAuthEncrCtrl     INTEGER,
+        cadIfMacDomainTftpProxyEnabled  TruthValue,
+        cadIfMacDomainSrcAddrVerifEnabled   TruthValue,
+        cadIfMacDomainMulticastEncryption   TruthValue,
+        cadIfMacDomainRcpReportMode     INTEGER,
+        cadIfMacDomainRegRspToOverride  Unsigned32,
+        cadIfMacDomainMultRxChModeEnabled   TruthValue,
+        cadIfMacDomainCmUdcEnabled          TruthValue,
+        cadIfMacDomainSendUdcRulesEnabled   TruthValue,
+        cadIfMacDomainRccDynEnable          TruthValue,
+        cadIfMacDomainDsbgDynEnable         TruthValue,
+        cadIfMacDomainDsbgReseqWaitTime     Unsigned32,
+        cadIfMacDomainDsbgReseqWarnThrshld  Unsigned32,
+        cadIfMacDomainDpId                  Integer32,
+        cadIfMacDomainUsbgDynEnable         TruthValue,
+        cadIfMacDomainDownChannelMaxFrequency   INTEGER,
+        cadIfMacDomainDownChannelMinFrequency   INTEGER,
+        cadIfMacDomainUpChannelMaxFrequency     INTEGER,
+        cadIfMacDomainBpi2Mandatory             INTEGER,
+        cadIfMacDomainDSG30Enabled          TruthValue,
+        cadIfMacDomainEnforceRulesEnabled   TruthValue,
+        cadIfMacDomainCmTxPwrExtentionPreRegistrationEnabled    TruthValue,
+        cadIfMacDomainCmTxPwrExtentionPostRegistrationEnabled   TruthValue,
+        cadIfMacDomainT4TimeoutMultiplierEnabled  TruthValue,
+        cadIfMacDomainDynamicRccMultiTunerEnabled TruthValue,
+        cadIfMacDomainTcsSizeLimit          Integer32,
+        cadIfMacDomainDocsis31Enabled       TruthValue,
+        cadIfMacDomainEnergyMgt1x1Enabled   TruthValue,
+        cadIfMacDomainDsOfdmProfileRecoveryGuardTime Integer32,
+        cadIfMacDomainGracefulTcsReductionEnabled TruthValue
+        }
+
+cadIfMacDomainIfIndex OBJECT-TYPE
+      SYNTAX    InterfaceIndex 
+      MAX-ACCESS    not-accessible
+      STATUS  current
+      DESCRIPTION   "MAC domain ifIndex "
+      ::= { cadIfMacDomainEntry 1 }
+
+cadIfMacDomainCapabilities OBJECT-TYPE     
+      SYNTAX   BITS { atmCells(0), concatentation(1) }
+      MAX-ACCESS    read-only
+      STATUS  current
+      DESCRIPTION "Identifies the capabilities of the CMTS MAC implementation at this interface."
+      ::= { cadIfMacDomainEntry 2 }
+
+cadIfMacDomainSyncInterval OBJECT-TYPE     
+      SYNTAX   Integer32 (1..200)
+      UNITS        "Milliseconds"
+      MAX-ACCESS   read-write
+      STATUS  current
+      DESCRIPTION  "Interval between CMTS transmission of successive SYNC messages at this interface."
+      DEFVAL  {10}
+      ::= { cadIfMacDomainEntry 3 }
+     
+cadIfMacDomainUcdInterval  OBJECT-TYPE    
+      SYNTAX   Integer32 (1..2000)
+      UNITS        "Milliseconds"
+      MAX-ACCESS   read-write
+      STATUS  current
+      DESCRIPTION  "Interval between CMTS transmission of successive UCD messages for each 
+        upstream at this interface. "
+      DEFVAL   {1600}
+      ::= { cadIfMacDomainEntry 4 }
+
+cadIfMacDomainMaxServiceIds OBJECT-TYPE     
+      SYNTAX   Integer32 (1..16383)
+      MAX-ACCESS    read-only
+      STATUS  current
+      DESCRIPTION  "Maximum number of service IDs that may be simultaneously active. "
+      DEFVAL    {8191}
+      ::= { cadIfMacDomainEntry 5 }
+
+cadIfMacDomainInvitedRangingAttempts   OBJECT-TYPE   
+      SYNTAX   Integer32 (0..1024)
+      MAX-ACCESS    read-write
+      STATUS  current
+      DESCRIPTION   "Maximum number of attempts to make on invitations for 
+                     ranging requests.  A value of 0 means the system should 
+                     attempt to range forever. "
+      DEFVAL  {16}
+      ::= { cadIfMacDomainEntry 6 }
+
+cadIfMacDomainInsertInterval   OBJECT-TYPE   
+      SYNTAX   INTEGER (0..200)
+      UNITS    "Centiseconds"
+      MAX-ACCESS    read-write
+      STATUS  current
+      DESCRIPTION   "Amount of time between each broadcast station maintenance grant."
+      DEFVAL  {40}
+      ::= { cadIfMacDomainEntry 7 }
+
+cadIfMacDomainRangingInterval     OBJECT-TYPE 
+      SYNTAX   TimeInterval (500..3500)
+      UNITS    "Centiseconds"
+      MAX-ACCESS    read-write
+      STATUS  current
+      DESCRIPTION   "Amount of time to elapse between each ranging message."
+      DEFVAL  {2400}
+      ::= { cadIfMacDomainEntry 8 }
+
+cadIfMacDomainRangeOpportunityCycle  OBJECT-TYPE    
+      SYNTAX   TimeInterval (100.. 500)
+      UNITS    "Centiseconds"
+      MAX-ACCESS    read-write
+      STATUS  current
+      DESCRIPTION   "Amount of time to elapse between each ranging cycle."
+      DEFVAL  {120}
+      ::= { cadIfMacDomainEntry 9 }
+
+cadIfMacDomainTftpEnforce     OBJECT-TYPE 
+      SYNTAX   CadTftpEnforceType
+      MAX-ACCESS    read-write
+      STATUS  current
+      DESCRIPTION   "Current state of TFTP enforce for this interface."
+      DEFVAL  {disabled}
+      ::= { cadIfMacDomainEntry 10 }
+
+cadIfMacDomainDynamicSecret   OBJECT-TYPE   
+      SYNTAX   CadDynamicSecretType
+      MAX-ACCESS    read-write
+      STATUS  current
+      DESCRIPTION   "Current state of Cable Dynamic Secret for this interface."
+      DEFVAL  {disabled}
+      ::= { cadIfMacDomainEntry 11 }
+
+cadIfMacDomainAnnex OBJECT-TYPE
+      SYNTAX      INTEGER {
+            unknown(1),
+            other(2),
+            annexA(3),
+            annexB(4),
+            annexC(5)
+      }
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION
+            "The value of this object indicates the conformance of
+             the implementation to important regional cable standards.
+             annexA : Annex A from ITU-J83 is used.
+             annexB : Annex B from ITU-J83 is used.
+             annexC : Annex C from ITU-J83 is used."
+      
+      ::= { cadIfMacDomainEntry 13 }
+
+cadIfMacDomainMddInterval OBJECT-TYPE
+      SYNTAX      Unsigned32 (1..2000)
+      UNITS       "milliseconds"
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION "This attribute configures the interval for the insertion of MDD messages in each downstream channel of a MAC Domain."
+      DEFVAL { 2000 }
+      ::= { cadIfMacDomainEntry 14 }
+
+
+cadIfMacDomainIpProvMode OBJECT-TYPE
+      SYNTAX      INTEGER {
+                        ipv4Only(0),
+                        ipv6Only(1),
+                        alternate(2), 
+                        dualStack(3)
+                   }
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION
+                    "This attribute configures the CMTS IP provisioning mode for a MAC Domain. 
+                     When this attribute is set to 'ipv4Only' the CM will acquire a single IPv4 address 
+                     for the CM management stack. When this attribute is set to 'ipv6Only' the CM will acquire 
+                     a single IPv6 address for the CM management stack. When this attribute is set to 'alternate' 
+                     the CM will acquire a single IPv6 address for the CM management stack and, if failures occur, 
+                     the CM will fall back to provisioning and operation with an IPv4 address. 
+                     When this attribute is set to 'dualStack' the CM will acquire both an IPv6 and IPv4 address 
+                     for provisioning and operation."
+      DEFVAL { ipv6Only }
+      ::= { cadIfMacDomainEntry 16 }
+
+
+cadIfMacDomainCmStatusEvCtlEnabled OBJECT-TYPE
+      SYNTAX      TruthValue
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION "If set to 'true', this attribute enables the 
+                   signaling of the CM-Status Event reporting mechanism."
+      DEFVAL { true }
+      ::= { cadIfMacDomainEntry 18 }
+
+cadIfMacDomainUsFreqRange OBJECT-TYPE
+      SYNTAX INTEGER {
+        standard(0),
+        extended(1)
+      }
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION "This attribute indicates in MDD messages the
+                   upstream frequency upper band edge of an upstream
+                   Channel. A value 'standard' means Standard Frequency
+                   Range and a value 'extended' means Extended Frequency Range."
+      DEFVAL { standard }
+      ::= { cadIfMacDomainEntry 19 }
+
+cadIfMacDomainMcastDsidFwdEnabled OBJECT-TYPE
+      SYNTAX      TruthValue
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION "If set to 'true', this attribute enables the 
+                   CMTS to use IP Multicast DSID Forwarding (MDF) for the MAC domain."
+      DEFVAL { false }
+      ::= { cadIfMacDomainEntry 20 }
+
+cadIfMacDomainDsBondingEnabled OBJECT-TYPE
+      SYNTAX      TruthValue
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION "If set to 'true', this attribute enables 
+                   Downstream Channel Bonding for the MAC Domain."
+      DEFVAL { true }
+      ::= { cadIfMacDomainEntry 21 }
+
+cadIfMacDomainMultTxChModeEnabled OBJECT-TYPE
+      SYNTAX      TruthValue
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION "If set to 'true', this attribute enables
+                   Multiple Transmit Channel (MTC) Mode for the MAC Domain."
+      DEFVAL { false }
+      ::= { cadIfMacDomainEntry 22 }
+
+cadIfMacDomainEarlyAuthEncrCtrl OBJECT-TYPE
+      SYNTAX INTEGER {
+        disableEae(1),
+        enableEaeRangingBasedEnforcement(2),
+        enableEaeCapabilityBasedEnforcement(3),
+        enableEaeTotalEnforcement(4)
+      }
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION "This attribute enables or disables early 
+                   authentication and encryption (EAE) signaling for the 
+                   MAC Domain. It also defines the type of EAE 
+                   enforcement in the case that EAE is enabled. If set to 
+                   'disableEAE', EAE is disabled for the MAC Domain. If 
+                   set to 'enableEaeRangingBasedEnforcement', 
+                   'enableEaeCapabilityBasedEnforcement' or 
+                   'enableEaeTotalEnforcement', EAE is enabled for the 
+                   MAC Domain.
+
+                   The following EAE enforcement methods are defined in 
+                   the case where EAE signaling is enabled:
+                   The option 'enableEaeRangingBasedEnforcement' 
+                   indicates EAE is enforced on CMs that perform ranging
+                   with a B-INIT-RNG-REQ message.
+                   The option 'enableEaeCapabilityBasedEnforcement'
+                   indicates EAE is enforced on CMs that perform ranging
+                   with a B-INIT-RNG-REQ message in which the EAE
+                   capability flag is set.
+                   The option 'enableEaeTotalEnforcement' indicates EAE
+                   is enforced on all CMs regardless of their EAE
+                   capabilities."
+      DEFVAL { enableEaeRangingBasedEnforcement }
+      ::= { cadIfMacDomainEntry 23 }
+
+cadIfMacDomainTftpProxyEnabled OBJECT-TYPE
+      SYNTAX      TruthValue
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION "If set to 'true', this attribute enables TFTP 
+                   Proxy functionality for the MAC Domain."
+      DEFVAL { true }
+      ::= { cadIfMacDomainEntry 24 }
+
+cadIfMacDomainSrcAddrVerifEnabled OBJECT-TYPE
+      SYNTAX      TruthValue
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION
+                  "If set to 'true', this attribute enables Source
+                   Address Verification (SAV) functionality for the MAC Domain."
+      DEFVAL { false }
+      ::= { cadIfMacDomainEntry 25 }
+
+cadIfMacDomainMulticastEncryption OBJECT-TYPE
+      SYNTAX      TruthValue
+      MAX-ACCESS  read-only
+      STATUS      current
+      DESCRIPTION
+                  "If set to 'true', this attribute enables multicast encryption
+                   for all multicast flows on all downstream channels in the MAC domain
+                   using the des56 algorithm."
+      DEFVAL { false }
+      ::= { cadIfMacDomainEntry 26 }
+
+cadIfMacDomainRcpReportMode OBJECT-TYPE
+      SYNTAX  INTEGER {
+        nonVerbose(0),
+        verbose(1)
+      }
+      MAX-ACCESS    read-write
+      STATUS      current
+      DESCRIPTION 
+                  "This attribute controls the reporting of the CM receiver profiles 
+                  in the registration messages. A value of 0 means that the CM MUST NOT provide verbose 
+                  reporting of all its Receive Channel Profiles. A value of 1 means that the CM MUST 
+                  provide verbose reporting of Receive Channel Profiles. both standard profiles and 
+                  manufacturers profiles."
+      DEFVAL { nonVerbose }
+      ::= { cadIfMacDomainEntry 27 }
+
+cadIfMacDomainRegRspToOverride OBJECT-TYPE
+      SYNTAX       Unsigned32 (1..255)
+      UNITS        "seconds"
+      MAX-ACCESS   read-write
+      STATUS       current
+      DESCRIPTION 
+                  "This attribute provides an ability to override the default value of the T6 timer in the CM. 
+                   When this attribute is not set to its default value, then the CMTS will place it into 
+                   the MDD and the CM MUST use this value in place of the default value for the T6 timer."
+      DEFVAL { 3 }
+      ::= { cadIfMacDomainEntry 28 }
+
+cadIfMacDomainMultRxChModeEnabled OBJECT-TYPE
+      SYNTAX      TruthValue
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION "If set to true, this attribute enables Downstream Channel Bonding for the MAC Domain."
+      DEFVAL { true }
+      ::= { cadIfMacDomainEntry 29 }
+
+cadIfMacDomainCmUdcEnabled OBJECT-TYPE
+      SYNTAX      TruthValue
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION 
+                  "If set to true, this attribute instructs the CMTS MAC Domain to enable Upstream Drop Classifiers (UDC) 
+                   for the CMs attempting registration in this MAC Domain."
+      DEFVAL { false }
+      ::= { cadIfMacDomainEntry 30 }
+
+cadIfMacDomainSendUdcRulesEnabled OBJECT-TYPE
+      SYNTAX      TruthValue
+      MAX-ACCESS  read-write
+      STATUS      current
+      DESCRIPTION 
+                  "If set to true and when the CM signals to the CMTS 'Upstream Drop Classifier Group ID encodings, 
+                   this attribute instructs the CMTS MAC Domain to send the Subscriber Management Filters rules 
+                   associated with the Upstream Drop Classifier Group ID encodings to the CM in the form of UDCs 
+                   when the following conditions occurs: 1)The attribute CmUdcEnabled value for this MAC Domain is set to true, 
+                   and 2)The CM has the UDC capability advertised as supported. If there is no a single 
+                   Subscriber Management Filter configured in the CMTS for the CM signaled UDC Group ID, 
+                   the CMTS does not send UDC encodings to the CM. It is vendor specific whether the CMTS maintains 
+                   enforcement of the CM signaled or default Subscriber Management Filter groups in the upstream direction."
+ 
+      DEFVAL { false }
+      ::= { cadIfMacDomainEntry 31 }
+
+cadIfMacDomainRccDynEnable OBJECT-TYPE  
+     SYNTAX      TruthValue
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+        "This object allows user to enable or disable the autonomous creation of dynamic RCCs per mac domain."
+     DEFVAL { false }
+     ::= { cadIfMacDomainEntry 32 }
+
+cadIfMacDomainDsbgDynEnable OBJECT-TYPE  
+     SYNTAX      TruthValue
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+        "This object allows user to enable or disable the autonomous creation of dynamic bonding groups per mac domain."
+     DEFVAL { false }
+     ::= { cadIfMacDomainEntry 33 }
+
+cadIfMacDomainDsbgReseqWaitTime OBJECT-TYPE  
+     SYNTAX      Unsigned32 (1..180 | 255)
+     UNITS       "hundredMicroseconds"
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+        "Resequence wait time to se set for dynamic bonding groups per mac domain. If the value 255 indicates that requence wait time
+         is determined by the CMTS."
+     DEFVAL { 255 }
+     ::= { cadIfMacDomainEntry 34 }
+
+cadIfMacDomainDsbgReseqWarnThrshld OBJECT-TYPE  
+     SYNTAX      Unsigned32 (0..179 | 255)
+     UNITS       "hundredMicroseconds"
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+        "Resequence warning threshold to se set for dynamic bonding groups per mac domain. If the value 255 indicates that requence 
+         warning threshold is determined by the CMTS."
+     DEFVAL { 255 }
+     ::= { cadIfMacDomainEntry 35 }
+
+cadIfMacDomainDpId OBJECT-TYPE  
+     SYNTAX      Integer32 (0..15 | 255)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "When a mac domain is created or system reset, DMM assigns a Downstream Pool ID (DPID) for each mac domain. If the value 255 
+         indicates the DPID is invalid."
+     ::= { cadIfMacDomainEntry 36 }
+
+cadIfMacDomainUsbgDynEnable OBJECT-TYPE  
+     SYNTAX      TruthValue
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+        "This object allows user to enable or disable the autonomous creation of dynamic upstream bonding groups per mac domain."
+     DEFVAL { false }
+     ::= { cadIfMacDomainEntry 37 }
+
+cadIfMacDomainDownChannelMaxFrequency OBJECT-TYPE
+        SYNTAX      INTEGER (858000000 | 867000000 | 999000000)
+        UNITS       "hertz"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This object is used to configure the C4 CMTS to accept maximum downstream
+            frequency limit that conform with the EuroDOCSIS specifications
+            (starndard range 112 MHz to 858 MHz), (extended 85 MHz to 999MHz)
+            or to the DOCSIS specifications (standard 91 to 867 MHz), (extended range 57 MHz to 999 MHz).
+            Changes to downstream frequency and width are verified against this
+            object to ensure the C4 CMTS does not exceed the downstream spectrum
+            limits imposed by this object. Attempting to decrease the downstream
+            frequency spectrum implied by this object will fail if at least
+            a single downstream is configured outside of the range for the new
+            value. It is recommended this object be set during initial system
+            setup."
+        DEFVAL { 867000000 } -- rely upon Annex for frequency ranges
+        ::= { cadIfMacDomainEntry 38 }
+
+cadIfMacDomainDownChannelMinFrequency OBJECT-TYPE
+        SYNTAX      INTEGER (57000000 | 85000000 | 91000000 | 112000000)
+        UNITS       "hertz"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This object is used to configure the C4 CMTS to accept minimum downstream
+            frequency limit that conform with the EuroDOCSIS specifications
+            (starndard range 112 MHz to 858 MHz), (extended 85 MHz to 999MHz)
+            or to the DOCSIS specifications (standard 91 to 867 MHz), (extended range 57 MHz to 999 MHz).
+            Changes to downstream frequency and width are verified against this
+            object to ensure the C4 CMTS does not exceed the downstream spectrum
+            limits imposed by this object. Attempting to increase the minimum downstream
+            frequency limit implied by this object will fail if at least
+            a single downstream is configured outside of the range for the new
+            value. It is recommended this object be set during initial system
+            setup."
+        DEFVAL { 91000000 } -- rely upon Annex for frequency ranges
+        ::= { cadIfMacDomainEntry 39 }
+
+cadIfMacDomainUpChannelMaxFrequency OBJECT-TYPE        
+        SYNTAX      INTEGER ( 42000000 | 55000000 | 65000000 | 85000000)
+        UNITS       "hertz"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This object is used to configure the C4 CMTS to accept upstream
+            frequency ranges that conform with the EuroDOCSIS specifications
+            (5 MHz to 65 MHz), to the extended range used in Japan
+            (5 MHz to 55 MHz), or to the DOCSIS specifications (5 MHz to 42 MHz),
+            or to the extended upstream range (5 MHz to 85 MHz).
+            Changes to upstream frequency and width are verified against this
+            object to ensure the C4 CMTS does not exceed the upstream spectrum
+            limits imposed by this object. Attempting to narrow the upstream
+            frequency spectrum implied by this object will fail if at least
+            a single upstream is configured outside of the range for the new
+            value. Default value is taken from global setting when the cable-mac 
+            is created."
+        DEFVAL { 42000000 } 
+        ::= { cadIfMacDomainEntry 40 }
+
+cadIfMacDomainBpi2Mandatory  OBJECT-TYPE
+        SYNTAX    INTEGER {
+                    none(0),
+                    bpi(1),    
+                    bpiPlus (2) 
+                  }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION
+            "This object determines the what minimum level of
+             BPI operation  is required in order to allow a cable
+             modem to register."
+        DEFVAL {none}
+        ::= { cadIfMacDomainEntry 41}
+
+cadIfMacDomainDSG30Enabled OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION "If set to 'true', this attribute enables the 
+                     CMTS to use DSG3.0 on the MAC domain.  If false,
+                     then DSG reverts to the pre-DOCSIS3.0 version
+                     without DSIDs."
+        DEFVAL { false }
+        ::= { cadIfMacDomainEntry 43 }
+
+cadIfMacDomainEnforceRulesEnabled OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+           "If set to 'true', then QOS penalties as defined in the
+            cadEnforceRuleTable will be enforced for SFs on CMs
+            in this MAC Domain."
+        DEFVAL { true }
+        ::= { cadIfMacDomainEntry 44 }
+
+cadIfMacDomainCmTxPwrExtentionPreRegistrationEnabled OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION "Indicate if the transmit power extension (before registration) feature
+                     is enabled or not onthe CMTS. If set to 'true', the CMTS will populate
+                     TLV16 in the MDD message with the value of 1.  If set to 'false', 
+                     the CMTS will populate TLV16 in the MDD message with the the value of 0.
+                     The value in this MIB object is ignored if MTCM is disabled."
+        DEFVAL { false }
+        ::= { cadIfMacDomainEntry 45 }
+
+cadIfMacDomainCmTxPwrExtentionPostRegistrationEnabled OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION "Indicate if the transmit power extension (after registration) feature
+                     is enabled or not on the CMTS. If set to 'true', the CMTS will populate
+                     TLV5.40 in the REG-RSP-MP message with the same value received in the
+                     REG-REQ-MP message (advertised CM capability). If set to 'false', 
+                     the CMTS will respond with 0 in TLV5.40 of the REG-RSP-MP message. 
+                     The value in this MIB object is ignored if MTCM is disabled"
+        DEFVAL { false }
+        ::= { cadIfMacDomainEntry 46 }
+
+cadIfMacDomainT4TimeoutMultiplierEnabled OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION 
+                    "If set to true, this attribute instructs the CMTS MAC Domain to enable the T4 Timeout
+                     Multiplier for the CMs operating in MTCM in this MAC Domain. The multiplier will be
+                     set equal to the number of upstream assigned to the modem at registration time."
+        DEFVAL { false }
+        ::= { cadIfMacDomainEntry 47 }
+
+cadIfMacDomainDynamicRccMultiTunerEnabled OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION 
+                    "If set to true, this attribute instructs the CMTS MAC Domain to 
+                     enable dynamic RCC support for CM RCP's with multiple tuners."
+        DEFVAL { false }
+        ::= { cadIfMacDomainEntry 48 }
+
+cadIfMacDomainTcsSizeLimit  OBJECT-TYPE
+        SYNTAX      Integer32 (0..8)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION 
+                    "This object is used to potentially limit the number of channels within
+                    a CM's TCS.  A value of 0 indicates the limit is determined by the CM's
+                    capabilities, configuration and operational status.  When a non-zero value
+                    is specified and is smaller than the number of channels that are capable of
+                    residing within the CM's TCS, the number of channels within the CM's TCS
+                    will be restricted to the specified value."
+        DEFVAL { 0 }
+        ::= { cadIfMacDomainEntry 49 }
+
+cadIfMacDomainDocsis31Enabled OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+                    "If set to true, DOCSIS 3.1 is enabled for this MAC Domain."
+        DEFVAL { false }
+        ::= { cadIfMacDomainEntry 50}
+
+cadIfMacDomainEnergyMgt1x1Enabled OBJECT-TYPE
+     	SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+                    "This attribute indicates whether the CMTS is configured
+		     for 1x1 Energy Management Mode of operation on a per 
+		     MAC Domain basis. If this attribute is set to 'true', 
+		     the CMTS is configured for 1x1 Energy Management Mode 
+		     of operation on this MAC Domain. If this attribute is 
+		     set to 'false', the Energy Management 1x1 Mode of 
+		     operation is disabled in the CMTS on this MAC Domain"
+        DEFVAL { false }
+        ::= { cadIfMacDomainEntry 51 }
+
+cadIfMacDomainDsOfdmProfileRecoveryGuardTime OBJECT-TYPE
+        SYNTAX     Integer32 (0..3600)
+        UNITS       "seconds"
+        MAX-ACCESS read-write
+        STATUS     current
+        DESCRIPTION
+            "The amount of time that an impaired OFDM profile will remain impaired before 
+              transitioning to good upon being notified that the CM can decode the profile. This provides  
+              some hysteresis for a profile to become stable before using the newly decodable profile. If set 
+              to a value of 0, then there is no hysteresis (no timer is started) and all profiles may transition 
+              to good immediately upon being notified that the CM can decode the profile."
+        DEFVAL { 300 }
+        ::= { cadIfMacDomainEntry 52}
+
+cadIfMacDomainGracefulTcsReductionEnabled OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION 
+                    "If set to true, the CMTS will instruct the
+                     modem to try incrementally lower numbers of bonded
+                     channels instead of reverting immediately to single
+                     US bonded channel while registering a modem and a
+                     power shortfall or DRW violation is encountered.
+                     If set to false, the CMTS will instruct the
+                     modem to immediately revert to a single US bonded
+                     channel while registering a modem and a power shortfall
+                     or DRW violation is encountered."
+        DEFVAL { false }
+        ::= { cadIfMacDomainEntry 53 }
+
+--================== cadMacChlTable=======================--
+cadMacChlTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadMacChlEntry
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "MAC channel table. "
+    ::= { cadMacPortMIBObjects 3 }
+
+cadMacChlEntry OBJECT-TYPE
+    SYNTAX  CadMacChlEntry
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        ""
+    INDEX { cadMacChlMacDomainIfIndex, cadMacChlChannelIfIndex} 
+    ::= { cadMacChlTable 1 }
+
+CadMacChlEntry ::=
+    SEQUENCE {
+        cadMacChlMacDomainIfIndex   InterfaceIndex,
+        cadMacChlChannelIfIndex     InterfaceIndex,
+        cadMacChlCardNumber         CardId,
+        cadMacChlPortId             PortId,
+        cadMacChlPortType           PortType,
+        cadMacChlCardSubType        CerCardSubType,
+        cadMacChlChannelId          Integer32,
+        cadMacChlRowStatus          RowStatus,
+        cadMacChlIsPriCapableDs     TruthValue,
+        cadMacChlSfProvAttrMask     AttributeMask,
+        cadMacChlDirection          IfDirection
+    }
+
+cadMacChlMacDomainIfIndex   OBJECT-TYPE
+      SYNTAX    InterfaceIndex
+      MAX-ACCESS    not-accessible
+      STATUS    current
+      DESCRIPTION   "ifIndex of the MAC domain"
+      ::= { cadMacChlEntry 1 }
+
+cadMacChlChannelIfIndex     OBJECT-TYPE
+      SYNTAX    InterfaceIndex
+      MAX-ACCESS    not-accessible
+      STATUS    current
+      DESCRIPTION   "ifIndex of the upstream or downstream channel"
+      ::= { cadMacChlEntry 2 }
+
+cadMacChlCardNumber     OBJECT-TYPE
+      SYNTAX    CardId
+      MAX-ACCESS    read-only
+      STATUS  current
+      DESCRIPTION   "card number of downstream or upstream channel"
+      ::= { cadMacChlEntry 3 }
+
+cadMacChlPortId     OBJECT-TYPE
+      SYNTAX    PortId
+      MAX-ACCESS    read-only
+      STATUS  current
+      DESCRIPTION   "port Id of downstream or upstream channel"
+      ::= { cadMacChlEntry 4 }
+
+cadMacChlPortType       OBJECT-TYPE
+      SYNTAX    PortType
+      MAX-ACCESS    read-only
+      STATUS  current
+      DESCRIPTION   "port type of downstream or upstream channel"
+      ::= { cadMacChlEntry 5 }
+
+cadMacChlCardSubType        OBJECT-TYPE
+      SYNTAX    CerCardSubType
+      MAX-ACCESS    read-only
+      STATUS  current
+      DESCRIPTION   "card subtype type of downstream or upstream channel"
+      ::= { cadMacChlEntry 6 }
+
+cadMacChlChannelId      OBJECT-TYPE
+      SYNTAX   Integer32 (0..255)
+      MAX-ACCESS    read-create
+      STATUS  current
+      DESCRIPTION   "downstream or upstream channel ID. 0 is an invalid channel Id."
+      DEFVAL { 0 }
+      ::= { cadMacChlEntry 7 }
+
+cadMacChlRowStatus      OBJECT-TYPE
+      SYNTAX   RowStatus
+      MAX-ACCESS    read-create
+      STATUS  current
+      DESCRIPTION   "Control object for row creation and deletion"
+      ::= { cadMacChlEntry 8 }
+
+cadMacChlIsPriCapableDs OBJECT-TYPE
+      SYNTAX   TruthValue
+      MAX-ACCESS    read-create
+      STATUS  current
+      DESCRIPTION   "True if this is downstream channel and it is intended to be used
+                     as a primary channel by one or more cable modems. False otherwise.
+                     
+                     When a row's cadMacChlIsPrimaryCapableDs column is set to true(1)
+                     then DOCSIS SYNC message generation is enabled on the downstream 
+                     channel.
+                     
+                     The default value of this field is true(1) for all downstream
+                     channels and false(2) for all upstream channels."
+      DEFVAL { false }
+      ::= { cadMacChlEntry 9 }
+
+cadMacChlSfProvAttrMask OBJECT-TYPE
+      SYNTAX AttributeMask
+      MAX-ACCESS    read-create
+      STATUS  current
+      DESCRIPTION   "Provisioned attributes of this channel for purposes of channel
+                     assignment."
+      DEFVAL { '00000000'H }
+      ::= { cadMacChlEntry 10 }
+
+
+cadMacChlDirection OBJECT-TYPE
+      SYNTAX IfDirection
+      MAX-ACCESS    read-only
+      STATUS  current
+      DESCRIPTION   "DOCSIS downstream or upstream direction."
+      
+      ::= { cadMacChlEntry 11 }
+
+--================== cadUpSupervisionCfgTable =======================--
+
+cadUpSupervisionCfgTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadUpSupervisionCfgEntry
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Upstream supervison configuration table. "
+    ::= { cadMacPortMIBObjects 4 }
+
+cadUpSupervisionCfgEntry OBJECT-TYPE
+    SYNTAX  CadUpSupervisionCfgEntry 
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        ""
+    INDEX { cadMacChlMacDomainIfIndex, cadUpSupervisionCfgUpChannelIfIndex, cadUpSupervisionCfgDownChannelIfIndex} 
+    ::= { cadUpSupervisionCfgTable 1 }
+
+CadUpSupervisionCfgEntry ::=
+    SEQUENCE {
+        cadUpSupervisionCfgUpChannelIfIndex     InterfaceIndex,
+        cadUpSupervisionCfgDownChannelIfIndex   InterfaceIndex,
+        cadUpSupervisionCfgAssign               TruthValue,
+        cadUpSupervisionCfgRowStatus            RowStatus
+    }
+
+cadUpSupervisionCfgUpChannelIfIndex OBJECT-TYPE
+       SYNTAX  InterfaceIndex 
+       MAX-ACCESS    not-accessible
+       STATUS  current
+       DESCRIPTION   "ifIndex of the upstream logical channel."
+    ::= { cadUpSupervisionCfgEntry 1 }
+
+cadUpSupervisionCfgDownChannelIfIndex OBJECT-TYPE
+      SYNTAX   InterfaceIndex 
+      MAX-ACCESS    not-accessible
+      STATUS  current
+      DESCRIPTION   "ifIndex of the downstream channel."
+    ::= { cadUpSupervisionCfgEntry 2 }
+
+cadUpSupervisionCfgAssign    OBJECT-TYPE
+      SYNTAX        TruthValue
+      MAX-ACCESS    read-create
+      STATUS  current
+      DESCRIPTION   "Indicates whether supervisory information for the upstream channel
+                     with cadIfUpChannelIfIndex is to be carried on the downstream channel
+                     with cadIfDownChannelIfIndex. "
+      DEFVAL { true }
+    ::= { cadUpSupervisionCfgEntry 3 }
+
+cadUpSupervisionCfgRowStatus    OBJECT-TYPE
+      SYNTAX   RowStatus
+      MAX-ACCESS    read-create
+      STATUS  current
+      DESCRIPTION   "Control object for row creation and deletion."
+      ::= { cadUpSupervisionCfgEntry 4 }
+
+
+--================== cadUpSupervisionStatusTable =======================--
+
+cadUpSupervisionStatusTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadUpSupervisionStatusEntry
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Upstream supervision stataus table. "
+    ::= { cadMacPortMIBObjects 5 }
+
+cadUpSupervisionStatusEntry OBJECT-TYPE
+    SYNTAX  CadUpSupervisionStatusEntry 
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        ""
+    INDEX { cadMacChlMacDomainIfIndex, cadUpSupervisionStatusUpChannelIfIndex, cadUpSupervisionStatusDownChannelIfIndex} 
+    ::= { cadUpSupervisionStatusTable 1 }
+
+CadUpSupervisionStatusEntry ::=
+    SEQUENCE {
+        cadUpSupervisionStatusUpChannelIfIndex      InterfaceIndex,
+        cadUpSupervisionStatusDownChannelIfIndex    InterfaceIndex,
+        cadUpSupervisionStatusAssignmentMethod      INTEGER
+    }
+
+cadUpSupervisionStatusUpChannelIfIndex OBJECT-TYPE
+       SYNTAX  InterfaceIndex 
+       MAX-ACCESS    not-accessible
+       STATUS  current
+       DESCRIPTION   "ifIndex of the upstream logical channel."
+    ::= { cadUpSupervisionStatusEntry 1 }
+
+cadUpSupervisionStatusDownChannelIfIndex OBJECT-TYPE
+      SYNTAX   InterfaceIndex 
+      MAX-ACCESS    not-accessible
+      STATUS  current
+      DESCRIPTION   "ifIndex of the downstream channel."
+    ::= { cadUpSupervisionStatusEntry 2 }
+
+cadUpSupervisionStatusAssignmentMethod    OBJECT-TYPE
+      SYNTAX        INTEGER {
+                        automatic(1),
+                        provisioned(2)
+                    }
+      MAX-ACCESS    read-only
+      STATUS  current
+      DESCRIPTION   "Origin of the supervisory relationship. "
+    ::= { cadUpSupervisionStatusEntry 3 }
+
+
+END

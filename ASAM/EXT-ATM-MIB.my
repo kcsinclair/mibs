@@ -1,0 +1,878 @@
+
+-- orig ATM_EXT_MIB
+
+EXT-ATM-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+
+    OBJECT-TYPE
+        FROM RFC-1212
+    Counter
+        FROM RFC1155-SMI
+    asam
+        FROM SYSTEM-MIB
+
+atmVclVpi, atmVclVci
+        FROM ATM-MIB
+RowStatus
+
+        FROM SNMPv2-TC
+     ifIndex,
+     InterfaceIndex
+        FROM ITF-MIB
+  AtmVpIdentifier, AtmVcIdentifier
+       FROM ATM-TC-MIB
+    
+;
+  
+  AsamAtmF4F5LoopbackDirection ::= INTEGER {
+             incoming(1), 
+             outgoing(2)
+              }
+                                                
+   AsamAtmLoopbackSpan ::= INTEGER {
+              e2e(1),   
+              seg(2)    
+            }
+
+   AsamAtmLoopbackLLID ::= OCTET STRING (SIZE(16))
+
+asamExtAtmMIB OBJECT IDENTIFIER ::= { asam 4 }
+
+asamExtAtmMIBObjects OBJECT IDENTIFIER ::= { asamExtAtmMIB 1 }
+
+asamAtmInterfaceConfigTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF AsamAtmInterfaceConfigEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+           "This table contains ATM interface configuration parameters,
+            one entry per ATM interface. This table is an extended part
+            of 'atmInterfaceConfTable' in the ATM_MIB."
+    ::= { asamExtAtmMIBObjects 38 }
+
+asamAtmInterfaceConfigEntry OBJECT-TYPE
+    SYNTAX  AsamAtmInterfaceConfigEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+           "This list contains ATM interface configuration information,
+            Each ATM interface automatically has an entry in this table
+            associated with it."
+    INDEX   { ifIndex }
+    ::= { asamAtmInterfaceConfigTable 1 }
+
+AsamAtmInterfaceConfigEntry ::=
+    SEQUENCE {
+        asamAtmInterfaceType
+            INTEGER,
+ 
+           asamAtmInterfaceNonCrossConnectedPVccs
+               INTEGER
+
+         }
+
+asamAtmInterfaceType OBJECT-TYPE
+    SYNTAX  INTEGER {
+              ns (1),  
+              nt (2),  
+              aai (3), 
+              uai (4), 
+              isi (5), 
+              asi (6)  
+            }
+    ACCESS  read-write
+    STATUS  mandatory
+    DESCRIPTION
+           "The value of this object determines the type of ATM interface.
+Only uai (4) is supported."
+    ::= { asamAtmInterfaceConfigEntry 1 }
+
+asamAtmInterfaceNonCrossConnectedPVccs  OBJECT-TYPE
+    SYNTAX  INTEGER (0..65535)
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The value of this object determines the number of Vcttp connections
+         on this ATM interface (only PVC)."
+    ::= { asamAtmInterfaceConfigEntry 16}
+
+asamAtmTcProtoCurrentTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF AsamAtmTcProtoCurrentEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+           "The ATM TC Adaptor Protocol Monitoring Current Data Table."
+    ::= { asamExtAtmMIBObjects 14 }
+
+asamAtmTcProtoCurrentEntry OBJECT-TYPE
+    SYNTAX  AsamAtmTcProtoCurrentEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "An entry in the ATM TC Adaptor Protocol Monitoring Current Data Table,
+         each ATM interface automatically has an entry in this table
+         associated with it."
+    INDEX   { ifIndex }
+    ::= { asamAtmTcProtoCurrentTable  1 }
+
+AsamAtmTcProtoCurrentEntry ::=
+    SEQUENCE {
+        asamAtmNearEndCurrentOCDs
+            Counter,
+            
+        asamAtmNearEndCurrentDHECVs
+            Counter,
+            
+        asamAtmFarEndCurrentOCDs
+            Counter,
+            
+        asamAtmFarEndCurrentDHECVs
+Counter,
+
+        asamAtmNearEndCurrentOCDs1Day
+            Counter,
+            
+        asamAtmNearEndCurrentDHECVs1Day
+            Counter,
+            
+        asamAtmFarEndCurrentOCDs1Day
+            Counter,
+            
+        asamAtmFarEndCurrentDHECVs1Day
+            Counter
+        }
+
+asamAtmNearEndCurrentOCDs OBJECT-TYPE
+    SYNTAX  Counter
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+            " The number of Out of Cell Delinations anomalies which 
+              occurred for incoming cells on an ATM interface
+              since the start of this current 15 minute interval.
+              An Out of Cell Delineation anomaly occurs when
+              there are 7 consecutive ATM cells received which
+              contain HEC errors."
+    ::= { asamAtmTcProtoCurrentEntry 1 }
+
+asamAtmNearEndCurrentDHECVs OBJECT-TYPE
+    SYNTAX  Counter
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+            "The number of ATM cells discarded on this interface,
+             due to a HEC error, since the start of this 
+             current 15 minute interval."
+    ::= { asamAtmTcProtoCurrentEntry 2 }
+    
+asamAtmFarEndCurrentOCDs OBJECT-TYPE
+    SYNTAX  Counter
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+            " The number of Out of Cell Delinations anomalies which 
+              occurred for incoming cells on the far end ATM 
+              interface connected to this ATM interface since
+              the start of this current 15 minute interval.
+              The far end ATM interface does only exist when the
+              ATM interface is situated on top of the ADSL physical
+              medium.
+              An Out of Cell Delineation anomaly occurs when
+              there are 7 consecutive ATM cells received which
+              contain HEC errors."
+    ::= { asamAtmTcProtoCurrentEntry 3 }
+
+asamAtmFarEndCurrentDHECVs OBJECT-TYPE
+    SYNTAX  Counter
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+            "The number of ATM cells discarded on the far end ATM interface
+              connnected to this ATM interface,
+              due to a HEC error, since the start of this 
+              current 15 minute interval.
+              The far end ATM interface does only exist when the ATM
+              interface is situated on top of the ADSL physical
+              medium."
+::= { asamAtmTcProtoCurrentEntry 4 }
+
+asamAtmNearEndCurrentOCDs1Day OBJECT-TYPE
+    SYNTAX  Counter
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+            " The number of Out of Cell Delinations anomalies which 
+              occurred for incoming cells on an ATM interface
+              since the start of this current 24 hour interval.
+              An Out of Cell Delineation anomaly occurs when
+              there are 7 consecutive ATM cells received which
+              contain HEC errors."
+    ::= { asamAtmTcProtoCurrentEntry 5 }
+
+asamAtmNearEndCurrentDHECVs1Day OBJECT-TYPE
+    SYNTAX  Counter
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+            "The number of ATM cells discarded on this interface,
+             due to a HEC error, since the start of this 
+             current 24 hour interval."
+    ::= { asamAtmTcProtoCurrentEntry 6 }
+    
+asamAtmFarEndCurrentOCDs1Day OBJECT-TYPE
+    SYNTAX  Counter
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+            " The number of Out of Cell Delinations anomalies which 
+              occurred for incoming cells on the far end ATM 
+              interface connected to this ATM interface since
+              the start of this current 24 hour interval.
+              The far end ATM interface does only exist when the
+              ATM interface is situated on top of the ADSL physical
+              medium.
+              An Out of Cell Delineation anomaly occurs when
+              there are 7 consecutive ATM cells received which
+              contain HEC errors."
+    ::= { asamAtmTcProtoCurrentEntry 7 }
+
+asamAtmFarEndCurrentDHECVs1Day OBJECT-TYPE
+    SYNTAX  Counter
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+            "The number of ATM cells discarded on the far end ATM interface
+              connnected to this ATM interface,
+              due to a HEC error, since the start of this 
+              current 24 hour interval.
+              The far end ATM interface does only exist when the ATM
+              interface is situated on top of the ADSL physical
+              medium."
+    ::= { asamAtmTcProtoCurrentEntry 8 }
+
+asamAtmTcPerfTable OBJECT-TYPE
+SYNTAX SEQUENCE OF AsamAtmTcPerfEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+           "The ATM TC Adaptor Protocol Performance Table.
+            This table maintains per interface the number of valid
+performance intervals."
+    ::= { asamExtAtmMIBObjects 15 }
+
+asamAtmTcPerfEntry OBJECT-TYPE
+    SYNTAX  AsamAtmTcPerfEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+           "An entry in the ATM TC Adaptor Protocol Performance Table,
+            each ATM interface automatically has an entry associated with it."
+    INDEX   { ifIndex }
+    ::= { asamAtmTcPerfTable  1 }
+
+AsamAtmTcPerfEntry ::=
+    SEQUENCE {
+        asamAtmTcValidIntervals
+INTEGER,
+        asamAtmTcValidIntervals1Day
+INTEGER
+        } 
+
+asamAtmTcValidIntervals OBJECT-TYPE
+    SYNTAX  INTEGER
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+            "The number of previous intervals for which valid data has been
+            stored. An ATM device must support n intervals. The value of n
+            is 192. The value of this object will be n unless the device was
+            brought online within the last nx15 minutes, in which case the
+            value will be the number of complete 15 minute intervals the 
+            device has been online."
+::= { asamAtmTcPerfEntry 1 }
+
+asamAtmTcValidIntervals1Day OBJECT-TYPE
+    SYNTAX  INTEGER
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+            "The number of previous intervals for which valid data has been
+            stored. An ATM device must support n intervals. The value of n
+            is 2. The value of this object will be n unless the device was
+            brought online within the last nx24 hours, in which case the
+            value will be the number of complete 24 hours intervals the 
+            device has been online."
+    ::= { asamAtmTcPerfEntry 2 }
+
+asamAtmTcProtoIntervalTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF AsamAtmTcProtoIntervalEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+           "The ATM TC Adaptor Protocol Monitoring Interval Data Table.
+            This table maintains per interface statistics
+            for the previous 15 minute intervals."
+    ::= { asamExtAtmMIBObjects 16 }
+
+asamAtmTcProtoIntervalEntry OBJECT-TYPE
+    SYNTAX  AsamAtmTcProtoIntervalEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+           "An entry in the ATM TC Adaptor Protocol Monitoring Interval Data
+            Table, each ATM interface automatically has an entry in this table
+            associated with it."
+    INDEX   { ifIndex, asamAtmIntervalNumber }
+    ::= { asamAtmTcProtoIntervalTable  1 }
+
+AsamAtmTcProtoIntervalEntry ::=
+    SEQUENCE {
+        asamAtmIntervalNumber
+            INTEGER,
+            
+        asamAtmNearEndIntervalOCDs
+            Counter,
+            
+        asamAtmNearEndIntervalDHECVs
+            Counter,
+            
+        asamAtmFarEndIntervalOCDs
+            Counter,
+            
+        asamAtmFarEndIntervalDHECVs
+            Counter
+        }
+        
+asamAtmIntervalNumber OBJECT-TYPE
+    SYNTAX  INTEGER 
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+           "A number between 1 and n, which identifies the
+            interval for which the set of statistics is available.
+            An ATM device support n intervals. The value of n is 192.
+            The interval identified by 1 is the most recently
+            completed 15 minute interval,
+            and the interval identified
+            by n is the interval immediately preceding the
+            one identified by n-1."
+    ::= { asamAtmTcProtoIntervalEntry  1 }
+
+asamAtmNearEndIntervalOCDs OBJECT-TYPE
+    SYNTAX  Counter
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+            " The number of Out of Cell Delinations anomalies which 
+              occurred for incoming cells on an ATM interface
+              in a particular 15 minute interval."
+    ::= { asamAtmTcProtoIntervalEntry 2 }
+
+asamAtmNearEndIntervalDHECVs OBJECT-TYPE
+    SYNTAX  Counter
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+            "The number of ATM cells discarded on this interface,
+             due to a HEC error, in a particular 15 minute
+             interval."
+    ::= { asamAtmTcProtoIntervalEntry 3 }
+    
+asamAtmFarEndIntervalOCDs OBJECT-TYPE
+    SYNTAX  Counter
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION     
+            " The number of Out of Cell Delinations anomalies which 
+              occurred for incoming cells on the far end ATM 
+              interface connected to this ATM interface in a particular
+              15 minute interval.
+              The far end ATM interface does only exist when the
+              ATM interface is situated on top of the ADSL physical
+              medium.
+              An Out of Cell Delineation anomaly occurs when
+              there are 7 consecutive ATM cells received which
+              contain HEC errors."
+    ::= { asamAtmTcProtoIntervalEntry 4 }
+
+asamAtmFarEndIntervalDHECVs OBJECT-TYPE
+    SYNTAX  Counter
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+            "The number of ATM cells discarded on the far end ATM interface
+             connnected to this ATM interface,
+             due to a HEC error, in a particular 15 minute interval.
+             The far end ATM interface does only exist when the ATM
+             interface is situated on top of the ADSL physical
+             medium."
+::= { asamAtmTcProtoIntervalEntry 5 }
+
+asamAtmTcProtoInterval1DayTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF AsamAtmTcProtoInterval1DayEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+           "The ATM TC Adaptor Protocol Monitoring Interval Data Table.
+            This table maintains per interface statistics
+            for the previous 24 hour intervals."
+    ::= { asamExtAtmMIBObjects 74}
+
+asamAtmTcProtoInterval1DayEntry OBJECT-TYPE
+    SYNTAX  AsamAtmTcProtoInterval1DayEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+           "An entry in the ATM TC Adaptor Protocol Monitoring Interval Data
+            Table, each ATM interface automatically has an entry in this table
+            associated with it."
+    INDEX   { ifIndex, asamAtmIntervalNumber1Day }
+    ::= { asamAtmTcProtoInterval1DayTable  1 }
+
+AsamAtmTcProtoInterval1DayEntry ::=
+    SEQUENCE {
+        asamAtmIntervalNumber1Day
+            INTEGER,
+            
+        asamAtmNearEndIntervalOCDs1Day
+            Counter,
+            
+        asamAtmNearEndIntervalDHECVs1Day
+            Counter,
+            
+        asamAtmFarEndIntervalOCDs1Day
+            Counter,
+            
+        asamAtmFarEndIntervalDHECVs1Day
+            Counter
+        }
+        
+asamAtmIntervalNumber1Day OBJECT-TYPE
+    SYNTAX  INTEGER 
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+           "A number between 1 and n, which identifies the
+            interval for which the set of statistics is available.
+            An ATM device must support n intervals. The value of n is 2, 
+            The interval identified by 1 is the most recently
+            completed 24 hour interval,
+            and the interval identified
+            by n is the interval immediately preceding the
+            one identified by n-1."
+    ::= { asamAtmTcProtoInterval1DayEntry  1 }
+
+asamAtmNearEndIntervalOCDs1Day OBJECT-TYPE
+    SYNTAX  Counter
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+            " The number of Out of Cell Delinations anomalies which 
+              occurred for incoming cells on an ATM interface
+              in a particular 24 hour interval."
+    ::= { asamAtmTcProtoInterval1DayEntry 2 }
+
+asamAtmNearEndIntervalDHECVs1Day OBJECT-TYPE
+    SYNTAX  Counter
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+            "The number of ATM cells discarded on this interface,
+             due to a HEC error, in a particular 24 hour
+             interval."
+    ::= { asamAtmTcProtoInterval1DayEntry 3 }
+    
+asamAtmFarEndIntervalOCDs1Day OBJECT-TYPE
+    SYNTAX  Counter
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION     
+            " The number of Out of Cell Delinations anomalies which 
+              occurred for incoming cells on the far end ATM 
+              interface connected to this ATM interface in a particular
+              24 hour interval.
+              The far end ATM interface does only exist when the
+              ATM interface is situated on top of the ADSL physical
+              medium.
+              An Out of Cell Delineation anomaly occurs when
+              there are 7 consecutive ATM cells received which
+              contain HEC errors."
+    ::= { asamAtmTcProtoInterval1DayEntry 4 }
+
+asamAtmFarEndIntervalDHECVs1Day OBJECT-TYPE
+    SYNTAX  Counter
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+            "The number of ATM cells discarded on the far end ATM interface
+             connnected to this ATM interface,
+             due to a HEC error, in a particular 24 hour interval.
+             The far end ATM interface does only exist when the ATM
+             interface is situated on top of the ADSL physical
+             medium."
+     ::= { asamAtmTcProtoInterval1DayEntry 5 }
+
+ asamAtmVcLoopbackTestTable OBJECT-TYPE
+     SYNTAX  SEQUENCE OF AsamAtmVcLoopbackTestEntry
+     ACCESS  not-accessible
+     STATUS  mandatory
+     DESCRIPTION
+         "The description for this table goes in same line with that of
+         asamAtmVpLoopbackTestTable."
+ ::= { asamExtAtmMIBObjects 25 }
+ 
+ asamAtmVcLoopbackTestEntry    OBJECT-TYPE
+     SYNTAX  AsamAtmVcLoopbackTestEntry
+     ACCESS  not-accessible
+     STATUS  mandatory
+     DESCRIPTION
+         "Each entry in this table corresponds to one instance of loopback test."
+     INDEX { asamAtmVcLoopbackVclVpiRequested,
+             asamAtmVcLoopbackVclVciRequested,
+             asamAtmVcLoopbackSpan,
+             asamAtmVcLoopbackLLIDRequested,
+             asamAtmVcLoopbackDirection}
+ ::= { asamAtmVcLoopbackTestTable 1 }
+
+ AsamAtmVcLoopbackTestEntry ::=
+ SEQUENCE {
+     asamAtmVcLoopbackVclVpiRequested  AtmVpIdentifier,
+     asamAtmVcLoopbackVclVciRequested  AtmVcIdentifier,
+     asamAtmVcLoopbackSpan             AsamAtmLoopbackSpan,
+     asamAtmVcLoopbackLLIDRequested    AsamAtmLoopbackLLID,
+     asamAtmVcLoopbackDirection        AsamAtmF4F5LoopbackDirection
+ }
+ 
+ asamAtmVcLoopbackVclVpiRequested OBJECT-TYPE
+     SYNTAX  AtmVpIdentifier
+     ACCESS  not-accessible
+     STATUS  mandatory
+     DESCRIPTION
+        "The VPI value of the VCL."
+     ::= { asamAtmVcLoopbackTestEntry 1 }
+ 
+ asamAtmVcLoopbackVclVciRequested OBJECT-TYPE
+     SYNTAX  AtmVcIdentifier
+     ACCESS  not-accessible
+     STATUS  mandatory
+     DESCRIPTION
+        "The VCI value of the VCL."
+     ::= { asamAtmVcLoopbackTestEntry 2 }
+ 
+ asamAtmVcLoopbackSpan OBJECT-TYPE
+     SYNTAX  AsamAtmLoopbackSpan
+     ACCESS  not-accessible
+     STATUS  mandatory
+     DESCRIPTION
+        "The requested loopback span
+        ALCATEL NOTE:
+         ACCESS:        NA
+         USAGE:         NA
+         PERSIST:  	NO
+         INSRVMOD: 	NO
+         RANGE:         NA
+         DEFVALUE: 	NA
+         UNITS:	        NA
+         SPARSE:	NA
+         DESCR:	Only e2e is supported in ISAM."
+     ::= { asamAtmVcLoopbackTestEntry 3 }
+ 
+ asamAtmVcLoopbackLLIDRequested OBJECT-TYPE
+     SYNTAX  AsamAtmLoopbackLLID
+     ACCESS  not-accessible
+     STATUS  mandatory
+     DESCRIPTION
+        "The requested LLID"
+     ::= { asamAtmVcLoopbackTestEntry 4 }
+ 
+ asamAtmVcLoopbackDirection OBJECT-TYPE
+     SYNTAX  AsamAtmF4F5LoopbackDirection
+     ACCESS  not-accessible
+     STATUS  mandatory
+     DESCRIPTION
+        "The requested loopback direction.
+        ALCATEL NOTE:
+         ACCESS:        NA
+         USAGE:         NA
+         PERSIST:  	NO
+         INSRVMOD: 	NO
+         RANGE:         NA
+         DEFVALUE: 	NA
+         UNITS:	        NA
+         SPARSE:	NA
+         DESCR:	Only outgoing is supported in ISAM."
+     ::= { asamAtmVcLoopbackTestEntry 5 }
+
+ asamAtmVcLoopbackTestResultTable OBJECT-TYPE
+     SYNTAX  SEQUENCE OF AsamAtmVcLoopbackTestResultEntry
+     ACCESS  not-accessible
+     STATUS  mandatory
+     DESCRIPTION
+         "After completion of loopback testing, Agent logs test result data,
+         which is specific to ATM into this VIRTUAL table (apart from this ,
+         Agent logs the overall outcome of the test, success/failure into
+         the atmfM4VcResult of atmfM4VcTestTable).
+         atmfM4VcTestTable is used in way similar to the ifTestTable in RFC2233.
+         The logic of getting the info about completion of a particular test
+         (for more details, refer to definition of ifTestTable in RFC2233) and
+         retrieving the test result is kept centrally with atmfM4VcTestTable.
+         This is achieved by making atmfM4VcTestCode 
+         (which is a OBJECT-IDENTIFIER) of atmfM4VcTestTable to point to 
+         an (virtual) entry in this table.
+         When Manager comes to know about the test completion, it can retrieve
+         the result by sending a get-request on atmfM4VcTestCode.
+         For example; in order to retrieve the result of a test ran on a VPL,
+         which corresponds to an ATM i/f with ifIndex=a,
+         get-request(atmfM4VpTestCode.a.f.atmfM4VcTestObject) has to be sent.
+         In response, Agent sends get-response(<OID of 
+         AsamAtmVcLoopbackVplVpiResult>.f.g.h),
+         where f, g, h, i are the values of atmVclVpi, atmVclVci
+         asamAtmVpLoopbackRoundTripDelay and asamAtmVpLoopbackLLIDResult.
+ 
+         This table is a VIRTUAL table."
+ ::= { asamExtAtmMIBObjects 41 }
+ 
+ asamAtmVcLoopbackTestResultEntry    OBJECT-TYPE
+     SYNTAX  AsamAtmVcLoopbackTestResultEntry
+     ACCESS  not-accessible
+     STATUS  mandatory
+     DESCRIPTION
+         "Each entry in this table corresponds to one instance of loopback test."
+     INDEX { asamAtmVcLoopbackVclVpiResult,
+             asamAtmVcLoopbackVclVciResult,
+             asamAtmVcLoopbackRoundTripDelay,
+             asamAtmVcLoopbackLLIDResult}
+ ::= { asamAtmVcLoopbackTestResultTable 1 }
+ 
+ AsamAtmVcLoopbackTestResultEntry ::=
+ SEQUENCE {
+     asamAtmVcLoopbackVclVpiResult     AtmVpIdentifier,
+     asamAtmVcLoopbackVclVciResult     AtmVcIdentifier,
+     asamAtmVcLoopbackRoundTripDelay   INTEGER,
+     asamAtmVcLoopbackLLIDResult       AsamAtmLoopbackLLID
+ }
+ 
+ asamAtmVcLoopbackVclVpiResult OBJECT-TYPE
+     SYNTAX  AtmVpIdentifier
+     ACCESS  not-accessible
+     STATUS  mandatory
+     DESCRIPTION
+        "The VPI value of the VCL."
+     ::= { asamAtmVcLoopbackTestResultEntry 1 }
+ 
+ asamAtmVcLoopbackVclVciResult OBJECT-TYPE
+     SYNTAX  AtmVcIdentifier
+     ACCESS  not-accessible
+     STATUS  mandatory
+     DESCRIPTION
+        "The VCI value of the VCL."
+     ::= { asamAtmVcLoopbackTestResultEntry 2 }
+ 
+ asamAtmVcLoopbackRoundTripDelay OBJECT-TYPE
+     SYNTAX  INTEGER (0..5000000)
+     ACCESS  not-accessible
+     STATUS  mandatory
+     DESCRIPTION
+        "Round trip delay of the loopback cell"
+     ::= { asamAtmVcLoopbackTestResultEntry 3 }
+ 
+ asamAtmVcLoopbackLLIDResult OBJECT-TYPE
+     SYNTAX  AsamAtmLoopbackLLID
+     ACCESS  not-accessible
+     STATUS  mandatory
+     DESCRIPTION
+        "Gives the location the cells were looped back"
+     ::= { asamAtmVcLoopbackTestResultEntry 4 }
+
+asamAtmVclToIfVclMappingTable  OBJECT-TYPE
+    SYNTAX  SEQUENCE OF AsamAtmVclToIfVclMappingTableEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+           "This table is a mapping table between the ATM VCL (keys: atm
+            interface, vpi and vci) and the associated ATM VCL If index."
+    ::= { asamExtAtmMIBObjects 72 }
+
+asamAtmVclToIfVclMappingTableEntry OBJECT-TYPE
+    SYNTAX  AsamAtmVclToIfVclMappingTableEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+           "This list contains the mapping between the ATM VCL specific data 
+            and the associated ATM VCL If index.
+            Each ATM VCL automatically has an entry in this table
+            associated with it.
+            There is only partial compliance with the lexicographical ordering, as the 
+            atmVclVpi and atmVclVci combination are ordered in the order of their creation."
+    INDEX   { ifIndex,  atmVclVpi, atmVclVci }
+    ::= { asamAtmVclToIfVclMappingTable 1 }
+
+AsamAtmVclToIfVclMappingTableEntry ::=
+    SEQUENCE {
+                  atmVclIfIndex    InterfaceIndex
+             }
+
+atmVclIfIndex OBJECT-TYPE
+    SYNTAX      InterfaceIndex
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "This is the unique IfIndex associated with a VCL"
+    ::= { asamAtmVclToIfVclMappingTableEntry 1 }
+
+asamAtmIfVclToVclMappingTable  OBJECT-TYPE
+    SYNTAX  SEQUENCE OF AsamAtmIfVclToVclMappingTableEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+           "This table is a mapping table between the If index of an ATM VCL 
+            and the associated ATM VCL data (atm interface index, vpi and vci)."
+    ::= { asamExtAtmMIBObjects 73 }
+
+asamAtmIfVclToVclMappingTableEntry OBJECT-TYPE
+    SYNTAX  AsamAtmIfVclToVclMappingTableEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+           "This list contains the mapping between the If index of an ATM VCL 
+            and the associated ATM VCL specific data 
+            (ATM interface, vpi and vci).
+            Each ATM VCL automatically has an entry in this table
+            associated with it."
+    INDEX   { ifIndex }
+    ::= { asamAtmIfVclToVclMappingTable 1 }
+
+AsamAtmIfVclToVclMappingTableEntry ::=
+    SEQUENCE {
+         atmVCLMapAtmIfIndex    InterfaceIndex,
+         atmVclMapVpi           AtmVpIdentifier, 
+         atmVclMapVci           AtmVcIdentifier
+             }
+
+atmVCLMapAtmIfIndex OBJECT-TYPE
+    SYNTAX      InterfaceIndex
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "This is the unique IfIndex of the ATM interface on on which the
+                 VCL is created.
+                 Note: Every VCL also has a unique IfIndex."
+    ::= { asamAtmIfVclToVclMappingTableEntry 1 }
+
+atmVclMapVpi OBJECT-TYPE
+    SYNTAX  AtmVpIdentifier
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+           "The VPI value of the VCL."
+    ::= { asamAtmIfVclToVclMappingTableEntry  2 }
+
+atmVclMapVci OBJECT-TYPE
+    SYNTAX  AtmVcIdentifier
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+           "The VCI value of the VCL.
+            The maximum VCI value cannot
+            exceed the value allowable by the atmInterfaceMaxVciBits."
+    ::= { asamAtmIfVclToVclMappingTableEntry  3 }
+
+asamAtmVclTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF AsamAtmVclEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+           "The table as atmVclTable's extension to configure encapsulation type 
+and auto-detection."
+    ::= { asamExtAtmMIBObjects 75}
+
+asamAtmVclEntry OBJECT-TYPE
+    SYNTAX  AsamAtmVclEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+           "Whenever an entry is created in the atmVclTable, a corresponding entry
+will be created by the system (automatically) in this table."
+    INDEX   {
+                 ifIndex,
+                 atmVclVpi,
+                 atmVclVci
+               }
+    ::= { asamAtmVclTable  1 }
+
+AsamAtmVclEntry ::=
+    SEQUENCE {
+        asamAtmVclEncapsType
+              INTEGER,
+        asamAtmVclEncapsAutodetect
+              INTEGER
+    }
+
+asamAtmVclEncapsType OBJECT-TYPE
+    SYNTAX  INTEGER {
+                 llcSnapBridged(1),
+                 llcSnapRouted(2),
+                 llcNlpid(3),
+                 vcMuxBridged(4),
+                 vcMuxRouted(5),
+                 vcMuxPppoa(6),
+                 other(7),
+                 unknown(8)
+               }
+    ACCESS  read-write
+    STATUS  mandatory
+    DESCRIPTION
+           "An instance of this object only exists when the
+            local VCL end-point is also the VCC end-point,
+            and AAL5 is in use.
+            It specifies the type of data encapsulation used over
+            the AAL5 SSCS layer.
+		llcSnapBridged (RFC2684) can be used for IPoE and PPPoE,
+		llcSnapRouted (RFC2684) can be used for IPoA,
+		llcNlpid (RFC2364) can be used for PPPoA,
+		vcMuxBridged can be used for IPoE and PPPoE,
+		vcMuxRouted can be used for IPoA,
+		vcMuxPppoa can be used for PPPoA.
+	    When the value of asamAtmVclEncapsAutodetect is disabled,
+            this object must be configured by operator explicitly when
+            creating the VCL. When the value of asamAtmVclEncapsAutodetect is
+            different from disabled, this object is read only and will
+            indicate the actual encapsulation type.
+            Once a VCL has been created with asamAtmVclEncapsAutodetect put to
+            disabled, this object cannot be modified anymore.
+    ALCATEL NOTE: other(7) is not supported from R2.1
+                  unknown(8) is a readonly value which indicate the EncapType 
+                  is unknown when the value of asamAtmVclEncapsAutodetect is 
+                  different from disabled."
+       DEFVAL  { llcSnapBridged }
+       ::= { asamAtmVclEntry  1 }
+
+asamAtmVclEncapsAutodetect OBJECT-TYPE
+SYNTAX  INTEGER {
+             disabled(1),
+             autoDetectIp(2),
+             autoDetectPpp(3),
+             autoDetectPppoa(4),
+             autoDetectIpoePpp(5)
+}
+    ACCESS  read-write
+    STATUS  mandatory
+    DESCRIPTION
+            "This object will be used to enable/disable auto detection,
+            If enabled, asamAtmVclEncapsType will be read-only and 
+              it will indicate the actual encapsulation type.
+            If disabled, PVC encapsulation type object will be configurable. 
+              autoDetectIp is used for auto-detection between RFC2684 
+              LLC-SNAP and VC-MUX, both bridged and routed.
+            autoDetectPpp is used for auto-detection between RFC2684 
+              LLC-SNAP bridged, VC-MUX bridged, RFC2364 LLC-NLPID and
+              VC-MUX-PPPoA.
+            autoDetectPppoa is used for auto-detection between VC-MUX-PPPoA
+              and LLC-NLPID.
+            autoDetectIpoePpp is used for auto-detection between RFC 2364 PPPoA
+              LLC/NLPID, RFC 2364 PPPoA VC-MUX, RFC 2684 Bridged LLC/SNAP, and RFC
+              2684 VC-MUX.
+            Once a VCL has been created, this object cannot be modified anymore."
+    DEFVAL  { disabled }
+    ::= { asamAtmVclEntry  2 }
+
+END

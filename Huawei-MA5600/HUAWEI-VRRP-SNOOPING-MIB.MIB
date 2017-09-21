@@ -1,0 +1,263 @@
+-- ============================================================================
+-- Copyright (C) 2013 by HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description: The mib file is for management of the snooping of VRRP extension.
+--              VRRP: Virtual Router Redundancy Protocol, specifies an election protocol that
+--              dynamically assigns responsibility for a virtual router to one of the VRRP routers on a LAN.
+-- Reference:
+-- Version:     V1.08
+--
+-- ============================================================================
+    HUAWEI-VRRP-SNOOPING-MIB DEFINITIONS ::= BEGIN
+
+        IMPORTS
+            huaweiUtility
+                FROM HUAWEI-MIB
+            IpAddress, Integer32, OBJECT-TYPE, MODULE-IDENTITY,
+            OBJECT-IDENTITY, NOTIFICATION-TYPE
+                FROM SNMPv2-SMI
+            RowStatus, MacAddress, DisplayString
+                FROM SNMPv2-TC
+            InterfaceIndex
+                FROM IF-MIB;
+
+        hwVrrpSnooping MODULE-IDENTITY
+            LAST-UPDATED "201302160000Z"
+            ORGANIZATION "Huawei Technologies Co.,Ltd."
+            CONTACT-INFO                                        
+                "Huawei Industrial Base
+                 Bantian, Longgang
+                 Shenzhen 518129
+                 People's Republic of China
+                 Website: http://www.huawei.com
+                 Email: support@huawei.com
+                "                                      
+            DESCRIPTION
+                "The mib file is for management of the snooping of VRRP extension.
+                 VRRP: Virtual Router Redundancy Protocol, specifies an election protocol that
+                 dynamically assigns responsibility for a virtual router to one of the VRRP routers on a LAN.
+                "
+
+        --  Revision history   
+        REVISION     "201302160000Z"
+        DESCRIPTION  "V1.08, updated the description of nodes 
+                      hwVrrpSnoopingPortRowStatus and hwVrrpSnoopingVRouterRowStatus."
+
+        REVISION     "201011170000Z"
+        DESCRIPTION  "V1.07, updated the description"
+
+        REVISION     "201007150000Z"
+        DESCRIPTION  "V1.06, updated the description and format"
+
+        REVISION     "201007150000Z"
+        DESCRIPTION  "V1.05, updated the description and format"
+
+        REVISION     "201004120000Z"
+        DESCRIPTION  "V1.04, updated the description and format"
+
+        REVISION     "201001110000Z"
+        DESCRIPTION  "V1.03, added description and modify the format."
+
+        REVISION     "200911040000Z"
+        DESCRIPTION  "V1.02, changed the value range of nodes hwVrrpSnoopingPortIndex
+                     and hwVrrpSnoopingVRouterIndex."
+
+        REVISION     "200910300000Z"
+        DESCRIPTION  "V1.00, initial version"
+
+            ::= { huaweiUtility 142 }
+
+        hwVrrpSnoopingObject OBJECT-IDENTITY
+            STATUS              current
+            DESCRIPTION
+                "VrrpSnooping Object.
+                "
+            ::= { hwVrrpSnooping 1}
+
+
+        hwVrrpSnoopingPortTable OBJECT-TYPE
+            SYNTAX              SEQUENCE OF HwVrrpSnoopingPortEntry
+            MAX-ACCESS          not-accessible
+            STATUS              current
+            DESCRIPTION
+                "Indicates the port snooping control table, which is used for adding,
+                 deleting, and querying a port for snooping.
+                 The index of this table is hwVrrpSnoopingPortIndex.
+                "
+            ::= { hwVrrpSnoopingObject 1 }
+
+        hwVrrpSnoopingPortEntry OBJECT-TYPE
+            SYNTAX              HwVrrpSnoopingPortEntry
+            MAX-ACCESS          not-accessible
+            STATUS              current
+            DESCRIPTION
+                "Indicates the port snooping control table, which is used for adding,
+                 deleting, and querying a port for snooping.
+                 The index of this entry is hwVrrpSnoopingPortIndex.
+                "
+            INDEX             { hwVrrpSnoopingPortIndex }
+            ::= { hwVrrpSnoopingPortTable 1 }
+
+        HwVrrpSnoopingPortEntry ::= SEQUENCE
+        {
+            hwVrrpSnoopingPortIndex         Integer32,
+            hwVrrpSnoopingPortIfIndex       Integer32,
+            hwVrrpSnoopingPortRowStatus     RowStatus
+        }
+
+        hwVrrpSnoopingPortIndex OBJECT-TYPE
+            SYNTAX              Integer32 (-1|1..16)
+            MAX-ACCESS          not-accessible
+            STATUS              current
+            DESCRIPTION
+                "Indicates the port for snooping.
+                 Range:  -1, 1-16
+                 The NMS issues -1 and the system automatically allocates the index within 1-16 that is not occupied.
+                "
+            ::= { hwVrrpSnoopingPortEntry 1 }
+
+        hwVrrpSnoopingPortIfIndex OBJECT-TYPE
+            SYNTAX              Integer32
+            MAX-ACCESS          read-write
+            STATUS              current
+            DESCRIPTION
+                "Indicates ifindex of the port for snooping.
+                "
+            ::= { hwVrrpSnoopingPortEntry 2 }
+
+        hwVrrpSnoopingPortRowStatus OBJECT-TYPE
+            SYNTAX              RowStatus
+            MAX-ACCESS          read-create
+            STATUS              current
+            DESCRIPTION
+                "Indicates the row status.
+                 Currently, only createAndGo(4), destroy(6), and active(1) are supported.
+                 In creating a port for snooping, hwVrrpSnoopingPortRowStatus needs to be bound and set to createAndGo(4).
+                 In deleting a port for snooping, hwVrrpSnoopingPortRowStatus needs to be bound and set to destroy(6).
+                 In query, hwVrrpSnoopingPortRowStatus is set to active(1).
+                 Options:
+                 1. active(1)      -indicates the query operation
+                 2. createAndGo(4) -indicates creating a VRRP port
+                 3. destroy(6)     -indicates deleting a VRRP port
+                "
+            ::= { hwVrrpSnoopingPortEntry 3 }
+
+
+        hwVrrpSnoopingVRouterTable OBJECT-TYPE
+            SYNTAX              SEQUENCE OF HwVrrpSnoopingVRouterEntry
+            MAX-ACCESS          not-accessible
+            STATUS              current
+            DESCRIPTION
+                "Indicates the virtual router group for adding, deleting and querying snooping.
+                 The index of this table is hwVrrpSnoopingVRouterIndex.
+                "
+            ::= { hwVrrpSnoopingObject 2 }
+
+        hwVrrpSnoopingVRouterEntry OBJECT-TYPE
+            SYNTAX              HwVrrpSnoopingVRouterEntry
+            MAX-ACCESS          not-accessible
+            STATUS              current
+            DESCRIPTION
+                "Indicates the virtual router group for adding, deleting and querying snooping.
+                 The index of this entry is hwVrrpSnoopingVRouterIndex.
+                "
+            INDEX  { hwVrrpSnoopingVRouterIndex }
+            ::= { hwVrrpSnoopingVRouterTable 1 }
+
+        HwVrrpSnoopingVRouterEntry::=  SEQUENCE
+        {
+            hwVrrpSnoopingVRouterIndex          Integer32,
+            hwVrrpSnoopingVRouterIp             IpAddress,
+            hwVrrpSnoopingVRouterVlanId         Integer32,
+            hwVrrpSnoopingVRouterMacAddress     OCTET STRING,
+            hwVrrpSnoopingVRouterIfIndex        Integer32,
+            hwVrrpSnoopingVRouterRowStatus      RowStatus
+        }
+        hwVrrpSnoopingVRouterIndex OBJECT-TYPE
+            SYNTAX              Integer32 (-1|1..64)
+            MAX-ACCESS          not-accessible
+            STATUS              current
+            DESCRIPTION
+                "Indicates the index of the virtual router.
+                 Range: -1, 1-64
+                 The NMS issues -1 and the system automatically allocates the index within 1-64
+                 that is not occupied.
+                "
+            ::= { hwVrrpSnoopingVRouterEntry 1 }
+
+        hwVrrpSnoopingVRouterIp OBJECT-TYPE
+            SYNTAX              IpAddress
+            MAX-ACCESS          read-write
+            STATUS              current
+            DESCRIPTION
+                "Indicates the IP address of the virtual router, which is the IP address
+                 mapping the virtual router for snooping.
+                "
+            ::= { hwVrrpSnoopingVRouterEntry 2 }
+
+        hwVrrpSnoopingVRouterVlanId OBJECT-TYPE
+            SYNTAX              Integer32
+            MAX-ACCESS          read-write
+            STATUS              current
+            DESCRIPTION
+                "Indicates the VLAN ID of the virtual router, which indicates the VLAN to which
+                 the virtual router locates. It works with the IP address of the virtual router
+                 as the filtering criterion for the VRRP packets snooping.
+                 Range: 1-4093
+                "
+            ::= { hwVrrpSnoopingVRouterEntry 3 }
+
+        hwVrrpSnoopingVRouterMacAddress OBJECT-TYPE
+            SYNTAX              OCTET STRING (SIZE(6))
+            MAX-ACCESS          read-only
+            STATUS              current
+            DESCRIPTION
+                "Indicates the MAC address of the virtual router, which is the learned MAC
+                 address of the virtual router by snooping the VRRP packets meeting the requirements.
+                "
+            ::= { hwVrrpSnoopingVRouterEntry 4 }
+
+        hwVrrpSnoopingVRouterIfIndex OBJECT-TYPE
+            SYNTAX              Integer32
+            MAX-ACCESS          read-only
+            STATUS              current
+            DESCRIPTION
+                "Indicates the ifindex of the port connecting the master router, which is
+                 the port ID learned by snooping the VRRP packets meeting the requirements.
+               "
+            ::= { hwVrrpSnoopingVRouterEntry 5 }
+
+        hwVrrpSnoopingVRouterRowStatus OBJECT-TYPE
+            SYNTAX              RowStatus
+            MAX-ACCESS          read-create
+            STATUS              current
+            DESCRIPTION
+                "Indicates the row status.
+                 Currently, only createAndGo(4), destroy(6), and active(1) are supported.
+                 In creating a virtual router group for snooping, hwVrrpSnoopingPortRowStatus needs to be bound and set to createAndGo(4).
+                 In deleting a virtual router group for snooping, hwVrrpSnoopingPortRowStatus needs to be bound and set to destroy(6).
+                 In query, hwVrrpSnoopingPortRowStatus is set to active(1).
+                 Options:
+                 1. active(1)      -indicates the query operation
+                 2. createAndGo(4) -indicates creating a VRRP virtual router
+                 3. destroy(6)     -indicates deleting a VRRP virtual router
+                "
+            ::= { hwVrrpSnoopingVRouterEntry 6 }
+
+        hwVrrpSnoopingStatus OBJECT-TYPE
+            SYNTAX  INTEGER
+            {
+                true(1),
+                false(2)
+            }
+            MAX-ACCESS          read-write
+            STATUS              current
+            DESCRIPTION
+                "Enables or disables the VRRP snooping function.
+                 Options:
+                 1. true(1)  -indicates the VRRP snooping function is enabled
+                 2. false(2) -indicates the VRRP snooping function is not enabled
+                 Default: false(2)
+                "
+            ::= { hwVrrpSnoopingObject 3 }
+
+    END

@@ -1,0 +1,630 @@
+CADANT-MAP-STATS-MIB DEFINITIONS ::= BEGIN
+
+  IMPORTS
+        
+        MODULE-IDENTITY,
+        OBJECT-TYPE,
+        Counter64,
+	Integer32,
+        Unsigned32
+                FROM SNMPv2-SMI
+        TEXTUAL-CONVENTION
+                FROM SNMPv2-TC
+	ifIndex
+		FROM IF-MIB
+        cadSpectrum
+                FROM CADANT-PRODUCTS-MIB
+        FlowActivityState
+                FROM CADANT-TC;
+
+cadMapStatsMib MODULE-IDENTITY
+        LAST-UPDATED    "200810230000Z"    -- Oct 23, 2008
+        ORGANIZATION    "Arris International, Inc."
+	CONTACT-INFO "Arris Technical Support
+	      Postal: ARRIS
+	       Phone: +1 770 622 8530
+	      E-Mail: support@arrisi.com"
+
+        DESCRIPTION
+            "This MIB contains objects to display counts and statistical information for
+            the DOCSIS map-makers. There exists a single map-maker for each upstream channel.
+            The map-makers hold the keys to the upstream bandwidth. Thus, one is able to gain
+            insight into how the upstream bandwidth is being managed by analyzing the various
+            map-maker counts and statistics in this MIB."
+
+        REVISION "200810230000Z"    -- Oct 23, 2008
+        DESCRIPTION "change definition of CadMapStatsBwRequestQueuesPriorityId."
+
+        REVISION "200401170000Z"
+        DESCRIPTION "added cadMapStatsTotalBadMaps"
+        REVISION "200401160000Z"
+        DESCRIPTION "added cadMapStatsTotalLogicalNullPadMSlots"
+        REVISION "200308110000Z"
+        DESCRIPTION "added cadMapStatsBwRequestQueuesLatencySum"
+        REVISION "200308060000Z"
+        DESCRIPTION "added cadMapStatsNumBEPollingFlows"
+        REVISION "200308040000Z"
+        DESCRIPTION "added cadMapStatsBwRequestQueuesNumElements"
+        REVISION "200304040000Z"
+        DESCRIPTION "updated comments, use FlowActivityState instead of CadMapStatsGreedyId,
+                     rename cadMapStatsTotalGrantPendingTooLongDrops"
+
+
+        ::= { cadSpectrum 10 }
+
+--=============================Begin Definitions===================--
+
+CadMapStatsIUCTypeId ::= TEXTUAL-CONVENTION
+	STATUS current
+	DESCRIPTION
+		"Interval Usage Code, a field in MAP and UCD messages
+        which link burst profiles to grants."
+	SYNTAX Integer32 (1..15)
+
+CadMapStatsBwRequestQueuesPriorityId ::= TEXTUAL-CONVENTION
+	STATUS current
+	DESCRIPTION
+		"MapMaker Priorities for Bandwidth Requests"
+	SYNTAX INTEGER {
+		docsispri0(0),
+		docsispri1(1),
+        docsispri2(2),
+		docsispri3(3),
+		docsispri4(4),
+        docsispri5(5),
+        docsispri6(6),
+        docsispri7(7)
+	}
+
+--
+-- The MapStatsBase table
+--
+cadMapStatsBaseTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadMapStatsBaseEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        ::= { cadMapStatsMib 1 }
+
+cadMapStatsBaseEntry OBJECT-TYPE
+        SYNTAX      CadMapStatsBaseEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        INDEX { ifIndex } -- ifType 129 or 205
+        ::= { cadMapStatsBaseTable 1 }
+
+CadMapStatsBaseEntry ::= SEQUENCE {
+		cadMapStatsTotalMapsSent           Counter64,
+		cadMapStatsTotalFragmentedGrants   Counter64,
+		cadMapStatsTotalUgsQiTransitions   Counter64,
+		cadMapStatsTotalUgsadTransitions   Counter64,
+		cadMapStatsTotalUgsEHdrsSw         Counter64,
+		cadMapStatsTotalBadMaps            Counter64
+        }
+
+cadMapStatsTotalMapsSent OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Total number of maps transmitted downstream for this UChannel."
+        ::= { cadMapStatsBaseEntry 1 }
+
+cadMapStatsTotalFragmentedGrants OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Total number of fragmented bandwidth grants for this UChannel."
+        ::= { cadMapStatsBaseEntry 2 }
+
+cadMapStatsTotalUgsQiTransitions OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Total number of UGS QI transitions.  Useful for debugging VoIP."
+        ::= { cadMapStatsBaseEntry 3 }
+
+cadMapStatsTotalUgsadTransitions OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Total number of UGSAD flow transitions.
+            Useful for debugging VoIP."
+        ::= { cadMapStatsBaseEntry 4 }
+
+cadMapStatsTotalUgsEHdrsSw OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+             "Total number of UGS Service Flow Extended Headers processed 
+             in software.  Useful for debugging VoIP."
+        ::= { cadMapStatsBaseEntry 5 }
+
+cadMapStatsTotalBadMaps OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+             "Total number of maps discarded due to errors for this UChannel"
+        ::= { cadMapStatsBaseEntry 6 }
+
+--
+-- MapStatsMSlots table
+--
+cadMapStatsMSlotsTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadMapStatsMSlotsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        ::= { cadMapStatsMib 2 }
+
+cadMapStatsMSlotsEntry OBJECT-TYPE
+        SYNTAX      CadMapStatsMSlotsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        INDEX { ifIndex } -- ifType 129 or 205
+        ::= { cadMapStatsMSlotsTable 1 }
+
+CadMapStatsMSlotsEntry ::= SEQUENCE {
+		cadMapStatsTotalMSlots 	             Counter64,
+		cadMapStatsTotalUCastGrantedMSlots   Counter64,
+		cadMapStatsTotalBwRequestMSlots      Counter64,
+		cadMapStatsTotalSkippedMSlots        Counter64,
+		cadMapStatsTotalLogicalNullPadMSlots Counter64
+	}
+
+cadMapStatsTotalMSlots OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Total Minislots count for this UChannel."
+        ::= { cadMapStatsMSlotsEntry 1 }
+
+cadMapStatsTotalUCastGrantedMSlots OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Total Minislots granted to Unicast for this UChannel."
+        ::= { cadMapStatsMSlotsEntry 2 }
+
+cadMapStatsTotalBwRequestMSlots OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Total Minislots requested via bandwidth requests for this UChannel.
+             This count does not include requests dropped due to SuperGreedy in hardware."
+        ::= { cadMapStatsMSlotsEntry 3 }
+
+cadMapStatsTotalSkippedMSlots OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Total Minislots not granted because the MapMaker was behind."
+        ::= { cadMapStatsMSlotsEntry 4 }
+
+cadMapStatsTotalLogicalNullPadMSlots OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Total Minislots allocated to the NULL SID for a logical channel
+             which is inactive"
+        ::= { cadMapStatsMSlotsEntry 5 }
+
+--
+-- The MapStatsMSlotsPerIUC table
+--
+cadMapStatsMSlotsPerIUCTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadMapStatsMSlotsPerIUCEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        ::= { cadMapStatsMib 3 }
+
+cadMapStatsMSlotsPerIUCEntry OBJECT-TYPE
+        SYNTAX      CadMapStatsMSlotsPerIUCEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        INDEX { ifIndex, -- ifType 129 or 205
+                cadMapStatsMSlotsPerIUCId }
+        ::= { cadMapStatsMSlotsPerIUCTable 1 }
+
+CadMapStatsMSlotsPerIUCEntry ::= SEQUENCE {
+		cadMapStatsMSlotsPerIUCId         CadMapStatsIUCTypeId,
+		cadMapStatsGrantedBCastMSlots     Counter64,
+		cadMapStatsGrantedMCastMSlots     Counter64,
+		cadMapStatsGrantedUCastMSlots     Counter64,
+		cadMapStatsGrantedZeroSidMSlots   Counter64
+        }
+
+cadMapStatsMSlotsPerIUCId OBJECT-TYPE
+        SYNTAX      CadMapStatsIUCTypeId
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        ::= { cadMapStatsMSlotsPerIUCEntry 1 }
+
+cadMapStatsGrantedBCastMSlots OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "For each IUC type, the total number of minislots granted to the Broadcast SID."
+        ::= { cadMapStatsMSlotsPerIUCEntry 2 }
+
+cadMapStatsGrantedMCastMSlots OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "For each IUC type, the total number of minislots granted to Multicast SIDs."
+        ::= { cadMapStatsMSlotsPerIUCEntry 3 }
+
+cadMapStatsGrantedUCastMSlots OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "For each IUC type, the total number of minislots granted to Unicast SIDs."
+        ::= { cadMapStatsMSlotsPerIUCEntry 4 }
+
+cadMapStatsGrantedZeroSidMSlots OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "For each IUC type, the total number of minislots granted to the Zero SID."
+        ::= { cadMapStatsMSlotsPerIUCEntry 5 }
+
+--
+-- The MapStatsBwRequests table
+--
+cadMapStatsBwRequestsTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadMapStatsBwRequestsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        ::= { cadMapStatsMib 4 }
+
+cadMapStatsBwRequestsEntry OBJECT-TYPE
+        SYNTAX      CadMapStatsBwRequestsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        INDEX { ifIndex } -- ifType 129 or 205
+        ::= { cadMapStatsBwRequestsTable 1 }
+
+CadMapStatsBwRequestsEntry ::= SEQUENCE {
+		cadMapStatsTotalBwRequests                Counter64,
+		cadMapStatsTotalBwRequestSchedulerDrops   Counter64,
+		cadMapStatsTotalBwRequestSuperGreedyDrops Counter64,
+		cadMapStatsPeakBwRequestSize              Unsigned32,
+		cadMapStatsPeakBwRequestsPerMap           Unsigned32
+        }
+
+cadMapStatsTotalBwRequests OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Total number of Bandwidth Requests processed for this UChannel.
+             This count does not include requests dropped due to SuperGreedy in hardware."
+        ::= { cadMapStatsBwRequestsEntry 1 }
+
+cadMapStatsTotalBwRequestSchedulerDrops OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Total number of Bandwidth Requests dropped by the MapMaker
+             without giving a grant or grant pending.
+             This count does not include grant pending drops."
+        ::= { cadMapStatsBwRequestsEntry 2 }
+
+cadMapStatsTotalBwRequestSuperGreedyDrops OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Total number of Bandwidth Requests dropped due to the service flow being
+             in the super greedy state.  This should not happen if the cable modem
+             is properly policing its service flows."
+        ::= { cadMapStatsBwRequestsEntry 3 }
+
+cadMapStatsPeakBwRequestSize OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The peak size of a Bandwidth request received since the last read."
+        ::= { cadMapStatsBwRequestsEntry 4 }
+
+cadMapStatsPeakBwRequestsPerMap OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The peak number of Bandwidth requests per map received since the last read."
+        ::= { cadMapStatsBwRequestsEntry 5 }
+
+--
+-- The MapStatsGrantPendings table
+--
+cadMapStatsGrantPendingsTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadMapStatsGrantPendingsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        ::= { cadMapStatsMib 5 }
+
+cadMapStatsGrantPendingsEntry OBJECT-TYPE
+        SYNTAX      CadMapStatsGrantPendingsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        INDEX { ifIndex } -- ifType 129 or 205
+        ::= { cadMapStatsGrantPendingsTable 1 }
+
+CadMapStatsGrantPendingsEntry ::= SEQUENCE {
+		cadMapStatsTotalGrantPendings            Counter64,
+		cadMapStatsTotalGrantPendingDrops        Counter64,
+		cadMapStatsTotalGrantPendingPromos       Counter64,
+		cadMapStatsPeakGrantPendingsPerMap       Unsigned32
+        }
+
+cadMapStatsTotalGrantPendings OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Total number of Grant Pendings given for this UChannel."
+        ::= { cadMapStatsGrantPendingsEntry 1 }
+
+cadMapStatsTotalGrantPendingDrops OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Total number of Grant Pendings Dropped by the MapMaker for this UChannel.
+            These are dropped primarily for pending for too long or too many grants
+            pending per map."
+        ::= { cadMapStatsGrantPendingsEntry 2 }
+
+cadMapStatsTotalGrantPendingPromos OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Total number of Grant Pendings Promoted by the MapMaker to a higher priority
+             (less greedy) queue for this UChannel."
+        ::= { cadMapStatsGrantPendingsEntry 3 }
+
+cadMapStatsPeakGrantPendingsPerMap OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The peak number of Bandwidth requests per map received since the last read."
+        ::= { cadMapStatsGrantPendingsEntry 4 }
+
+--
+-- The MapStatsBwRequestQueues table
+--
+cadMapStatsBwRequestQueuesTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadMapStatsBwRequestQueuesEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        ::= { cadMapStatsMib 6 }
+
+cadMapStatsBwRequestQueuesEntry OBJECT-TYPE
+        SYNTAX      CadMapStatsBwRequestQueuesEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        INDEX { ifIndex, -- ifType 129 or 205
+                cadMapStatsBwRequestQueuesFlowState,
+                cadMapStatsBwRequestQueuesPriorityId }
+        ::= { cadMapStatsBwRequestQueuesTable 1 }
+
+CadMapStatsBwRequestQueuesEntry ::= SEQUENCE {
+		cadMapStatsBwRequestQueuesFlowState   FlowActivityState,
+		cadMapStatsBwRequestQueuesPriorityId  CadMapStatsBwRequestQueuesPriorityId,
+		cadMapStatsBwRequestQueuesNumAdds     Counter64,
+		cadMapStatsBwRequestQueuesNumDrops    Counter64,
+		cadMapStatsBwRequestQueuesNumPendings Counter64,
+		cadMapStatsBwRequestQueuesNumPromos   Counter64,
+		cadMapStatsBwRequestQueuesNumElements Unsigned32,
+		cadMapStatsBwRequestQueuesLatencySum  Counter64
+        }
+
+cadMapStatsBwRequestQueuesFlowState OBJECT-TYPE
+        SYNTAX      FlowActivityState
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        ::= { cadMapStatsBwRequestQueuesEntry 1 }
+
+cadMapStatsBwRequestQueuesPriorityId OBJECT-TYPE
+        SYNTAX      CadMapStatsBwRequestQueuesPriorityId
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        ::= { cadMapStatsBwRequestQueuesEntry 2 }
+
+cadMapStatsBwRequestQueuesNumAdds OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "For each Bandwidth Request priority Queue, the total number of bandwidth
+            requests added to this queue.  This includes requests promoted from
+            lower priority queues."
+        ::= { cadMapStatsBwRequestQueuesEntry 3 }
+
+cadMapStatsBwRequestQueuesNumDrops OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "For each Bandwidth Request priority Queue, the total number of requests
+            dropped.  These are dropped primarily for pending for too long or too 
+            many grants pending per map."
+        ::= { cadMapStatsBwRequestQueuesEntry 4 }
+
+cadMapStatsBwRequestQueuesNumPendings OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "For each Bandwidth Request priority Queue, the total number of grant
+            pendings given to bandwidth requests on this queue."
+        ::= { cadMapStatsBwRequestQueuesEntry 5 }
+
+cadMapStatsBwRequestQueuesNumPromos OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "For each Bandwidth Request priority Queue, the total number of bandwidth
+            requests promoted from this queue to a higher priority (less greedy) queue."
+        ::= { cadMapStatsBwRequestQueuesEntry 6 }
+
+cadMapStatsBwRequestQueuesNumElements OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "For each Bandwidth Request priority Queue, the current number of bandwidth
+            requests in the queue."
+        ::= { cadMapStatsBwRequestQueuesEntry 7 }
+
+cadMapStatsBwRequestQueuesLatencySum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "For each Bandwidth Request priority Queue, the sum of the latency in usecs
+            for each bandwidth request from receive time to grant or drop time.  
+            Latency for requests which are promoted is counted in the promoted to queue."
+        ::= { cadMapStatsBwRequestQueuesEntry 8 }
+
+--
+-- The MapStatsPeriodicFlows table
+--
+cadMapStatsPeriodicFlowsTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadMapStatsPeriodicFlowsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        ::= { cadMapStatsMib 7 }
+
+cadMapStatsPeriodicFlowsEntry OBJECT-TYPE
+        SYNTAX      CadMapStatsPeriodicFlowsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        INDEX { ifIndex } -- ifType 129 or 205
+        ::= { cadMapStatsPeriodicFlowsTable 1 }
+
+CadMapStatsPeriodicFlowsEntry ::= SEQUENCE {
+		cadMapStatsNumNrtpsFlows        Unsigned32,
+		cadMapStatsNumRtpsFlows         Unsigned32,
+		cadMapStatsNumUgsadActiveFlows  Unsigned32,
+		cadMapStatsNumUgsadPollingFlows Unsigned32,
+		cadMapStatsNumUgsFlows          Unsigned32,
+		cadMapStatsNumBEPollingFlows    Unsigned32,
+		cadMapStatsNumBEFastPollingFlows Unsigned32
+        }
+
+cadMapStatsNumNrtpsFlows OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Current number of scheduled NRTPS flows for this UChannel."
+        ::= { cadMapStatsPeriodicFlowsEntry 1 }
+
+cadMapStatsNumRtpsFlows OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Current number of scheduled RTPS flows scheduled for this UChannel."
+        ::= { cadMapStatsPeriodicFlowsEntry 2 }
+
+cadMapStatsNumUgsadActiveFlows OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Current number of scheduled UGSAD flows in the Active (UGS) mode
+            for this UChannel."
+        ::= { cadMapStatsPeriodicFlowsEntry 3 }
+
+cadMapStatsNumUgsadPollingFlows OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Current number of scheduled UGSAD flows in the Polling (RTPS) mode
+            for this UChannel."
+        ::= { cadMapStatsPeriodicFlowsEntry 4 }
+
+cadMapStatsNumUgsFlows OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Current number of scheduled UGS flows for this UChannel."
+        ::= { cadMapStatsPeriodicFlowsEntry 5 }
+
+cadMapStatsNumBEPollingFlows OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Current number of scheduled Best Effort Polling flows for this UChannel.
+             These are NRTPS request opportunities given to Best Effort flows based
+             on the flow priority and guaranteed minimum reserved rate.  This includes
+	     flows using both the fast and slow polling intervals."
+        ::= { cadMapStatsPeriodicFlowsEntry 6 }
+
+cadMapStatsNumBEFastPollingFlows OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Current number of scheduled Best Effort Fast Polling flows for this UChannel."
+	DEFVAL { 0 }
+        ::= { cadMapStatsPeriodicFlowsEntry 7 }
+
+END

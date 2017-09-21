@@ -1,0 +1,296 @@
+------------------------------------------------------------
+-- Emerson Energy Systems (EES)
+-- Power MIB
+------------------------------------------------------------
+
+EES-POWER-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+	MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE,
+	Integer32, Counter32, enterprises
+		FROM SNMPv2-SMI
+	TEXTUAL-CONVENTION, DisplayString, DateAndTime
+		FROM SNMPv2-TC;
+
+powerMIB MODULE-IDENTITY
+	LAST-UPDATED "200310140730Z"
+	ORGANIZATION "
+		Emerson Energy Systems (EES)"
+	CONTACT-INFO "
+		Emerson Energy Systems
+		141 82 Stockholm
+		Sweden"
+	DESCRIPTION "
+		Emerson Energy Systems (EES) Power MIB, revision B."
+	::= { global 1 }
+
+------------------------------------------------------------
+-- Textual conventions
+------------------------------------------------------------
+
+Status ::= TEXTUAL-CONVENTION
+	STATUS current
+	DESCRIPTION "
+		This integer value represents the operational or administrative
+		status of the system. Also used as alarm severity.
+		Depending on situation there may be limits on allowed values.
+		Operational values:
+		(1) unknown - status has not yet been defined
+		(2) normal - there are no activated alarms
+		(3) warning - O1, lowest level of 'abnormal' status
+		(4) minor - A3
+		(5) major - A2
+		(6) critical - A1, highest level of 'abnormal' status
+		Administrative values:
+		(7) unmanaged
+		(8) restricted
+		(9) testing
+		(10) disabled"
+	SYNTAX INTEGER {
+		unknown(1),
+		normal(2),
+		warning(3),
+		minor(4),
+		major(5),
+		critical(6),
+		unmanaged(7),
+		restricted(8),
+		testing(9),
+		disabled(10) }
+
+StatusChange ::= TEXTUAL-CONVENTION
+	STATUS current
+	DESCRIPTION "
+		Indicates 'activated' (1) or 'deactivated' (2) alarm events."
+	SYNTAX INTEGER {
+		activated(1),
+		deactivated(2) }
+
+------------------------------------------------------------
+-- Node definitions
+------------------------------------------------------------
+
+ees OBJECT IDENTIFIER ::= { enterprises 6302 }
+
+global OBJECT IDENTIFIER ::= { ees 2 }
+
+------------------------------------------------------------
+-- Identification of the plant { powerMIB 1 }
+------------------------------------------------------------
+
+ident OBJECT IDENTIFIER ::= { powerMIB 1 }
+
+identManufacturer OBJECT-TYPE
+	SYNTAX DisplayString
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION "
+		The name of the equipment manufacturer."
+	::= { ident 1 }
+
+identModel OBJECT-TYPE
+	SYNTAX DisplayString
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION "
+		The manufacturers model designation of the power system."
+	::= { ident 2 }
+
+identControllerFirmwareVersion OBJECT-TYPE
+	SYNTAX DisplayString
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION "
+		The firmware (software) version of the controller."
+	::= { ident 3 }
+
+identName OBJECT-TYPE
+	SYNTAX DisplayString
+	MAX-ACCESS read-write
+	STATUS current
+	DESCRIPTION "
+		The name of the power plant. This object should be set by
+		the administrator."
+	::= { ident 4 }
+
+------------------------------------------------------------
+-- System values { powerMIB 2 }
+------------------------------------------------------------
+
+system OBJECT IDENTIFIER ::= { powerMIB 2 }
+
+systemStatus OBJECT-TYPE
+	SYNTAX Status
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION "
+		Status of the complete plant (highest alarm). One of
+		(1) unknown - status has not yet been defined
+		(2) normal - there are no activated alarms
+		(3) warning - O1, lowest level of 'abnormal' status
+		(4) minor - A3
+		(5) major - A2
+		(6) critical - A1, highest level of 'abnormal' status
+		(7) unmanaged
+		(8) restricted
+		(9) testing
+		(10) disabled"
+	::= { system 1 }
+
+systemVoltage OBJECT-TYPE
+	SYNTAX Integer32
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION "
+		System voltage, stored as mV, including positive or negative
+		sign. The integer 2147483647 represents invalid value."
+	::= { system 2 }
+
+systemCurrent OBJECT-TYPE
+	SYNTAX Integer32
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION "
+		System current, stored as mA, including positive or negative
+		sign. The integer 2147483647 represents invalid value."
+	::= { system 3 }
+
+systemUsedCapacity OBJECT-TYPE
+	SYNTAX Integer32
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION "
+		Used capacity, stored as % of the total capacity.
+		The integer 2147483647 represents invalid value."
+	::= { system 4 }
+
+------------------------------------------------------------
+-- Alarm trap counter { powerMIB 3 }
+------------------------------------------------------------
+
+alarmLastTrapNo OBJECT-TYPE
+	SYNTAX Counter32
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION "
+		The sequence number of last submitted alarm trap,
+		also last row in alarmTrapTable."
+	::= { powerMIB 3 }
+
+------------------------------------------------------------
+-- Alarm trap table { powerMIB 4 }
+------------------------------------------------------------
+
+alarmTrapTable OBJECT-TYPE
+	SYNTAX SEQUENCE OF AlarmTrapEntry
+	MAX-ACCESS not-accessible
+	STATUS current
+	DESCRIPTION "
+		Table holding information about the submitted alarm traps."
+	::= { powerMIB 4 }
+
+alarmTrapEntry OBJECT-TYPE
+	SYNTAX AlarmTrapEntry
+	MAX-ACCESS not-accessible
+	STATUS current
+	DESCRIPTION "
+		An entry (conceptual row) in the alarmTrapTable."
+	INDEX { alarmTrapNo }
+	::= { alarmTrapTable 1 }
+
+AlarmTrapEntry ::= SEQUENCE {
+	alarmTrapNo Counter32,
+	alarmTime DateAndTime,
+	alarmStatusChange StatusChange,
+	alarmSeverity Status,
+	alarmDescription DisplayString,
+	alarmType Integer32 }
+
+alarmTrapNo OBJECT-TYPE
+	SYNTAX Counter32
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION "
+		The unique sequence number of this alarm trap."
+	::= { alarmTrapEntry 1 }
+
+alarmTime OBJECT-TYPE
+	SYNTAX DateAndTime
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION "
+		Date and time when event occured (local time), including
+		timezone if supported by controller."
+	::= { alarmTrapEntry 2 }
+
+alarmStatusChange OBJECT-TYPE
+	SYNTAX StatusChange
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION "
+		The type of alarm change. One of
+		(1) activated
+		(2) deactivated"
+	::= { alarmTrapEntry 3 }
+
+alarmSeverity OBJECT-TYPE
+	SYNTAX Status
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION "
+		The severity of the alarm. One of
+		(3) warning - O1, lowest level of alarm severity
+		(4) minor - A3
+		(5) major - A2
+		(6) critical - A1, highest level of alarm severity"
+	::= { alarmTrapEntry 4 }
+
+alarmDescription OBJECT-TYPE
+	SYNTAX DisplayString
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION "
+		Free-text description of alarm."
+	::= { alarmTrapEntry 5 }
+
+alarmType OBJECT-TYPE
+	SYNTAX Integer32
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION "
+		Alarm type, i.e. an integer specifying the type of alarm."
+	::= { alarmTrapEntry 6 }
+
+------------------------------------------------------------
+-- Events/traps { powerMIB 5 }
+------------------------------------------------------------
+
+powerEvents OBJECT IDENTIFIER ::= { powerMIB 5 }
+
+alarmTrap NOTIFICATION-TYPE
+	OBJECTS {
+		alarmTrapNo,
+		alarmTime,
+		alarmStatusChange,
+		alarmSeverity,
+		alarmDescription,
+		alarmType }
+	STATUS current
+	DESCRIPTION "
+		An alarm trap is sent when an alarm occurs (activated) or
+		returns to normal state (deactivated). Alarm traps are logged
+		in alarmTrapTable. Variables in this trap:
+		* alarmTrapNo - The unique sequence number of this alarm trap.
+		* alarmTime - Date and time when event occured (local time),
+		      including timezone if supported by controller.
+		* alarmStatusChange - (1) activated or (2) deactivated.
+		* alarmSeverity - Integer describing the severity of the alarm.
+		* alarmDescription - Free-text description of alarm.
+		* alarmType - Integer indicating type of alarm."
+	::= { powerEvents 1 }
+
+------------------------------------------------------------
+-- End of MIB definitions
+------------------------------------------------------------
+
+END

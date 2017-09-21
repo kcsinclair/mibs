@@ -1,0 +1,623 @@
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- ARRIS-CER-VIDEO-VPME-MIB
+--
+-- Copyright 2013, ARRIS Group, Inc. All rights reserved.
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+ARRIS-CER-VIDEO-VPME-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    CerPID
+        FROM ARRIS-CER-VIDEO-MIB
+    arrisE6Cer
+        FROM ARRIS-MIB
+    trapCounter, trapSeverity
+        FROM CADANT-CMTS-EQUIPMENT-MIB
+    AdminState, InetAddressIPv4or6
+        FROM CADANT-TC
+    InterfaceIndexOrZero, InterfaceIndex
+        FROM IF-MIB
+    Counter32, Integer32, IpAddress, MODULE-IDENTITY, NOTIFICATION-TYPE, 
+    OBJECT-TYPE, Unsigned32
+        FROM SNMPv2-SMI
+    DisplayString, RowStatus, TEXTUAL-CONVENTION, TimeStamp, TruthValue
+        FROM SNMPv2-TC;
+
+cerVideoVpmeMIB MODULE-IDENTITY
+    LAST-UPDATED "201502050000Z" -- 5, Feb 2015
+    ORGANIZATION 
+        "Arris International"
+    CONTACT-INFO 
+        "   Network Management
+         Postal: Arris International.
+                 4400 Cork Airport Business Park
+                 Cork Airport, Kinsale Road
+                 Cork, Ireland.
+         Tel:    +353 21 7305 800
+         Fax:    +353 21 4321 972"
+    DESCRIPTION 
+        "This MIB contains objects related to configuring
+         Arris E6000 CER Video VPME Encryption configuration"
+
+
+    REVISION    "201502050000Z" -- 5, Feb 2015
+    DESCRIPTION 
+        "Add cerVideoVpmePartialConfig." 
+    REVISION    "201411050000Z" -- 5, Nov 2014
+    DESCRIPTION 
+        "Add cerVideoVpmeSdIndex to the variable binding list of 
+         NOTIFICATION-TYPE cerVideoEqmConnection and cerVideoVpmeEqmProtocol"
+    REVISION    "201410200000Z" -- 20 Oct 2014
+    DESCRIPTION 
+        "Updated cerVideoVpmeSrv to cerVideoVpmeProg"
+    REVISION    "201407170000Z" -- 17 July 2014
+    DESCRIPTION 
+        "Updated cerVideoVpmeServiceDelivery"
+    REVISION    "201407010000Z" -- 1 July 2014
+    DESCRIPTION 
+        "Updated MIB for E6000 IEQ APP PSA v2.1"
+    REVISION    "201401160000Z" -- 16 January 2014
+    DESCRIPTION 
+        "Updated MIB for E6000 IEQ VOD PME PSA v1.1"
+    REVISION    "201307180000Z" -- 18 July 2013
+    DESCRIPTION 
+        "Updated MIB to match latest E6000 IEQ VOD PME PSA for R2.0"
+    ::= { arrisE6Cer 7 }
+
+
+CerVideoVpmeProgDeliveryState ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION 
+        "Indicates the delivery state of a video service
+         which matches a configured encryption."
+    SYNTAX INTEGER { 
+                      clear(0), 
+                      encrypted(1), 
+                      blocked(2) 
+                   }
+
+-------------------------------------------
+-- cerVideoVpmeSdTable
+-------------------------------------------
+
+cerVideoVpmeSdTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CerVideoVpmeSdEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "This table specifies the VPME instance details.
+         It specifies a collection of encrypted services which are in
+         the same Security Domain and are therefore share a common CW"
+    ::= { cerVideoVpmeMIB 1 }
+
+cerVideoVpmeSdEntry OBJECT-TYPE
+    SYNTAX      CerVideoVpmeSdEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "Information about a single table entry."
+    INDEX       { cerVideoVpmeSdIndex }
+    ::= { cerVideoVpmeSdTable 1 }
+
+CerVideoVpmeSdEntry ::= SEQUENCE {
+    cerVideoVpmeSdIndex                    Integer32,
+    cerVideoVpmeSdDacId                    Integer32,
+    cerVideoVpmeSdAdminState               AdminState,
+    cerVideoVpmeSdRowStatus                RowStatus,
+    cerVideoVpmeSdEqmIpAddress             InetAddressIPv4or6,
+    cerVideoVpmeSdEqmTcpPort               Integer32,
+    cerVideoVpmeSdSourceInterfaceIpv4IfIndex   InterfaceIndexOrZero,
+    cerVideoVpmeSdSourceInterfaceIpv4Address InetAddressIPv4or6
+}
+
+cerVideoVpmeSdIndex OBJECT-TYPE
+    SYNTAX      Integer32 (1..7)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION 
+        "The security-domain instance number uniquely identifies
+         the VPME instance for the E6000."
+    ::= { cerVideoVpmeSdEntry 1 }
+
+cerVideoVpmeSdDacId OBJECT-TYPE
+    SYNTAX      Integer32 (0..65535)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION 
+        "DACID uniquely identifies the VPME instance for this SCS.
+         The default value is 0."
+    DEFVAL      { 0 }
+    ::= { cerVideoVpmeSdEntry 2 }
+
+cerVideoVpmeSdAdminState OBJECT-TYPE
+    SYNTAX      AdminState
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION 
+        "Set state of VPME instance for this security-domain.
+         Setting the state to down will result in all sevices
+         associated with this instance to be delivered in the clear"
+    DEFVAL      { down }
+    ::= { cerVideoVpmeSdEntry 3 }
+
+cerVideoVpmeSdRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION 
+        "Show state of VPME instance"
+    ::= { cerVideoVpmeSdEntry 4 }
+
+cerVideoVpmeSdEqmIpAddress OBJECT-TYPE
+    SYNTAX      InetAddressIPv4or6
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION 
+        "IP address of the host of the EQM."
+    DEFVAL      { '00000000'H }
+    ::= { cerVideoVpmeSdEntry 5 }
+
+cerVideoVpmeSdEqmTcpPort OBJECT-TYPE
+    SYNTAX      Integer32 (0..65535)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION 
+        "TCP port of the EQM."
+    DEFVAL      { 40000 }
+    ::= { cerVideoVpmeSdEntry 6 }
+
+cerVideoVpmeSdSourceInterfaceIpv4IfIndex OBJECT-TYPE
+    SYNTAX      InterfaceIndexOrZero
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION 
+        "The ifIndex of the interface from which all IPv4 packets are sourced.
+         A value of 0 indicates no source interface override."
+    DEFVAL      { 0 }
+    ::= { cerVideoVpmeSdEntry 7 }
+
+cerVideoVpmeSdSourceInterfaceIpv4Address OBJECT-TYPE
+    SYNTAX      InetAddressIPv4or6
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION 
+        "The IP address of the interface from which all IPv4 packets are sourced.
+         A value of 0 indicates no source interface override."
+    DEFVAL      { '00000000'h }
+    ::= { cerVideoVpmeSdEntry 8 }
+
+-------------------------------------------
+-- cerVideoVpmeSdSTatsTable
+-------------------------------------------
+
+cerVideoVpmeSdStatsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CerVideoVpmeSdStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "This read-only table is used to monitor the current state of the
+         VPME instance. Note there is a 1:1 mapping between an VPME instance 
+         and an security domain."
+    ::= { cerVideoVpmeMIB 2 }
+
+cerVideoVpmeSdStatsEntry OBJECT-TYPE
+    SYNTAX      CerVideoVpmeSdStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "Information about a single table entry."
+    INDEX       { cerVideoVpmeSdStatsIndex }
+    ::= { cerVideoVpmeSdStatsTable 1 }
+
+CerVideoVpmeSdStatsEntry ::= SEQUENCE {
+    cerVideoVpmeSdStatsIndex            INTEGER,
+    cerVideoVpmeSdStatsEqmWakeup        INTEGER,
+    cerVideoVpmeSdStatsEcmDuration      INTEGER,
+    cerVideoVpmeSdStatsEcmTimeout       INTEGER,
+    cerVideoVpmeSdStatsEcmRepPeriod     INTEGER,
+    cerVideoVpmeSdStatsTimeInOperState  TimeStamp,
+    cerVideoVpmeSdStatsEcmProvSuccCnt   Counter32,
+    cerVideoVpmeSdStatsEcmProvFailCnt   Counter32,
+    cerVideoVpmeSdStatsTimeoutCnt       Counter32,
+    cerVideoVpmeSdStatsErrorCnt         Counter32,
+    cerVideoVpmeSdStatsEqmFlapCnt       Counter32,
+    cerVideoVpmeSdStatsVpmeOperState    INTEGER,
+    cerVideoVpmeSdStatsSzIndex          INTEGER
+}
+
+cerVideoVpmeSdStatsIndex OBJECT-TYPE
+    SYNTAX      INTEGER (1..7)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "The security-domain instance number uniquely identifies
+         the VPME instance for the E6000."
+    ::= { cerVideoVpmeSdStatsEntry 1 }
+
+cerVideoVpmeSdStatsEqmWakeup OBJECT-TYPE
+    SYNTAX      INTEGER (0..65535)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Defines the number of seconds prior to a CW-Provision,
+         that the EQM connection will be established.  The default is 0 which
+         means that the EQM connection remains permanently established."
+    ::= { cerVideoVpmeSdStatsEntry 2 }
+
+cerVideoVpmeSdStatsEcmDuration OBJECT-TYPE
+    SYNTAX      INTEGER (0..65535)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Defines defines the lifetime of the control word and ECM, in seconds.
+         This value is signaled by the EQM and the E6000 must provision a
+         new CW after this period of time."
+    ::= { cerVideoVpmeSdStatsEntry 3 }
+
+cerVideoVpmeSdStatsEcmTimeout OBJECT-TYPE
+    SYNTAX      INTEGER (0..65535)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Defines the countdown to the next CW provision event, in seconds."
+    ::= { cerVideoVpmeSdStatsEntry 4 }
+
+cerVideoVpmeSdStatsEcmRepPeriod OBJECT-TYPE
+    SYNTAX      INTEGER (0..65535)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Defines the rate at which ECM datagrams must be generated on the
+         egress video stream for each encrypted service, in milliseconds."
+    ::= { cerVideoVpmeSdStatsEntry 5 }
+
+cerVideoVpmeSdStatsTimeInOperState OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Timestamp when the service became operational."
+    ::= { cerVideoVpmeSdStatsEntry 6 }
+
+cerVideoVpmeSdStatsEcmProvSuccCnt OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Count of the total number of successful ECM provision interactions
+         with the EQM"
+    ::= { cerVideoVpmeSdStatsEntry 7 }
+
+cerVideoVpmeSdStatsEcmProvFailCnt OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Count of the total number of failed ECM provision interactions
+         with the EQM."
+    ::= { cerVideoVpmeSdStatsEntry 8 }
+
+cerVideoVpmeSdStatsTimeoutCnt OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Count of the total number of EQM response timeouts which have occurred."
+    ::= { cerVideoVpmeSdStatsEntry 9 }
+
+cerVideoVpmeSdStatsErrorCnt OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Count of the total number of Error messages from the EQM."
+    ::= { cerVideoVpmeSdStatsEntry 10 }
+
+cerVideoVpmeSdStatsEqmFlapCnt OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Count of the total number of connection failures to the EQM.
+        This count does not include enable/disable of the VPME instance."
+    ::= { cerVideoVpmeSdStatsEntry 11 }
+
+cerVideoVpmeSdStatsVpmeOperState OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    is(1),
+                    oos(2)
+                  }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Indicates the operational state of the VPME instance."
+    ::= { cerVideoVpmeSdStatsEntry 12 }
+
+cerVideoVpmeSdStatsSzIndex OBJECT-TYPE
+    SYNTAX      INTEGER (0..7)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "The instance of the streaming zone associated with the VPME instance.
+        0 is reserved for the unassigned case."
+    ::= { cerVideoVpmeSdStatsEntry 13 }
+
+-------------------------------------------
+-- cerVideoVpmeRuleTable
+-------------------------------------------
+
+cerVideoVpmeRuleTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CerVideoVpmeRuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "This is a table of configured Service Encryption rules."
+    ::= { cerVideoVpmeMIB 3 }
+
+cerVideoVpmeRuleEntry OBJECT-TYPE
+    SYNTAX      CerVideoVpmeRuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "Information about a single table entry."
+    INDEX       { cerVideoVpmeRuleDacId, cerVideoVpmeRuleTransportId, 
+                  cerVideoVpmeRuleServiceId }
+    ::= { cerVideoVpmeRuleTable 1 }
+
+CerVideoVpmeRuleEntry ::= SEQUENCE {
+    cerVideoVpmeRuleDacId           INTEGER,
+    cerVideoVpmeRuleTransportId     INTEGER,
+    cerVideoVpmeRuleServiceId       INTEGER,
+    cerVideoVpmeRuleExclude         TruthValue,
+    cerVideoVpmeRuleRowStatus       RowStatus
+}
+
+cerVideoVpmeRuleDacId OBJECT-TYPE
+    SYNTAX      INTEGER (0..65535)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "DACID uniquely identifies the VPME instance to which this
+         service encryption rule is bound to."
+    ::= { cerVideoVpmeRuleEntry 1 }
+
+cerVideoVpmeRuleTransportId OBJECT-TYPE
+    SYNTAX      INTEGER (0..65536)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "Transport ID. A 0 value is interpreted as a wildcard all match."
+    ::= { cerVideoVpmeRuleEntry 2 }
+
+cerVideoVpmeRuleServiceId OBJECT-TYPE
+    SYNTAX      INTEGER (0..65536)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION 
+        "Service ID. A 0 value is interpreted as a wildcard all match."
+    DEFVAL      { 0 }
+    ::= { cerVideoVpmeRuleEntry 3 }
+
+cerVideoVpmeRuleExclude OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION 
+        "If this variable is set to TRUE then the service(s) matched by this
+         rule are excluded from scrambling."
+    DEFVAL      { false }
+    ::= { cerVideoVpmeRuleEntry 4 }
+
+cerVideoVpmeRuleRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION 
+        "The values that control the creation/deletion of Service Encryption 
+         Rules."
+    ::= { cerVideoVpmeRuleEntry 5 }
+
+-------------------------------------------
+-- cerVideoVpmeProgTable
+-------------------------------------------
+
+cerVideoVpmeProgTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CerVideoVpmeProgEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "This read-only table is used to monitor the current set of
+         encrypted active services."
+    ::= { cerVideoVpmeMIB 4 }
+
+cerVideoVpmeProgEntry OBJECT-TYPE
+    SYNTAX      CerVideoVpmeProgEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "Information about a single table entry."
+    INDEX       { cerVideoVpmeProgDacId, cerVideoVpmeProgQamIfIndex, 
+                  cerVideoVpmeProgServiceId }
+    ::= { cerVideoVpmeProgTable 1 }
+
+CerVideoVpmeProgEntry ::= SEQUENCE {
+    cerVideoVpmeProgDacId             INTEGER,
+    cerVideoVpmeProgQamIfIndex        InterfaceIndex,
+    cerVideoVpmeProgServiceId         INTEGER,
+    cerVideoVpmeProgTransportId       INTEGER,
+    cerVideoVpmeProgEcmPid            CerPID,
+    cerVideoVpmeProgDeliveryState     CerVideoVpmeProgDeliveryState,
+    cerVideoVpmeProgDeliveryStateTime TimeStamp,
+    cerVideoVpmeProgRuleTransportId   Integer32,
+    cerVideoVpmeProgRuleServiceId     Integer32
+}
+
+cerVideoVpmeProgDacId OBJECT-TYPE
+    SYNTAX      INTEGER (1..65535)
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION 
+        "DACID uniquely identifies the VPME instance which is encrypting this service"
+    ::= { cerVideoVpmeProgEntry 1 }
+
+cerVideoVpmeProgQamIfIndex OBJECT-TYPE
+    SYNTAX      InterfaceIndex
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+        "The ifIndex of the QAM channel associated with this service."
+    ::= { cerVideoVpmeProgEntry 2 }
+
+cerVideoVpmeProgServiceId OBJECT-TYPE
+    SYNTAX      INTEGER (1..65536)
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION 
+        "Service ID."
+    ::= { cerVideoVpmeProgEntry 3 }
+
+cerVideoVpmeProgTransportId OBJECT-TYPE
+    SYNTAX      INTEGER (1..65536)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Transport ID."
+    ::= { cerVideoVpmeProgEntry 4 }
+
+cerVideoVpmeProgEcmPid OBJECT-TYPE
+    SYNTAX      CerPID
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Identifies the PID on which the ECM datagrams for this service are delivered"
+    ::= { cerVideoVpmeProgEntry 5 }
+
+cerVideoVpmeProgDeliveryState OBJECT-TYPE
+    SYNTAX      CerVideoVpmeProgDeliveryState
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "The current encryption delivery state of the service."
+    ::= { cerVideoVpmeProgEntry 6 }
+
+cerVideoVpmeProgDeliveryStateTime OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "The timestamp indicating when the service entered the current
+         delivery state."
+    ::= { cerVideoVpmeProgEntry 7 }
+
+cerVideoVpmeProgRuleTransportId OBJECT-TYPE
+    SYNTAX      Integer32 (1..65535)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "The configured transportID of the encryption rule which this
+         service is matched against."
+    ::= { cerVideoVpmeProgEntry 8 }
+
+cerVideoVpmeProgRuleServiceId OBJECT-TYPE
+    SYNTAX      Integer32 (1..65535)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "The configured serviceID of the encryption rule which this
+         service is matched against."
+    ::= { cerVideoVpmeProgEntry 9 }
+
+-------------------------------------------
+-- cerVideoVpmeGroup
+-------------------------------------------
+
+cerVideoVpmeGroup OBJECT IDENTIFIER
+    ::= { cerVideoVpmeMIB 5 }
+
+cerVideoVpmeEqmSharedSecret OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(0..64))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+        "Shared secret used to secure the EQM/E6000 interface.
+         The string is limited to a max of 64 ASCII characters."
+    ::= { cerVideoVpmeGroup 1 }
+
+-------------------------------------------
+-- cerVideoVpmeTraps
+-------------------------------------------
+
+cerVideoVpmeTrapInfo OBJECT IDENTIFIER
+    ::= { cerVideoVpmeMIB 6 }
+
+cerVideoVpmeEqmStatus OBJECT-TYPE
+    SYNTAX      AdminState
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION 
+        " EQM connection status of E6000. "
+    DEFVAL      { down }
+    ::= { cerVideoVpmeTrapInfo 1 }
+
+cerVideoVpmeProgStatus OBJECT-TYPE
+    SYNTAX      AdminState
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION 
+        " Delivery state of a VPME encrypted program. "
+    DEFVAL      { down }
+    ::= { cerVideoVpmeTrapInfo 2 }
+
+cerVideoVpmeErrorStr OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(0..100))
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION 
+        " Description of error encountered on the EQM interface. "
+    ::= { cerVideoVpmeTrapInfo 3 }
+
+cerVideoVpmeTraps OBJECT IDENTIFIER
+    ::= { cerVideoVpmeMIB 0 }
+
+cerVideoEqmConnection NOTIFICATION-TYPE
+    OBJECTS     { trapCounter, trapSeverity, 
+                  cerVideoVpmeSdIndex, cerVideoVpmeSdDacId, 
+                  cerVideoVpmeSdEqmIpAddress, cerVideoVpmeSdEqmTcpPort, 
+                  cerVideoVpmeEqmStatus }
+    STATUS      current
+    DESCRIPTION 
+        " This trap is sent when the EQM connection fails. "
+    ::= { cerVideoVpmeTraps 1 }
+
+cerVideoVpmeEqmProtocol NOTIFICATION-TYPE
+    OBJECTS     { trapCounter, trapSeverity, 
+                  cerVideoVpmeSdIndex, cerVideoVpmeSdDacId, 
+                  cerVideoVpmeErrorStr }
+    STATUS      current
+    DESCRIPTION 
+        " This trap is sent when a protocol error on the EQM interface
+         is detected. "
+    ::= { cerVideoVpmeTraps 2 }
+
+cerVideoVpmeProgramDelivery NOTIFICATION-TYPE
+    OBJECTS     { trapCounter, trapSeverity, cerVideoVpmeProgDacId} 
+    STATUS      current
+    DESCRIPTION 
+        " This trap is sent when the delivery of an encrypted program is
+         blocked because of a ECM provivioning failure. "
+    ::= { cerVideoVpmeTraps 3 }
+
+cerVideoVpmePartialConfig  NOTIFICATION-TYPE
+    OBJECTS     { trapCounter, trapSeverity,
+                  cerVideoVpmeSdIndex,
+                  cerVideoVpmeSdDacId }
+    STATUS       current
+    DESCRIPTION
+        " This trap is sent when a VPME instance is partially configured.
+          The trap is cleared when the VPME instance is correctly configured
+          (and set administratively UP) or when the configuration is deleted."
+::= { cerVideoVpmeTraps 4 } 
+
+END -- end of module ARRIS-CER-VIDEO-VPME-MIB.

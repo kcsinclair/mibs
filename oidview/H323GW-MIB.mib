@@ -1,0 +1,1138 @@
+-- extracted from draft-kajos-hmultimediamib-00.txt
+-- at Mon Nov 15 17:11:06 1999
+
+-- fixed h323gwConnEntityRefEntry and supporting objects
+-- nws - ByteSphere Technologies, 02/03/02
+
+        H323GW-MIB DEFINITIONS ::= BEGIN
+        
+        IMPORTS   MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE,
+        Unsigned32, Gauge32, Counter32, Counter64
+             FROM SNMPv2-SMI
+        TEXTUAL-CONVENTION, Taddress, DisplayString, RowStatus,
+        VariablePointer
+             FROM SNMPv2-TC
+        MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+        FROM SNMPv2-CONF
+             H323gatekeeperID, H323TaddressTag, H323EndPointID,
+        H323GlobalIdentifier, H323E164String
+                  FROM H323-MULTIMEDIA-TC
+        
+        h323gw MODULE-IDENTITY
+        LAST-UPDATED "98080520000Z" - August 05 1998
+             ORGANIZATION "IBM Haifa Research Lab"
+             CONTACT-INFO
+        " Zvi Mizrahy,   +972-4-8296167, mizrahy@haifa.vnet.ibm.com
+          Pnina Vortman, +972-4-8296339, vortman@haifa.vnet.ibm.com
+                     IBM Technology & Science,
+          Building 8/1, Matam, Haifa 31905, Israel"
+             DESCRIPTION "H323-H320, H323-PSTN Gateway MIB"
+        REVISION "98052120000Z"
+        DESCRIPTION "First Draft"
+        REVISION "98080520000Z" - August 05 1998
+        DESCRIPTION "Second Draft"
+        ::= { mmH323root 6 }
+        
+        -- Textual Conventions defined in H323-MULTIMEDIA-TC
+        -- See the H323.Terminal MIB for reference
+        
+        -- H323AudioCap::=TEXTUAL-CONVENTION...
+        -- H323VideoCap::=TEXTUAL-CONVENTION...
+        -- H323DataCap::=TEXTUAL-CONVENTION...
+        -- H323FaxCap::=TEXTUAL-CONVENTION...
+        
+        H323gwError::=TEXTUAL-CONVENTION
+        STATUS       current
+        DESCRIPTION  "Error Categories"
+        SYNTAX INTEGER {
+                          gateway(0),
+                          h323(1),
+                          h320(2),
+                          pstn(3),
+                          other(4)}
+        
+        H323gwConnectionMode::=TEXTUAL-CONVENTION
+        STATUS       current
+        DESCRIPTION
+              "Modes for a connection entity which represents how it
+        joined the call"
+        SYNTAX INTEGER {
+         originator(1),
+                         called(2),
+                        joined(3),
+         invited(4),
+         transferred(5) }
+        
+        H323gwConnectionCommand::=TEXTUAL-CONVENTION
+        STATUS       current
+        DESCRIPTION
+              "Commands for a connection:
+                  1. Disconnect
+                  2. Hold (mute)
+                  3. Resume (stop mute)
+                  4. Reset Statistics
+        5. ..."
+        SYNTAX INTEGER {
+        disconnect(1),
+                  hold(2),
+                       resume(3),
+                       resetStats(4) }
+        
+        
+        -- Groups
+        
+        h323gwSystemDescription       OBJECT IDENTIFIER  ::= { h323gw 1 }
+        h323gwCapabilities       OBJECT IDENTIFIER  ::= { h323gw 2 }
+        h323gwConfiguration           OBJECT IDENTIFIER  ::= { h323gw 3 }
+        h323gwStatistics              OBJECT IDENTIFIER  ::= { h323gw 4 }
+        h323gwCalls              OBJECT IDENTIFIER  ::= { h323gw 5 }
+        h323gwConnections        OBJECT IDENTIFIER  ::= { h323gw 6 }
+        h323gwNotifications           OBJECT IDENTIFIER  ::= { h323gw 7 }
+        h323gwControls                OBJECT IDENTIFIER  ::= { h323gw 8 }
+        h323gwCoformances             OBJECT IDENTIFIER  ::= { h323gw 9 }
+        --
+        Conformances
+        
+        
+        -- System Description
+        -- Note - This may be unified in the future with MC,H323 Terminal
+        -- or Gatekeeper MIBs
+        
+        h323gwSystemDescr OBJECT-TYPE
+             SYNTAX DisplayString(SIZE (0..255))
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "The gateway name and maker name"
+        ::= { h323gwSystemDescription 1 }
+        
+        h323gwSoftwareVersionNumber OBJECT-TYPE
+             SYNTAX DisplayString
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "Software version number (major and minor)"
+        ::= { h323gwSystemDescription 2 }
+        
+        h323gwHardwareVersionNumber OBJECT-TYPE
+             SYNTAX DisplayString
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "Hardware version number"
+        ::= { h323gwSystemDescription 3 }
+        
+        
+        -- Capabilities
+        
+        h323gwAudioRecvCapabilities OBJECT-TYPE
+             SYNTAX H323AudioCap
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "List of audio decoding protocols supported by the
+        gateway"
+        ::= { h323gwCapabilities 1 }
+        h323gwAudioSendCapabilities OBJECT-TYPE
+             SYNTAX H323AudioCap
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "List of audio encoding protocols supported by the
+        gateway"
+        ::= { h323gwCapabilities 2 }
+        h323gwVideoRecvCapabilities OBJECT-TYPE
+             SYNTAX H323VideoCap
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "List of video decoding protocols supported by the
+        gateway"
+        ::= { h323gwCapabilities 3 }
+        h323gwVideoSendCapabilities OBJECT-TYPE
+             SYNTAX H323VideoCap
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "List of video encoding protocols supported by the
+        gateway"
+        ::= { h323gwCapabilities 4 }
+        h323gwDataRecvCapabilities OBJECT-TYPE
+             SYNTAX H323DataCap
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "List of data decoding protocols supported by the
+        gateway"
+        ::= { h323gwCapabilities 5 }
+        h323gwDataSendCapabilities OBJECT-TYPE
+             SYNTAX H323DataCap
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "List of data encoding protocols supported by the
+        gateway"
+        ::= { h323gwCapabilities 6 }
+        h323gwFaxRecvCapabilities OBJECT-TYPE
+             SYNTAX H323FaxCap
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "List of fax decoding protocols supported by the
+        gateway"
+        ::= { h323gwCapabilities 7 }
+        h323gwFaxSendCapabilities OBJECT-TYPE
+             SYNTAX H323FaxCap
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "List of fax encoding protocols supported by the
+
+        gateway"
+        ::= { h323gwCapabilities 8 }
+        h323gwTotalPstnPorts OBJECT-TYPE
+             SYNTAX Unsigned32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "Total number of PSTN Ports supported by the
+        gateway"
+        ::= { h323gwCapabilities 9 }
+        
+        h323gwPstnCapabilities OBJECT-TYPE
+             SYNTAX INTEGER {    analog (1),
+        EandM (2),
+        E1(3),
+        T1(4),
+        ISDN-BRI(5),
+        ISDN-PRI(6)}
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "PSTN capabilities (PSTN interface type for this
+        gateway)"
+        ::= { h323gwCapabilities 10 }
+        
+        h323gwTotalh320Ports OBJECT-TYPE
+             SYNTAX Unsigned32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "Total number of h320 Ports supported by the
+        gateway"
+        ::= { h323gwCapabilities 11}
+        
+        h323gwH320Capabilities OBJECT-TYPE
+             SYNTAX INTEGER  -- To Be Defined.(A reference to H.320
+        Terminal/Entity?)
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "H.320 capabilities"
+        ::= { h323gwCapabilities 12 }
+        -- Configuration
+        
+        h323gwCallSignalingAddressTag OBJECT-TYPE
+             SYNTAX H323AddressTag
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+        "Gateway's call signaling address tag. Specifies how
+        h323gwCallSignalingAddress represents an address "
+        ::= {h323gwConfiguration 1 }
+        
+        h323gwCallSignalingAddress OBJECT-TYPE
+             SYNTAX Taddress
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+        "Gateways' call signaling address"
+        ::= {h323gwConfiguration 2 }
+        
+        h323gwGatekeeperAddressTag OBJECT-TYPE
+             SYNTAX H323AddressTag
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+        "Gatekeeper address tag. Specifies how
+        h323gwGatekeeperAddress represents an address. If the
+        gateway does not register with a gatekeeper, it is empty"
+        ::= {h323gwConfiguration 3 }
+        
+        h323gwGatekeeperAddress OBJECT-TYPE
+             SYNTAX Taddress
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+        "Gatekeeper address. This is the address of the gatekeeper
+        that the gateway was registered with, if at all. If the
+        gateway does not register with a gatekeeper, it is empty "
+        ::= {h323gwConfiguration 4 }
+        
+        h323gwLeadingE164Number OBJECT-TYPE
+             SYNTAX H323E164String
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+        "The leading PBX extension or PTT number that that gateway
+        is connected too.(Leading means that if there are more than
+        one number they must be defined as a group in the PBX"
+        ::= {h323gwConfiguration 5 }
+        
+        -- TBD : ADDITIONAL PSTN INFORMATION IS REQUIRED HERE ?
+        -- EXAMPLES : HOW TO ACCESS EXTERNAL LINE, OR WHAT ARE THE
+        REQUIRED
+        -- PSTN PREFIX THAT IS ADDED IN FRONT OF ANY E164 NUMBER .
+        
+        
+        -- Statistics
+        
+        h323gwStartUpTime OBJECT-TYPE
+             SYNTAX DateAndTime
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+        "The time and date that the gateway was started"
+        ::= { h323gwStatistics 1 }
+        
+        h323gwTotalCallsNo OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "Total number of calls conducted by the
+
+        gateway since the last startup"
+        ::= { h323gwStatistics 2 }
+        
+        h323gwActiveCallsNo OBJECT-TYPE
+             SYNTAX Gauge32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Number of active calls which are currently conducted
+         by the gateway"
+        ::= { h323gwStatistics 3 }
+        
+        h323gwAdditionalEstCalls OBJECT-TYPE
+             SYNTAX Gauge32
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                  "Estimated number of additional simultaneous calls
+        that the gateway can carry out. This is calculated
+        by the application according to the available
+        Gateway's resources, or set by the management to limit
+        overloading"
+        ::= { h323gwStatistics 4 }
+        
+        h323gwAvrgSimultaneousCalls OBJECT-TYPE
+             SYNTAX Gauge32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Average number of simultaneous calls (since last
+        restart)"
+        ::= { h323gwStatistics 5 }
+        
+        h323gwAvrgCallTime OBJECT-TYPE
+             SYNTAX TimeTicks
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "Average call time (since the last restart)"
+        ::= { h323gwStatistics 6 }
+        
+        h323LongestCallElapseTime OBJECT-TYPE
+             SYNTAX TimeTicks
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Time passed since the earliest call has started.
+                  This will give administrators the ability to trace
+        stacked calls"
+        ::= { h323gwStatistics 7 }
+        
+        h323gwTotalPstnPortsFailed OBJECT-TYPE
+             SYNTAX Unsigned32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "Number of currently failed, unused or
+
+        unavailable PSTN ports in the gateway"
+        ::= { h323gwStatistics 8 }
+        
+        h323gwTotalH320PortsFailed OBJECT-TYPE
+             SYNTAX Unsigned32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "Number of currently failed, unused or
+        unavailable H320 ports in the gateway"
+        ::= { h323gwStatistics 9 }
+        
+        h323gwTotalH323Errors OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of h323 errors occurred in the
+        gateway since the last startup"
+        ::= { h323gwStatistics 10 }
+        
+        h323gwTotalH320Errors OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of h320 errors occurred in the
+        gateway since the last startup"
+        ::= { h323gwStatistics 11 }
+        
+        h323gwTotalPstnErrors OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of PSTN errors occurred in the
+        gateway since the last startup"
+        ::= { h323gwStatistics 12 }
+        
+        h323gwLastErrorCode OBJECT-TYPE
+             SYNTAX H323gwError
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Category Code of the most recent error occurred
+        in the gateway"
+        ::= { h323gwStatistics 13 }
+        
+        h323gwLastErrorDescr OBJECT-TYPE
+             SYNTAX DisplayString
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "String Description of the most recent error
+        occurred in the gateway"
+        ::= { h323gwStatistics 14 }
+        h323gwTotalPacketsLost OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "The total number of packets lost since the last
+        startup.
+        This parameter is applicable to the non guaranteed network
+        (h323)"
+        ::= { h323gwStatistics 15 }
+        
+        h323gwH323PacketsRecv OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of packets received by the gateway from
+        all
+         the H323 connections since last startup"
+        ::= { h323gwStatistics 16 }
+        
+        h323gwH323PacketsSent OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of packets sent by the gateway to all
+         the H323 connections since last startup"
+        ::= { h323gwStatistics 17 }
+        
+        h323gwH320PacketsRecv OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of packets received by the gateway from
+        all
+         the H320 connections since last startup"
+        ::= { h323gwStatistics 18 }
+        
+        h323gwH320PacketsSent OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of packets sent by the gateway to all
+         the H320 connections since last startup"
+        ::= { h323gwStatistics 19 }
+        
+        h323gwPstnPacketsRecv OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of packets received by the gateway from
+        all
+         the PSTN connections since last startup"
+        ::= { h323gwStatistics 20 }
+        
+        h323gwPstnPacketsSent OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of packets sent by the gateway to all
+         the PSTN connections since last startup"
+        ::= { h323gwStatistics 21 }
+        
+        h323gwH323BytesRecv OBJECT-TYPE
+             SYNTAX Counter64
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of bytes received by the gateway from all
+         the H323 connections since last startup"
+        ::= { h323gwStatistics 22 }
+        
+        h323gwH323BytesSent OBJECT-TYPE
+             SYNTAX Counter64
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of bytes sent by the gateway to all
+         the H323 connections since last startup"
+        ::= { h323gwStatistics 23 }
+        
+        h323gwH320BytesRecv OBJECT-TYPE
+             SYNTAX Counter64
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of bytes received by the gateway from all
+         the H320 connections since last startup"
+        ::= { h323gwStatistics 24 }
+        
+        h323gwH320BytesSent OBJECT-TYPE
+             SYNTAX Counter64
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of bytes sent by the gateway to all
+         the H320 connections since last startup"
+        ::= { h323gwStatistics 25 }
+        
+        h323gwPstnBytesRecv OBJECT-TYPE
+             SYNTAX Counter64
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of bytes received by the gateway from all
+         the PSTN connections since last startup"
+        ::= { h323gwStatistics 26 }
+        
+        h323gwPstnBytesSent OBJECT-TYPE
+             SYNTAX Counter64
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of bytes sent by the gateway to all
+         the PSTN connections since last startup"
+        ::= { h323gwStatistics 27 }
+        
+        
+        
+        -- Call Definitions
+        -- Includes information about the calls that are currently
+        -- conducted by the gateway .
+        
+        h323gwCallTable OBJECT-TYPE
+             SYNTAX SEQUENCE OF H323gwCallEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                  "List of h323gwCallEntry entries. The table holds
+         information about the gateway's current calls"
+        ::= { h323gwCalls 1 }
+        
+        h323gwCallEntry OBJECT-TYPE
+             SYNTAX H323gwCallEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION "The call table entry definition"
+             INDEX { h323gwCallIndex }
+        ::= { h323gwCallTable 1 }
+        
+        H323gwCallEntry ::=
+             SEQUENCE {
+                  h323gwCallIndex Unsigned32,
+                  h323gwCallId H323GlobalIdentifier,
+                  h323gwCallType Integer32,
+                  h323gwCallStartTime DateAndTime,
+                  h323gwCallPartiesNo Gauge32, --- TBD - Still
+        undetermined ??
+                  h323gwCallTotalErrors Counter32,
+                  h323gwCallLastErrorCode H323Error,
+                  h323gwCallLastErrorStr DisplayString,
+                  h323gwCallCommand Integer32
+             }
+        
+        h323gwCallIndex OBJECT-TYPE
+             SYNTAX Unsigned32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "MIB index for this entry"
+        ::= { h323gwCallEntry 1 }
+        
+        h323gwCallId OBJECT-TYPE
+             SYNTAX H323GlobalIdentifier
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "Call ID allocated by the gateway"
+        ::= { h323gwCallEntry 2 }
+        
+        h323gwCallType OBJECT-TYPE
+             SYNTAX INTEGER {h323-h320 (1), h323-pstn(2), h323-h323(3))
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Type of the call:
+                  1. H323-H320
+                  2. H323-PSTN
+                  3. H323-H323 'Rear
+                  4. "
+        ::= { h323gwCallEntry 4 }
+        
+        h323gwCallStartTime OBJECT-TYPE
+             SYNTAX DateAndTime
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "The time this call has started"
+        ::= { h323gwCallEntry 5 }
+        
+        -- Still opened for discussion
+        h323gwCallPartiesNo OBJECT-TYPE
+             SYNTAX Unsigned32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "Number of participants in this call"
+        ::= { h323gwCallEntry 6 }
+        
+        h323gwCallTotalErrors OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of errors occurred in the call
+        since it has started"
+        ::= { h323gwCallEntry 7 }
+        
+        h323gwCallLastErrorCode OBJECT-TYPE
+             SYNTAX H323gwError
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Category code of the most recent error occurred
+        in this call"
+        ::= { h323gwCallEntry 8 }
+        h323gwCallLastErrorStr OBJECT-TYPE
+             SYNTAX DisplayString
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Description of the most recent error occurred
+        in this call"
+        ::= { h323gwCallEntry 9 }
+        
+        h323gwCallCommand OBJECT-TYPE
+             SYNTAX INTEGER {
+                       disconnect(1),
+                       startRecord(2),
+                       stopRecord(3),
+                       hold(4),
+                       resume(5)
+                       }
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                  "A value that represents a command for this call:
+                  1. Disconnect
+                  2. Start Recording
+                  3. Stop Recording
+                  4. Hold
+                  5. Resume"
+        ::= { h323gwCallEntry 10 }
+        
+        
+        -- Connection Entities Reference Table
+        
+        h323gwConnEntityRefTable OBJECT-TYPE
+             SYNTAX SEQUENCE OF H323gwConnEntityRefEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                  "List of h323gwConnEntityRefEntry entries
+                  The table holds information about the call's current
+        active connections (or entities). It is actually
+        a list of OIDs that point to connection entities
+        in the connection subtree"
+        ::= { h323gwCalls 2 }
+        
+        h323gwConnEntityRefEntry OBJECT-TYPE
+             SYNTAX H323gwConnRefEntityEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION "The connection entity reference table - entry
+        definition"
+             INDEX { h323gwCallId, h323gwConnEntityRefIndex }
+        ::= { h323gwConnEntityRefTable 1 }
+        
+        H323gwConnEntityRefEntry ::=
+             SEQUENCE {
+                  h323gwConnEntityRefIndex Unsigned32,
+                  h323gwConnEntityRefConnOID VariablePointer
+             }
+        
+        h323gwConnRefIndex OBJECT-TYPE
+             SYNTAX Unsigned32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "MIB index for this connection reference"
+        ::= { h323gwConnEntityRefEntry 1 }
+        
+        h323gwConnRefConnOID OBJECT-TYPE
+             SYNTAX VariablePointer
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+        "The OID of the connection in h323gwConnections subtree
+        ::= { h323gwConnEntityRefEntry 2 }
+        
+        
+        
+        
+        
+        
+        -- Connection Definitions
+        -- Contains information about the different connections that are
+        -- currently handled by the gateway. Connection can be either
+        -- a party in a call, or alternatively a stand along connection
+        -- that waits to joined into a call. The connection variables
+        -- are grouped into different connection types under a special
+        -- connection sub tree. Each type is derived from the nature of
+        -- the physical connection and the type of the information that
+        -- it streams. If a specific connection is participate in a call
+        -- (as a party), it has an entry in h323gwConnRefEntityTable.
+        -- The connection tree structure allows adding new connection
+        types.
+        
+        
+        h323gwH323Conn OBJECT IDENTIFIER  ::= { h323gwConnections 1 }
+        h323gwH320Conn OBJECT IDENTIFIER  ::= { h323gwConnections 2 }
+        h323gwPstnConn OBJECT IDENTIFIER  ::= { h323gwConnections 3 }
+        
+        
+        -- H323 connection entities table
+        
+        h323gwH323ConnEntityTable OBJECT-TYPE
+             SYNTAX SEQUENCE OF H323gwH323ConnEntityEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                  "List of h323gwH323ConnEntityEntry entries
+                  The table holds information about the gateway's current
+        H.323 connections"
+        ::= { h323gwH323Conn 1 }
+        
+        h323gwH323ConnEntityEntry OBJECT-TYPE
+             SYNTAX H323gwH323ConnEntityEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                  "List of h323gwH323ConnEntityEntry entries"
+        INDEX { h323gwH323ConnEntityIndex }
+        ::= { h323gwH323ConnEntityTable 1 }
+        
+        h323gwH323ConnEntityEntry ::=
+             SEQUENCE {
+                  h323gwH323ConnEntityIndex Unsigned32,
+                  h323gwH323ConnEntityId Unsigned32, -- Call ID allocated by the gateway
+        		h323gwH323ConnEntityStartTime DateAndTime,
+			h323gwH323ConnEntityMode H323gwConnectionMode,
+                  h323gwH323ConnEntityCallSignallingIndex Integer32,
+                  h323gwH323ConnEntityControlChannelIndex Integer32,
+                  h323gwH323ConnEntityRtpSessionIndex Integer32,
+                  h323gwH323ConnEntityConnTotalErrors Counter32,
+                  h323gwH323ConnEntityConnLastErrorStr DisplayString,
+                  h323gwH323ConnEntityConnCommand H323gwConnectionCommand
+             }
+        
+        h323gwH323ConnEntityIndex OBJECT-TYPE
+             SYNTAX Unsigned32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "MIB index for this connection"
+        ::= { h323gwH323ConnEntityEntry 1 }
+        
+        h323gwH323ConnEntityId OBJECT-TYPE
+             SYNTAX Unsigned32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "Connection Entity ID allocated by the gateway"
+        ::= { h323gwH323ConnEntityEntry 2 }
+        
+        h323gwH323ConnEntityStartTime OBJECT-TYPE        SYNTAX
+        DateAndTime
+        MAX-ACCESS read-only
+               STATUS current
+               DESCRIPTION
+                  "Time the connection has started"
+        ::= { h323gwH323ConnEntityEntry 3 }
+        
+        h323gwH323ConnEntityMode OBJECT-TYPE
+             SYNTAX INTEGER H323gwConnectionMode
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "The call mode of the connection represents how it
+        joined the call"
+        ::= { h323gwH323ConnEntityEntry 4 }
+        
+        h323gwH323ConnEntityCallSignallingIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "The index to the call signaling (H.225) table
+        Call signaling MIB"
+        ::= { h323gwH323ConnEntityEntry 5 }
+        
+        h323gwH323ConnEntityControlChannelIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "The index to the control channel table in H.245
+        mib"
+        ::= { h323gwH323ConnEntityEntry 6 }
+        
+        h323gwH323ConnEntityRtpSessionIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "The index to the RTP session Table in the RTP
+        mib"
+        ::= { h323gwH323ConnEntityEntry 7 }
+        
+        h323gwH323ConnEntityTotalErrors OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of errors (from any type) occurred in the
+        connection entity"
+        ::= { h323gwH323ConnEntityEntry 8 }
+        
+        h323gwH323ConnEntityLastError OBJECT-TYPE
+             SYNTAX DisplayString
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Description of the most recent error occurred in this
+        connection"
+        ::= { h323gwH323ConnEntityEntry 9 }
+        
+        h323gwH323ConnEntityCommand OBJECT-TYPE
+             SYNTAX H323gwConnectionCommand
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+        "A command variable for this connection"
+        ::= { h323gwH323ConnEntityEntry 10 }
+        
+        
+        -- H320 connection entities tables
+        h323gwH320ConnEntityTable OBJECT-TYPE
+             SYNTAX SEQUENCE OF H323gwH320ConnEntityEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                  "List of h323gwH320ConnEntityEntry entries"
+        ::= { h323gwH320Conn 1 }
+        
+        h323gwH320ConnEntityEntry OBJECT-TYPE
+             SYNTAX H323gwH320ConnEntityEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                  "List of h323gwH320ConnEntityEntry entries"
+        INDEX { h323gwH320ConnEntityIndex }
+        ::= { h323gwH320ConnEntityTable 1 }
+        
+        H323gwH320ConnEntityEntry ::=
+             SEQUENCE {
+                  h323gwH320ConnEntityIndex Unsigned32,
+                  h323gwH320ConnEntityId Unsigned32, -- Call ID allocated
+        by the
+        gateway
+        h323gwH320ConnEntityStartTime DateAndTime,h323gwH320ConnEntityMode
+        H323gwConnectionMode,
+        -- Note ! To be checked : Should it be an index to the H320
+        -- entity table ?
+                  h323gwH320ConnEntityTableIndex
+                  h323gwH320ConnEntityConnTotalErrors Counter32,
+                  h323gwH320ConnEntityConnLastErrorStr DisplayString
+        Counter32,
+                  h323gwH320ConnEntityConnCommand H323gwConnectionCommand
+             }
+        
+        h323gwH320ConnEntityIndex OBJECT-TYPE
+             SYNTAX Unsigned32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "MIB index for this connection"
+        ::= { h323gwH320ConnEntityEntry 1 }
+        
+        h323gwH320ConnEntityId OBJECT-TYPE
+             SYNTAX Unsigned32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "Connection Entity ID allocated by the gateway"
+        ::= { h323gwH320ConnEntityEntry 2 }
+        
+        h323gwH320ConnEntityStartTime OBJECT-TYPE        SYNTAX
+        DateAndTime
+        MAX-ACCESS read-only
+               STATUS current
+               DESCRIPTION
+                  "Time the connection has started"
+        ::= { h323gwH320ConnEntityEntry 4 }
+        
+        h323gwH320ConnEntityMode OBJECT-TYPE
+             SYNTAX INTEGER H323gwConnectionMode
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "The call mode of the connection represents how it
+        joined the call"
+        ::= { h323gwH320ConnEntityEntry 5 }
+        
+        h323gwH320ConnEntityTableIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "TBD : The index to the H320 Entity table"
+        ::= { h323gwH320ConnEntityEntry 6 }
+        
+        h323gwH320ConnEntityTotalErrors OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of errors (from any type) occurred in the
+        connection entity"
+        ::= { h323gwH320ConnEntityEntry 7 }
+        
+        h323gwH320ConnEntityLastError OBJECT-TYPE
+             SYNTAX DisplayString
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Description of the most recent error occurred in this
+        connection"
+        ::= { h323gwH320ConnEntityEntry 8 }
+        
+        h323gwH323ConnEntityCommand OBJECT-TYPE
+             SYNTAX H323gwConnectionCommand
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+        "A command variable for this connection"
+        ::= { h323gwH320ConnEntityEntry 9 }
+        
+        
+        -- PSTN/ISDN Connection entities tables
+        
+        h323gwPstnConnEntityTable OBJECT-TYPE
+             SYNTAX SEQUENCE OF H323gwPstnConnEntityEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                  "List of all h323gwPstnConnEntityEntry entries"
+        ::= { h323gwPstnConn 1 }
+        h323gwPstnConnEntityEntry OBJECT-TYPE
+             SYNTAX H323gwPstnConnEntityEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                  "List of h323gwPstnConnEntityEntry entries"
+        INDEX { h323gwPstnConnEntityIndex }
+        ::= { h323gwPstnConnEntityTable 1 }
+        
+        H323gwPstnConnEntityEntry ::=
+             SEQUENCE {
+                  h323gwPstnConnEntityIndex Unsigned32,
+                  h323gwPstnConnEntityId Unsigned32, -- Call ID allocated
+        by the
+        gateway
+        h323gwPstnConnEntityStartTime DateAndTime,h323gwPstnConnEntityMode
+        Integer32,
+                  h323gwPstnConnE164Addr H323E164String,
+        -- Note ! To be checked : Few options here:
+        -- An index to the PSTN entity (Not defined here yet),
+        -- An index/pointer to a vendor hardware MIB,
+        -- An index to an ISDN mib
+        -- To be defined
+                  h323gwPstnExternalTableIndex
+                  h323gwPstnConnEntityConnTotalErrors Counter32,
+                  h323gwPstnConnEntityConnLastErrorStr DisplayString
+        Counter32,
+                  h323gwPstnConnEntityConnCommand H323gwConnectionCommand
+             }
+        
+        h323gwPstnConnEntityIndex OBJECT-TYPE
+             SYNTAX Unsigned32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "MIB index for this connection"
+        ::= { h323gwPstnConnEntityEntry 1 }
+        
+        h323gwPstnConnEntityId OBJECT-TYPE
+             SYNTAX Unsigned32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION "Connection Entity ID allocated by the gateway"
+        ::= { h323gwPstnConnEntityEntry 2 }
+        
+        h323gwPstnConnEntityStartTime OBJECT-TYPE        SYNTAX
+        DateAndTime
+        MAX-ACCESS read-only
+               STATUS current
+               DESCRIPTION
+                  "Time the connection has started"
+        ::= { h323gwPstnConnEntityEntry 3 }
+        
+        h323gwPstnConnEntityMode OBJECT-TYPE
+             SYNTAX INTEGER H323gwConnectionMode
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "The call mode of the connection represents how it
+        joined the call"
+        ::= { h323gwPstnConnEntityEntry 4 }
+        
+        h323gwPstnConnE164Addr,
+        h323gwPstnConnE164Addr OBJECT-TYPE
+             SYNTAX H323E164String
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "In an outgoing call, this is the number the connection
+        is dialed to. In an incoming call, this number is the
+        caller ID that is supplied only if the telephony hardware
+        in the gateway is capable to retrieve it from the PTT"
+        ::= { h323gwPstnConnEntityEntry 5 }
+        
+        h323gwPstnExternalTableIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+        "To Be Defined :
+        An index to an external PSTN entity,
+        or an index/pointer to an external vendor hardware MIB,
+        or an index to an external ISDN mib"
+        ::= { h323gwPstnConnEntityEntry 6 }
+        
+        h323gwPstnConnEntityTotalErrors OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Total number of errors (from any type) occurred in the
+        connection entity"
+        ::= { h323gwPstnConnEntityEntry 7 }
+        
+        h323gwPstnConnEntityLastError OBJECT-TYPE
+             SYNTAX DisplayString
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                  "Description of the most recent error occurred in this
+        connection"
+        ::= { h323gwPstnConnEntityEntry 8 }
+        
+        h323gwH323ConnEntityCommand OBJECT-TYPE
+             SYNTAX H323gwConnectionCommand
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+        "A command variable for this connection"
+        ::= { h323gwH323ConnEntityEntry 9 }
+        -- Commands and controls
+        
+        h323gwControls OBJECT-TYPE
+               SYNTAX INTEGER { AbruptRestart(1),
+                            GracefulRestart (2),
+                  AbruptShutdown(3),
+                            GracefulShutdown (4),
+                            EnterQuiescence (5),
+                            ExitQuiescence (6),
+                       StartLog(7),
+                            StopLog(8),
+                            ResetStatistics(9)
+        RunDiagnostic(10)}
+               MAX-ACCESS read-write
+               STATUS current
+               DESCRIPTION
+                  "A value that represents a command for the gateway.
+        1. Abrupt Restart    (Drastic Restart)
+        2. Graceful Restart  (Restart after all calls have terminated.
+        Meanwhile, accept no calls)
+        3. Abrupt Shutdown   (Drastic Restart)
+        4. Graceful Shutdown (Shutdown after all calls have terminated.
+             Meanwhile, accept no calls)
+        5. Enter Quiescence Mode (Disable receiving of calls)
+        6. Exit  Quiescence Mode (Enable  receiving of calls)
+        7. Start Error/Log Reporting
+        8. Stop Error/Log Reporting
+        9. Reset Statistics
+        10. Run Diagnostic"
+        ::= { h323gw 8}
+        
+        
+        --  Events
+        
+        h323gwStart NOTIFICATION-TYPE
+             STATUS  current
+             DESCRIPTION
+                  "Signifies that the gateway has started"
+        ::= { h323gwNotifications 1 }
+        
+        h323gwGoingDown NOTIFICATION-TYPE
+             STATUS  current
+             DESCRIPTION
+                  "Signifies that the gateway is about to go down"
+        ::= { h323gwNotifications 2 }
+        
+        h323gwCallInitiating NOTIFICATION-TYPE
+             OBJECTS { h323gwCallIndex }
+             STATUS  current
+             DESCRIPTION
+                  "Signifies that a new call with index h323gwCallIndex
+        has been initiated"
+        ::= { h323gwNotifications 3 }
+        h323gwCallChangeState NOTIFICATION-TYPE
+             OBJECTS { h323gwCallIndex }
+             STATUS  current
+             DESCRIPTION
+                  "Signifies that a call with index h323gwCallIndex has
+        changed its state"
+        ::= { h323gwNotifications 4 }
+        
+        h323gwCallDisconnecting NOTIFICATION-TYPE
+             OBJECTS { h323gwCallIndex }
+             STATUS  current
+             DESCRIPTION
+                  "Signifies that a call with index h323gwCallIndex has
+        been terminated"
+        ::= { h323gwNotifications 5 }
+        
+        h323gwError NOTIFICATION-TYPE
+        OBJECTS { }
+             STATUS  current
+             DESCRIPTION
+                  "Signifies the OID of the error variable that has been
+        changed This can be one of the following :
+        h323gwLastError or any type of error in a specific call
+        or connection"
+             ::= { h323gwNotifications 6 }
+        END

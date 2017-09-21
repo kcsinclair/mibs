@@ -1,0 +1,2030 @@
+-- ============================================================================
+-- Copyright (C) 2012 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description: This MIB is used for defining GPON NNI MIB objects. GPON NNI refers
+--              to PON interface at ONU.
+-- Reference:
+-- Version: V1.21
+-- ============================================================================
+    HUAWEI-GONU-MIB DEFINITIONS ::= BEGIN
+
+        IMPORTS
+            MODULE-IDENTITY, OBJECT-TYPE, Unsigned32, NOTIFICATION-TYPE, Integer32, Counter32, Counter64
+                FROM SNMPv2-SMI
+
+            huaweiMgmt
+                FROM HUAWEI-MIB
+
+            ifIndex
+                FROM IF-MIB
+
+            hwFrameIndex, hwSlotIndex, hwPortIndex, hwConfigChangeIP
+                FROM HUAWEI-DEVICE-MIB
+
+            TruthValue, RowStatus
+                FROM SNMPv2-TC
+
+            SnmpAdminString
+                FROM SNMP-FRAMEWORK-MIB
+
+            HCPerfIntervalThreshold, HCPerfTimeElapsed
+                FROM  HC-PerfHist-TC-MIB   -- [RFC3705]
+
+            MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+                FROM SNMPv2-CONF;
+
+            hwGponMIB MODULE-IDENTITY
+            LAST-UPDATED "201210080000Z"
+            ORGANIZATION
+                "Huawei Technologies Co.,Ltd."
+            CONTACT-INFO                                      
+                         "Huawei Industrial Base              
+                          Bantian, Longgang                   
+                          Shenzhen 518129                     
+                          People's Republic of China          
+                          Website: http://www.huawei.com      
+                          Email: support@huawei.com           
+                         "                                    
+            DESCRIPTION
+                "This MIB is used for defining GPON NNI MIB objects. GPON NNI refers to PON interface at ONU."
+
+--  Revision history
+            REVISION    "201210270000Z"
+            DESCRIPTION "V1.21, changes in this revision:
+                         - Modify the node hwGonuPasswordChangeTrap name to hwGonuAuthChangeTrap.
+                        "
+                        
+            REVISION    "201210080000Z"
+            DESCRIPTION "V1.20, changes in this revision:
+                         - Add parameters for the trap node hwGonuAuthChangeTrap.
+                        "
+                        
+            REVISION    "201207200000Z"
+            DESCRIPTION "V1.19, changes in this revision:
+                         - Delete unnecessary en dashes.
+                        "
+                        
+            REVISION    "201203160000Z"
+            DESCRIPTION "V1.18, changes in this revision:
+                         - Add leaf node hwGonuTxDiscardedFrames in table hwGonuStatisticsTable.
+                        "
+
+            REVISION    "201111190000Z"
+            DESCRIPTION "V1.17, changes in this revision:
+                         - Add leaf node hwGonuLoid, hwGonuCheckCode in table hwGonuAuthTable for config the loid and checkcode value of ONU.
+                        "
+
+            REVISION    "201110230000Z"
+            DESCRIPTION "V1.16, changes in this revision:
+                         - Add leaf node hwGonuPsk in table hwGonuAuthTable for config and obtain the hex value of PSK.
+                        "
+			
+            REVISION    "201108200000Z"
+            DESCRIPTION "V1.15, changes in this revision:
+                         - Add leaf node hwXponNNIUplinkMode in table hwGponNNICfg for config uplink mode of PON NNI port.
+                         - Modify the description hwTimeElapsed to hwGponTimeElapsed, and hwValidInterval to hwGponValidInterval.
+                        "
+                        
+            REVISION    "201105100000Z"
+            DESCRIPTION "V1.14, changes in this revision:
+                         - Add leaf node hwGonuOpticsModuleType, hwGonuOpticsModuleSubType, hwGonuOpticsModuleUsedType, 
+                           hwGonuOpticsModuleEncapsulationType in table hwGonuStatusTable for obtaining optical-module information.
+                        "
+
+            REVISION    "201009280000Z"
+            DESCRIPTION "V1.12, changes in this revision:
+                         - modify the description of the whole MIB file.
+                         - add leaf node hwGonuClearThreshold in table hwGonuAlarmThresholdTable for clear optical-module threshold.
+                        "
+
+            REVISION    "201007300000Z"
+            DESCRIPTION "V1.11, changes in this revision:
+                         - Add the definition of the trap node, include:hwGonuLinkMISRestoreTrap, hwGonuLinkPEERestoreTrap,hwGonuTempExceedThreAlarmTrap,
+                         hwGonuTempExceedThreRestoreAlarmTrap, hwGonuVoltExceedThreAlarmTrap, hwGonuVoltExceedThreRestoreAlarmTrap,
+                         hwGonuBiasExceedThreAlarmTrap, hwGonuBiasExceedThreRestoreAlarmTrap, hwGonuTxPowerExceedThreAlarmTrap,
+                         hwGonuTxPowerExceedThreRestoreAlarmTrap, hwGonuRxPowerExceedThreRestoreAlarmTrap, hwGonuRxPowerExceedThreAlarmTrap,
+                         hwGonuROGUEOntFailAlarmTrap, hwGonuROGUEOntRestoreAlarmTrap, hwGponnniOntLinkLosAlarmTrap, hwGponnniOntLinkLofAlarmTrap,
+                         hwGponnniOntLinkSfAlarmTrap, hwGponnniOntLinkSdAlarmTrap, hwGponnniOntLinkLcdgFailAlarmTrap, hwGponnniOntLinkSufFailAlarmTrap,
+                         hwGponnniOntLinkLosRestoreAlarmTrap, hwGponnniOntLinkLofRestoreAlarmTrap, hwGponnniOntLinkSfRestoreAlarmTrap,
+                         hwGponnniOntLinkSdRestoreAlarmTrap, hwGponnniOntLinkLcdgRestoreAlarmTrap, hwGponnniOntLinkSufRestoreAlarmTrap, hwGonuAuthChangeTrap.
+                         add leaf node hwGonuOperType in table hwGonuTrapsVbOids for trap optimization.
+                         - Extend the value of several leaves to '-1', such as hwGonuRogueOntState and hwGonuStatisticsClear.
+                        "
+
+            REVISION    "201006220900Z"
+            DESCRIPTION "V1.10, changes in this revision:
+                         - Modify chinese character and module name."
+
+            REVISION    "201003180900Z"
+            DESCRIPTION "V1.09, changes in this revision:
+                         - Modify the errors of the MIB file for MIB standardization."
+
+            REVISION    "201001120900Z"
+            DESCRIPTION "V1.08, changes in this revision:
+                         - Add leaf nodes hwGonuRxFrames, hwGonuPonRxOctetsCnt, hwGonuRxUnicastFrames,
+                           hwGonuRxMulticastFrames, hwGonuRxBroadcastFrames, hwGonuRx64BytesFrames,
+                           hwGonuRx65to127BytesFrames, hwGonuRx128to255BytesFrames, hwGonuRx256to511BytesFrames,
+                           hwGonuRx512to1023BytesFrames, hwGonuRx1024to1518BytesFrames, hwGonuRxOver1518BytesFrames,
+                           hwGonuRxUndersizeFrames, hwGonuRxOversizeFrames, hwGonuRxCrcErrorFrames, hwGonuRxDiscardedFrames,
+                           hwGonuTxFrames, hwGonuPonTxOctetsCnt, hwGonuTxUnicastFrames, hwGonuTxMulticastFrames,
+                           hwGonuTxBroadcastFrames, hwGonuTx64BytesFrames, hwGonuTx65to127BytesFrames,
+                           hwGonuTx128to255BytesFrames, hwGonuTx256to511BytesFrames, hwGonuTx512to1023BytesFrames,
+                           hwGonuTx1024to1518BytesFrames, hwGonuTxOver1518BytesFrames, hwGonuPonRxErrFramesCnt
+                           and hwGonuTxServiceFramesCnt in table hwGonuStatisticsTable for getting statistics information.
+                         - Add leaf nodes hwGonuTxPowerUpperThreshold, hwGonuTxPowerLowerThreshold, hwGonuBiasUpperThreshold,
+                           hwGonuBiasLowerThreshold, hwGonuTemperatureUpperThreshold, hwGonuTemperatureLowerThreshold,
+                           hwGonuVoltageUpperThreshold and hwGonuVoltageLowerThreshold
+                           for setting or obtaining optical module alarm threshold.
+                         "
+            REVISION    "201001120900Z"
+            DESCRIPTION "V1.07, changes in this revision:
+                         - Add the definition of the trap node.
+                        "
+
+            REVISION    "200905080900Z"
+            DESCRIPTION "V1.06, changes in this revision:
+                        - Add leaf node hwGonuRxAndTxDiscardEthFramesCnt in table hwGonuStatisticsTable for obtaining
+                          the count of discarding the Ethernet frames.
+                        - Modify the leaf node hwGonuStatisticsClear's access priority from write-only to read-write.
+                        "
+
+            REVISION    "200809280900Z"
+            DESCRIPTION "V1.03, changes in this revision:
+                        - Add table hwGonuAlarmThresholdTable for setting or obtaining GPON NNI alarm threshold.
+                        - Add table hwGponNNIHistoryStatsTable for obtaining GPON NNI history statistics information.
+                        - Add table hwGponNNICfgTable for setting or obtaining GPON NNI configuration information.
+                        - Add leaf nodes hwGonuRxGemFramesCnt, hwGonuTxGemFramesCnt, hwGonuRxCpuFramesCnt
+                          and hwGonuRxDiscardEthFramesCnt in table hwGonuStatisticsTable for obtaining statistics information.
+                        - Add leaf nodes hwGonuTxPower, hwGonuRxPower, hwGonuTemperature, hwGonuBiasCurrent, hwGonuVoltage
+                          and hwGonuRogueOntState in table hwGonuStatusTable for obtaining GPON NNI state information.
+                        - Add notification hwGonuLinkTFTrap for TF alarm.
+                        - Add notification hwGonuLinkMEMTrap for MEM alarm.
+                        "
+
+            REVISION    "200701220900Z"
+            DESCRIPTION "V1.00, Initial version."
+
+            ::= { huaweiMgmt 104 }
+
+        hwGponOnu   OBJECT IDENTIFIER ::= { hwGponMIB 1 }
+        hwGonuTraps OBJECT IDENTIFIER ::= { hwGponMIB 2 }
+
+        hwGonuNotifications         OBJECT IDENTIFIER ::= { hwGponOnu 0 }
+        hwGonuStatus                OBJECT IDENTIFIER ::= { hwGponOnu 1 }
+        hwGonuStatistics            OBJECT IDENTIFIER ::= { hwGponOnu 2 }
+        hwGonuTcont                 OBJECT IDENTIFIER ::= { hwGponOnu 3 }
+        hwGonuAuth                  OBJECT IDENTIFIER ::= { hwGponOnu 4 }
+        hwGponNNICfg                OBJECT IDENTIFIER ::= { hwGponOnu 5 }
+        hwGponNNIHistoryStats       OBJECT IDENTIFIER ::= { hwGponOnu 6 }
+        hwGonuAlarmThreshold        OBJECT IDENTIFIER ::= { hwGponOnu 7 }
+        hwGonuTrapsVbOids           OBJECT IDENTIFIER ::= { hwGponOnu 8 }
+
+        --  Notifications Group
+        hwGonuLinkLOSTrap NOTIFICATION-TYPE
+            OBJECTS
+                 {
+                   hwFrameIndex,
+                   hwSlotIndex,
+                   hwPortIndex
+                 }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the LOS(Loss of Signal) alarm of GPON ONU occures."
+            ::= { hwGonuNotifications 1 }
+
+        hwGonuLinkLOFTrap NOTIFICATION-TYPE
+            OBJECTS
+                 {
+                   hwFrameIndex,
+                   hwSlotIndex,
+                   hwPortIndex
+                 }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the LOF(Loss of Frame) alarm of GPON ONU occures."
+            ::= { hwGonuNotifications 2 }
+
+        hwGonuLinkSFTrap NOTIFICATION-TYPE
+            OBJECTS
+                 {
+                   hwFrameIndex,
+                   hwSlotIndex,
+                   hwPortIndex
+                 }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the SF(Signal Fail) alarm of GPON ONU occures."
+            ::= { hwGonuNotifications 3 }
+
+        hwGonuLinkSDTrap NOTIFICATION-TYPE
+            OBJECTS
+                 {
+                   hwFrameIndex,
+                   hwSlotIndex,
+                   hwPortIndex
+                 }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the SD(Signal Degrade) alarm of GPON ONU occures."
+            ::= { hwGonuNotifications 4 }
+
+        hwGonuLinkLCDGTrap NOTIFICATION-TYPE
+            OBJECTS
+                 {
+                   hwFrameIndex,
+                   hwSlotIndex,
+                   hwPortIndex
+                 }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the LCDG(Loss of Channel Delineation for GEM) alarm of GPON ONU occures."
+            ::= { hwGonuNotifications 5 }
+
+        hwGonuLinkRDITrap NOTIFICATION-TYPE
+            OBJECTS
+                 {
+                   hwFrameIndex,
+                   hwSlotIndex,
+                   hwPortIndex
+                 }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the RDI(Remote Defect Indication) alarm of GPON ONU occures."
+            ::= { hwGonuNotifications 6 }
+
+        hwGonuLinkSUFTrap NOTIFICATION-TYPE
+            OBJECTS
+                 {
+                   hwFrameIndex,
+                   hwSlotIndex,
+                   hwPortIndex
+                 }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the SUF(Start Up Failure) alarm of GPON ONU occures."
+            ::= { hwGonuNotifications 7 }
+
+        hwGonuLinkDACTTrap NOTIFICATION-TYPE
+            OBJECTS
+                 {
+                   hwFrameIndex,
+                   hwSlotIndex,
+                   hwPortIndex
+                 }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the DACT(Deactivate (ONU-ID)) alarm of GPON ONU occures."
+            ::= { hwGonuNotifications 8 }
+
+        hwGonuLinkDISTrap NOTIFICATION-TYPE
+            OBJECTS
+                 {
+                   hwFrameIndex,
+                   hwSlotIndex,
+                   hwPortIndex
+                 }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the DIS(Disabled (ONU serial number)) alarm of GPON ONU occures."
+            ::= { hwGonuNotifications 9 }
+
+        hwGonuLinkMISTrap NOTIFICATION-TYPE
+            OBJECTS
+                 {
+                   hwFrameIndex,
+                   hwSlotIndex,
+                   hwPortIndex
+                 }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the MIS((link) Mismatch) alarm of GPON ONU occures."
+            ::= { hwGonuNotifications 10 }
+
+        hwGonuLinkPEETrap NOTIFICATION-TYPE
+            OBJECTS
+                 {
+                   hwFrameIndex,
+                   hwSlotIndex,
+                   hwPortIndex
+                 }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the PEE(Physical Equipment Error) alarm of GPON ONU occures."
+            ::= { hwGonuNotifications 11 }
+
+        hwGonuLinkTFTrap NOTIFICATION-TYPE
+            OBJECTS
+                 {
+                   hwFrameIndex,
+                   hwSlotIndex,
+                   hwPortIndex
+                 }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the TF(Transmitter Failure) alarm of GPON ONU occures."
+            ::= { hwGonuNotifications 12 }
+
+        hwGonuLinkMEMTrap NOTIFICATION-TYPE
+            OBJECTS
+                 {
+                   hwFrameIndex,
+                   hwSlotIndex,
+                   hwPortIndex
+                 }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the MEM(Message Error Message) alarm of GPON ONU occures."
+            ::= { hwGonuNotifications 13 }
+
+        hwGonuLinkMISRestoreTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the link mismatch of ONT(MIS) recovers."
+            ::= { hwGonuNotifications 14 }
+
+        hwGonuLinkPEERestoreTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the OLT recovers from the physical equipment error."
+            ::= { hwGonuNotifications 15 }
+
+        hwGonuTempExceedThreAlarmTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hwGonuTemperatureLowerThreshold,
+                hwGonuTemperatureUpperThreshold,
+                hwGonuTemperature
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the temperature of GPON optical-module exceeded alarm threshold."
+            ::= { hwGonuNotifications 16 }
+
+        hwGonuTempExceedThreRestoreAlarmTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hwGonuTemperatureLowerThreshold,
+                hwGonuTemperatureUpperThreshold,
+                hwGonuTemperature
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the temperature of GPON ONU's optical-module exceeded alarm threshold recoveres."
+            ::= { hwGonuNotifications 17 }
+
+        hwGonuVoltExceedThreAlarmTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hwGonuVoltageLowerThreshold,
+                hwGonuVoltageUpperThreshold,
+                hwGonuVoltage
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the voltage of GPON ONU's optical-module exceeded alarm threshold."
+            ::= { hwGonuNotifications 18 }
+
+        hwGonuVoltExceedThreRestoreAlarmTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hwGonuVoltageLowerThreshold,
+                hwGonuVoltageUpperThreshold,
+                hwGonuVoltage
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the voltage of GPON ONU's optical-module exceeded alarm threshold recoveres."
+            ::= { hwGonuNotifications 19 }
+
+        hwGonuBiasExceedThreAlarmTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hwGonuBiasLowerThreshold,
+                hwGonuBiasUpperThreshold,
+                hwGonuBiasCurrent
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the bias current of GPON ONU's optical module exceeded alarm threshold."
+            ::= { hwGonuNotifications 20 }
+
+        hwGonuBiasExceedThreRestoreAlarmTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hwGonuBiasLowerThreshold,
+                hwGonuBiasUpperThreshold,
+                hwGonuBiasCurrent
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the bias current of GPON ONU's optical module exceeded alarm threshold recoveres."
+            ::= { hwGonuNotifications 21 }
+
+        hwGonuTxPowerExceedThreAlarmTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hwGonuTxPowerLowerThreshold,
+                hwGonuTxPowerUpperThreshold,
+                hwGonuTxPower
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the tx-power of GPON ONU's optical-module exceeded alarm threshold."
+            ::= { hwGonuNotifications 22 }
+
+        hwGonuTxPowerExceedThreRestoreAlarmTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hwGonuTxPowerLowerThreshold,
+                hwGonuTxPowerUpperThreshold,
+                hwGonuTxPower
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the tx-power of GPON ONU's optical-module exceeded alarm threshold recoveres."
+            ::= { hwGonuNotifications 23 }
+
+        hwGonuRxPowerExceedThreRestoreAlarmTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hwGonuRxPowerLowerThreshold,
+                hwGonuRxPowerUpperThreshold,
+                hwGonuRxPower
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the rx-power of GPON ONU's optical-module exceeded alarm threshold."
+            ::= { hwGonuNotifications 24 }
+
+        hwGonuRxPowerExceedThreAlarmTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hwGonuRxPowerLowerThreshold,
+                hwGonuRxPowerUpperThreshold,
+                hwGonuRxPower
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the rx-power of GPON ONU's optical-module exceeded alarm threshold recoveres."
+            ::= { hwGonuNotifications 25 }
+
+        hwGonuROGUEOntFailAlarmTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the ONU's optical-module always send laser."
+            ::= { hwGonuNotifications 26 }
+
+        hwGonuROGUEOntRestoreAlarmTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the ONU's optical-module always send laser alarm recoveres."
+            ::= { hwGonuNotifications 27 }
+
+        hwGponnniOntLinkLosAlarmTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the fiber is broken or ONT can not receive any expected optical signals(LOS)."
+            ::= { hwGonuNotifications 28 }
+
+        hwGponnniOntLinkLofAlarmTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the loss of frame (LOF) occurs at the ONT."
+            ::= { hwGonuNotifications 29 }
+
+        hwGponnniOntLinkSfAlarmTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the signal failed (SF) occurs at the ONT."
+            ::= { hwGonuNotifications 30 }
+
+        hwGponnniOntLinkSdAlarmTrap NOTIFICATION-TYPE
+            OBJECTS
+            {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+            }
+            STATUS     current
+            DESCRIPTION
+                "This trap is sent when the signal degrade (SD) occurs at the ONT."
+            ::= { hwGonuNotifications 31 }
+
+        hwGponnniOntLinkLcdgFailAlarmTrap NOTIFICATION-TYPE
+        OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+                }
+        STATUS current
+        DESCRIPTION
+               "This trap is sent when the loss of GEM channel delineation (LCDG) occurs at the ONT."
+        ::= { hwGonuNotifications 32 }
+
+        hwGponnniOntLinkSufFailAlarmTrap NOTIFICATION-TYPE
+        OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+                }
+        STATUS current
+        DESCRIPTION
+               "This trap is sent when the ranging of the ONT failure (SUF) occurs."
+        ::= { hwGonuNotifications 33 }
+
+        hwGponnniOntLinkLosRestoreAlarmTrap NOTIFICATION-TYPE
+        OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+                }
+        STATUS current
+        DESCRIPTION
+               "This trap is sent when the loss of signal (LOS) at the ONT recovers."
+        ::= { hwGonuNotifications 34 }
+
+        hwGponnniOntLinkLofRestoreAlarmTrap NOTIFICATION-TYPE
+        OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+                }
+        STATUS current
+        DESCRIPTION
+               "This trap is sent when the loss of frame (LOF) at the ONT recovers."
+        ::= { hwGonuNotifications 35 }
+
+        hwGponnniOntLinkSfRestoreAlarmTrap NOTIFICATION-TYPE
+        OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+                }
+        STATUS current
+        DESCRIPTION
+               "This trap is sent when the signal failure (SF) at the ONT recovers."
+        ::= { hwGonuNotifications 36 }
+
+        hwGponnniOntLinkSdRestoreAlarmTrap NOTIFICATION-TYPE
+        OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+                }
+        STATUS current
+        DESCRIPTION
+               "This trap is sent when the signal degrade (SD) at the ONT recovers."
+        ::= { hwGonuNotifications 37 }
+
+        hwGponnniOntLinkLcdgRestoreAlarmTrap NOTIFICATION-TYPE
+        OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+                }
+        STATUS current
+        DESCRIPTION
+               "This trap is sent when the loss of GEM channel delineation (LCDG) at the ONT recovers."
+        ::= { hwGonuNotifications 38 }
+
+        hwGponnniOntLinkSufRestoreAlarmTrap NOTIFICATION-TYPE
+        OBJECTS {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+                }
+        STATUS current
+        DESCRIPTION
+               "This trap is sent when the ranging of ONT failure (SUF) recovers."
+        ::= { hwGonuNotifications 39 }
+
+        --          gonuStatusTable
+        hwGonuStatusTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  HwGonuStatusEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwGonuStatusTable contains configuration and status parameters of the GPON ONU.
+                 The index of this table is ifIndex.
+                "
+            ::= { hwGonuStatus 1 }
+
+        hwGonuStatusEntry  OBJECT-TYPE
+            SYNTAX      HwGonuStatusEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwGonuStatusTable contains configuration and status parameters of the GPON ONU.
+                 The index of this entry is ifIndex.
+                "
+
+            INDEX  { ifIndex }
+            ::= { hwGonuStatusTable 1 }
+
+        HwGonuStatusEntry  ::=
+            SEQUENCE {
+                hwGonuLinkStatus                     INTEGER,
+                hwGonuRegStatus                      INTEGER,
+                hwGonuRxSpeed                        Unsigned32,
+                hwGonuTxSpeed                        Unsigned32,
+                hwGonuRxBitErr                       Unsigned32,
+                hwGonuPloamStates                    INTEGER,
+                hwGonuOmciPortID                     Unsigned32,
+                hwGonuTxPower                        Integer32,
+                hwGonuRxPower                        Integer32,
+                hwGonuTemperature                    Integer32,
+                hwGonuBiasCurrent                    Integer32,
+                hwGonuVoltage                        Integer32,
+                hwGonuRogueOntState                  INTEGER,
+                hwGonuOpticsModuleType               INTEGER,
+                hwGonuOpticsModuleSubType            INTEGER,
+                hwGonuOpticsModuleUsedType           INTEGER,
+                hwGonuOpticsModuleEncapsulationType  INTEGER
+            }
+
+        hwGonuLinkStatus  OBJECT-TYPE
+            SYNTAX      INTEGER
+                {
+                   linkDown(1),
+                   linkUp(2)
+                }
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The port link status,
+                 Options:
+                 1.linkDown(1)   -Link down
+                 2.linkUp(2)     -Link up
+                "
+            ::= { hwGonuStatusEntry 1 }
+
+        hwGonuRegStatus  OBJECT-TYPE
+            SYNTAX      INTEGER
+                {
+                   registerPass(1),
+                   registerFail(2)
+                }
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The port register status,
+                 Options:
+                 1. registerPass(1)  -The port is authenticated successfully
+                 2. registerFail(2)  -The port fails to be authenticated
+                "
+            ::= { hwGonuStatusEntry 2 }
+
+        hwGonuRxSpeed  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS       "kbps"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The port down stream speed.
+                 Unit: kbps
+                "
+            ::= { hwGonuStatusEntry 3 }
+
+        hwGonuTxSpeed  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS       "kbps"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The port up stream speed.
+                 Unit: kbps                
+                "
+            ::= { hwGonuStatusEntry 4 }
+
+        hwGonuRxBitErr  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS       "bits/100ms"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The port down stream bit error ratio.
+                 Unit: bits/100ms                
+                "
+            ::= { hwGonuStatusEntry 5 }
+
+        hwGonuPloamStates  OBJECT-TYPE
+            SYNTAX      INTEGER
+                {
+                   initial(1),
+                   standby(2),
+                   serialNumber(3),
+                   ranging(4),
+                   operation(5),
+                   popUp(6),
+                   emergencyStop(7)
+                }
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The gpon onu PLOAM states.
+                 Options:
+                 1. initial(1)       -Initial state
+                 2. standby(2)       -Standby state
+                 3. serialNumber(3)  -Serial_Number state
+                 4. ranging(4)       -Ranging state
+                 5. operation(5)     -Operation state
+                 6. popUp(6)         -POPUP state
+                 7. emergencyStop(7) -Emergency Stop state
+                "
+            ::= { hwGonuStatusEntry 6 }
+
+        hwGonuOmciPortID  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..4095)
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the ID of the GEM port corresponding to the OMCI."
+            ::= { hwGonuStatusEntry 7 }
+
+        hwGonuTxPower  OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "1/100 dBm"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The MDU TX power.
+                 Unit: 1/100 dBm
+                "
+            ::= { hwGonuStatusEntry 8 }
+
+        hwGonuRxPower  OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "1/100 dBm"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The MDU RX power.
+                 Unit: 1/100 dBm                
+                "
+            ::= { hwGonuStatusEntry 9 }
+
+        hwGonuTemperature  OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "1/100 degree centigrade"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The MDU Current Temperature.
+                 Unit: 1/100 degree centigrade
+                "
+            ::= { hwGonuStatusEntry 10 }
+
+        hwGonuBiasCurrent  OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "1/100 mA"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The MDU Laser Bias Current.
+                 Unit: 1/100 mA
+                "
+            ::= { hwGonuStatusEntry 11 }
+
+        hwGonuVoltage  OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "1/100 mV"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The MDU Voltage.
+                 Unit: 1/100 mV                
+                "
+            ::= { hwGonuStatusEntry 12 }
+
+        hwGonuRogueOntState  OBJECT-TYPE
+            SYNTAX      INTEGER
+                {
+                   yes(1),
+                   no(2),
+                   invalid(-1)
+                }
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates whether the optical port is shut down due to the continuous mode(rogue ONU).
+                 Options:
+                 1. yes(1)  - The optical port is shut down due to the continuous mode
+                 2. no(2)   - The optical port is shut down due to other reason
+                 3. invalid(-1) - Invalid value
+                "
+            ::= { hwGonuStatusEntry 13 }
+            
+    hwGonuOpticsModuleType OBJECT-TYPE
+        SYNTAX      INTEGER {
+            unknown(1),
+            gpon(2),
+            epon(3),
+            epon10g(4),
+            gpon10g(5),
+            wdmpon(6),
+            hybridpon(7),
+            gponepon(8),
+            invalid(-1)
+        }
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the type of the optical transceiver.
+             Options:
+             1. unknown(1)  - Unknow
+             2. gpon(2)     - GPON
+             3. epon(3)     - EPON
+             4. epon10g(4)  - 10G EPON
+             5. gpon10g(5)  - 10G GPON
+             6. wdmpon(6)   - WDM PON
+             7. hybridpon(7)- Hybrid PON
+             8. gponepon(8) - GPON and EPON
+             9. invalid(-1) - Indicates that the query fails or no information is detected
+            "
+        ::= { hwGonuStatusEntry 14 }
+    
+    hwGonuOpticsModuleSubType OBJECT-TYPE
+        SYNTAX      INTEGER {
+            unknown(1),
+            classbplus(101),
+            classcplus(102),
+            classb(103),
+            px20(201),
+            px20plus(202),
+            pr30(301),
+            pr20(302), 
+            prx30(303), 
+            prx20(304),
+            classbplusandpx20plus(701),
+            invalid(-1)
+        }
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the sub type of the optical transceiver.
+             Options:
+             1.unknown(1)                  - Unknow 
+             2.classbplus(101)             - CLASS B+
+             3.classcplus(102)             - CLASS C+
+             4.classb(103)                 - CLASS B
+             5.px20(201)                   - PX20
+             6.px20plus(202)               - PX20+
+             7.pr30(301)                   - PR30
+             8.pr20(302)                   - PR20
+             9.prx30(303)                  - PRX30 
+             10.prx20(304)                 - PRX20
+             11.classbplusandpx20plus(701) - CLASS B+ and PX20+
+             12.invalid(-1)                - Indicates that the query fails or no information is detected
+            "
+        ::= { hwGonuStatusEntry 15 }
+    
+    hwGonuOpticsModuleUsedType OBJECT-TYPE
+        SYNTAX      INTEGER {
+            unknown(1),
+            olt(2),
+            onu(4),
+            invalid(-1)
+        }
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the application scenario of the optical transceiver.
+             Options:
+             1.unknown(1)   - Unknow
+             2.olt(2)       - OLT
+             3.onu(4)       - ONU
+             4.invalid(-1)  - Indicates that the query fails or no information is detected
+            "
+            ::= { hwGonuStatusEntry 16 }
+        
+    hwGonuOpticsModuleEncapsulationType OBJECT-TYPE
+        SYNTAX      INTEGER {
+            unknown(1),
+            sff2x5(2),
+            sff2x10(3), 
+            sfp(4), 
+            xfp(5), 
+            lxfp(6), 
+            bosaonboard(7),
+            invalid(-1)
+        }
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the encapsulation information about the optical transceiver.
+             Options:
+             1. unknown(1)    - Unknown
+             2. sff2x5(2)     - SFF 2x5
+             3. sff2x10(3)    - SFF 2x10
+             4. sfp(4)        - SFP
+             5. xfp(5)        - XFP
+             6. lxfp(6)       - LXFP
+             7. bosaonboard(7)- BOSA ON BOARD
+             8. invalid(-1)   - Indicates that the query fails or no information is detected
+            "
+        ::= { hwGonuStatusEntry 17 }
+
+       --        hwGonuStatisticsTable
+        hwGonuStatisticsTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  HwGonuStatisticsEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwGonuStatisticsTable contains statistics of the GPON ONU GMAC.
+                 The index of this table is ifIndex.
+                "
+            ::= { hwGonuStatistics 1 }
+
+        hwGonuStatisticsEntry  OBJECT-TYPE
+            SYNTAX      HwGonuStatisticsEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwGonuStatisticsTable contains statistics of the GPON ONU GMAC.
+                 The index of this entry is ifIndex.
+                "
+            INDEX  { ifIndex }
+            ::= { hwGonuStatisticsTable 1 }
+
+        HwGonuStatisticsEntry  ::=
+            SEQUENCE  {
+                hwGonuTxOmciCellsCnt              Counter32,
+                hwGonuRxOmciCellsCnt              Counter32,
+                hwGonuTxEthFramesCnt              Counter32,
+                hwGonuRxEthFramesCnt              Counter32,
+                hwGonuTxPloamCellsCnt             Counter32,
+                hwGonuRxPloamCellsCnt             Counter32,
+                hwGonuRxServiceFramesCnt          Counter32,
+                hwGonuStatisticsClear             INTEGER,
+                hwGonuRxGemFramesCnt              Counter32,
+                hwGonuTxGemFramesCnt              Counter32,
+                hwGonuRxCpuFramesCnt              Counter32,
+                hwGonuRxDiscardEthFramesCnt       Counter32,
+                hwGonuRxAndTxDiscardEthFramesCnt  Counter32,
+                hwGonuRxFrames                    Counter32,
+                hwGonuPonRxOctetsCnt              Counter64,
+                hwGonuRxUnicastFrames             Counter32,
+                hwGonuRxMulticastFrames           Counter32,
+                hwGonuRxBroadcastFrames           Counter32,
+                hwGonuRx64BytesFrames             Counter32,
+                hwGonuRx65to127BytesFrames        Counter32,
+                hwGonuRx128to255BytesFrames       Counter32,
+                hwGonuRx256to511BytesFrames       Counter32,
+                hwGonuRx512to1023BytesFrames      Counter32,
+                hwGonuRx1024to1518BytesFrames     Counter32,
+                hwGonuRxOver1518BytesFrames       Counter32,
+                hwGonuRxUndersizeFrames           Counter32,
+                hwGonuRxOversizeFrames            Counter32,
+                hwGonuRxCrcErrorFrames            Counter32,
+                hwGonuRxDiscardedFrames           Counter32,
+                hwGonuTxFrames                    Counter32,
+                hwGonuPonTxOctetsCnt              Counter64,
+                hwGonuTxUnicastFrames             Counter32,
+                hwGonuTxMulticastFrames           Counter32,
+                hwGonuTxBroadcastFrames           Counter32,
+                hwGonuTx64BytesFrames             Counter32,
+                hwGonuTx65to127BytesFrames        Counter32,
+                hwGonuTx128to255BytesFrames       Counter32,
+                hwGonuTx256to511BytesFrames       Counter32,
+                hwGonuTx512to1023BytesFrames      Counter32,
+                hwGonuTx1024to1518BytesFrames     Counter32,
+                hwGonuTxOver1518BytesFrames       Counter32,
+                hwGonuPonRxErrFramesCnt           Counter32,
+                hwGonuTxServiceFramesCnt          Counter32,
+                hwGonuTxDiscardedFrames           Counter32
+            }
+
+        hwGonuTxOmciCellsCnt  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The port transmit OMCI cells count."
+            ::= { hwGonuStatisticsEntry 1 }
+
+        hwGonuRxOmciCellsCnt  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The port receive OMCI cells count."
+            ::= { hwGonuStatisticsEntry 2 }
+
+        hwGonuTxEthFramesCnt  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The port transmit ethernet frames count."
+            ::= { hwGonuStatisticsEntry 3 }
+
+        hwGonuRxEthFramesCnt  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The port receive ethernet frames count."
+            ::= { hwGonuStatisticsEntry 4 }
+
+        hwGonuTxPloamCellsCnt  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The port transmit PLOAM cells count."
+            ::= { hwGonuStatisticsEntry 5 }
+
+        hwGonuRxPloamCellsCnt  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The port receive PLOAM cells count."
+            ::= { hwGonuStatisticsEntry 6 }
+
+        hwGonuRxServiceFramesCnt  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The port receive service frames count."
+            ::= { hwGonuStatisticsEntry 7 }
+
+        hwGonuStatisticsClear  OBJECT-TYPE
+            SYNTAX      INTEGER
+                {
+                    resetStat(1),
+                    invalid(-1)
+                }
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "Clear the statistics of this port.
+                 Options:
+                 1. resetStat(1) - Clear the statistics
+                 2. invalid(-1)  - Invalid value
+                "
+            ::= { hwGonuStatisticsEntry 8 }
+
+        hwGonuRxGemFramesCnt  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The port receive GEM frames count."
+            ::= { hwGonuStatisticsEntry 9 }
+
+        hwGonuTxGemFramesCnt  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The port transmit GEM frames count."
+            ::= { hwGonuStatisticsEntry 10 }
+
+        hwGonuRxCpuFramesCnt  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The CPU receive frames count."
+            ::= { hwGonuStatisticsEntry 11 }
+
+        hwGonuRxDiscardEthFramesCnt  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The port discard receive ethernet frames count."
+            ::= { hwGonuStatisticsEntry 12 }
+
+        hwGonuRxAndTxDiscardEthFramesCnt  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The up and down discard ethernet frames count."
+            ::= { hwGonuStatisticsEntry 13 }
+            
+        hwGonuRxFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON receive frames."
+            ::= { hwGonuStatisticsEntry 14 }
+
+        hwGonuPonRxOctetsCnt  OBJECT-TYPE
+            SYNTAX      Counter64
+            UNITS       "Bytes"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON receive bytes.
+                 Unit: Bytes                 
+                "
+            ::= { hwGonuStatisticsEntry 15 }
+
+        hwGonuRxUnicastFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON receive unicast frames."
+            ::= { hwGonuStatisticsEntry 16 }
+
+        hwGonuRxMulticastFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON receive multicast frames."
+            ::= { hwGonuStatisticsEntry 17 }
+
+        hwGonuRxBroadcastFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON receive broadcast frames."
+            ::= { hwGonuStatisticsEntry 18 }
+
+        hwGonuRx64BytesFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON receive frames of 64 bytes."
+            ::= { hwGonuStatisticsEntry 19 }
+
+        hwGonuRx65to127BytesFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON receive frames of 65~127 bytes."
+            ::= { hwGonuStatisticsEntry 20 }
+
+        hwGonuRx128to255BytesFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON receive frames of 128~255 bytes."
+            ::= { hwGonuStatisticsEntry 21 }
+
+        hwGonuRx256to511BytesFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON receive frames of 256~511 bytes."
+            ::= { hwGonuStatisticsEntry 22 }
+
+        hwGonuRx512to1023BytesFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON receive frames of 512~1023 bytes."
+            ::= { hwGonuStatisticsEntry 23 }
+
+        hwGonuRx1024to1518BytesFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON receive frames of 1024~1518 bytes."
+            ::= { hwGonuStatisticsEntry 24 }
+
+        hwGonuRxOver1518BytesFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON receive frames of over 1518 bytes."
+            ::= { hwGonuStatisticsEntry 25 }
+
+        hwGonuRxUndersizeFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON receive under size frames."
+            ::= { hwGonuStatisticsEntry 26 }
+
+        hwGonuRxOversizeFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON receive over size frames."
+            ::= { hwGonuStatisticsEntry 27 }
+
+        hwGonuRxCrcErrorFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON receive crc error frames."
+            ::= { hwGonuStatisticsEntry 28 }
+
+        hwGonuRxDiscardedFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON receive discarded frames."
+            ::= { hwGonuStatisticsEntry 29 }
+
+        hwGonuTxFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON send frames."
+            ::= { hwGonuStatisticsEntry 30 }
+
+        hwGonuPonTxOctetsCnt  OBJECT-TYPE
+            SYNTAX      Counter64
+            UNITS       "Bytes"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON send bytes.
+                 Unit: Bytes                   
+                "
+            ::= { hwGonuStatisticsEntry 31}
+
+        hwGonuTxUnicastFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON send unicast frames."
+            ::= { hwGonuStatisticsEntry 32 }
+
+        hwGonuTxMulticastFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON send multicast frames."
+            ::= { hwGonuStatisticsEntry 33 }
+
+        hwGonuTxBroadcastFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON send broadcast frames."
+            ::= { hwGonuStatisticsEntry 34 }
+
+        hwGonuTx64BytesFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON send frames of 64 bytes."
+            ::= { hwGonuStatisticsEntry 35 }
+
+        hwGonuTx65to127BytesFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON send frames of 65~127 bytes."
+            ::= { hwGonuStatisticsEntry 36 }
+
+        hwGonuTx128to255BytesFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON send frames of 128~255 bytes."
+            ::= { hwGonuStatisticsEntry 37 }
+
+        hwGonuTx256to511BytesFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON send frames of 256~511 bytes."
+            ::= { hwGonuStatisticsEntry 38 }
+
+        hwGonuTx512to1023BytesFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON send frames of 512~1023 bytes."
+            ::= { hwGonuStatisticsEntry 39 }
+
+        hwGonuTx1024to1518BytesFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON send frames of 1024~1518 bytes."
+            ::= { hwGonuStatisticsEntry 40 }
+
+        hwGonuTxOver1518BytesFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON send frames of over 1518 bytes."
+            ::= { hwGonuStatisticsEntry 41 }
+
+        hwGonuPonRxErrFramesCnt  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The receive error ethernet frames count."
+            ::= { hwGonuStatisticsEntry 42 }
+
+        hwGonuTxServiceFramesCnt  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The port transmit service frames count."
+            ::= { hwGonuStatisticsEntry 43 }
+
+        hwGonuTxDiscardedFrames  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PON transmit discarded frames."
+            ::= { hwGonuStatisticsEntry 44 }
+
+        --        hwGonuTcontTable
+        hwGonuTcontTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  HwGonuTcontEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwGonuTcontTable contains T-Cont of the ONU that is allocated by OLT.
+                 The index of this table is a combination of ifIndex and hwGonuTcontIdIndex.
+                "
+            ::= { hwGonuTcont 1 }
+
+        hwGonuTcontEntry  OBJECT-TYPE
+            SYNTAX      HwGonuTcontEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwGonuTcontTable contains T-Cont of the ONU that is allocated by OLT.
+                 The index of this entry is a combination of ifIndex and hwGonuTcontIdIndex.
+                "
+            INDEX  { ifIndex, hwGonuTcontIdIndex }
+            ::= { hwGonuTcontTable 1 }
+
+        HwGonuTcontEntry  ::=
+            SEQUENCE {
+                hwGonuTcontIdIndex              Unsigned32,
+                hwGonuAllocId                   Unsigned32
+            }
+
+        hwGonuTcontIdIndex  OBJECT-TYPE
+            SYNTAX      Unsigned32(1..255)
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The index of the T-Cont"
+            ::= { hwGonuTcontEntry 1 }
+
+        hwGonuAllocId  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The alloc id of the T-Cont"
+            ::= { hwGonuTcontEntry 2 }
+
+
+        --        hwGonuAuthTable
+        hwGonuAuthTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  HwGonuAuthEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwGonuAuthTable contains GPON ONU authentication information.
+                 The index of this table is ifIndex.
+                "
+            ::= { hwGonuAuth 1 }
+
+        hwGonuAuthEntry  OBJECT-TYPE
+            SYNTAX      HwGonuAuthEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwGonuAuthTable contains GPON ONU authentication information.
+                 The index of this entry is ifIndex.
+                "
+            INDEX  { ifIndex }
+            ::= { hwGonuAuthTable 1 }
+
+        HwGonuAuthEntry  ::=
+            SEQUENCE {
+                hwGonuSerialNumber              OCTET STRING,
+                hwGonuPassWord                  OCTET STRING,
+                hwGonuPsk	      		OCTET STRING,
+                hwGonuLoid                      OCTET STRING,
+                hwGonuCheckCode                 OCTET STRING
+            }
+
+        hwGonuSerialNumber  OBJECT-TYPE
+            SYNTAX      OCTET STRING (SIZE(8))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The serial number of the GPON ONU."
+            ::= { hwGonuAuthEntry 1 }
+
+        hwGonuPassWord  OBJECT-TYPE
+            SYNTAX      OCTET STRING
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The password of the GPON ONU.
+                GPON password size (0..10).
+                XG-PON password size (0..36)."
+            ::= { hwGonuAuthEntry 2 }
+
+	hwGonuPsk	OBJECT-TYPE
+	    SYNTAX      OCTET STRING (SIZE(0..16))
+	    MAX-ACCESS  read-write
+	    STATUS      current
+	    DESCRIPTION
+	    	"The Psk hex value of the GPON ONU."
+	    ::= { hwGonuAuthEntry 3 }
+
+	hwGonuLoid      OBJECT-TYPE  
+	    SYNTAX      OCTET STRING  (SIZE(0..24))
+	    MAX-ACCESS  read-write
+	    STATUS      current
+	    DESCRIPTION
+		"The loid value of the GPON ONU."
+            ::= { hwGonuAuthEntry 4 }
+		
+	hwGonuCheckCode OBJECT-TYPE 
+	    SYNTAX      OCTET STRING   (SIZE(0..12))
+	    MAX-ACCESS  read-write
+	    STATUS      current
+	    DESCRIPTION
+	        "The checkcode value of the GPON ONU."
+	    ::= { hwGonuAuthEntry 5 }
+	    
+        --        hwGponNNICfgTable
+        hwGponNNICfgTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  HwGponNNICfgEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwGponNNICfgTable config the GEM traffic descriptor that specifies the maximum rate.
+                 The index of this table is ifIndex.
+                "
+            ::= { hwGponNNICfg 1 }
+
+        hwGponNNICfgEntry  OBJECT-TYPE
+            SYNTAX      HwGponNNICfgEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwGponNNICfgTable config the GEM traffic descriptor that specifies the maximum rate.
+                 The index of this entry is ifIndex.
+                "
+            INDEX  { ifIndex }
+            ::= { hwGponNNICfgTable 1 }
+
+        HwGponNNICfgEntry  ::=
+            SEQUENCE {
+                hwGponNNITrafficBroadcast               Integer32,
+                hwGponNNITrafficMulticast               Integer32,
+                hwGponNNITrafficUnknowncast             Integer32
+            }
+
+        hwGponNNITrafficBroadcast  OBJECT-TYPE
+            SYNTAX      Integer32(0..13)
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "Traffic broadcast of GPON Port,
+                 Traffic suppression ID definition:
+                 ---------------------------------------------------------------------
+                 NO.  Min bandwidth(kbps)  Max bandwidth(kbps)  Package number(pps)
+                 ---------------------------------------------------------------------
+                   1                    6                  145                   12
+                   2                   12                  291                   24
+                   3                   24                  582                   48
+                   4                   48                 1153                   95
+                   5                   97                 2319                  191
+                   6                  195                 4639                  382
+                   7                  390                 9265                  763
+                   8                  781                18531                 1526
+                   9                 1562                37063                 3052
+                  10                 3125                74126                 6104
+                  11                 6249               148241                12207
+                  12                12499               296483                24414
+                  13                    0                    0                    0
+                 ---------------------------------------------------------------------
+                "
+            ::= { hwGponNNICfgEntry 1 }
+
+        hwGponNNITrafficMulticast  OBJECT-TYPE
+            SYNTAX      Integer32(0..13)
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "Traffic multicast of GPON Port,
+                 Traffic suppression ID definition:
+                 ---------------------------------------------------------------------
+                 NO.  Min bandwidth(kbps)  Max bandwidth(kbps)  Package number(pps)
+                 ---------------------------------------------------------------------
+                   1                    6                  145                   12
+                   2                   12                  291                   24
+                   3                   24                  582                   48
+                   4                   48                 1153                   95
+                   5                   97                 2319                  191
+                   6                  195                 4639                  382
+                   7                  390                 9265                  763
+                   8                  781                18531                 1526
+                   9                 1562                37063                 3052
+                  10                 3125                74126                 6104
+                  11                 6249               148241                12207
+                  12                12499               296483                24414
+                  13                    0                    0                    0
+                 ---------------------------------------------------------------------
+                "
+            ::= { hwGponNNICfgEntry 2 }
+
+        hwGponNNITrafficUnknowncast  OBJECT-TYPE
+            SYNTAX      Integer32(0..13)
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "Traffic unicast of GPON Port,
+                 Traffic suppression ID definition:
+                 ---------------------------------------------------------------------
+                 NO.  Min bandwidth(kbps)  Max bandwidth(kbps)  Package number(pps)
+                 ---------------------------------------------------------------------
+                   1                    6                  145                   12
+                   2                   12                  291                   24
+                   3                   24                  582                   48
+                   4                   48                 1153                   95
+                   5                   97                 2319                  191
+                   6                  195                 4639                  382
+                   7                  390                 9265                  763
+                   8                  781                18531                 1526
+                   9                 1562                37063                 3052
+                  10                 3125                74126                 6104
+                  11                 6249               148241                12207
+                  12                12499               296483                24414
+                  13                    0                    0                    0
+                 ---------------------------------------------------------------------
+                "
+            ::= { hwGponNNICfgEntry 3 }
+
+	 hwXponNNIUplinkMode OBJECT-TYPE
+	     SYNTAX INTEGER
+	 	{
+	 	independent(1),
+	 	active-standby(2)
+	 	}
+	     MAX-ACCESS read-write
+	     STATUS current
+	     DESCRIPTION
+	         "The object is used to config the uplink mode of PON ports.
+                  Options:
+                  1.independent(1)       - The uplink mode is independent
+                  2.active-standby(2)    - The uplink mode is active or standby
+                  The default value is active-standby(2)."
+	     ::= { hwGponNNICfg 2 }
+	 
+        --        hwGponNNIHistoryStatsTable
+        hwGponNNIHistoryStatsTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  HwGponNNIHistoryStatsEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table of GponNNI History Statistic.
+                 The index of this table is a combination of ifIndex, hwGponStatsIntervalType and hwGponStatsIntervalNum.
+                "
+            ::= { hwGponNNIHistoryStats 1 }
+
+        hwGponNNIHistoryStatsEntry  OBJECT-TYPE
+            SYNTAX      HwGponNNIHistoryStatsEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table of GponNNI History Statistic.
+                 The index of this entry is a combination of ifIndex, hwGponStatsIntervalType and hwGponStatsIntervalNum.
+                "
+            INDEX  { ifIndex, hwGponStatsIntervalType, hwGponStatsIntervalNum }
+            ::= { hwGponNNIHistoryStatsTable 1 }
+
+        HwGponNNIHistoryStatsEntry  ::=
+            SEQUENCE {
+                hwGponStatsIntervalType             INTEGER,
+                hwGponStatsIntervalNum              Integer32,
+                hwGponStatsRxOmciMsg                Counter64,
+                hwGponStatsTxOmciMsg                Counter64,
+                hwGponStatsRxPloamMsg               Counter64,
+                hwGponStatsTxPloamMsg               Counter64,
+                hwGponStatsRxGemFrames              Counter64,
+                hwGponStatsTxGemFrames              Counter64,
+                hwGponStatsRxEthFrames              Counter64,
+                hwGponStatsTxEthFrames              Counter64,
+                hwGponStatsRxDiscardEthFrames       Counter64,
+                hwGponTimeElapsed                   Integer32,
+                hwGponValidInterval                 TruthValue
+            }
+
+        hwGponStatsIntervalType  OBJECT-TYPE
+            SYNTAX      INTEGER
+                {
+                    intervaltime15min(0),
+                    intervaltime24h(1),
+                    everbefore(2)
+                }
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The type of GponNNI History Statistic,
+                 Options:
+                 1. intervaltime15min(0) - The gponNNI history statistic in 15 minutes
+                 2. intervaltime24h(1)   - The gponNNI history statistic in 24 hours
+                 3. everbefore(2)        - All the gponNNI history statistic
+                "
+            ::= { hwGponNNIHistoryStatsEntry 1 }
+
+        hwGponStatsIntervalNum  OBJECT-TYPE
+            SYNTAX      Integer32(0..96)
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The interval number of GponNNI History Statistic."
+            ::= { hwGponNNIHistoryStatsEntry 2 }
+
+        hwGponStatsRxOmciMsg  OBJECT-TYPE
+            SYNTAX      Counter64
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The number of received OMCI messages."
+            ::= { hwGponNNIHistoryStatsEntry 3 }
+
+        hwGponStatsTxOmciMsg  OBJECT-TYPE
+            SYNTAX      Counter64
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The number of transmited OMCI messages."
+            ::= { hwGponNNIHistoryStatsEntry 4 }
+
+        hwGponStatsRxPloamMsg  OBJECT-TYPE
+            SYNTAX      Counter64
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The number of received PLOAM messages."
+            ::= { hwGponNNIHistoryStatsEntry 5 }
+
+        hwGponStatsTxPloamMsg  OBJECT-TYPE
+            SYNTAX      Counter64
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The number of transmited PLOAM messages."
+            ::= { hwGponNNIHistoryStatsEntry 6 }
+
+        hwGponStatsRxGemFrames  OBJECT-TYPE
+            SYNTAX      Counter64
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The number of received GEM frames."
+            ::= { hwGponNNIHistoryStatsEntry 7 }
+
+        hwGponStatsTxGemFrames  OBJECT-TYPE
+            SYNTAX      Counter64
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The number of transmited GEM frames."
+            ::= { hwGponNNIHistoryStatsEntry 8 }
+
+        hwGponStatsRxEthFrames  OBJECT-TYPE
+            SYNTAX      Counter64
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The number of received Ethernet frames."
+            ::= { hwGponNNIHistoryStatsEntry 9 }
+
+        hwGponStatsTxEthFrames  OBJECT-TYPE
+            SYNTAX      Counter64
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The number of transmited Ethernet frames."
+            ::= { hwGponNNIHistoryStatsEntry 10 }
+
+        hwGponStatsRxDiscardEthFrames  OBJECT-TYPE
+            SYNTAX      Counter64
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The number of discarded Ethernet frames."
+            ::= { hwGponNNIHistoryStatsEntry 11 }
+
+        hwGponTimeElapsed  OBJECT-TYPE
+            SYNTAX      Integer32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The elapsed time of the current interval."
+            ::= { hwGponNNIHistoryStatsEntry 12 }
+
+        hwGponValidInterval  OBJECT-TYPE
+            SYNTAX      TruthValue
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Whether the interval number is valid."
+            ::= { hwGponNNIHistoryStatsEntry 13 }
+
+        --      hwGonuAlarmThreshold
+        hwGonuAlarmThresholdTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  HwGonuAlarmThresholdEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table GponNni alarm threshold.
+                 The index of this table is ifIndex.
+                "
+            ::= { hwGonuAlarmThreshold 1 }
+
+        hwGonuAlarmThresholdEntry  OBJECT-TYPE
+            SYNTAX      HwGonuAlarmThresholdEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table GponNni alarm threshold.
+                 The index of this entry is ifIndex.
+                "
+            INDEX  { ifIndex }
+            ::= { hwGonuAlarmThresholdTable 1 }
+
+        HwGonuAlarmThresholdEntry  ::=
+            SEQUENCE {
+                hwGonuRxPowerUpperThreshold             Integer32,
+                hwGonuRxPowerLowerThreshold             Integer32,
+                hwGonuTxPowerUpperThreshold             Integer32,
+                hwGonuTxPowerLowerThreshold             Integer32,
+                hwGonuBiasUpperThreshold                Integer32,
+                hwGonuBiasLowerThreshold                Integer32,
+                hwGonuTemperatureUpperThreshold         Integer32,
+                hwGonuTemperatureLowerThreshold         Integer32,
+                hwGonuVoltageUpperThreshold             Integer32,
+                hwGonuVoltageLowerThreshold             Integer32,
+                hwGonuClearThreshold                    INTEGER
+
+            }
+
+        hwGonuRxPowerUpperThreshold  OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "1/100 dBm"
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The MDU Rx-power upper limit threshold.
+                 Unit: 1/100 dBm                   
+                "
+            ::= { hwGonuAlarmThresholdEntry 1 }
+
+        hwGonuRxPowerLowerThreshold  OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "1/100 dBm"
+            MAX-ACCESS  read-write
+            STATUS      current
+                DESCRIPTION
+                "The MDU Rx-power lower limit threshold.
+                 Unit: 1/100 dBm                   
+                "
+            ::= { hwGonuAlarmThresholdEntry 2 }
+
+        hwGonuTxPowerUpperThreshold  OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "1/100 dBm"
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The MDU Tx-power upper limit threshold.
+                 Unit: 1/100 dBm                   
+                "
+            ::= { hwGonuAlarmThresholdEntry 3 }
+        hwGonuTxPowerLowerThreshold  OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "1/100 dBm"
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The MDU Tx-power lower limit threshold.
+                 Unit: 1/100 dBm                   
+                "
+            ::= { hwGonuAlarmThresholdEntry 4 }
+
+        hwGonuBiasUpperThreshold  OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "mA"
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The MDU bias current upper limit threshold.
+                 Unit: mA                   
+                "
+            ::= { hwGonuAlarmThresholdEntry 5 }
+
+        hwGonuBiasLowerThreshold  OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "mA"
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The MDU bias current lower limit threshold.
+                 Unit: mA                
+                "
+            ::= { hwGonuAlarmThresholdEntry 6 }
+
+        hwGonuTemperatureUpperThreshold  OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "1/100 degree centigrade"
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The MDU Temperature upper limit threshold.
+                 Unit: 1/100 degree centigrade                
+                "
+            ::= { hwGonuAlarmThresholdEntry 7 }
+
+        hwGonuTemperatureLowerThreshold  OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "1/100 degree centigrade"
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The MDU Temperature lower limit threshold.
+                 Unit: 1/100 degree centigrade                
+                "
+            ::= { hwGonuAlarmThresholdEntry 8 }
+
+        hwGonuVoltageUpperThreshold  OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "1/100 V"
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The MDU Voltage upper limit threshold.
+                 Unit: 1/100 V                
+                "
+            ::= { hwGonuAlarmThresholdEntry 9 }
+
+        hwGonuVoltageLowerThreshold  OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "1/100 V"
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The MDU Voltage lower limit threshold.
+                 Unit: 1/100 V                 
+                "
+            ::= { hwGonuAlarmThresholdEntry 10 }
+            
+        hwGonuClearThreshold  OBJECT-TYPE
+            SYNTAX      INTEGER {
+                invalid(0),
+                clear(1),
+                cleared(32767)
+            }
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "Clear the MDU threshold.
+                 Options:
+                 1. invalid(0)     - The MDU threshold clear state is invalid.
+                 2. clear(1)       - Clear the MDU threshold.
+                 3. cleared(32767) - The MDU threshold is cleared.
+                "
+            ::= { hwGonuAlarmThresholdEntry 11 }
+            
+        --  hwEponnniTrapsVbOids  OBJECT IDENTIFIER ::= { hwEponMIB 2 }
+
+        hwGonuOperType OBJECT-TYPE
+            SYNTAX INTEGER {
+                            add(1),
+                            modify(2),
+                            delete(3)
+                           }
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                  "Operation type.
+                   Options:
+                   1. add(1)  - Add
+                   2. modify(2) - Modify
+                   3. delete(3) - Delete
+                  "
+            ::= { hwGonuTrapsVbOids 1 }
+
+        hwGonuCommonTraps OBJECT IDENTIFIER ::= { hwGonuTraps 1 }
+        hwGonuCommonTrapsPrefix OBJECT IDENTIFIER ::= { hwGonuCommonTraps 0 }
+
+        hwGonuAuthChangeTrap NOTIFICATION-TYPE
+            OBJECTS {
+                    hwConfigChangeIP,
+                    hwGonuOperType,
+                    ifIndex,
+                    hwGonuPassWord,
+                    hwGonuLoid,
+                    hwGonuCheckCode
+            }
+            STATUS current
+            DESCRIPTION
+                   "This trap is sent when the authentication information changes."
+            ::= { hwGonuCommonTraps 0 1 }
+   END

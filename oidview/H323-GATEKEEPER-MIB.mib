@@ -1,0 +1,270 @@
+-- extracted from draft-kajos-hmultimediamib-00.txt
+-- at Mon Nov 15 17:11:06 1999
+
+        H323-GATEKEEPER-MIB DEFINITIONS ::= BEGIN
+        
+        IMPORTS
+        
+            MODULE-IDENTITY, OBJECT-TYPE,
+            Counter32, Gauge32,
+            Unsigned32
+            FROM SNMPv2-SMI
+        
+            RowStatus, TAddress,
+            TruthValue
+                FROM SNMPv2-TC
+        
+            MODULE-COMPLIANCE, OBJECT-GROUP
+                FROM SNMPv2-CONF
+        
+            MmGatekeeperID, MmTAddressTag,
+            mmH323Root
+             FROM MULTI-MEDIA-REG-TC;
+        
+        
+        h323GatekeeperMIB MODULE-IDENTITY
+            LAST-UPDATED "9805101200Z"
+            ORGANIZATION "Cisco Systems, Inc."
+            CONTACT-INFO
+                "       Dan Klenke
+                        Cisco Systems, Inc
+        
+                Postal: 170 West Tasman Drive
+                        San Jose, CA 95134-1706
+        
+                E-mail: dklenke@Cisco.com"
+        
+            DESCRIPTION
+                "The MIB Module supports the functions of a H323 gatekeeper."
+            REVISION      "9805101200Z"
+            DESCRIPTION
+                "The initial version of the mib."
+            ::= { mmH323Root 1} -- temporary TBD later
+        
+        --
+        --
+        --
+        h323GatekeeperMIBObjects       OBJECT IDENTIFIER ::= {
+        h323GatekeeperMIB 1 }
+        
+        h323Zone                OBJECT IDENTIFIER ::= {
+        h323GatekeeperMIBObjects 1 }
+        
+        --
+        -- Zone Information.
+        --
+        
+        h323ZoneTable OBJECT-TYPE
+            SYNTAX     SEQUENCE OF H323ZoneEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                "The table contains the local zones supported by the Gatekeeper
+                and the remote zones which the Gatekeeper may or has interacted
+                with."
+            ::= { h323Zone 1 }
+        
+        h323ZoneEntry OBJECT-TYPE
+            SYNTAX     H323ZoneEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                "An entry (conceptual row) in the h323ZoneTable. An entry may be
+                created administratively or by the gatekeeper during normal
+                gatekeeper operations.
+        
+                Unless otherwise specified, writable objects may be changed
+                while h323ZoneRowStatus is 'active'."
+
+            INDEX      { h323ZoneIndex }
+            ::= { h323ZoneTable 1 }
+        
+        H323ZoneEntry::= SEQUENCE {
+            h323ZoneIndex                Unsigned32,
+            h323ZoneZoneName             MmGatekeeperID,
+            h323ZoneRasSignalAddressTag  MmTAddressTag,
+            h323ZoneRasSignalAddress     TAddress,
+            h323ZoneMaxBandwidth         Unsigned32,
+            h323ZoneAllocatedBandwidth   Gauge32,
+            h323ZoneIrrFrequency         INTEGER,
+            h323ZoneLocalZone            TruthValue,
+            h323ZoneAdmissions           Counter32,
+            h323ZoneAdmissionsRejected   Counter32,
+            h323ZoneRowStatus            RowStatus
+        }
+        
+        h323ZoneIndex OBJECT-TYPE
+            SYNTAX     Unsigned32(1..4294967295)
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                "An  unsigned integer value whose only significance is to
+                uniquely identify the conceptual row.  The value has no
+                significance."
+            ::= { h323ZoneEntry 1 }
+        
+        h323ZoneZoneName OBJECT-TYPE
+            SYNTAX     MmGatekeeperID
+            MAX-ACCESS read-create
+            STATUS     current
+            DESCRIPTION
+                "The name of the zone as fully qualifed name.
+                        e.g.  zone1.area1.company.com
+                "
+            ::= { h323ZoneEntry 2 }
+        
+        h323ZoneRasSignalAddressTag OBJECT-TYPE
+            SYNTAX     MmTAddressTag
+            MAX-ACCESS read-create
+            STATUS     current
+            DESCRIPTION
+                "The tag identifying the underlying type of
+                h323ZoneRasSignalAddress."
+            DEFVAL { ipv4 }
+            ::= { h323ZoneEntry 3 }
+        
+        h323ZoneRasSignalAddress OBJECT-TYPE
+            SYNTAX     TAddress
+            MAX-ACCESS read-create
+            STATUS     current
+            DESCRIPTION
+                "The RAS Signal transport address of the gatekeeper supporting
+                the zone. "
+
+            DEFVAL { '00000000'H }
+            ::= { h323ZoneEntry 4 }
+        
+        h323ZoneMaxBandwidth OBJECT-TYPE
+            SYNTAX     Unsigned32(0..2147483647)
+            UNITS      "100 bps"
+            MAX-ACCESS read-create
+            STATUS     current
+            DESCRIPTION
+                "The maximum bidirectional bandwidth which a gatekeeper can
+                allocate to  all calls in the zone.  If h323ZoneLocalFlag is
+                'false' then this object may be 0, indicating unknown.
+        
+                h323ZoneMaxBandwidth is the total bidirectional data flow in
+                units of hundred bits per second (bps).  A value of 10 is
+                1000bps."
+            ::= { h323ZoneEntry 5 }
+        
+        h323ZoneAllocatedBandwidth OBJECT-TYPE
+            SYNTAX     Gauge32(0..2147483647)
+            UNITS      "100 bps"
+            MAX-ACCESS read-only
+            STATUS     current
+            DESCRIPTION
+                "The total bidirectional bandwidth allocated by the
+        gatekeeper
+                to the active calls.  If h323ZoneLocalFlag is 'false' then this
+                object does not apply.
+        
+                The value is in units of hundred bits per second, i.e.  a value
+                of 10 is 1000 bps. This value may not exceed the value of
+                h323ZoneMaxBandwidth."
+            ::= { h323ZoneEntry 6 }
+        
+        h323ZoneIrrFrequency OBJECT-TYPE
+            SYNTAX     INTEGER (1..65535)
+            MAX-ACCESS read-create
+            STATUS     current
+            DESCRIPTION
+                "The IRR time a gatekeeper returns in a ACF."
+            DEFVAL { 60 }
+            ::= { h323ZoneEntry 7 }
+        
+        h323ZoneAdmissions OBJECT-TYPE
+            SYNTAX     Counter32
+            MAX-ACCESS read-only
+            STATUS     current
+            DESCRIPTION
+             "The number of ACFs by the gatekeeper.  If
+             h323ZoneLocalZone is 'false' then the value of this object
+             has no meaning."
+            ::= { h323ZoneEntry 8 }
+        
+        h323ZoneAdmissionsRejected OBJECT-TYPE
+            SYNTAX     Counter32
+            MAX-ACCESS read-only
+            STATUS     current
+            DESCRIPTION
+             "The number of ARJ sent by the gatekeeper.  If
+        h323ZoneLocalZone
+             is 'false' then the value of this object has no meaning."
+            ::= { h323ZoneEntry 9 }
+        
+        h323ZoneLocalZone OBJECT-TYPE
+            SYNTAX     TruthValue
+            MAX-ACCESS read-create
+            STATUS     current
+            DESCRIPTION
+                "If this gatekeeper manages the zone, then this value is 'true'
+                otherwise it is false."
+            DEFVAL { true }
+            ::= { h323ZoneEntry 10 }
+        
+        h323ZoneRowStatus OBJECT-TYPE
+            SYNTAX     RowStatus
+            MAX-ACCESS read-create
+            STATUS     current
+            DESCRIPTION
+                "The row status of the entry. This object is required to create
+                or delete rows administratively.
+        
+                A agent implementing this object is not required to support the
+                values 'createAndWait' and 'notInService'."
+            ::= { h323ZoneEntry 11 }
+        
+        
+        --
+        -- NOTIFICATIONS
+        --   a place holder for defining notifications
+        --   currently there are no notifications.
+        --
+        h323GatekeeperMIBNotifications  OBJECT IDENTIFIER ::= {
+        h323GatekeeperMIB 2 }
+        
+        
+        --
+        -- CONFORMANCE
+        --
+        h323GatekeeperMIBConformance    OBJECT IDENTIFIER ::= {
+        h323GatekeeperMIB 3 }
+        h323GatekeeperMIBCompliance     OBJECT IDENTIFIER ::= {
+        h323GatekeeperMIBConformance 1 }
+        h323GatekeeperMIBGroups         OBJECT IDENTIFIER ::= {
+        h323GatekeeperMIBConformance 2 }
+        
+        h323GatekeeperCompliance        MODULE-COMPLIANCE
+            STATUS      current
+            DESCRIPTION
+                "The set of objects required for compliance."
+            MODULE
+                MANDATORY-GROUPS { h323ZoneGroup }
+        
+           ::= { h323GatekeeperMIBCompliance 1 }
+        
+        --
+        -- Groups for Conformance
+        --
+        h323ZoneGroup    OBJECT-GROUP
+            OBJECTS {
+               h323ZoneZoneName,
+               h323ZoneRasSignalAddressTag,
+               h323ZoneRasSignalAddress,
+               h323ZoneMaxBandwidth,
+               h323ZoneAllocatedBandwidth,
+               h323ZoneIrrFrequency,
+               h323ZoneLocalZone,
+               h323ZoneRowStatus
+            }
+            STATUS  current
+            DESCRIPTION
+               "The set of objects a gatekeeper must support for local and
+        remote
+               zones."
+            ::= { h323GatekeeperMIBGroups 1 }
+        
+        
+        END

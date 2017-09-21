@@ -1,0 +1,472 @@
+-- ============================================================================
+-- Copyright (C) 2013 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description: This file is an extension of LLDP-MIB. It provides such functions of 
+--         globally enabling or disabling the LLDP protocol, enabling the global
+--         alarm, clearing statistics on ports and configuring network management 
+--         IP addresses and some alarms.
+-- Reference:  
+-- Version: V1.03
+-- ============================================================================
+HUAWEI-LLDP-MIB DEFINITIONS ::= BEGIN
+        IMPORTS
+
+     TruthValue, TEXTUAL-CONVENTION, DisplayString, MacAddress
+        FROM SNMPv2-TC
+        
+     MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+        FROM SNMPv2-CONF
+
+    MODULE-IDENTITY, OBJECT-TYPE, Integer32, IpAddress,
+    OBJECT-IDENTITY, Unsigned32, NOTIFICATION-TYPE
+        FROM SNMPv2-SMI
+
+     InterfaceIndex
+        FROM IF-MIB
+
+    lldpPortConfigPortNum,lldpLocSysCapSupported,lldpLocSysCapEnabled,
+    LldpPortNumber,LldpPortId
+        FROM LLDP-MIB  
+
+    hwDatacomm
+        FROM HUAWEI-MIB;
+ 
+    hwLldpMIB MODULE-IDENTITY
+        LAST-UPDATED "201303130000Z"
+
+        ORGANIZATION 
+            "Huawei Technologies co., Ltd."
+        CONTACT-INFO 
+            "VRP Team Huawei Technologies co., Ltd.
+            Huawei Bld., NO.3 Xinxi Rd., 
+            Shang-Di Information Industry Base,
+            Hai-Dian District Beijing P.R. China
+            http://www.huawei.com
+        Zip:100085
+            "
+        DESCRIPTION
+            "This file is an extension of LLDP-MIB. It provides such functions of 
+           globally enabling or disabling the LLDP protocol, enabling the global
+           alarm, clearing statistics on ports and configuring network management 
+           IP addresses and some alarms."   
+           
+        --  Revision history 
+        REVISION     "201303130000Z"
+        DESCRIPTION  "V1.03, modified hwLldpLocSysCapSupportedChange, hwLldpLocSysCapEnabledChange, hwLldpLocManIPAddrChange, and the description of some leaves"
+
+        REVISION     "201301310000Z"
+        DESCRIPTION  "V1.02, modified the index of hwLldpPortConfigTable"
+
+        REVISION     "201211280000Z"  
+        DESCRIPTION  "V1.01, Initial version"
+            ::= { hwDatacomm 134 }  
+
+                EnabledStatus ::= TEXTUAL-CONVENTION
+                STATUS    current
+                DESCRIPTION
+                "A simple status value for the object."
+                SYNTAX   INTEGER 
+                { 
+                    enabled(1),
+                    disabled(2)
+                }
+     
+    -- ============================================================================
+    -- Node definitions
+    -- ============================================================================ 
+
+    -- 1.3.6.1.4.1.2011.5.25.134
+ 
+    hwLldpObjects  OBJECT IDENTIFIER ::= { hwLldpMIB 1} 
+
+    hwLldpTraps OBJECT IDENTIFIER ::= { hwLldpMIB 2 }  
+    
+    hwLldpConformance  OBJECT IDENTIFIER ::= { hwLldpMIB 3 }
+ 
+
+  -- ============================================================================
+  --
+  -- ======================= Objects definitions=================================
+  --
+  -- ============================================================================  
+
+  hwLldpConfiguration  OBJECT IDENTIFIER ::= { hwLldpObjects 1}      
+  hwLldpRemoteSystemData  OBJECT IDENTIFIER ::= { hwLldpObjects 2} 
+
+  hwLldpEnable OBJECT-TYPE 
+        SYNTAX EnabledStatus
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+                "Globally enable or disable the LLDP configuration. If the hwLldpEnable 
+        is 1, LLDP is enabled. If the hwLldpEnable is 2, LLDP is disabled. 
+        By default, LLDP is disabled."   
+        ::= { hwLldpConfiguration 1 }   
+
+  hwLldpLocManIPAddr OBJECT-TYPE 
+        SYNTAX IpAddress
+        MAX-ACCESS read-write
+        STATUS  current
+        DESCRIPTION
+                "Specifies the management IP address of the local device. The management IP
+        address is carried in the management address TLV of LLDP packet and is used
+        to identify NM devices in network management. The management IP address 
+        configured here must be a valid one and must be an IP address in the address
+        chain. If the IP address is not valid or is not configured, the management IP 
+        address will be chosen from default IP addresses of the system. The sequence
+        of address searching is: loopback interface, management network interface, VLANIF
+        port and IP address chain (The smallest IP is chosen). If the default IP is not 
+        found, the bridge MAC of the system is used."
+
+        ::= { hwLldpConfiguration 2 }     
+
+    hwLldpCounterReset OBJECT-TYPE 
+        SYNTAX EnabledStatus
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+                "Clears the statistics of packets received and sent on all ports."   
+        ::= { hwLldpConfiguration 3 } 
+
+    hwLldpNotificationEnable OBJECT-TYPE 
+        SYNTAX EnabledStatus
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "The global alarming that is used to control alarms on all ports.
+             If it is 1, the global alarming is enabled. If it is 2, the global
+             alarming is disabled.
+             By default, the global alarming is disabled."     
+        ::= { hwLldpConfiguration 4 } 
+
+   hwLldpPortConfigTable  OBJECT-TYPE
+      SYNTAX SEQUENCE OF HwLldpPortConfigEntry
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION 
+           "LLDP port configuration table.
+            The index of this table is hwLldpPortConfigIfIndex"
+      ::= { hwLldpConfiguration  5 }
+
+   hwLldpPortConfigEntry OBJECT-TYPE
+        SYNTAX HwLldpPortConfigEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION 
+           "LLDP port configuration table.
+            The index of this entry is hwLldpPortConfigIfIndex"
+        INDEX{ hwLldpPortConfigIfIndex}
+        ::= { hwLldpPortConfigTable 1}  
+   
+   HwLldpPortConfigEntry ::=
+        SEQUENCE  {    
+                   hwLldpPortConfigIfIndex  
+                   InterfaceIndex,
+                   hwLldpPortConfigCounterReset
+                   EnabledStatus
+                  }
+    
+   hwLldpPortConfigIfIndex  OBJECT-TYPE
+        SYNTAX InterfaceIndex
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION 
+           "Port index."     
+        ::= {hwLldpPortConfigEntry 11}
+ 
+   hwLldpPortConfigCounterReset OBJECT-TYPE
+        SYNTAX EnabledStatus
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION 
+            "Clears the statistics of packets received and sent on the current port."     
+        ::= {hwLldpPortConfigEntry 12}
+
+   hwLldpRemProtoTypeTable  OBJECT-TYPE
+        SYNTAX SEQUENCE OF HwLldpRemProtoTypeEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION 
+           "LLDP remote neighbour protocol version table.
+            The index of this table is hwLldpPortConfigIfIndex"
+        ::= { hwLldpRemoteSystemData  1 }
+
+   hwLldpRemProtoTypeEntry OBJECT-TYPE
+        SYNTAX HwLldpRemProtoTypeEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION 
+           "LLDP remote neighbour protocol version table.
+            The index of this entry is hwLldpPortConfigIfIndex"
+        INDEX {
+               hwLldpPortConfigIfIndex
+              }
+        ::= { hwLldpRemProtoTypeTable 1}  
+   
+   HwLldpRemProtoTypeEntry ::=
+        SEQUENCE  {    
+                   hwLldpRemProtoType INTEGER
+                  }
+    
+   hwLldpRemProtoType  OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+            lldp(1),
+            cdp(2),
+            unknown(255)
+            }
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION 
+           "Protocol type of the remote neighbour.
+            Options:
+            1. lldp(1)      -- indicates the enabled protocol is lldp
+            2. cdp(2)       -- indicates the enabled protocol is cdp
+            3. unknown(255) -- indicates the enabled protocol is unknown
+            "     
+       ::= {hwLldpRemProtoTypeEntry 1}
+   
+   hwCdpRemTable  OBJECT-TYPE
+        SYNTAX SEQUENCE OF HwCdpRemEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION 
+            "CDP remote neighbour table.
+             The indexes of this table are hwCdpRemLocalPortNum and hwCdpRemIndex"
+        ::= { hwLldpRemoteSystemData  2 }
+
+   hwCdpRemEntry OBJECT-TYPE
+        SYNTAX HwCdpRemEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION 
+           "CDP remote neighbour table.
+            The indexes of this entry are hwCdpRemLocalPortNum and hwCdpRemIndex"
+        INDEX {
+               hwCdpRemLocalPortNum,
+               hwCdpRemIndex
+              }
+        ::= { hwCdpRemTable 1}  
+   
+   HwCdpRemEntry ::=
+        SEQUENCE  {    
+                   hwCdpRemLocalPortNum LldpPortNumber,
+                   hwCdpRemIndex Integer32,  
+                   hwCdpRemLocalPortId LldpPortId,
+                   hwCdpRemDeviceId DisplayString,
+                   hwCdpRemPortId DisplayString,
+                   hwCdpRemVersion DisplayString,
+                   hwCdpRemPlatform DisplayString,
+                   hwCdpRemMacAddr MacAddress
+                  }
+     
+   hwCdpRemLocalPortNum  OBJECT-TYPE
+      SYNTAX LldpPortNumber
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION 
+        "The index value used to identify the local port associated with 
+         this entry."     
+      ::= {hwCdpRemEntry 1}  
+   
+   hwCdpRemIndex  OBJECT-TYPE
+      SYNTAX Integer32
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION 
+                   "This object represents an arbitrary local integer value used to 
+                   identify a particular connection instance, unique only for the 
+                   indicated remote system."     
+           ::= {hwCdpRemEntry 2}   
+           
+   hwCdpRemLocalPortId  OBJECT-TYPE
+      SYNTAX LldpPortId
+        MAX-ACCESS read-only
+        STATUS current
+           DESCRIPTION 
+                "The string value used to identify the port component
+                associated with a given port in the local system."   
+           ::= {hwCdpRemEntry 3} 
+                     
+   hwCdpRemDeviceId  OBJECT-TYPE
+      SYNTAX DisplayString
+        MAX-ACCESS read-only
+        STATUS current
+           DESCRIPTION 
+                   "The Device-ID string as reported in the most recent CDP message."     
+           ::= {hwCdpRemEntry 4} 
+           
+   hwCdpRemPortId  OBJECT-TYPE
+      SYNTAX DisplayString
+        MAX-ACCESS read-only
+        STATUS current
+           DESCRIPTION 
+                   "The Port-ID string as reported in the most recent CDP message."     
+           ::= {hwCdpRemEntry 5}  
+           
+   hwCdpRemVersion  OBJECT-TYPE
+      SYNTAX DisplayString
+        MAX-ACCESS read-only
+        STATUS current
+           DESCRIPTION 
+                   "The Version string as reported in the most recent CDP message."     
+           ::= {hwCdpRemEntry 6} 
+           
+   hwCdpRemPlatform  OBJECT-TYPE
+      SYNTAX DisplayString
+        MAX-ACCESS read-only
+        STATUS current
+           DESCRIPTION 
+                   "The Device's Hardware Platform as reported in the most recent 
+                   CDP message."     
+           ::= {hwCdpRemEntry 7} 
+           
+   hwCdpRemMacAddr  OBJECT-TYPE
+      SYNTAX MacAddress
+        MAX-ACCESS read-only
+        STATUS current
+           DESCRIPTION 
+                   "The Port's MacAddress as reported in the most recent CDP packet."     
+           ::= {hwCdpRemEntry 8}                                                                            
+   
+      hwLldpEnabled  NOTIFICATION-TYPE
+      STATUS current    
+    DESCRIPTION 
+          "Notify the NMS that the LLDP is globally enabled. This alarm is not 
+        restricted by the alarm delay."
+    ::= { hwLldpTraps 1}
+
+      hwLldpDisabled  NOTIFICATION-TYPE
+     STATUS current    
+    DESCRIPTION 
+          "Notify the NMS that the LLDP is globally disabled. This alarm is not 
+        restricted by the alarm delay."
+    ::= { hwLldpTraps 2}  
+    
+  hwLldpLocSysCapSupportedChange  NOTIFICATION-TYPE
+    STATUS current    
+    DESCRIPTION 
+          "Alarm on the change of capabilities supported of a local device."
+       ::= { hwLldpTraps 3}  
+    
+   hwLldpLocSysCapEnabledChange  NOTIFICATION-TYPE
+    STATUS current    
+    DESCRIPTION 
+          "Alarm on the change of capabilities enabled of a local device."
+     ::= { hwLldpTraps 4}                      
+                         
+  hwLldpLocManIPAddrChange  NOTIFICATION-TYPE
+    STATUS current    
+    DESCRIPTION 
+          "Alarm on the change of management IP address of a local device."
+    ::= { hwLldpTraps 5} 
+    
+  hwCdpRemTableChange  NOTIFICATION-TYPE
+    STATUS current    
+    DESCRIPTION 
+          "Notify the NMS that the CDP neighbor is changed."
+    ::= { hwLldpTraps 6}     
+        
+    --
+    -- ***********************************************************
+    --
+    -- HAUWEILLDPMIBCONFORMANCE
+    --
+    -- ***********************************************************
+    --
+     
+  hwLldpCompliances OBJECT IDENTIFIER ::= { hwLldpConformance 1 }
+    hwLldpGroups OBJECT IDENTIFIER ::= { hwLldpConformance 2 }
+    -- compliance statements
+    lldpCompliance MODULE-COMPLIANCE
+    STATUS current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+        the HUAWEI-LLDP-MIB."
+    MODULE -- this module
+    MANDATORY-GROUPS { 
+    hwLldpConfigGroup,
+    hwLldpStatsGroup,
+    hwLldpPortGroup,
+    hwLldpTrapGroup
+    }
+    ::= { hwLldpCompliances 1 }    
+       
+    -- MIB groupings
+    hwLldpConfigGroup OBJECT-GROUP
+    OBJECTS {  
+    hwLldpEnable,
+    hwLldpLocManIPAddr,
+    hwLldpNotificationEnable
+    }
+    STATUS current
+    DESCRIPTION
+        "The collection of objects which are used to configure the
+        LLDP implementation behavior.
+        This group is mandatory for agents which implement the LLDP."
+    ::= { hwLldpGroups 1 }     
+    
+    hwLldpStatsGroup OBJECT-GROUP
+    OBJECTS {  
+    hwLldpCounterReset,
+    
+    hwLldpPortConfigCounterReset    
+    }
+    STATUS current
+    DESCRIPTION
+        "The collection of objects which are used to represent LLDP
+         statistics.
+        This group is mandatory for agents which implement the LLDP
+        and have the capability of receiving and transmitting LLDP frames."
+    ::= { hwLldpGroups 2 } 
+     
+    
+    hwLldpPortGroup OBJECT-GROUP
+    OBJECTS {  
+    hwLldpPortConfigIfIndex ,
+    hwLldpRemProtoType
+    }
+    STATUS current
+    DESCRIPTION
+        "The collection of objects indicate index of port."
+    ::= { hwLldpGroups 3 }    
+        
+       hwLldpTrapGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {  
+    hwLldpEnabled,
+    hwLldpDisabled,
+    hwLldpLocSysCapSupportedChange,
+    hwLldpLocSysCapEnabledChange,
+    hwLldpLocManIPAddrChange,
+    hwCdpRemTableChange    
+    }
+    STATUS current
+    DESCRIPTION
+        "The collection of notifications used to indicate HUAWEI-LLDP-MIB
+        data consistency and general status information.
+        This group is mandatory for agents which implement the LLDP
+        and have the capability of receiving LLDP frames."
+    ::= { hwLldpGroups 4 }  
+
+    hwCdpRemGroup OBJECT-GROUP
+    OBJECTS {  
+    hwCdpRemLocalPortNum,
+    hwCdpRemIndex,  
+    hwCdpRemLocalPortId,    
+    hwCdpRemDeviceId,
+    hwCdpRemPortId,
+    hwCdpRemVersion,
+    hwCdpRemPlatform,
+    hwCdpRemMacAddr
+    }
+    STATUS current
+    DESCRIPTION
+        "The collection of objects which are used to represent
+        CDP Remote Systems Information. The objects represent the
+        information associated with the basic TLV set. Please note
+        that even the agent doesn't implement some of the optional
+        TLVs, it shall recognize all the optional TLV information
+        that the remote system may advertise.
+        This group is mandatory for agents which implement the CDP
+        and have the capability of receiving CDP frames."
+    ::= { hwLldpGroups 5 }      
+END

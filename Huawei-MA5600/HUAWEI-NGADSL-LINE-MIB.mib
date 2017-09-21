@@ -1,0 +1,4087 @@
+-- ============================================================================
+-- Copyright (C) 2012 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description:  The MIB is used for defining HUAWEI NGADSL LINE MIB objects, which  
+--               expand from RFC4706 ADSL2-LINE MIB.
+-- Reference:  
+-- Version: V1.25
+-- ============================================================================
+
+    HUAWEI-NGADSL-LINE-MIB DEFINITIONS ::= BEGIN
+
+        IMPORTS
+            huaweiUtility           
+                FROM HUAWEI-MIB 
+                 
+            ifIndex
+                FROM IF-MIB  
+                       
+            adsl2,
+            adsl2PMLCurrUnit,
+            adsl2PMLHist15MUnit,
+            adsl2PMLHist15MInterval,
+            adsl2PMLHistInit15MInterval,
+            adsl2PMLHist1DUnit,
+            adsl2PMLHist1DInterval,
+            adsl2PMLHistinit1DInterval,
+            adsl2ChannelStatusEntry,
+            adsl2ChAlarmConfProfileEntry,
+            adsl2PMLineCurrEntry,
+            adsl2PMLineCurrInitEntry,
+            adsl2PMChCurrEntry,
+            adsl2LineConfProfEntry,
+            adsl2SCStatusEntry,
+            adsl2LineEntry,
+            adsl2ChStatusUnit,
+            adsl2PMChCurrUnit,
+            adsl2PMChHist15MUnit,
+            adsl2PMChHist15MInterval,
+            adsl2PMChHist1DUnit,
+            adsl2PMChHist1DInterval,
+            adsl2LConfProfProfileName,
+            adsl2SCStatusDirection,
+            adsl2LineAlarmConfProfileName,          
+            adsl2ChAlarmConfProfileName,
+            adsl2ChConfProfProfileName,
+            adsl2LineCmndConfLdsfFailReason,
+            adsl2ChStatusActDataRate,
+            adsl2ChStatusChannelNum
+                FROM   ADSL2-LINE-MIB       -- [-rfc4706]  
+            MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+                FROM SNMPv2-CONF
+            
+            MODULE-IDENTITY, Gauge32, OBJECT-TYPE, Unsigned32, Counter32, 
+            Integer32, NOTIFICATION-TYPE
+                FROM SNMPv2-SMI
+                 
+            TEXTUAL-CONVENTION, DateAndTime
+                FROM SNMPv2-TC 
+            HCPerfIntervalThreshold,
+            HCPerfTimeElapsed
+                FROM  HC-PerfHist-TC-MIB   -- [RFC3705]          
+            hwFrameIndex, hwSlotIndex, hwPortIndex, hwPortOperStatus,hwPortPrimaryStatus,hwPortSecondaryStatus
+                FROM HUAWEI-DEVICE-MIB;     
+   
+--            adsl2MIB huawei private mib         
+        hwadsl2MIB MODULE-IDENTITY
+            LAST-UPDATED "201207200000Z"
+            ORGANIZATION
+                "Huawei Technologies Co.,Ltd."
+            CONTACT-INFO                                    
+                         "Huawei Industrial Base            
+                          Bantian, Longgang                 
+                          Shenzhen 518129                   
+                          People's Republic of China        
+                          Website: http://www.huawei.com    
+                          Email: support@huawei.com         
+                         "                                  
+            DESCRIPTION
+                "The MIB is used for defining HUAWEI NGADSL LINE MIB objects, which  
+                 expand from RFC4706 ADSL2-LINE MIB.
+                "
+            -- Revision history
+            REVISION    "201207200000Z"
+            DESCRIPTION "V1.25, Delete unnecessary en dashes."
+            
+            REVISION    "201203080000Z"
+            DESCRIPTION "V1.24, Modify the data type of the trap node hwadsl2LineTemplateID.
+                         Modify the defination of the trap node hwAdsl2LinePerformanceStatAlarmTrap, hwAdsl2ChannelPerformanceStatAlarmTrap.
+                         Add the leaf nodes in table hwAdsl2TrapsVbOids as follow:hwadsl2LinePMThresholdValue, hwadsl2LinePMCurrentValue, hwadsl2ChPMThresholdValue, hwadsl2ChPMCurrentValue."   
+               
+            REVISION    "201112050000Z"
+            DESCRIPTION "V1.23, add the definition of the leaf node hwadsl2LineStatusLineRateDs, hwadsl2LineStatusLineRateUs."
+
+            REVISION    "201110150000Z"
+            DESCRIPTION "V1.22, add the definition of the leaf node hwAdsl2LineAlarmConfProfileDyingGaspAlarmSwitch, hwAdsl2LineAlarmConfProfileActiveFailAlarmSwitch."
+
+            REVISION    "201105100000Z"
+            DESCRIPTION "V1.21, add the definition of the leaf node hwadsl2LineStatusLastRetrainInfo for getting the last retrained information."
+            
+            REVISION    "201104070000Z"
+            DESCRIPTION "V1.20, modify the leaf name from hwadsl2LineAlarmConfProfileXtucThresh15MinLeftrs to 
+                         hwadsl2LineAlarmConfProfileXturThresh15MinLeftrs."
+                         
+            REVISION    "201012220000Z"
+            DESCRIPTION "V1.19, added type Hwadsl2StatusRtxUsed and type Adsl2InitResult for G.998.4 retransmission function.
+                         Added the leaf node for G.998.4 retransmission function.
+                        "             
+            
+            REVISION    "201011160000Z"
+            DESCRIPTION "V1.18, Modify leaf node hwAdsl2ChipsetNotAvailbaleAlarmTrap to hwAdsl2ChipsetNotAvailableAlarmTrap."             
+            
+            REVISION    "201009270000Z"
+            DESCRIPTION "V1.17, modify the description of the whole MIB file."
+            
+            REVISION    "201009070000Z"
+            DESCRIPTION "V1.16, modify the description of the node hwadsl2LineStatusPcbUsInfo.
+                         Modify the data type of the trap node hwAdsl2SwitchResult.
+                         Modify the data type of the trap node hwadsl2LineCmndConfLdsfResult.
+	                "
+            
+            REVISION    "201007080000Z"
+            DESCRIPTION "V1.15, Modify chinese character."
+      
+            REVISION    "201005200000Z"
+            DESCRIPTION "V1.14, changes in this revision:
+                         Modify the definition of the trap node hwAdsl2PortStatusChangeTrap.
+                        "
+               
+            REVISION    "201005080000Z"           
+            DESCRIPTION "V1.13, changes in this revision:
+                         Modify the definition of the trap node hwAdsl2ChannelPerformanceStatAlarmTrap.
+                         Modify the value range of the leaf node hwadsl2LConfProfL3Time.
+                         Add the definition of the leaf node hwadslabrmodecfgCfg for changing abr-calculation mode.
+                        "
+                        
+            REVISION    "201003180000Z"           
+            DESCRIPTION "V1.12, changes in this revision:
+                         Add leaf node hwadsl2LineCmndConfLdsfResult for indicating the result of test.
+                         Modify leaf node hwadsl2Dynamicprofile, hwadsl2DynamicprofileInfo, hwadslmodecfg.
+                         Modify the definition of the trap node hwAdsl2DeltOperResultTrap.
+                         Modify the description of the table hwadsl2PMLineCurrInitTable, hwadsl2LineTable, hwadsl2SCStatusTable.
+                         Modify the description of the leaf node hwAdsl2ModeSwitchResultTrap, hwAdsl2AdminModeTrap, hwAdsl2DeltOperResultTrap.  
+                         Add leaf node hwadsl2PMLCurr15MLofs, hwadsl2PMLCurr15MLols, hwadsl2PMLCurr15MLops, hwadsl2PMLCurr1DayLofs, hwadsl2PMLCurr1DayLols, 
+                         hwadsl2PMLCurr1DayLops, hwadsl2PMLEverBeforeLofs, hwadsl2PMLEverBeforeLols, hwadsl2PMLEverBeforeLops, hwadsl2PMLHist15MLofs, 
+                         hwadsl2PMLHist15MLols, hwadsl2PMLHist15MLops, hwadsl2PMLHist1DayLofs, hwadsl2PMLHist1DayLols, hwadsl2PMLHist1DayLops 
+                         for performance monitoring.
+                        " 
+          
+            REVISION    "201002280000Z"          
+            DESCRIPTION "V1.11, changes in this revision:
+                         Modify the definition of the trap node and modify the description of the node.
+                        "     
+         
+            REVISION    "201002120000Z"          
+            DESCRIPTION "V1.10, changes in this revision:
+                         Add leaf node hwadsl2PMLCurr15MStartTime, hwadsl2PMLCurr1DayStartTime, hwadsl2PMLHist15MStartTime, hwadsl2PMLHist1DayStartTime, 
+                         hwadsl2PMLHist1DayStartTime,hwadsl2PMChHist15MStartTime, hwadsl2PMChHist1DStartTime for obtaining current Performance
+                         Monitoring results of ADSL2 line. 
+                         Add table hwadsl2PMLineCurrInitTable,hwadsl2PMLineInitHist15MinTable,hwadsl2PMLineInitHist1DayTable for performance monitoring.
+                        "
+               
+            REVISION    "201001120000Z"
+            DESCRIPTION "V1.09, Add the definition of the trap node."
+          
+            REVISION    "200912210000Z"                       
+            DESCRIPTION "V1.08, changes in this revision:
+                         Add Huawei private leaf node.
+                        "
+         
+            REVISION    "200911210000Z"          
+            DESCRIPTION "V1.07, changes in this revision:
+                         Add leaf node hwadslLConfProfAdslMode for changing abr-calculation mode.
+                        "
+                                               
+            REVISION    "200902280000Z"                                                 
+            DESCRIPTION "V1.03, changes in this revision:
+                         Add hwadsl2LineConfProfTable hwadsl2ChConfProfileTable hwadsl2PMLineCurrTable
+                         hwadsl2PMLineHist15MinTable hwadsl2PMLineHist1DayTable for impulse noise performance 
+                         monitoring parameters.
+                        "                                 
+                                                                                       
+            REVISION    "200710180000Z" 
+            DESCRIPTION "V1.00, Initial version."
+          
+          ::= { huaweiUtility 138 }   
+   
+   --          Textual Conventions               
+   
+        Adsl2SymbolProtection ::= TEXTUAL-CONVENTION
+            STATUS      current
+            DESCRIPTION
+                "Attributes with this syntax are configuration parameters
+                 that reference the minimum-length impulse noise protection
+                 (INP) in terms of number of symbols.  The possible values are:
+                 noProtection (i.e., INP not required), halfSymbol (i.e., INP
+                 length is 1/2 symbol), and 1-16 symbols in steps of 1 symbol.
+                 Options:
+                 1. noProtection(1)  - Indicates that the INP value is 0
+                 2. halfSymbol(2)    - Indicates that the INP value is 0.5
+                 3. singleSymbol(3)  - Indicates that the INP value is 1
+                 4. twoSymbols(4)    - Indicates that the INP value is 2
+                 5. threeSymbols(5)  - Indicates that the INP value is 3
+                 6. fourSymbols(6)   - Indicates that the INP value is 4
+                 7. fiveSymbols(7)   - Indicates that the INP value is 5
+                 8. sixSymbols(8)    - Indicates that the INP value is 6
+                 9. sevenSymbols(9)  - Indicates that the INP value is 7
+                 10.eightSymbols(10) - Indicates that the INP value is 8
+                 11.nineSymbols(11)  - Indicates that the INP value is 9
+                 12.tenSymbols(12)   - Indicates that the INP value is 10
+                 13.elevenSymbols(13)   - Indicates that the INP value is 11
+                 14.twelveSymbols(14)   - Indicates that the INP value is 12
+                 15.thirteeSymbols(15)  - Indicates that the INP value is 13
+                 16.fourteenSymbols(16) - Indicates that the INP value is 14
+                 17.fifteenSymbols(17)  - Indicates that the INP value is 15
+                 18.sixteenSymbols(18)  - Indicates that the INP value is 16                
+                "
+                 
+            SYNTAX      INTEGER 
+                {
+                noProtection(1),
+                halfSymbol(2),
+                singleSymbol(3),
+                twoSymbols(4),
+                threeSymbols(5),
+                fourSymbols(6),
+                fiveSymbols(7),
+                sixSymbols(8),
+                sevenSymbols(9),
+                eightSymbols(10),
+                nineSymbols(11),
+                tenSymbols(12),
+                elevenSymbols(13),
+                twelveSymbols(14),
+                thirteeSymbols(15),
+                fourteenSymbols(16),
+                fifteenSymbols(17),
+                sixteenSymbols(18)
+                }
+        
+        Adsl2TrellisMode ::= TEXTUAL-CONVENTION
+            STATUS current
+            DESCRIPTION
+                "Enable and disable the trellis mode. This default value is enabled(2).
+                 Options:
+                 1. disable(1) - Disable the trellis mode
+                 2. enable(2)  - Enable the trellis mode
+                "
+        
+            SYNTAX INTEGER 
+                {
+                disable(1),
+                enable(2)
+                }
+        
+        Adsl2BitSwap ::= TEXTUAL-CONVENTION
+            STATUS current
+            DESCRIPTION
+                "Enable and disable the bit swap upstream or downstream of a line.
+                 Options:
+                 1. disable(1) - Disable the bit swap upstream or downstream of a line
+                 2. enable(2)  - Enable the bit swap upstream or downstream of a line
+                "
+        
+            SYNTAX INTEGER 
+                {
+                disable(1),
+                enable(2)
+                }
+            
+        Adsl2DpboEpsd ::= TEXTUAL-CONVENTION 
+            STATUS current
+            DESCRIPTION
+                "This is a structure that represents up to
+                 16 PSD Mask breakpoints.
+                 Each breakpoint occupies 3 octets: The first
+                 two octets hold the index of the sub-carrier
+                 associated with the breakpoint.  The third octet
+                 holds the PSD reduction at the breakpoint from 0
+                 (0dBm/Hz) to 255 (-127.5dBm/Hz) using units of
+                 0.5dBm/Hz.Valid values are in the range 0 to 
+                 190 (0 to -95dBm/Hz).
+                 Options:
+                 1. disable(1)
+                 2. enable(2)
+                "
+            SYNTAX  OCTET STRING (SIZE(0..48))         
+         
+            
+        Adsl2CfgMode ::= TEXTUAL-CONVENTION
+            STATUS current
+            DESCRIPTION
+                "The configured ADSL management mode.
+                 Options:
+                 1. rfc2662(1) - Management model based on RFC2662 and RFC3440
+                 2. rfc4706(2) - Management model based on RFC4706
+                 3. tr165(3)   - Management model based on TR-165
+                "
+            SYNTAX INTEGER 
+                {
+                rfc2662(1),
+                rfc4706(2),
+                tr165(3)
+                }
+                
+        Adsl2DataPathMode ::= TEXTUAL-CONVENTION
+            STATUS current
+            DESCRIPTION
+                "The channel data path mode.
+                 Options:
+                 1. atm(1)  - ATM data path
+                 2. ptm(2)  - PTM data path
+                 3. both(3) - AMT and PTM data path
+                "
+            SYNTAX INTEGER 
+                {
+                atm(1),
+                ptm(2),
+                both(3)
+                }
+        
+        Adsl2PhyRControl ::= TEXTUAL-CONVENTION
+            STATUS current
+            DESCRIPTION
+                "To enable or disable the retransmission function.
+                 Options:
+                 1. enable(1)  - Enable the retransmission function
+                 2. disable(2) - Disable the retransmission function
+                "            
+        
+            SYNTAX INTEGER 
+                {
+                enable(1),
+                disable(2)
+                }
+                
+        Adsl2StatusRtxUsed ::= TEXTUAL-CONVENTION
+            STATUS current
+            DESCRIPTION
+                "This parameter specifies whether G.998.4 retransmission 
+                 is used in a given transmit direction. 
+                 Options:
+                 1. rtxInuse(1)                             - RTX in use
+                 2. rtxUnusedModeForbidden(2)               - RTX not in use, due to RTX_MODE = FORBIDDEN
+                 3. rtxUnusedNotSupportedXtuc(3)            - RTX not in use, due to not supported by the XTU-C
+                 4. rtxUnusedNotSupportedXtur(4)            - RTX not in use, due to not supported by the XTU-R
+                 5. rtxUnusedNotSupportedXtucAndXtur(5)     - RTX not in use, due to not supported by the XTU-C and XTU-R
+                 6. invalidValue(-1)                        - Invalid value
+                "
+            SYNTAX INTEGER {
+                 rtxInuse(1),                        
+                 rtxUnusedModeForbidden(2),          
+                 rtxUnusedNotSupportedXtuc(3),       
+                 rtxUnusedNotSupportedXtur(4),       
+                 rtxUnusedNotSupportedXtucAndXtur(5),
+                 invalidValue(-1)
+            }
+            
+        Hwadsl2InitResult ::= TEXTUAL-CONVENTION
+            STATUS      current
+            DESCRIPTION
+               "Specifies the result of a full initialization attempt; the
+                six possible result values are:
+                 noFail(0)            - Successful initialization.
+                 configError(1)       - Configuration failure.
+                 configNotFeasible(2) - Configuration details not supported.
+                 commFail(3)          - Communication failure.
+                 noPeerAtu(4)         - Peer ATU not detected.
+                 otherCause(5)        - Other initialization failure reason.
+                 ginpNotSelected(6)   - G.998.4 Retransmission mode was not selected 
+                                        while RTX_MODE = FORCED or with RTX_MODE = RTX_TESTMODE
+                The values used are as defined in ITU-T G.997.1, paragraph 7.5.1.3"
+           
+            SYNTAX  INTEGER {
+                 noFail(0),
+                 configError(1),
+                 configNotFeasible(2),
+                 commFail(3),
+                 noPeerAtu(4),
+                 otherCause(5),
+                 ginpNotSelected(6)
+            }     
+            
+        Adsl2RfiBand ::= TEXTUAL-CONVENTION
+            STATUS      current
+            DESCRIPTION
+                "This is a string of 4 groups of values in the following
+                 structure:
+                 Octets 0+1  - Index of start sub-carrier used in the context
+                               of a first group.
+                 Octets 2+3  - Index of end sub-carrier used in the context
+                               of a first group.
+                 Octet  4+5  - The psd value configurated in the first group
+                 Octets 6-11 - Same, for a 2nd group.
+                 This architecture continues until octets 22-23, which are
+                 associated with a 4th group.
+                "
+            SYNTAX      OCTET STRING (SIZE(0..24))  
+                
+        adsl2Mode       OBJECT IDENTIFIER ::= { adsl2 65535 }
+       
+--            adsl2ChannelStatusTable             
+           
+        adsl2ChStatusINP  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..254)
+            UNITS       "0.1 DMT symbol"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The actual impulse noise protection (INP) on 
+                 the bearer channel in L0 state.
+                 Unit: 0.1 DMT symbol
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.4"
+            ::= { adsl2ChannelStatusEntry 65535 }
+          
+        adsl2ChStatusRSRedundancy  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..16)
+            UNITS       "byte"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The actual number of Reed-Solomon redundancy 
+                 bytes per codeword used in the latency path 
+                 in which the bearer channel is transported.
+                 The value is coded in bytes.  
+                 The value 0 indicates no Reed-Solomon coding.
+                 Unit: byte
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.6.2"
+            ::= { adsl2ChannelStatusEntry 65536 }
+          
+        adsl2ChStatusRSSymbols  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS       "0.01 DMT symbol"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The DMT Symbol number per codeword used in 
+                 the latency path in which the bearer channel
+                 is transported.
+                 Unit: 0.01 DMT symbol
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.3"
+            ::= { adsl2ChannelStatusEntry 65537 }
+        
+        adsl2ChStatusInterDepth  OBJECT-TYPE
+            SYNTAX      Unsigned32(1..4096)
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The actual Reed-Solomon codeword size used 
+                 in the latency path in which the bearer channel 
+                 is transported.
+                 The value ranges from 1 to 4096 by step of 1. 
+                 The value 1 indicates no interleaving.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.6.4"
+            ::= { adsl2ChannelStatusEntry 65538 }
+          
+        adsl2ChStatusSymbolLength  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..65535)
+            UNITS       "bit"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The actual number of bits per symbol assigned 
+                 to the latency path in which the bearer channel 
+                 is transported.
+                 This value does not include trellis overhead.
+                 Unit: bit
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.6.3"
+            ::= { adsl2ChannelStatusEntry 65539 }
+        
+        adsl2ChStatusRSSize  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..255)
+            UNITS       "byte"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The actual Reed-Solomon codeword size used 
+                 in the latency path in which the bearer channel 
+                 is transported.
+                 Unit: byte
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.6.1"
+            ::= { adsl2ChannelStatusEntry 65540 }
+        
+--          adsl2ChAlarmConfProfileTable        
+        
+        adsl2ChAlarmConfProfileMonitoringRateDs  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..200000000)
+            UNITS       "bits/second"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "The channel monitoring rate downstream. 
+                 When the value you set is larger than
+                 the value of the rate downstream defined in the channel 
+                 profile, it will not be successful. The value 0 means 
+                 that no threshold is specified for the associated 
+                 counter. This object is defaulted 0.
+                 Unit: bits/second
+                "
+               
+            ::= { adsl2ChAlarmConfProfileEntry 65535 }
+        
+        adsl2ChAlarmConfProfileMonitoringRateUs  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..200000000)
+            UNITS       "bits/second"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "The channel monitoring rate upstream.
+                 When the value you set is larger than
+                 the value of the rate upstream defined in the channel 
+                 profile, it will not be successful. The value 0 means 
+                 that no threshold is specified for the associated 
+                 counter. This object is defaulted 0.
+                 Unit: bits/second
+                "
+                  
+            ::= { adsl2ChAlarmConfProfileEntry 65536 }
+
+--              PM line current counters          
+        adsl2PMLEverBeforeFecs  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds since agent reset that there was at least
+                 one FEC correction event for one or more bearer channels in
+                 this line. This parameter is inhibited during UAS or SES.
+                 Unit: seconds
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { adsl2PMLineCurrEntry 65535 }
+        
+        adsl2PMLEverBeforeEs  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds since agent reset that there was:
+                 ATU-C: CRC-8 &gt;= 1 for one or more bearer channels OR
+                        LOS &gt;= 1 OR SEF &gt;= 1 OR LPR &gt;= 1
+                 ATU-R: FEBE &gt;= 1 for one or more bearer channels OR
+                        LOS-FE &gt;= 1 OR RDI &gt;= 1 OR LPR-FE &gt;= 1.
+                 This parameter is inhibited during UAS.
+                 Unit: seconds
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { adsl2PMLineCurrEntry 65536 }
+        
+        adsl2PMLEverBeforeSes  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds since agent reset that there was:
+                 ATU-C: (CRC-8 summed over all bearer channels) &gt;= 18 OR
+                        LOS &gt;= 1 OR SEF &gt;= 1 OR LPR &gt;= 1
+                 ATU-R: (FEBE summed over all bearer channels) &gt;= 18 OR
+                        LOS-FE &gt;= 1 OR RDI &gt;= 1 OR LPR-FE &gt;= 1
+                 This parameter is inhibited during UAS.
+                 Unit: seconds
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { adsl2PMLineCurrEntry 65537 }
+        
+        adsl2PMLEverBeforeLoss  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds since agent reset that there was LOS (or
+                 LOS-FE for ATU-R).
+                 Unit: seconds
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { adsl2PMLineCurrEntry 65538 }
+        
+        adsl2PMLEverBeforeUas  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds in Unavailability State since agent reset.
+                 Unavailability begins at the onset of 10 contiguous severely
+                 -errored seconds, and ends at the onset of 10 contiguous
+                 seconds with no severely-errored seconds.
+                 Unit: seconds
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { adsl2PMLineCurrEntry 65539 }
+        
+--              PM line init current counters     
+        adsl2PMLInitEverBeforeFullInits  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of full initializations attempted on the line
+                 (successful and failed) since agent reset.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { adsl2PMLineCurrInitEntry 65535 }
+        
+        adsl2PMLInitEverBeforeFailedFullInits  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of failed full initializations on the line since agent 
+                 reset.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { adsl2PMLineCurrInitEntry 65536 }
+        
+        adsl2PMLInitEverBeforeShortInits  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of short initializations attempted on the line
+                 (successful and failed) since agent reset.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { adsl2PMLineCurrInitEntry 65537 }
+        
+        adsl2PMLInitEverBeforeFailedShortInits  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of failed short initializations on the line since agent 
+                 reset.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { adsl2PMLineCurrInitEntry 65538 }   
+          
+--              PM channel current counters          
+        adsl2PMChEverBeforeCodingViolations  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of CRC-8 (FEBE for ATU-R) anomalies occurring in the
+                 channel since agent reset.  This parameter is inhibited
+                 during UAS or SES.  If the CRC is applied over multiple
+                 channels, then each related CRC-8 (or FEBE) anomaly should
+                 increment each of the counters related to the individual
+                 channels.
+                "                 
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.2"
+            ::= { adsl2PMChCurrEntry 65535 }  
+                                         
+        adsl2PMChEverBeforeCorrectedBlocks  OBJECT-TYPE
+            SYNTAX      Unsigned32         
+            MAX-ACCESS  read-only          
+            STATUS      current            
+            DESCRIPTION                    
+                "Count of FEC (FFEC for ATU-R) anomalies (corrected code words)
+                 occurring in the channel since agent reset.  This parameter
+                 is inhibited during UAS or SES.  If the FEC is applied over
+                 multiple channels, then each related FEC (or FFEC) anomaly
+                 should increment each of the counters related to the
+                 individual channels.
+                "      
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.2"
+            ::= { adsl2PMChCurrEntry 65536 }  
+        
+--           mode information
+        
+        hwadslmodecfg  OBJECT-TYPE
+            SYNTAX  Adsl2CfgMode
+            MAX-ACCESS  read-write
+            STATUS  current
+            DESCRIPTION
+                "This object is used to change ADSL management mode.
+                 After the mode being changed, system will automatically
+                 save data and reboot.
+                 Options:
+                 1. rfc2662(1) - Management model based on RFC2662 and RFC3440
+                 2. rfc4706(2) - Management model based on RFC4706
+                 3. tr165(3)   - Management model based on TR-165
+                "
+            ::= { adsl2Mode 1 }
+             
+        hwadslabrmodecfg  OBJECT-TYPE
+            SYNTAX INTEGER 
+                {
+                normalMode(1),
+                ptMode(2)
+                }
+            MAX-ACCESS  read-write
+            STATUS  current
+            DESCRIPTION
+                "This object is used to change abr-calculation mode.
+                 Options:
+                 1. normalMode(1) - Change mode to normal abr-calculation
+                 2. ptMode(2)     - Change mode to pt abr-calculation
+                "
+            ::= { adsl2Mode 2 }
+             
+          
+--              adsl2LineConfProfTable          
+          
+        adsl2LConfProfTrellisMode  OBJECT-TYPE
+            SYNTAX      Adsl2TrellisMode
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "Enable and disable the trellis mode. This
+                 object is defaulted enabled(2). 
+                 Options:
+                 1. disable(1) - Disable the trellis
+                 2. enable(2)  - Enable the trellis
+                "
+              
+            ::= { adsl2LineConfProfEntry 65535 }
+        
+        adsl2LConfProfBitSwapDs  OBJECT-TYPE
+            SYNTAX      Adsl2BitSwap 
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "Enable and disable the bit swap downstream of a line.
+                 This object is defaulted  enable(2).
+                 Options:
+                 1. disable(1) - Disable the bit swap downstream of a line
+                 2. enable(2)  - Enable the bit swap downstream of a line
+                "
+               
+            ::= { adsl2LineConfProfEntry 65536 }
+                 
+        adsl2LConfProfBitSwapUs  OBJECT-TYPE
+            SYNTAX      Adsl2BitSwap
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "Enable and disable the bit swap upstream of a line. 
+                 This object is defaulted enable(2).
+                 Options:
+                 1. disable(1) - Disable the bit swap upstream of a line
+                 2. enable(2)  - Enable the bit swap upstream of a line
+                " 
+            -- DEFVAL   { enable }
+          
+            ::= { adsl2LineConfProfEntry 65537 }             
+          
+        adsl2LConfProfDpboEPsd  OBJECT-TYPE
+            SYNTAX      Adsl2DpboEpsd
+            UNITS       "0.5dBm/Hz"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This parameter defines the PSD mask that is assumed to be permitted at the exchange. 
+                 This parameter shall use the same format as PSDMASKds.The maximum number of breakpoints 
+                 for DPBOEPSD is 16.
+                 This is a string of 16 pairs of values in the following
+                 structure:
+                 Octets 0+1 - Index of 1st sub-carrier used in the context
+                              of a first breakpoint
+                 Octet 2    - The PSD reduction for the sub-carrier indicated in
+                              octets 0 and 1
+                 Octets 3-5 - Same, for a 2nd breakpoint
+                 Octets 6-8 - Same, for a 3rd breakpoint
+                 This architecture continues until octets 45-47, which are
+                 associated with a 16th breakpoint.
+                 Each subcarrier index is an unsigned number in the range 1 and
+                 NSCds.  Each PSD reduction value is in the range 0 (0dBm/Hz) to
+                 255 (-127.5dBm/Hz) with steps of 0.5dBm/Hz.  Valid values are
+                 in the range 0 to 190 (0 to -95dBm/Hz).
+                 When the number of breakpoints is less than 16, all remaining
+                 octets are set to the value 0xff.
+                 Unit: 0.5dBm/Hz
+                "
+            REFERENCE    "ITU-T G.997.1(200604), paragraph 7.3.1.2.13"         
+            ::= { adsl2LineConfProfEntry 65538 }     
+             
+        adsl2LConfProfDpboEsEL  OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..511)
+            UNITS       "0.5dB"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This configuration parameter defines the assumed electrical length of 
+                 cables (E-side cables) connecting exchange based DSL services to a remote
+                 flexibility point (cabinet), that hosts the xTU-C that is subject to 
+                 spectrally shaped downstream power back-off depending on this length. 
+                 For this parameter the electrical length is defined as the loss (in dB) 
+                 of an equivalent length of hypothetical cable at a reference frequency 
+                 defined by the network operator or in spectrum management regulations. 
+                 DPBOESEL shall be coded as an unsigned integer representing an electrical 
+                 length from 0 dB (coded as 0) to 255.5 dB (coded as 511) in steps of 0.5 dB. 
+                 All values in the range are valid.If DPBOESEL is set to zero, the DPBO in 
+                 this section shall be disabled.
+                 This object is defaulted 0.
+                 Unit: 0.5dB
+                "
+            REFERENCE    "ITU-T G.997.1(200604), paragraph 7.3.1.2.13"
+           
+            ::= { adsl2LineConfProfEntry 65539 }        
+          
+        adsl2LConfProfDpboEsCableModelA  OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..640)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This configuration parameter defines a cable model in terms of three scalars 
+                 DPBOESCMA, DPBOESCMB and DPBOESCMC that shall be used to describe the frequency
+                 dependent loss of E-side cables.Parameters DPBOESCMA, DPBOESCMB, DPBOESCMC shall be
+                 coded as unsigned integers representing a scalar value from -1 (coded as 0) to 1.5 
+                 (coded as 640) in step of 1/256. All values in the range are valid.
+                 This object is defaulted 256.
+                "
+            REFERENCE    "ITU-T G.997.1(200604), paragraph 7.3.1.2.13" 
+                   
+            ::= { adsl2LineConfProfEntry 65540 }
+          
+        adsl2LConfProfDpboEsCableModelB  OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..640)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This configuration parameter defines a cable model in terms of three scalars 
+                 DPBOESCMA, DPBOESCMB and DPBOESCMC that shall be used to describe the frequency
+                 dependent loss of E-side cables.Parameters DPBOESCMA, DPBOESCMB, DPBOESCMC shall be
+                 coded as unsigned integers representing a scalar value from -1 (coded as 0) to 1.5 
+                 (coded as 640) in step of 1/256. All values in the range are valid.This object is 
+                 defaulted 512.
+                "
+            REFERENCE    "ITU-T G.997.1(200604), paragraph 7.3.1.2.13" 
+                    
+            ::= { adsl2LineConfProfEntry 65541 } 
+          
+        adsl2LConfProfDpboEsCableModelC  OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..640)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This configuration parameter defines a cable model in terms of three scalars 
+                 DPBOESCMA, DPBOESCMB and DPBOESCMC that shall be used to describe the frequency
+                 dependent loss of E-side cables.Parameters DPBOESCMA, DPBOESCMB, DPBOESCMC shall be
+                 coded as unsigned integers representing a scalar value from -1 (coded as 0) to 1.5 
+                 (coded as 640) in step of 1/256. All values in the range are valid.This object is 
+                 defaulted 256.
+                "
+            REFERENCE    "ITU-T G.997.1(200604), paragraph 7.3.1.2.13" 
+                    
+            ::= { adsl2LineConfProfEntry 65542 }        
+          
+        adsl2LConfProfDpboMus  OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..255)
+            UNITS       "0.5dBm/Hz"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "DPBOMUS defines the assumed Minimum Usable receive Signal PSD (in dBm/Hz) for 
+                 exchange based services, used to modify parameter DPBOFMAX defined below. It 
+                 shall be coded as an unsigned integer representing a PSD level from 0 dBm/Hz 
+                 (coded as 0) to -127.5 dBm/Hz (coded as 255) in steps of 0.5 dBm/Hz. 
+                 All values in the range are valid.This object is defaulted 180.
+                 Unit: 0.5dBm/Hz
+                " 
+            REFERENCE    "ITU-T G.997.1(200604), paragraph 7.3.1.2.13"
+                                 
+            ::= { adsl2LineConfProfEntry 65543 }   
+          
+        adsl2LConfProfDpboFMin  OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..2048)
+            UNITS       "4.3125 KHz"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "DPBOFMIN defines the minimum frequency from which the DPBO shall be applied. 
+                 It shall be coded as a 16 bits unsigned integer representing a frequency in 
+                 multiple of 4.3125 KHz. The range of valid values is from 0 kHz (coded as 0)
+                 to 8832 kHz (coded as 2048). This object is defaulted 0.
+                 Unit: 4.3125 KHz
+                "  
+            REFERENCE    "ITU-T G.997.1(200604), paragraph 7.3.1.2.13"
+                       
+            ::= { adsl2LineConfProfEntry 65544 }        
+          
+        adsl2LConfProfDpboFMax  OBJECT-TYPE
+            SYNTAX      Unsigned32 (32..6956)
+            UNITS       "4.3125 KHz"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "DPBOFMAX defines the maximum frequency at which DPBO may be applied. It shall be
+                 coded as a 16 bits unsigned integer representing a frequency in multiple of 4.3125 KHz. 
+                 The range of valid values is from 138 kHz (coded as 32) to 29997.75 kHz (coded as 6956).
+                 This object is defaulted 511.
+                 Unit: 4.3125 KHz
+                "  
+            REFERENCE    "ITU-T G.997.1(200604), paragraph 7.3.1.2.13" 
+                               
+            ::= { adsl2LineConfProfEntry 65545 }     
+          
+        
+
+--              adsl2SCStatusTable          
+        adsl2SCStatusTxPSD  OBJECT-TYPE
+            SYNTAX      OCTET STRING  (SIZE(0..1024))
+            UNITS       "0.1 dBm/Hz"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PSD MASK per sub-carrier.An array of 512 16-bits
+                 values, designed for supporting up to 512 (downstream) sub-carriers. 
+                 It ranges from -1400 to -300 units of 0.1 dBm/Hz (physical values
+                 are -140 to -30 dBm/Hz)
+                 Unit: 0.1 dBm/Hz
+                "
+            ::= { adsl2SCStatusEntry 65535 }
+            
+        adsl2SCStatusSnrMargins  OBJECT-TYPE
+            SYNTAX      OCTET STRING  (SIZE(0..1024))
+            UNITS       "0.1 dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "SNR Margin is the maximum increase in dB of the noise power
+                 received at the ATU (ATU-R on downstream direction and ATU-C
+                 on upstream direction), such that the BER requirements are met
+                 for all bearer channels received at the ATU.  It ranges from
+                 -640 to 630 units of 0.1 dB (physical values are -64 to 63 dB).
+                 Unit: 0.1 dB
+                "
+            ::= { adsl2SCStatusEntry 65536 }
+                              
+          
+--              adsl2LineTable          
+        adsl2LineStatusCodingGainDs  OBJECT-TYPE
+            SYNTAX      Unsigned32 
+            UNITS       "0.5 dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The actual value of Coding gain upstream parameter,it ranges
+                 from 0 to 16.
+                 Unit: 0.5 dB
+                "
+          ::= { adsl2LineEntry 65535 }
+          
+        adsl2LineStatusCodingGainUs  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS       "0.5 dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The actual value of Coding gain downstream parameter,it ranges
+                 from 0 to 16.
+                 Unit: 0.5 dB
+                "
+          ::= { adsl2LineEntry 65536 }
+          
+        adsl2LineStatusPcbDs  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS        "tenth dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates Power Cut-back on downstream direction.
+                 It ranges from 0 to 400 units of 0.1 dB (physical values
+                 are 0 to 40 dB).
+                 Unit: tenth dB
+                "
+            ::= { adsl2LineEntry 65537 }
+          
+        adsl2LineStatusPcbUs  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS        "tenth dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates Power Cut-back on upstream direction.
+                 It ranges from 0 to 400 units of 0.1 dB (physical values
+                 are 0 to 40 dB)
+                 Unit: tenth dB
+                "
+            ::= { adsl2LineEntry 65538 }
+          
+        hwadsl2Dynamicprofile OBJECT-TYPE
+            SYNTAX      OCTET STRING (SIZE (0..32))
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The value of this object identifies the row
+                 in the ADSL Dynamic Profile Table,which applies to this
+                 ADSL line, and channels if applicable.
+                 NULL - indicates that there is no Dynamic profile
+                 bound to this port.
+                "
+        ::= { adsl2LineEntry 65539 }
+         
+        
+        hwadsl2            OBJECT IDENTIFIER ::= { hwadsl2MIB 1 }
+        hwadsl2Line          OBJECT IDENTIFIER ::= { hwadsl2 1 }
+        hwadsl2Status        OBJECT IDENTIFIER ::= { hwadsl2 2 }
+        hwadsl2Inventory     OBJECT IDENTIFIER ::= { hwadsl2 3 }
+        hwadsl2PM            OBJECT IDENTIFIER ::= { hwadsl2 4 }
+        hwadsl2Profile       OBJECT IDENTIFIER ::= { hwadsl2 5 }
+        hwadsl2Scalar        OBJECT IDENTIFIER ::= { hwadsl2 6 }
+        hwadsl2Notifications OBJECT IDENTIFIER ::= { hwadsl2 0 }
+        hwadsl2Conformance   OBJECT IDENTIFIER ::= { hwadsl2 8 }
+        hwadsl2Mode       OBJECT IDENTIFIER ::= { hwadsl2 9 }
+        hwAdsl2TrapsVbOids   OBJECT IDENTIFIER ::= { hwadsl2 10 }
+        hwadsl2Traps         OBJECT IDENTIFIER ::= { hwadsl2 11 }
+        
+        hwadsl2PMLine      OBJECT IDENTIFIER ::= { hwadsl2PM 1 }
+        hwadsl2PMChannel   OBJECT IDENTIFIER ::= { hwadsl2PM 2 }
+        hwadsl2ProfileLine      OBJECT IDENTIFIER ::= { hwadsl2Profile 1 }
+        hwadsl2ProfileChannel   OBJECT IDENTIFIER ::= { hwadsl2Profile 2 }
+        hwadsl2ProfileAlarmConf OBJECT IDENTIFIER ::= { hwadsl2Profile 3 }
+        hwadsl2ScalarSC         OBJECT IDENTIFIER ::= { hwadsl2Scalar 1 }
+        
+        hwAdsl2CommonTraps       OBJECT IDENTIFIER ::= { hwadsl2Traps 1 }
+        hwAdsl2CommonTrapsPrefix OBJECT IDENTIFIER ::= { hwAdsl2CommonTraps 0 }
+        hwadsl2AlarmTraps        OBJECT IDENTIFIER ::= { hwadsl2Traps 2 }
+        hwadsl2AlarmTrapsPrefix  OBJECT IDENTIFIER ::= { hwadsl2AlarmTraps 0 }
+        
+        
+--            hwadsl2ChannelStatusTable            
+        hwadsl2ChannelStatusTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  Hwadsl2ChannelStatusEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2ChannelStatusTable contains status
+                 parameters of the ADSL2 channel and live data from equipment.
+                 The indexes of this table are ifIndex and adsl2ChStatusUnit.
+                "
+            ::= { hwadsl2Status 1 }
+        
+        hwadsl2ChannelStatusEntry  OBJECT-TYPE
+            SYNTAX      Hwadsl2ChannelStatusEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2ChannelStatusTable contains status
+                 parameters of the ADSL2 channel and live data from equipment.
+                 The indexes of this entry are ifIndex and adsl2ChStatusUnit.
+                "
+            INDEX  { ifIndex, adsl2ChStatusUnit }
+            ::= { hwadsl2ChannelStatusTable 1 }
+        
+        Hwadsl2ChannelStatusEntry  ::=
+            SEQUENCE 
+                {
+                hwadsl2ChStatusPhyRrrcBits            Counter32,
+                hwadsl2ChStatusPhyRtxQueue            Counter32,
+                hwadsl2ChStatusINP                    Unsigned32,
+                hwadsl2ChStatusRSRedundancy           Unsigned32,
+                hwadsl2ChStatusRSSymbols              Unsigned32,
+                hwadsl2ChStatusInterDepth             Unsigned32,
+                hwadsl2ChStatusSymbolLength           Unsigned32,
+                hwadsl2ChStatusRSSize                 Unsigned32,
+                hwadsl2ChStatusActNetDataRate         Unsigned32,
+                hwadsl2ChStatusActINPAgainstREIN      Unsigned32
+                }
+        
+        hwadsl2ChStatusPhyRrrcBits  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "bit"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The bits in the channel that used to retransmission.
+                 Unit: bit
+                "
+            ::= { hwadsl2ChannelStatusEntry 1 }
+          
+        hwadsl2ChStatusPhyRtxQueue  OBJECT-TYPE 
+            SYNTAX      Counter32 
+            MAX-ACCESS read-only 
+            STATUS      current 
+            DESCRIPTION 
+                "The number of the units for retransmission." 
+            ::= { hwadsl2ChannelStatusEntry 2 }   
+              
+        hwadsl2ChStatusINP  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..254)
+            UNITS       "0.1 DMT symbol"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "If retransmission is not used in a given transmit direction, this 
+                 parameter reports the actual impulse noise protection (INP) on the 
+                 bearer channel in the L0 state. In the L1 or L2 state, the parameter 
+                 contains the INP in the previous L0 state.
+                 If retransmission is used in a given transmit direction, this parameter 
+                 reports the actual impulse noise protection (INP) against SHINE on 
+                 the bearer channel in the L0 state. In the L2 state, the parameter 
+                 contains the INP in the previous L0 state.
+                 Unit: 0.1 DMT symbol
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.4"
+            ::= { hwadsl2ChannelStatusEntry 3 }
+          
+        hwadsl2ChStatusRSRedundancy  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..16)
+            UNITS       "byte"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The actual number of Reed-Solomon redundancy 
+                 bytes per codeword used in the latency path 
+                 in which the bearer channel is transported.
+                 The value is coded in bytes.  
+                 The value 0 indicates no Reed-Solomon coding.
+                 Unit: byte
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.6.2"
+            ::= { hwadsl2ChannelStatusEntry 4 }
+          
+        hwadsl2ChStatusRSSymbols  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS       "0.01 DMT symbol"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The DMT Symbol number per codeword used in 
+                 the latency path in which the bearer channel
+                 is transported.
+                 Unit: 0.01 DMT symbol
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.3"
+            ::= { hwadsl2ChannelStatusEntry 5 }
+        
+        hwadsl2ChStatusInterDepth  OBJECT-TYPE
+            SYNTAX      Unsigned32(1..4096)
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The actual Reed-Solomon codeword size used 
+                 in the latency path in which the bearer channel 
+                 is transported.
+                 The value ranges from 1 to 4096 by step of 1. 
+                 The value 1 indicates no interleaving.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.6.4"
+            ::= { hwadsl2ChannelStatusEntry 6 }
+          
+        hwadsl2ChStatusSymbolLength  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..65535)
+            UNITS       "bit"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The actual number of bits per symbol assigned 
+                 to the latency path in which the bearer channel 
+                 is transported.
+                 This value does not include trellis overhead.
+                 Unit: bit
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.6.3"
+            ::= { hwadsl2ChannelStatusEntry 7 }
+        
+        hwadsl2ChStatusRSSize  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..255)
+            UNITS       "byte"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The actual Reed-Solomon codeword size used 
+                 in the latency path in which the bearer channel 
+                 is transported.
+                 Unit: byte
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.6.1"
+            ::= { hwadsl2ChannelStatusEntry 8 }
+            
+        hwadsl2ChStatusActNetDataRate OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS       "bits/second"             
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "In L0 state, this parameter reports the Net Data Rate at which the bearer channel is operating. 
+                 In L2 state, this parameter contains the Net Data Rate in the previous L0 state. 
+                 This parameter is optional if G.998.4 retransmission function is not supported.
+                 The data rate is coded in steps of 1000 bit/s.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.8"    
+            ::= { hwadsl2ChannelStatusEntry 9 }             
+            
+        hwadsl2ChStatusActINPAgainstREIN OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "If retransmission is used in a given transmit direction, 
+                 this parameter reports the actual impulse noise protection (INP) 
+                 against REIN (under specific conditions detailed in G.998.4) 
+                 on the bearer channel in the L0 state. In the L2 state, the 
+                 parameter contains the INP in the previous L0 state. The value 
+                 is coded in fractions of DMT symbols with a granularity of 0.1 symbols.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.5.2.9"      
+            ::= { hwadsl2ChannelStatusEntry 10 } 
+                    
+--            hwadsl2LineConfProfTable       
+        Adsl2LConfProfReferenceClockType ::= TEXTUAL-CONVENTION
+            STATUS    current
+            DESCRIPTION
+                "The various clock references for the
+                 ADSL line, represented as an enumeration.
+                 Options:
+                 1. freeRun(1) - Indicates the local clock
+                 2. system(2)  - Indicates the system clock
+                "
+            SYNTAX    INTEGER
+                {
+                freeRun(1),
+                system(2)
+                }
+        Adsl2ProfSwitchType ::= TEXTUAL-CONVENTION
+            STATUS current
+            DESCRIPTION
+                "The profile switch value is enable or disable.
+                 Options:
+                 1. enable(1)  - Enable the switch
+                 2. disable(2) - Disable the switch
+                "
+        
+            SYNTAX INTEGER 
+                {
+                enable(1),
+                disable(2)
+                } 
+                 
+        hwadsl2LineConfProfTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  Hwadsl2LineConfProfEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2LineConfProfTable contains huawei private ADSL2 line profile
+                 configuration.Entries in this table MUST be maintained in a persistent manner.
+                 The index of this table is adsl2LConfProfProfileName.
+                "
+            ::= { hwadsl2ProfileLine 2 }
+        
+        hwadsl2LineConfProfEntry  OBJECT-TYPE
+            SYNTAX      Hwadsl2LineConfProfEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2LineConfProfTable contains huawei private ADSL2 line profile
+                 configuration.Entries in this table MUST be maintained in a persistent manner.
+                 The index of this entry is adsl2LConfProfProfileName.
+                "
+            INDEX  { IMPLIED adsl2LConfProfProfileName }
+            ::= { hwadsl2LineConfProfTable 1 }
+        
+        Hwadsl2LineConfProfEntry  ::=
+            SEQUENCE 
+                {
+                hwadsl2LConfProfInmIatoDs          Unsigned32,     
+                hwadsl2LConfProfInmIatsDs          Unsigned32,    
+                hwadsl2LConfProfInmCcDs            Unsigned32,    
+                hwadsl2LConfProfInmInpeqModeDs     Unsigned32,         
+                hwadsl2LConfProfRfiBands           Adsl2RfiBand,
+                hwadsl2LConfProfReferenceClock     Adsl2LConfProfReferenceClockType,
+                hwadsl2LConfProfL3Time             Unsigned32,
+                hwadsl2LConfProfDpboEselMin        Unsigned32,
+                hwadsl2LConfProfTrellisMode        Adsl2TrellisMode,
+                hwadsl2LConfProfBitSwapDs          Adsl2BitSwap,
+                hwadsl2LConfProfBitSwapUs          Adsl2BitSwap,
+                hwadsl2LConfProfDpboEPsd           Adsl2DpboEpsd,
+                hwadsl2LConfProfDpboEsEL           Unsigned32,
+                hwadsl2LConfProfDpboEsCableModelA  Unsigned32,
+                hwadsl2LConfProfDpboEsCableModelB  Unsigned32,
+                hwadsl2LConfProfDpboEsCableModelC  Unsigned32,
+                hwadsl2LConfProfDpboMus            Unsigned32,
+                hwadsl2LConfProfDpboFMin           Unsigned32,
+                hwadsl2LConfProfDpboFMax           Unsigned32
+                }
+           
+        hwadsl2LConfProfInmIatoDs  OBJECT-TYPE
+            SYNTAX      Unsigned32(3..511)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "The parameter of downstream impulse noise monitoring inter arrival time offset.
+                 This is the Inter Arrival Time Offset that the xTU receiver shall use to determine 
+                 in which bin of the Inter Arrival Time histogram the IAT is reported. 
+                 The valid values for INMIATO ranges from 3 to 511 DMT symbols in steps of 1 DMT symbol.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.3.1.9.1"
+            DEFVAL       { 3 }
+            ::= { hwadsl2LineConfProfEntry 1 }
+          
+        hwadsl2LConfProfInmIatsDs  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..7)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "The parameter of downstream impulse noise monitoring inter arrival time step.
+                 This is the Inter Arrival Time Step that the xTU receiver shall use to determine 
+                 in which bin of the Inter Arrival Time histogram the IAT is reported.
+                 The valid values for INMIATS ranges from 0 to 7 in steps of 1.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.3.1.9.2"
+            DEFVAL       { 0 }
+            ::= { hwadsl2LineConfProfEntry 2 }
+        
+        
+        hwadsl2LConfProfInmCcDs  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..64)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "The parameter of Downstream impulse noise monitoring cluster continuation value.
+                 This is the Cluster Continuation value that the xTU receiver shall use 
+                 in the cluster indication process described in the relevant ITU-T Recommendation. 
+                 The valid values for INMCC range from 0 to 64 DMT symbols in steps of 1 DMT symbol.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.3.1.9.3"
+            DEFVAL       { 0 }
+            ::= { hwadsl2LineConfProfEntry 3 }
+          
+        
+        hwadsl2LConfProfInmInpeqModeDs  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..4)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "The parameter of Downstream impulse noise monitoring equivalent impulse noise protect mode.
+                 This is the INM Equivalent INP Mode that the xTU receiver shall use in the computation of the Equivalent INP, 
+                 as defined in the relevant ITU-T Recommendation. The valid values for INM_INPEQ_MODE are 0, 1, 2, 3, and 4.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.3.1.9.4"
+            DEFVAL       { 0 }
+            ::= { hwadsl2LineConfProfEntry 4 }       
+          
+        hwadsl2LConfProfRfiBands  OBJECT-TYPE
+            SYNTAX      Adsl2RfiBand
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "The RFI notch parameter.
+                 It is a string consist of begin tone index,
+                 end tone index and psd value.  
+                 This is a string of 4 groups of values in the following
+                 structure:
+                 Octets 0+1  - Index of start sub-carrier used in the context
+                               of a first group
+                 Octets 2+3  - Index of end sub-carrier used in the context
+                               of a first group
+                 Octet  4+5  - The psd value configurated in the first group
+                 Octets 6-11 - Same, for a 2nd group
+                 This architecture continues until octets 22-23, which are
+                 associated with a 4th group.It can contain as most as 4 groups.
+                "
+            ::= { hwadsl2LineConfProfEntry 5 } 
+        
+        hwadsl2LConfProfReferenceClock  OBJECT-TYPE
+            SYNTAX      Adsl2LConfProfReferenceClockType
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object configures the clock reference for the ATU-C
+                 in an ADSL Line.
+                "
+            DEFVAL       { freeRun }
+            ::= { hwadsl2LineConfProfEntry 6 }  
+          
+        hwadsl2LConfProfL3Time  OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..65535)
+            UNITS       "seconds"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This minimum time (in seconds) between an Entry into the
+                 L3 state and the L0 or L2 state.
+                 Unit: seconds
+                "
+            DEFVAL       { 255 }
+            ::= { hwadsl2LineConfProfEntry 7 } 
+          
+        hwadsl2LConfProfDpboEselMin  OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..511)
+            UNITS       "0.5dB"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "DPBOESELMIN in dB is the minimum of all main cable losses for the KVz supplied when using
+                 the SOL model (expansion of a KVz and ADSL2 provision of additional KVz areas from this KVz
+                 using cross-cables to additional KVz), including the KVz at the MSAN site. This value must 
+                 be adjustable as the minimum requirement via the SNMP interface in the configuration profile
+                 for each ADSL2 port, and is set individually for each MSAN site and usage. As an option, 
+                 adjustment can be done for each MSAN or line card, thus taking effect for 
+                 entire port groups. It is used only for determining the MUF.
+                 Unit: 0.5dB
+                "
+            DEFVAL       { 0 }
+            ::= { hwadsl2LineConfProfEntry 8 } 
+        
+        hwadsl2LConfProfTrellisMode OBJECT-TYPE
+            SYNTAX      Adsl2TrellisMode
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "Enables and disables the trellis mode. This
+                 object is defaulted enabled(2).
+                "
+            DEFVAL       { enable }
+            ::= { hwadsl2LineConfProfEntry 9 }
+        
+        hwadsl2LConfProfBitSwapDs  OBJECT-TYPE
+            SYNTAX      Adsl2BitSwap 
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "Enables and disables the bit swap  downstream of a line."
+            DEFVAL       { enable }
+            ::= { hwadsl2LineConfProfEntry 10 }
+                 
+        hwadsl2LConfProfBitSwapUs  OBJECT-TYPE
+            SYNTAX      Adsl2BitSwap
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "Enables and disables the bit swap upstream of a line."
+            DEFVAL       { enable }
+            ::= { hwadsl2LineConfProfEntry 11 }          
+          
+        hwadsl2LConfProfDpboEPsd  OBJECT-TYPE
+            SYNTAX      Adsl2DpboEpsd
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This parameter defines the PSD mask that is assumed to be permitted at the exchange. 
+                 This parameter shall use the same format as PSDMASKds.The maximum number of breakpoints 
+                 for DPBOEPSD is 16.
+                 This is a string of 16 pairs of values in the following
+                 structure:
+                 Octets 0+1 - Index of 1st sub-carrier used in the context
+                              of a first breakpoint.
+                 Octet 2    - The PSD reduction for the sub-carrier indicated in
+                              octets 0 and 1
+                 Octets 3-5 - Same, for a 2nd breakpoint
+                 Octets 6-8 - Same, for a 3rd breakpoint
+                 This architecture continues until octets 45-47, which are
+                 associated with a 16th breakpoint.
+                 Each subcarrier index is an unsigned number in the range 1 and
+                 NSCds.  Each PSD reduction value is in the range 0 (0dBm/Hz) to
+                 255 (-127.5dBm/Hz) with steps of 0.5dBm/Hz.  Valid values are
+                 in the range 0 to 190 (0 to -95dBm/Hz).
+                 When the number of breakpoints is less than 16, all remaining
+                 octets are set to the value 0xff.
+                "
+            REFERENCE    "ITU-T G.997.1(200604), paragraph 7.3.1.2.13"         
+            ::= { hwadsl2LineConfProfEntry 12 }     
+             
+        hwadsl2LConfProfDpboEsEL  OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..511)
+            UNITS       "0.5dB"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This configuration parameter defines the assumed electrical length of 
+                 cables (E-side cables) connecting exchange based DSL services to a remote
+                 flexibility point (cabinet), that hosts the xTU-C that is subject to 
+                 spectrally shaped downstream power back-off depending on this length. 
+                 For this parameter the electrical length is defined as the loss (in dB) 
+                 of an equivalent length of hypothetical cable at a reference frequency 
+                 defined by the network operator or in spectrum management regulations. 
+                 DPBOESEL shall be coded as an unsigned integer representing an electrical 
+                 length from 0 dB (coded as 0) to 255.5 dB (coded as 511) in steps of 0.5 dB. 
+                 All values in the range are valid.If DPBOESEL is set to zero, the DPBO in 
+                 this section shall be disabled.
+                 Unit: 0.5dB
+                "
+            REFERENCE    "ITU-T G.997.1(200604), paragraph 7.3.1.2.13"
+            DEFVAL       { 0 }
+            ::= { hwadsl2LineConfProfEntry 13 }        
+          
+        hwadsl2LConfProfDpboEsCableModelA  OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..640)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This configuration parameter defines a cable model in terms of three scalars 
+                 DPBOESCMA, DPBOESCMB and DPBOESCMC that shall be used to describe the frequency
+                 dependent loss of E-side cables.Parameters DPBOESCMA, DPBOESCMB, DPBOESCMC shall be
+                 coded as unsigned integers representing a scalar value from -1 (coded as 0) to 1.5 
+                 (coded as 640) in step of 1/256. All values in the range are valid.
+                "
+            REFERENCE    "ITU-T G.997.1(200604), paragraph 7.3.1.2.13" 
+            DEFVAL       { 256 }         
+            ::= { hwadsl2LineConfProfEntry 14 }
+          
+        hwadsl2LConfProfDpboEsCableModelB  OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..640)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This configuration parameter defines a cable model in terms of three scalars 
+                 DPBOESCMA, DPBOESCMB and DPBOESCMC that shall be used to describe the frequency
+                 dependent loss of E-side cables.Parameters DPBOESCMA, DPBOESCMB, DPBOESCMC shall be
+                 coded as unsigned integers representing a scalar value from -1 (coded as 0) to 1.5 
+                 (coded as 640) in step of 1/256. All values in the range are valid.
+                "
+            REFERENCE    "ITU-T G.997.1(200604), paragraph 7.3.1.2.13" 
+            DEFVAL       { 512 }         
+            ::= { hwadsl2LineConfProfEntry 15 } 
+          
+        hwadsl2LConfProfDpboEsCableModelC  OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..640)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This configuration parameter defines a cable model in terms of three scalars 
+                 DPBOESCMA, DPBOESCMB and DPBOESCMC that shall be used to describe the frequency
+                 dependent loss of E-side cables.Parameters DPBOESCMA, DPBOESCMB, DPBOESCMC shall be
+                 coded as unsigned integers representing a scalar value from -1 (coded as 0) to 1.5 
+                 (coded as 640) in step of 1/256. All values in the range are valid.
+                "
+            REFERENCE    "ITU-T G.997.1(200604), paragraph 7.3.1.2.13" 
+            DEFVAL       { 256 }         
+            ::= { hwadsl2LineConfProfEntry 16 }        
+          
+        hwadsl2LConfProfDpboMus  OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..255)
+            UNITS       "0.5dBm/Hz"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "DPBOMUS defines the assumed Minimum Usable receive Signal PSD (in dBm/Hz) for 
+                 exchange based services, used to modify parameter DPBOFMAX defined below. It 
+                 shall be coded as an unsigned integer representing a PSD level from 0 dBm/Hz 
+                 (coded as 0) to -127.5 dBm/Hz (coded as 255) in steps of 0.5 dBm/Hz. 
+                 All values in the range are valid.
+                 Unit: 0.5dBm/Hz
+                " 
+            REFERENCE    "ITU-T G.997.1(200604), paragraph 7.3.1.2.13"
+            DEFVAL       { 180 }                      
+            ::= { hwadsl2LineConfProfEntry 17 }   
+          
+        hwadsl2LConfProfDpboFMin  OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..2048)
+            UNITS       "4.3125 KHz"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "DPBOFMIN defines the minimum frequency from which the DPBO shall be applied. 
+                 It shall be coded as a 16 bits unsigned integer representing a frequency in 
+                 multiple of 4.3125 KHz. The range of valid values is from 0 kHz (coded as 0)
+                 to 8832 kHz (coded as 2048).
+                 Unit: 4.3125 KHz
+                "  
+            REFERENCE    "ITU-T G.997.1(200604), paragraph 7.3.1.2.13"
+            DEFVAL       { 0 }            
+            ::= { hwadsl2LineConfProfEntry 18 }        
+          
+        hwadsl2LConfProfDpboFMax  OBJECT-TYPE
+            SYNTAX      Unsigned32 (32..6956)
+            UNITS       "4.3125 KHz"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "DPBOFMAX defines the maximum frequency at which DPBO may be applied. It shall be
+                 coded as a 16 bits unsigned integer representing a frequency in multiple of 4.3125 KHz. 
+                 The range of valid values is from 138 kHz (coded as 32) to 29997.75 kHz (coded as 6956).
+                 Unit: 4.3125 KHz
+                "  
+            REFERENCE    "ITU-T G.997.1(200604), paragraph 7.3.1.2.13" 
+            DEFVAL       { 511 }                     
+            ::= { hwadsl2LineConfProfEntry 19 }
+        
+--              hwadsl2ChConfProfileTable         
+        hwadsl2ChConfProfileTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  Hwadsl2ChConfProfileEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2ChConfProfileTable contains huawei private ADSL2 channel
+                 profile configuration.
+                 Entries in this table MUST be maintained in a persistent manner.
+                 The index of this table is adsl2ChConfProfProfileName.
+                "
+            ::= { hwadsl2ProfileChannel 1 }
+        
+        hwadsl2ChConfProfileEntry  OBJECT-TYPE
+            SYNTAX      Hwadsl2ChConfProfileEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2ChConfProfileTable contains huawei private ADSL2 channel
+                 profile configuration.
+                 Entries in this table MUST be maintained in a persistent manner.
+                 The index of this entry is adsl2ChConfProfProfileName.
+                "
+            INDEX  { IMPLIED adsl2ChConfProfProfileName }
+            ::= { hwadsl2ChConfProfileTable 1 }
+        
+        Hwadsl2ChConfProfileEntry  ::=
+            SEQUENCE 
+                {
+                hwadsl2ChConfProfDataPathMode         Adsl2DataPathMode,
+                hwadsl2ChConfProfErasureDecoding      Adsl2ProfSwitchType,
+                hwadsl2ChConfProfPhyRcontrolDs        Adsl2PhyRControl,
+                hwadsl2ChConfProfPhyRcontrolUs        Adsl2PhyRControl,
+                hwadsl2ChConfProfInpMaxDs             Adsl2SymbolProtection,     
+                hwadsl2ChConfProfInpMaxUs             Adsl2SymbolProtection,
+                hwadsl2ChConfProfMinRtxRatioDs        Unsigned32,
+                hwadsl2ChConfProfMinRtxRatioUs        Unsigned32,
+                hwadsl2ChConfProfMinRSoverheadDs      Unsigned32,
+                hwadsl2ChConfProfMinRSoverheadUs      Unsigned32
+                
+                }    
+          
+        hwadsl2ChConfProfDataPathMode  OBJECT-TYPE
+            SYNTAX      Adsl2DataPathMode
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "The channel data path mode.
+                 Options:
+                 1. atm(1)  - ATM data path
+                 2. ptm(2)  - PTM data path 
+                 3. both(3) - ATM and PTM data path
+                 Huawei defined.
+                "
+            DEFVAL       { both }
+            ::= { hwadsl2ChConfProfileEntry 1 }   
+          
+        hwadsl2ChConfProfErasureDecoding  OBJECT-TYPE
+            SYNTAX      Adsl2ProfSwitchType
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "Enable or disable the erasure decoding of a channel.
+                 Options:
+                 1. enable(1)  - Open the erasure decoding of a channel
+                 2. disable(2) - Close the erasure decoding of a channel
+                "
+            DEFVAL       { disable }
+            ::= { hwadsl2ChConfProfileEntry 2 }   
+          
+        hwadsl2ChConfProfPhyRcontrolDs  OBJECT-TYPE
+            SYNTAX      Adsl2PhyRControl
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "To enable or disable the retransmission function of downstream PHY-R.
+                 Options:
+                 1. enable(1)  - Enable the retransmission function of downstream PHY-R
+                 2. disable(2) - Disable the retransmission function of downstream PHY-R
+                " 
+            DEFVAL       { disable }
+            ::= { hwadsl2ChConfProfileEntry 3 }
+          
+        hwadsl2ChConfProfPhyRcontrolUs  OBJECT-TYPE
+            SYNTAX      Adsl2PhyRControl
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "To enable or disable the retransmission function of upstream PHY-R.
+                 Options:
+                 1. enable(1)  - Enable the retransmission function of upstream PHY-R
+                 2. disable(2) - Disable the retransmission function of upstream PHY-R
+                " 
+            DEFVAL       { disable }
+            ::= { hwadsl2ChConfProfileEntry 4 }
+          
+        hwadsl2ChConfProfInpMaxDs  OBJECT-TYPE
+            SYNTAX      Adsl2SymbolProtection
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "Maximum Impulse Noise Protection on downstream direction."
+            ::= { hwadsl2ChConfProfileEntry 5 }
+          
+        hwadsl2ChConfProfInpMaxUs  OBJECT-TYPE
+            SYNTAX      Adsl2SymbolProtection
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "Maximum Impulse Noise Protection on upstream direction."
+            ::= { hwadsl2ChConfProfileEntry 6 }
+          
+        hwadsl2ChConfProfMinRtxRatioDs  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..255)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object is used to config the minimum retransmission band width parameter downstream."
+            ::= { hwadsl2ChConfProfileEntry 7 }
+          
+        hwadsl2ChConfProfMinRtxRatioUs  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..255)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object is used to config the minimum retransmission band width parameter upstream."
+            ::= { hwadsl2ChConfProfileEntry 8 }
+          
+        hwadsl2ChConfProfMinRSoverheadDs  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..128)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object is used to config the minimum RSoverhead parameter downstream."
+            ::= { hwadsl2ChConfProfileEntry 9 }
+        
+        hwadsl2ChConfProfMinRSoverheadUs  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..128)
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "This object is used to config the minimum RSoverhead parameter upstream."
+            ::= { hwadsl2ChConfProfileEntry 10 }
+         
+--              PM current counters                 
+          
+--              PM line current counters     
+        hwadsl2PMLineCurrTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  Hwadsl2PMLineCurrEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMLineCurrTable contains current Performance
+                 Monitoring results of ADSL2 line.
+                 The PM counters in the table are not reset even when the xtU
+                 is reinitialized. They are re-initialized only when the
+                 agent itself is reset or reinitialized. 
+                 The indexes of this table are ifIndex and adsl2PMLCurrUnit.
+                "
+            ::= { hwadsl2PMLine 1 }
+        
+        hwadsl2PMLineCurrEntry  OBJECT-TYPE
+            SYNTAX      Hwadsl2PMLineCurrEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMLineCurrTable contains current Performance
+                 Monitoring results of ADSL2 line.
+                 The PM counters in the table are not reset even when the xtU
+                 is reinitialized. They are re-initialized only when the
+                 agent itself is reset or reinitialized. 
+                 The indexes of this entry are ifIndex and adsl2PMLCurrUnit.
+                "
+            INDEX  { ifIndex, adsl2PMLCurrUnit }
+            ::= { hwadsl2PMLineCurrTable 1 }
+        
+        Hwadsl2PMLineCurrEntry  ::=
+            SEQUENCE 
+                {
+                hwadsl2PMLCurr15MInmainpeq      OCTET STRING,
+                hwadsl2PMLCurr15MInmame         Counter32,
+                hwadsl2PMLCurr15MInmaiat        OCTET STRING,
+                hwadsl2PMLCurr1DayInmainpeq     OCTET STRING,  
+                hwadsl2PMLCurr1DayInmame        Counter32,
+                hwadsl2PMLCurr1DayInmaiat       OCTET STRING,
+                hwadsl2PMLEverBeforeInmainpeq   OCTET STRING,
+                hwadsl2PMLEverBeforeInmame      Counter32,
+                hwadsl2PMLEverBeforeInmaiat     OCTET STRING,
+                hwadsl2PMLEverBeforeFecs        Counter32,
+                hwadsl2PMLEverBeforeEs          Counter32,
+                hwadsl2PMLEverBeforeSes         Counter32,
+                hwadsl2PMLEverBeforeLoss        Counter32,
+                hwadsl2PMLEverBeforeUas         Counter32,
+                hwadsl2PMLCurr15MStartTime      DateAndTime,
+                hwadsl2PMLCurr1DayStartTime     DateAndTime,
+                hwadsl2PMLCurr15MLofs           Counter32,
+                hwadsl2PMLCurr15MLols           Counter32,
+                hwadsl2PMLCurr15MLops           Counter32,
+                hwadsl2PMLCurr1DayLofs          Counter32,
+                hwadsl2PMLCurr1DayLols          Counter32,
+                hwadsl2PMLCurr1DayLops          Counter32,
+                hwadsl2PMLEverBeforeLofs        Counter32,
+                hwadsl2PMLEverBeforeLols        Counter32,
+                hwadsl2PMLEverBeforeLops        Counter32,
+                hwadsl2PMLCurr15MLeftrs         Counter32,
+                hwadsl2PMLCurr15MEfb            Counter32, 
+                hwadsl2PMLCurr15MMinEftr        Counter32,
+                hwadsl2PMLCurr1DayLeftrs        Counter32,
+                hwadsl2PMLCurr1DayEfb           Counter32, 
+                hwadsl2PMLCurr1DayMinEftr       Counter32,
+                hwadsl2PMLEverBeforeLeftrs      Counter32,
+                hwadsl2PMLEverBeforeEfb         Counter32, 
+                hwadsl2PMLEverBeforeMinEftr     Counter32
+                } 
+          
+        hwadsl2PMLCurr15MInmainpeq  OBJECT-TYPE
+            SYNTAX      OCTET STRING  (SIZE(0..68))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This parameter is a count of the INMAINPEQi anomalies 
+                 occurring on the line during current 15 minutes.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrEntry 1 }        
+           
+        hwadsl2PMLCurr15MInmame  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This parameter is a count of the INMAME anomalies 
+                 occurring on the line during current 15 minutes.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrEntry 2 }    
+           
+        hwadsl2PMLCurr15MInmaiat  OBJECT-TYPE
+            SYNTAX      OCTET STRING  (SIZE(0..32))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This parameter is a count of the INMAIATi anomalies 
+                 occurring on the line during current 15 minutes.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrEntry 3 }    
+           
+        hwadsl2PMLCurr1DayInmainpeq  OBJECT-TYPE
+            SYNTAX      OCTET STRING  (SIZE(0..68))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This parameter is a count of the INMAINPEQi anomalies 
+                 occurring on the line during current 1 day.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrEntry 4 }    
+           
+        hwadsl2PMLCurr1DayInmame  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This parameter is a count of the INMAME anomalies 
+                 occurring on the line during current 1 day.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrEntry 5 }    
+           
+        hwadsl2PMLCurr1DayInmaiat  OBJECT-TYPE
+            SYNTAX      OCTET STRING  (SIZE(0..32))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This parameter is a count of the INMAIATi anomalies 
+                 occurring on the line during current 1 day.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrEntry 6 }    
+           
+        hwadsl2PMLEverBeforeInmainpeq  OBJECT-TYPE
+            SYNTAX      OCTET STRING  (SIZE(0..68))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This parameter is a count of the INMAINPEQi anomalies 
+                 occurring on the line ever before.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrEntry 7 }    
+           
+        hwadsl2PMLEverBeforeInmame  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This parameter is a count of the INMAME anomalies 
+                 occurring on the line ever before.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrEntry 8 }    
+           
+        hwadsl2PMLEverBeforeInmaiat  OBJECT-TYPE
+            SYNTAX      OCTET STRING  (SIZE(0..32))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This parameter is a count of the INMAIATi anomalies 
+                 occurring on the line ever before.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrEntry 9 } 
+          
+        hwadsl2PMLEverBeforeFecs  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds since agent reset that there was at least
+                 one FEC correction event for one or more bearer channels in
+                 this line.  This parameter is inhibited during UAS or SES.
+                 Unit: seconds
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrEntry 10 }          
+        
+        hwadsl2PMLEverBeforeEs  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds since agent reset that there was:
+                 ATU-C: CRC-8 &gt;= 1 for one or more bearer channels OR
+                        LOS &gt;= 1 OR SEF &gt;= 1 OR LPR &gt;= 1
+                 ATU-R: FEBE &gt;= 1 for one or more bearer channels OR
+                        LOS-FE &gt;= 1 OR RDI &gt;= 1 OR LPR-FE &gt;= 1.
+                 This parameter is inhibited during UAS.
+                 Unit: seconds
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrEntry 11 }
+        
+        hwadsl2PMLEverBeforeSes  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds since agent reset that there was:
+                 ATU-C: (CRC-8 summed over all bearer channels) &gt;= 18 OR
+                        LOS &gt;= 1 OR SEF &gt;= 1 OR LPR &gt;= 1
+                 ATU-R: (FEBE summed over all bearer channels) &gt;= 18 OR
+                        LOS-FE &gt;= 1 OR RDI &gt;= 1 OR LPR-FE &gt;= 1
+                 This parameter is inhibited during UAS.
+                 Unit: seconds
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrEntry 12 }
+        
+        hwadsl2PMLEverBeforeLoss  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds since agent reset that there was LOS (or
+                 LOS-FE for ATU-R).
+                 Unit: seconds
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrEntry 13 }
+        
+        hwadsl2PMLEverBeforeUas  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds in Unavailability State since agent reset.
+                 Unavailability begins at the onset of 10 contiguous severely
+                 -errored seconds, and ends at the onset of 10 contiguous
+                 seconds with no severely-errored seconds.
+                 Unit: seconds
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrEntry 14 }         
+        
+        hwadsl2PMLCurr15MStartTime  OBJECT-TYPE
+            SYNTAX      DateAndTime
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Start time of the current 15-minute performance statistics."
+            ::= { hwadsl2PMLineCurrEntry 15 }   
+           
+        hwadsl2PMLCurr1DayStartTime  OBJECT-TYPE
+            SYNTAX      DateAndTime
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Start time of the current 1-day performance statistics."
+            ::= { hwadsl2PMLineCurrEntry 16 }
+          
+        hwadsl2PMLCurr15MLofs  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds in the current 15 minute interval when there was Loss of Framing.
+                 Unit: seconds
+                "
+            ::= { hwadsl2PMLineCurrEntry 17 }
+          
+        hwadsl2PMLCurr15MLols  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds in the current 15 minute interval when there was Loss of Link.
+                 Unit: seconds
+                "
+            ::= { hwadsl2PMLineCurrEntry 18 }
+        
+        hwadsl2PMLCurr15MLops  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds in the current 15 minute interval when there was Loss of Power.
+                 Unit: seconds
+                "
+            ::= { hwadsl2PMLineCurrEntry 19 }
+                  
+        hwadsl2PMLCurr1DayLofs  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of the number of seconds when there was Loss of Framing during the current day.
+                 Unit: seconds
+                "
+            ::= { hwadsl2PMLineCurrEntry 20 }
+        
+        hwadsl2PMLCurr1DayLols  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of the number of seconds when there was Loss of Link during the current day.
+                 Unit: seconds
+                "
+            ::= { hwadsl2PMLineCurrEntry 21 }
+        
+        hwadsl2PMLCurr1DayLops  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of the number of seconds when there was Loss of Power during the current day.
+                 Unit: seconds
+                "
+            ::= { hwadsl2PMLineCurrEntry 22 }
+        
+        hwadsl2PMLEverBeforeLofs  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of the number of seconds when there was Loss of Framing since agent reset.
+                 Unit: seconds
+                "
+            ::= { hwadsl2PMLineCurrEntry 23 }
+        
+        hwadsl2PMLEverBeforeLols  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of the number of seconds when there was Loss of Link since agent reset.
+                 Unit: seconds
+                "
+            ::= { hwadsl2PMLineCurrEntry 24 }
+        
+        hwadsl2PMLEverBeforeLops  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of the number of seconds when there was Loss of Power since agent reset.
+                 Unit: seconds
+                "
+            ::= { hwadsl2PMLineCurrEntry 25 }             
+            
+         hwadsl2PMLCurr15MLeftrs     OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "If retransmission is used in a given transmit direction, this parameter 
+                 is a count of the seconds with a near-end leftr defect present observed 
+                 over the 15 minutes accumulation period.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1.1.6 7.2.1.2.6"    
+            ::= { hwadsl2PMLineCurrEntry 26 }
+                          
+        hwadsl2PMLCurr15MEfb        OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "If retransmission is used in a given transmit direction, this parameter 
+                 is a count of the number of error-free bits observed over the 15 minutes
+                 accumulation period.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1.1.7 7.2.1.2.7"      
+            ::= { hwadsl2PMLineCurrEntry 27 } 
+            
+        hwadsl2PMLCurr15MMinEftr    OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "If retransmission is used in a given transmit direction, this parameter 
+                 reports the minimum of the EFTR(Error-free throughput rate) observed 
+                 over the 15 minutes accumulation period.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1.1.8 7.2.1.2.8"      
+            ::= { hwadsl2PMLineCurrEntry 28 } 
+            
+        hwadsl2PMLCurr1DayLeftrs    OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "If retransmission is used in a given transmit direction, this parameter 
+                 is a count of the seconds with a near-end leftr defect present observed 
+                 over the 24 hours accumulation period.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1.1.6 7.2.1.2.6"      
+            ::= { hwadsl2PMLineCurrEntry 29 } 
+            
+        hwadsl2PMLCurr1DayEfb       OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "If retransmission is used in a given transmit direction, this parameter 
+                 is a count of the number of error-free bits observed over the 24 hours 
+                 accumulation period.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1.1.7 7.2.1.2.7"      
+            ::= { hwadsl2PMLineCurrEntry 30 } 
+            
+        hwadsl2PMLCurr1DayMinEftr   OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "If retransmission is used in a given transmit direction, this parameter 
+                 reports the minimum of the EFTR(Error-free throughput rate) observed 
+                 over the 24 hours accumulation period.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1.1.8 7.2.1.2.8"      
+            ::= { hwadsl2PMLineCurrEntry 31} 
+            
+        hwadsl2PMLEverBeforeLeftrs  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "If retransmission is used in a given transmit direction, this parameter 
+                 is a count of the seconds with a near-end leftr defect present observed 
+                 ever before.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1.1.6 7.2.1.2.6"  
+            ::= { hwadsl2PMLineCurrEntry 32 } 
+            
+        hwadsl2PMLEverBeforeEfb     OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "If retransmission is used in a given transmit direction, this parameter 
+                 is a count of the number of error-free bits observed ever before.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1.1.7 7.2.1.2.7"      
+            ::= { hwadsl2PMLineCurrEntry 33 } 
+            
+        hwadsl2PMLEverBeforeMinEftr OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "If retransmission is used in a given transmit direction, this parameter 
+                 reports the minimum of the EFTR(Error-free throughput rate) observed 
+                 ever before.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1.1.7 7.2.1.2.7"      
+            ::= { hwadsl2PMLineCurrEntry 34 } 
+                            
+--            PM line Hist15Min counters      
+        hwadsl2PMLineHist15MinTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  Hwadsl2PMLineHist15MinEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMLineHist15MinTable contains Performance
+                 Monitoring results of ADSL2 line at last 15 minutes.
+                 The PM counters in the table are not reset even when the xtU
+                 is reinitialized. They are re-initialized only when the
+                 agent itself is reset or reinitialized.
+                 The indexes of this table are ifIndex, adsl2PMLHist15MUnit and adsl2PMLHist15MInterval.
+                "
+            ::= { hwadsl2PMLine 2 }
+        
+        hwadsl2PMLineHist15MinEntry  OBJECT-TYPE
+            SYNTAX      Hwadsl2PMLineHist15MinEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMLineHist15MinTable contains Performance
+                 Monitoring results of ADSL2 line at last 15 minutes.
+                 The PM counters in the table are not reset even when the xtU
+                 is reinitialized. They are re-initialized only when the
+                 agent itself is reset or reinitialized. 
+                 The indexes of this entry are ifIndex, adsl2PMLHist15MUnit and adsl2PMLHist15MInterval.
+                "
+            INDEX  { ifIndex, adsl2PMLHist15MUnit, adsl2PMLHist15MInterval }
+            ::= { hwadsl2PMLineHist15MinTable 1 }
+        
+        Hwadsl2PMLineHist15MinEntry  ::=
+            SEQUENCE 
+                {
+                hwadsl2PMLHist15MInmainpeq     OCTET STRING,
+                hwadsl2PMLHist15MInmame        Counter32,
+                hwadsl2PMLHist15MInmaiat       OCTET STRING,
+                hwadsl2PMLHist15MStartTime     DateAndTime,
+                hwadsl2PMLHist15MLofs          Counter32,
+                hwadsl2PMLHist15MLols          Counter32,
+                hwadsl2PMLHist15MLops          Counter32,
+                hwadsl2PMLHist15MLeftrs        Counter32,
+                hwadsl2PMLHist15MEfb           Counter32, 
+                hwadsl2PMLHist15MMinEftr       Counter32
+                }       
+          
+        hwadsl2PMLHist15MInmainpeq  OBJECT-TYPE
+            SYNTAX      OCTET STRING  (SIZE(0..68))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This parameter is a count of the INMAINPEQi anomalies 
+                 occurring on the line at last 15 minutes.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineHist15MinEntry 1 }        
+           
+        hwadsl2PMLHist15MInmame  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This parameter is a count of the INMAME anomalies 
+                 occurring on the line at last 15 minutes.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineHist15MinEntry 2}    
+           
+        hwadsl2PMLHist15MInmaiat  OBJECT-TYPE
+            SYNTAX      OCTET STRING  (SIZE(0..32))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This parameter is a count of the INMAIATi anomalies 
+                 occurring on the line at last 15 minutes.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineHist15MinEntry 3}    
+           
+        hwadsl2PMLHist15MStartTime  OBJECT-TYPE
+            SYNTAX      DateAndTime
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Start time of the historical 15-minute performance statistics."
+            ::= { hwadsl2PMLineHist15MinEntry 4 }
+          
+        hwadsl2PMLHist15MLofs  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds in the interval when there was Loss of Framing.
+                 Unit: seconds
+                "
+            ::= { hwadsl2PMLineHist15MinEntry 5 }
+          
+        hwadsl2PMLHist15MLols  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds in the interval when there was Loss of Link.
+                 Unit: seconds
+                "
+            ::= { hwadsl2PMLineHist15MinEntry 6 }
+          
+        hwadsl2PMLHist15MLops  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds in the interval when there was Loss of Power.
+                 Unit: seconds
+                "
+            ::= { hwadsl2PMLineHist15MinEntry 7 }  
+            
+        hwadsl2PMLHist15MLeftrs     OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "If retransmission is used in a given transmit direction, this parameter 
+                 is a count of the seconds with a near-end leftr defect present observed 
+                 over the 15 minutes accumulation period.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1.1.6 7.2.1.2.6"      
+            ::= { hwadsl2PMLineHist15MinEntry 8 }
+                          
+        hwadsl2PMLHist15MEfb        OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "If retransmission is used in a given transmit direction, this parameter 
+                 is a count of the number of error-free bits observed over the 15 minutes
+                 accumulation period.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1.1.7 7.2.1.2.7"      
+            ::= { hwadsl2PMLineHist15MinEntry 9 } 
+            
+        hwadsl2PMLHist15MMinEftr    OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "If retransmission is used in a given transmit direction, this parameter 
+                 reports the minimum of the EFTR(Error-free throughput rate) observed 
+                 over the 15 minutes accumulation period.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1.1.8 7.2.1.2.8"      
+            ::= { hwadsl2PMLineHist15MinEntry 10 } 
+                                  
+--            PM lineHist1Day counters      
+        hwadsl2PMLineHist1DayTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  Hwadsl2PMLineHist1DayEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMLineHist1DayTable contains Performance
+                 Monitoring results of ADSL2 line at last 1 day.
+                 The PM counters in the table are not reset even when the xtU
+                 is reinitialized. They are re-initialized only when the
+                 agent itself is reset or reinitialized.
+                 The indexes of this table are ifIndex, adsl2PMLHist1DUnit and adsl2PMLHist1DInterval.
+                "
+            ::= { hwadsl2PMLine 3 }
+        
+        hwadsl2PMLineHist1DayEntry  OBJECT-TYPE
+            SYNTAX      Hwadsl2PMLineHist1DayEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMLineHist1DayTable contains Performance
+                 Monitoring results of ADSL2 line at last 1 day.
+                 The PM counters in the table are not reset even when the xtU
+                 is reinitialized. They are re-initialized only when the
+                 agent itself is reset or reinitialized. 
+                 The indexes of this entry are ifIndex, adsl2PMLHist1DUnit and adsl2PMLHist1DInterval.
+                "
+            INDEX  { ifIndex, adsl2PMLHist1DUnit, adsl2PMLHist1DInterval }
+            ::= { hwadsl2PMLineHist1DayTable 1 }
+        
+        Hwadsl2PMLineHist1DayEntry  ::=
+            SEQUENCE 
+                {
+                hwadsl2PMLHist1DayInmainpeq     OCTET STRING,
+                hwadsl2PMLHist1DayInmame        Counter32,
+                hwadsl2PMLHist1DayInmaiat       OCTET STRING,
+                hwadsl2PMLHist1DayStartTime     DateAndTime,
+                hwadsl2PMLHist1DayLofs          Counter32,
+                hwadsl2PMLHist1DayLols          Counter32,
+                hwadsl2PMLHist1DayLops          Counter32,
+                hwadsl2PMLHist1DLeftrs          Counter32,
+                hwadsl2PMLHist1DEfb             Counter32, 
+                hwadsl2PMLHist1DMinEftr         Counter32
+                }       
+          
+        hwadsl2PMLHist1DayInmainpeq  OBJECT-TYPE
+            SYNTAX      OCTET STRING  (SIZE(0..68))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This parameter is a count of the INMAINPEQi anomalies 
+                 occurring on the line at last 1 day.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineHist1DayEntry 1 }        
+           
+        hwadsl2PMLHist1DayInmame  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This parameter is a count of the INMAME anomalies 
+                 occurring on the line at last 1 day.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineHist1DayEntry 2 }    
+           
+        hwadsl2PMLHist1DayInmaiat  OBJECT-TYPE
+            SYNTAX      OCTET STRING  (SIZE(0..32))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This parameter is a count of the INMAIATi anomalies 
+                 occurring on the line at last 1 day.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineHist1DayEntry 3 } 
+           
+        hwadsl2PMLHist1DayStartTime  OBJECT-TYPE
+            SYNTAX      DateAndTime
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Start time of the historical 1-day performance statistics."
+            ::= { hwadsl2PMLineHist1DayEntry 4 }
+          
+        hwadsl2PMLHist1DayLofs  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds during this interval that there was Loss of Framing.
+                 Unit: seconds
+                "
+            ::= { hwadsl2PMLineHist1DayEntry 5 }
+        
+        hwadsl2PMLHist1DayLols  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds during this interval that there was Loss of Link.
+                 Unit: seconds
+                "
+            ::= { hwadsl2PMLineHist1DayEntry 6 }
+        
+        hwadsl2PMLHist1DayLops  OBJECT-TYPE
+            SYNTAX      Counter32
+            UNITS       "seconds"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of seconds during this interval that there was Loss of Power.
+                 Unit: seconds
+                "
+            ::= { hwadsl2PMLineHist1DayEntry 7 } 
+                      
+        hwadsl2PMLHist1DLeftrs     OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "If retransmission is used in a given transmit direction, this parameter 
+                 is a count of the seconds with a near-end leftr defect present observed 
+                 over the 24 hours accumulation period.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1.1.6 7.2.1.2.6"      
+            ::= { hwadsl2PMLineHist1DayEntry 8 }
+                          
+        hwadsl2PMLHist1DEfb        OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "If retransmission is used in a given transmit direction, this parameter 
+                 is a count of the number of error-free bits observed over the 24 hours 
+                 accumulation period.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1.1.7 7.2.1.2.7"      
+            ::= { hwadsl2PMLineHist1DayEntry 9 } 
+            
+        hwadsl2PMLHist1DMinEftr    OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "If retransmission is used in a given transmit direction, this parameter 
+                 reports the minimum of the EFTR(Error-free throughput rate) observed 
+                 over the 24 hours accumulation period.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1.1.8 7.2.1.2.8"      
+            ::= { hwadsl2PMLineHist1DayEntry 10 }  
+                    
+--            PM lineCurrInit counters             
+        hwadsl2PMLineCurrInitTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  Hwadsl2PMLineCurrInitEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMLineCurrInitTable contains current
+                 initialization counters of the ADSL2 line.
+                 The PM counters in the table are not reset even when the XTU
+                 is reinitialized.  They are reinitialized only when the
+                 agent itself is reset or reinitialized.
+                 The index of this table is ifIndex.
+                "
+            ::= { hwadsl2PMLine 4 }
+        
+        hwadsl2PMLineCurrInitEntry  OBJECT-TYPE
+            SYNTAX      Hwadsl2PMLineCurrInitEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMLineCurrInitTable contains current
+                 initialization counters of the ADSL2 line.
+                 The PM counters in the table are not reset even when the XTU
+                 is reinitialized.  They are reinitialized only when the
+                 agent itself is reset or reinitialized.
+                 The index of this entry is ifIndex.
+                "
+            INDEX  { ifIndex }
+            ::= { hwadsl2PMLineCurrInitTable 1 }
+        
+        Hwadsl2PMLineCurrInitEntry  ::=
+            SEQUENCE 
+                {
+                hwadsl2PMLInitEverBeforeFullInits          Unsigned32,
+                hwadsl2PMLInitEverBeforeFailedFullInits    Unsigned32,
+                hwadsl2PMLInitEverBeforeShortInits         Unsigned32,
+                hwadsl2PMLInitEverBeforeFailedShortInits   Unsigned32,
+                hwadsl2PMLineCurrInit15MStartTime          DateAndTime,
+                hwadsl2PMLineCurrInit1DayStartTime         DateAndTime
+                }        
+        hwadsl2PMLInitEverBeforeFullInits  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of full initializations attempted on the line
+                 (successful and failed) since agent reset.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrInitEntry 1 }
+        
+        hwadsl2PMLInitEverBeforeFailedFullInits  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of failed full initializations on the line since agent 
+                 reset.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrInitEntry 2 }
+        
+        hwadsl2PMLInitEverBeforeShortInits  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of short initializations attempted on the line
+                 (successful and failed) since agent reset.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrInitEntry 3 }
+        
+        hwadsl2PMLInitEverBeforeFailedShortInits  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of failed short initializations on the line since agent 
+                 reset.
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.1"
+            ::= { hwadsl2PMLineCurrInitEntry 4 }     
+                 
+        hwadsl2PMLineCurrInit15MStartTime  OBJECT-TYPE
+            SYNTAX      DateAndTime
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Start time of the current init 15-minute performance statistics."
+            ::= { hwadsl2PMLineCurrInitEntry 5 }   
+           
+        hwadsl2PMLineCurrInit1DayStartTime  OBJECT-TYPE
+            SYNTAX      DateAndTime
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Start time of the current init 1-day performance statistics."
+            ::= { hwadsl2PMLineCurrInitEntry 6 }         
+--            PM lineInitHist15Min counters         
+        hwadsl2PMLineInitHist15MinTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  Hwadsl2PMLineInitHist15MinEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMLineInitHist15MinTable contains Performance
+                 Monitoring results of ADSL2 line initialize at last 15 minutes.
+                 The PM counters in the table are not reset even when the xtU
+                 is reinitialized. They are re-initialized only when the
+                 agent itself is reset or reinitialized.
+                 The indexes of this table are ifIndex and adsl2PMLHistInit15MInterval.
+                "
+            ::= { hwadsl2PMLine 5 }
+        
+        hwadsl2PMLineInitHist15MinEntry  OBJECT-TYPE
+            SYNTAX      Hwadsl2PMLineInitHist15MinEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMLineInitHist15MinTable contains Performance
+                 Monitoring results of ADSL2 line initialize at last 15 minutes.
+                 The PM counters in the table are not reset even when the xtU
+                 is reinitialized. They are re-initialized only when the
+                 agent itself is reset or reinitialized. 
+                 The indexes of this entry are ifIndex and adsl2PMLHistInit15MInterval.
+                "
+            INDEX  { ifIndex, adsl2PMLHistInit15MInterval }
+            ::= { hwadsl2PMLineInitHist15MinTable 1 }
+        
+        Hwadsl2PMLineInitHist15MinEntry  ::=
+            SEQUENCE 
+                {
+                hwadsl2PMLineInitHist15MinStartTime   DateAndTime
+                }        
+           
+        hwadsl2PMLineInitHist15MinStartTime  OBJECT-TYPE
+            SYNTAX      DateAndTime
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Start time of the historical init 15-minute performance statistics."
+            ::= { hwadsl2PMLineInitHist15MinEntry 1 }       
+--            PM lineInitHist1Day counters          
+        hwadsl2PMLineInitHist1DayTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  Hwadsl2PMLineInitHist1DayEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMLineInitHist1DayTable contains Performance
+                 Monitoring results of ADSL2 line initialize at last one day.
+                 The indexes of this table are ifIndex and adsl2PMLHistinit1DInterval.
+                "
+            ::= { hwadsl2PMLine 6 }
+        
+        hwadsl2PMLineInitHist1DayEntry  OBJECT-TYPE
+            SYNTAX      Hwadsl2PMLineInitHist1DayEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMLineInitHist1DayTable contains Performance
+                 Monitoring results of ADSL2 line initialize at last one day. 
+                 The indexes of this entry are ifIndex and adsl2PMLHistinit1DInterval.
+                "
+            INDEX  { ifIndex, adsl2PMLHistinit1DInterval  }
+            ::= { hwadsl2PMLineInitHist1DayTable 1 }
+        
+        Hwadsl2PMLineInitHist1DayEntry  ::=
+            SEQUENCE 
+                {
+                hwadsl2PMLineInitHist1DayStartTime   DateAndTime
+                }        
+           
+        hwadsl2PMLineInitHist1DayStartTime  OBJECT-TYPE
+            SYNTAX      DateAndTime
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Start time of the historical init 1-day performance statistics."
+            ::= { hwadsl2PMLineInitHist1DayEntry 1 }     
+--              PM channel current counters            
+        hwadsl2PMChCurrTable        OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  Hwadsl2PMChCurrEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMChCurrTable contains some extended current 
+                 Performance Monitoring results of the ADSL2 channel.
+                 The PM counters in the table are not reset even when the XTU
+                 is reinitialized. They are reinitialized only when the
+                 agent itself is reset or reinitialized.
+                 The indexes of this table are ifIndex and adsl2PMChCurrUnit.
+                "
+            ::= { hwadsl2PMChannel 1 }
+        
+        hwadsl2PMChCurrEntry  OBJECT-TYPE
+            SYNTAX      Hwadsl2PMChCurrEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMChCurrTable contains some extended current 
+                 Performance Monitoring results of the ADSL2 channel.
+                 The PM counters in the table are not reset even when the XTU
+                 is reinitialized. They are reinitialized only when the
+                 agent itself is reset or reinitialized.
+                 The indexes of this entry are ifIndex and adsl2PMChCurrUnit.
+                "
+            INDEX  { ifIndex, adsl2PMChCurrUnit }
+            ::= { hwadsl2PMChCurrTable 1 }
+        
+        Hwadsl2PMChCurrEntry  ::=
+            SEQUENCE 
+                {
+                hwadsl2PMChCurr15MRtxCW                Counter32,
+                hwadsl2PMChCurr15MRtxCorrectedCW       Counter32,
+                hwadsl2PMChCurr15MRtxUncorrectedCW     Counter32,
+                hwadsl2PMChCurr1DayRtxCW               Counter32,
+                hwadsl2PMChCurr1DayRtxCorrectedCW      Counter32,
+                hwadsl2PMChCurr1DayRtxUncorrectedCW    Counter32,
+                hwadsl2PMChEverBeforeRtxCW             Counter32,
+                hwadsl2PMChEverBeforeRtxCorrectedCW    Counter32,
+                hwadsl2PMChEverBeforeRtxUncorrectedCW  Counter32,
+                hwadsl2PMChEverBeforeCodingViolations  Unsigned32,
+                hwadsl2PMChEverBeforeCorrectedBlocks   Unsigned32,
+                hwadsl2PMChCur15MStartTime             DateAndTime,
+                hwadsl2PMChCur1DayStartTime            DateAndTime
+      }
+        
+        hwadsl2PMChCurr15MRtxCW OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of units request retransmission on this
+                 channel within the current 15 minute interval.
+                "
+            ::= { hwadsl2PMChCurrEntry 1 }
+        
+        hwadsl2PMChCurr15MRtxCorrectedCW OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of units corrected by retransmission on this
+                 channel within the current 15 minute interval.
+                "
+            ::= { hwadsl2PMChCurrEntry 2 }
+        
+        hwadsl2PMChCurr15MRtxUncorrectedCW OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of units uncorrected by retransmission on
+                 this channel within the current 15 minute interval.
+                "
+            ::= { hwadsl2PMChCurrEntry 3 }
+        
+        hwadsl2PMChCurr1DayRtxCW OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of units request retransmission on
+                 this channel during the current day.
+                "
+            ::= { hwadsl2PMChCurrEntry 4 }
+        
+        hwadsl2PMChCurr1DayRtxCorrectedCW OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of units corrected by retransmission
+                 on this channel during the current day.
+                "
+            ::= { hwadsl2PMChCurrEntry 5 }
+        
+        hwadsl2PMChCurr1DayRtxUncorrectedCW OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of units uncorrected by retransmission
+                 on this channel during the current day.
+                "
+            ::= { hwadsl2PMChCurrEntry 6 } 
+        
+        hwadsl2PMChEverBeforeRtxCW OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of units request retransmission on
+                 this channel ever before.
+                "
+            ::= { hwadsl2PMChCurrEntry 7 } 
+          
+        hwadsl2PMChEverBeforeRtxCorrectedCW OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of units corrected by retransmission
+                 on this channel ever before.
+                "
+            ::= { hwadsl2PMChCurrEntry 8 }
+            
+        hwadsl2PMChEverBeforeRtxUncorrectedCW OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of units uncorrected by retransmission
+                 on this channel ever before.
+                "
+            ::= { hwadsl2PMChCurrEntry 9 } 
+          
+        hwadsl2PMChEverBeforeCodingViolations  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of CRC-8 (FEBE for ATU-R) anomalies occurring in the
+                 channel since agent reset.  This parameter is inhibited
+                 during UAS or SES.  If the CRC is applied over multiple
+                 channels, then each related CRC-8 (or FEBE) anomaly should
+                 increment each of the counters related to the individual
+                 channels.
+                "                 
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.2"
+            ::= { hwadsl2PMChCurrEntry 10 }  
+                                         
+        hwadsl2PMChEverBeforeCorrectedBlocks  OBJECT-TYPE
+            SYNTAX      Unsigned32         
+            MAX-ACCESS  read-only          
+            STATUS      current            
+            DESCRIPTION                    
+                "Count of FEC (FFEC for ATU-R) anomalies (corrected code words)
+                 occurring in the channel since agent reset.  This parameter
+                 is inhibited during UAS or SES.  If the FEC is applied over
+                 multiple channels, then each related FEC (or FFEC) anomaly
+                 should increment each of the counters related to the
+                 individual channels.
+                "      
+            REFERENCE    "ITU-T G.997.1, paragraph 7.2.2"
+            ::= { hwadsl2PMChCurrEntry 11 }
+        
+        hwadsl2PMChCur15MStartTime  OBJECT-TYPE
+            SYNTAX      DateAndTime
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Start time of the channel current 15-minute performance statistics."
+            ::= { hwadsl2PMChCurrEntry 12 }  
+          
+        hwadsl2PMChCur1DayStartTime  OBJECT-TYPE
+            SYNTAX      DateAndTime
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Start time of the channel current 1-day performance statistics."
+            ::= { hwadsl2PMChCurrEntry 13 }        
+        
+--          PM channel history 15 Minutes      
+        hwadsl2PMChHist15MinTable         OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  Hwadsl2PMChHist15MinEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMChHist15MinTable contains PM channel history
+                 for 15min intervals of the ADSL2 channel.
+                 The indexes of this table are ifIndex,adsl2PMChHist15MUnit and adsl2PMChHist15MInterval.
+                "
+            ::= { hwadsl2PMChannel 2 }
+        
+        hwadsl2PMChHist15MinEntry  OBJECT-TYPE
+            SYNTAX      Hwadsl2PMChHist15MinEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMChHist15MinTable contains PM channel history
+                 for 15min intervals of the ADSL2 channel.
+                 The indexes of this entry are ifIndex,adsl2PMChHist15MUnit and adsl2PMChHist15MInterval.
+                "
+            INDEX  
+                { 
+                ifIndex,
+                adsl2PMChHist15MUnit,
+                adsl2PMChHist15MInterval 
+                }
+            ::= { hwadsl2PMChHist15MinTable 1 }
+          
+        Hwadsl2PMChHist15MinEntry  ::=
+            SEQUENCE 
+                {     
+                hwadsl2PMChHist15MRtxCW                Counter32,
+                hwadsl2PMChHist15MRtxCorrectedCW       Counter32,
+                hwadsl2PMChHist15MRtxUncorrectedCW     Counter32,
+                hwadsl2PMChHist15MStartTime            DateAndTime
+                }
+        
+        hwadsl2PMChHist15MRtxCW OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of units request retransmission on
+                 this channel within the last 15 minutes interval.
+                "
+            ::= { hwadsl2PMChHist15MinEntry 1 } 
+            
+        hwadsl2PMChHist15MRtxCorrectedCW OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of units corrected by retransmission
+                 on this channel within the last 15 minutes interval.
+                "
+            ::= { hwadsl2PMChHist15MinEntry 2 }
+            
+        hwadsl2PMChHist15MRtxUncorrectedCW OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of units uncorrected by retransmission
+                 on this channel within the last 15 minutes interval.
+                "
+            ::= { hwadsl2PMChHist15MinEntry 3 }    
+          
+        hwadsl2PMChHist15MStartTime  OBJECT-TYPE
+            SYNTAX      DateAndTime
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Start time of the historical 15-minute performance statistics."
+            ::= { hwadsl2PMChHist15MinEntry 4 }  
+        
+--            PM channel history 1 Day      
+        hwadsl2PMChHist1DTable         OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  Hwadsl2PMChHist1DEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMChHist1DayTable contains some extended PM 
+                 channel history for 1-day intervals of ADSL2.
+                 The indexes of this table are ifIndex,adsl2PMChHist1DUnit and adsl2PMChHist1DInterval.
+                "
+            ::= { hwadsl2PMChannel 3 }
+        
+        hwadsl2PMChHist1DEntry  OBJECT-TYPE
+            SYNTAX      Hwadsl2PMChHist1DEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2PMChHist1DayTable contains some extended PM 
+                 channel history for 1-day intervals of ADSL2.
+                 The indexes of this entry are ifIndex,adsl2PMChHist1DUnit and adsl2PMChHist1DInterval.
+                "
+            INDEX  
+                { 
+                ifIndex,
+                adsl2PMChHist1DUnit,
+                adsl2PMChHist1DInterval 
+                }
+            ::= { hwadsl2PMChHist1DTable 1 }
+        
+        Hwadsl2PMChHist1DEntry  ::=
+            SEQUENCE 
+                {       
+                hwadsl2PMChHist1DRtxCW             Counter32,
+                hwadsl2PMChHist1DRtxCorrectedCW    Counter32,
+                hwadsl2PMChHist1DRtxUncorrectedCW  Counter32,
+                hwadsl2PMChHist1DStartTime         DateAndTime
+                }
+        
+        hwadsl2PMChHist1DRtxCW OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of units request retransmission on
+                 this channel within the last 1 day interval.
+                "
+            ::= { hwadsl2PMChHist1DEntry 1 } 
+            
+        hwadsl2PMChHist1DRtxCorrectedCW OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of units corrected by retransmission
+                 on this channel within the last 1 day interval.
+                "
+            ::= { hwadsl2PMChHist1DEntry 2 }
+            
+        hwadsl2PMChHist1DRtxUncorrectedCW OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Count of units uncorrected by retransmission
+                 on this channel within the last 1 day interval.
+                "
+            ::= { hwadsl2PMChHist1DEntry 3 }
+          
+        hwadsl2PMChHist1DStartTime  OBJECT-TYPE
+            SYNTAX      DateAndTime
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Start time of the historical 1-day performance statistics."
+            ::= { hwadsl2PMChHist1DEntry 4 } 
+          
+          
+          
+   --   hwadsl2LineTable  
+           
+        hwadsl2LineTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  Hwadsl2LineEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2LineTable contains configuration,
+                 command, and status parameters of the ADSL2 line.
+                 The index of this table is an interface index where the
+                 interface has an ifType of adsl2plus(238).  
+                 Several objects in this table MUST be maintained in a
+                 persistent manner.
+                "
+            ::= { hwadsl2Line  1 }       
+                    
+        hwadsl2LineEntry  OBJECT-TYPE
+            SYNTAX      Hwadsl2LineEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2LineTable contains configuration,
+                 command, and status parameters of the ADSL2 line.
+                 The index of this entry is an interface index where the
+                 interface has an ifType of adsl2plus(238).
+                 Several objects in this table MUST be maintained in a
+                 persistent manner.
+                "
+            INDEX  { ifIndex }
+            ::= { hwadsl2LineTable 1 }       
+        
+        
+        Hwadsl2LineEntry ::= 
+            SEQUENCE 
+                {
+                hwadsl2LineStatusCodingGainDsInfo       Unsigned32,
+                hwadsl2LineStatusCodingGainUsInfo       Unsigned32,
+                hwadsl2LineStatusPcbDsInfo              Unsigned32,
+                hwadsl2LineStatusPcbUsInfo              Unsigned32,
+                hwadsl2DynamicprofileInfo               OCTET STRING,
+                hwadsl2LineStatusInitResult             Hwadsl2InitResult,
+                hwadsl2LineStatusRtxUsedDs              Adsl2StatusRtxUsed,
+                hwadsl2LineStatusLastRetrainInfo        INTEGER,
+                hwadsl2LineStatusLineRateDs             Unsigned32,
+                hwadsl2LineStatusLineRateUs             Unsigned32
+                }
+        
+        hwadsl2LineStatusCodingGainDsInfo  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS       "0.5 dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The actual value of Coding gain upstream parameter,it ranges
+                 from 0 to 16 units of 0.5 dB.
+                 Unit: 0.5 dB
+                "
+            ::= { hwadsl2LineEntry 1 }
+          
+        hwadsl2LineStatusCodingGainUsInfo  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS       "0.5 dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The actual value of Coding gain downstream parameter,it ranges
+                 from 0 to 16 units of 0.5 dB.
+                 Unit: 0.5 dB
+                "
+            ::= { hwadsl2LineEntry 2 }
+          
+        hwadsl2LineStatusPcbDsInfo  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS       "tenth dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates Power Cut-back on downstream direction.
+                 It ranges from 0 to 400 units of 0.1 dB (physical values
+                 are 0 to 40 dB).
+                 Unit: tenth dB
+                "
+            ::= { hwadsl2LineEntry 3 }
+          
+        hwadsl2LineStatusPcbUsInfo  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS       "tenth dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates Power Cut-back on upstream direction.
+                 It ranges from 0 to 400 units of 0.1 dB (physical values
+ 	         are 0 to 40 dB) and the invalid value is 4294967295.
+ 	         Unit: tenth dB
+                "
+            ::= { hwadsl2LineEntry 4 }
+          
+        hwadsl2DynamicprofileInfo OBJECT-TYPE
+            SYNTAX      OCTET STRING (SIZE (0..32))
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "The value of this object identifies the row
+                 in the ADSL Dynamic Profile Table,which applies to this
+                 ADSL line, and channels if applicable. 
+                 NULL -Indicates that there is no Dynamic profile 
+                 bound to this port.
+                "
+            ::= { hwadsl2LineEntry 5 }
+        
+       hwadsl2LineStatusInitResult  OBJECT-TYPE
+            SYNTAX      Hwadsl2InitResult
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the result of the last full initialization performed
+                 on the line.                   
+                 Options:
+                 1. noFail(0)            - Successful initialization
+                 2. configError(1)       - Configuration failure
+                 3. configNotFeasible(2) - Configuration details not supported
+                 4. commFail(3)          - Communication failure
+                 5. noPeerXtu(4)         - Peer xTU not detected
+                 6. otherCause(5)        - Other initialization failure reason
+                 7. ginpNotSelected(6)   - G.998.4 Retransmission mode was not selected 
+                                           while RTX_MODE = FORCED or with RTX_MODE = RTX_TESTMODE
+                 8. invalidValue(-1)     - Invalid value
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.3"
+            ::= {  hwadsl2LineEntry 6 }    
+            
+        hwadsl2LineStatusRtxUsedDs OBJECT-TYPE
+            SYNTAX      Adsl2StatusRtxUsed
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "This parameter specifies whether G.998.4 retransmission 
+                 is used in a given transmit direction. 
+                 Options:
+                 1. rtxInuse(1)                             - RTX in use
+                 2. rtxUnusedModeForbidden(2)               - RTX not in use, due to RTX_MODE = FORBIDDEN
+                 3. rtxUnusedNotSupportedXtuc(3)            - RTX not in use, due to not supported by the XTU-C
+                 4. rtxUnusedNotSupportedXtur(4)            - RTX not in use, due to not supported by the XTU-R
+                 5. rtxUnusedNotSupportedXtucAndXtur(5)     - RTX not in use, due to not supported by the XTU-C and XTU-R
+                 6. invalidValue(-1)                        - Invalid value
+                "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.5.1.38"    
+            ::= { hwadsl2LineEntry 7 }  
+                                
+        hwadsl2LineStatusLastRetrainInfo  OBJECT-TYPE               
+           SYNTAX INTEGER 
+                     {
+                      none(1),
+                      cpe-l3-trigger(2),
+                      lom-us-trigger-dra(3),
+                      lom-ds-trigger-dra(4),
+                      cpe-never-answer-oam(5),
+                      cpe-no-more-answer-oam(6),
+                      persistent-ncd-us(7),
+                      persistent-ncd-ds(8),
+                      persistent-lcd-us(9),
+                      persistent-lcd-ds(10),
+                      l2-problem-co-drop(11),
+                      l2-problem-cpe-drop(12),
+                      bitswap-refused-us-co-drop(13),
+                      bitswap-refused-us-cpe-drop(14),
+                      channel-change-us-co-drop(15),
+                      channel-change-us-cpe-drop(16),
+                      noise-increase-us-co-drop(17),
+                      noise-increase-us-cpe-drop(18),
+                      bitswap-refused-ds-co-drop(19),
+                      bitswap-refused-ds-cpe-drop(20),
+                      channel-change-ds-co-drop(21),
+                      channel-change-ds-cpe-drop(22),
+                      noise-increase-ds-co-drop(23),
+                      noise-increase-ds-cpe-drop(24),
+                      lom-us-co-drop(25),
+                      lom-us-cpe-drop(26),
+                      lom-ds-co-drop(27),
+                      lom-ds-cpe-drop(28),
+                      sra-problem-us-co-drop(29),
+                      sra-problem-us-cpe-drop(30),
+                      sra-failed-us-co-drop(31),
+                      sra-failed-us-cpe-drop(32),
+                      sra-problem-ds-co-drop(33),
+                      sra-problem-ds-cpe-drop(34),
+                      sra-rejected-ds-co-drop(35),
+                      sra-rejected-ds-cpe-drop(36),
+                      bitswap-problem-us-co-drop(37),
+                      bitswap-problem-us-cpe-drop(38),
+                      bitswap-failed-us-co-drop(39),
+                      bitswap-failed-us-cpe-drop(40),
+                      bitswap-problem-ds-co-drop(41),
+                      bitswap-problem-ds-cpe-drop(42),
+                      bitswap-rejected-ds-co-drop(43),
+                      bitswap-rejected-ds-cpe-drop(44),
+                      cpe-switched-off(45),
+                      cpe-lost(46),
+                      co-reset(47),
+                      co-stop(48),
+                      unknown(49)
+                     }                      
+           MAX-ACCESS  read-only                                 
+           STATUS      current                                   
+           DESCRIPTION                                           
+              "Indicates the last retrained information performed on the line.                   
+               Options:
+               1. none(1)                           - No record is available                                                                                                       
+               2. cpe-l3-trigger(2)                 - The terminal initiates a low power consumption L3 request                                                                           
+               3. lom-us-trigger-dra(3)             - The upstream noise margin is smaller than the minimum noise margin in rate dynamic adjustment                                      
+               4. lom-ds-trigger-dra(4)             - The downstream noise margin is smaller than the minimum noise margin in rate dynamic adjustment                                    
+               5. cpe-never-answer-oam(5)           - No OAM response is received from the CPE all the time                                                                              
+               6. cpe-no-more-answer-oam(6)         - No OAM response is received from the CPE                                                                                           
+               7. persistent-ncd-us(7)              - Upstream continuous no cell delineation                                                                                                            
+               8. persistent-ncd-ds(8)              - Downstream continuous no cell delineation                                                                                                          
+               9. persistent-lcd-us(9)              - Upstream continuous loss of cell delineation                                                                                                            
+               10.persistent-lcd-ds(10)             - Downstream continuous loss of cell delineation                                                                                                          
+               11.l2-problem-co-drop(11)            - The CO is faulty during the switching from L0 to L2                                                                                
+               12.l2-problem-cpe-drop(12)           - The CPE is faulty during the switching from L0 to L2                                                                               
+               13.bitswap-refused-us-co-drop(13)    - The CO goes offline when the upstream bit swap fault occurs 10 times consecutively                                                 
+               14.bitswap-refused-us-cpe-drop(14)   - The CPE goes offline when the downstream bit swap fault occurs 10 times consecutively                                              
+               15.channel-change-us-co-drop(15)     - The CO goes offline when the upstream net rate changes                                                                             
+               16.channel-change-us-cpe-drop(16)    - The CPE goes offline when the upstream net rate changes                                                                            
+               17.noise-increase-us-co-drop(17)     - The CO goes offline when the upstream noise increases                                                                              
+               18.noise-increase-us-cpe-drop(18)    - The CPE goes offline when the upstream noise increases                                                                             
+               19.bitswap-refused-ds-co-drop(19)    - The CO goes offline when the downstream bit swap fault occurs 10 times consecutively                                               
+               20.bitswap-refused-ds-cpe-drop(20)   - The CPE goes offline when the downstream bit swap fault occurs 10 times consecutively                                              
+               21.channel-change-ds-co-drop(21)     - The CO goes offline when the downstream net rate changes                                                                           
+               22.channel-change-ds-cpe-drop(22)    - The CPE goes offline when the downstream net rate changes                                                                          
+               23.noise-increase-ds-co-drop(23)     - The CO goes offline when the downstream noise increases                                                                            
+               24.noise-increase-ds-cpe-drop(24)    - The CPE goes offline when the downstream noise increases                                                                           
+               25.lom-us-co-drop(25)                - The CO goes offline when the upstream noise margin is smaller than the minimum noise margin                                        
+               26.lom-us-cpe-drop(26)               - The CPE goes offline when the upstream noise margin is smaller than the minimum noise margin                                       
+               27.lom-ds-co-drop(27)                - The CO goes offline when the downstream noise margin is smaller than the minimum noise margin                                      
+               28.lom-ds-cpe-drop(28)               - The CPE goes offline when the downstream noise margin is smaller than the minimum noise margin                                     
+               29.sra-problem-us-co-drop(29)        - The CO goes offline when the upstream SRA is faulty                                                                                
+               30.sra-problem-us-cpe-drop(30)       - The CPE goes offline when the upstream SRA is faulty                                                                               
+               31.sra-failed-us-co-drop(31)         - The CO goes offline when the upstream SRA fails                                                                                    
+               32.sra-failed-us-cpe-drop(32)        - The CPE goes offline when the upstream SRA fails                                                                                   
+               33.sra-problem-ds-co-drop(33)        - The CO goes offline when the downstream SRA is fault                                                                               
+               34.sra-problem-ds-cpe-drop(34)       - The CPE goes offline when the downstream SRA is faulty                                                                             
+               35.sra-rejected-ds-co-drop(35)       - The CO goes offline when the downstream SRA is rejected                                                                            
+               36.sra-rejected-ds-cpe-drop(36)      - The CPE goes offline when the downstream SRA is rejected                                                                           
+               37.bitswap-problem-us-co-drop(37)    - The CO goes offline when the upstream bit swap is faulty                                                                           
+               38.bitswap-problem-us-cpe-drop(38)   - The CPE goes offline when the upstream bit swap is faulty                                                                          
+               39.bitswap-failed-us-co-drop(39)     - The CO goes offline when the upstream bit swap fails                                                                               
+               40.bitswap-failed-us-cpe-drop(40)    - The CPE goes offline when the upstream bit swap fails                                                                              
+               41.bitswap-problem-ds-co-drop(41)    - The CO goes offline when the downstream bit swap is faulty                                                                         
+               42.bitswap-problem-ds-cpe-drop(42)   - The CPE goes offline when the downstream bit swap is faulty                                                                        
+               43.bitswap-rejected-ds-co-drop(43)   - The CO goes offline when the downstream bit swap is rejected                                                                       
+               44.bitswap-rejected-ds-cpe-drop(44)  - The CPE goes offline when the downstream bit swap is rejected                                                                      
+               45.cpe-switched-off(45)              - The CPE power supply is shut down                                                                                                  
+               46.cpe-lost(46)                      - The CPE is disconnected                                                                                                            
+               47.co-reset(47)                      - The CO resets the chipset or line                                                                                                  
+               48.co-stop(48)                       - The CO actively deactivate the port                                                                                               
+               49.unknown(49)                       - Unknown reason                                                                                                                     
+               "      
+           ::= { hwadsl2LineEntry 8 }
+           
+        hwadsl2LineStatusLineRateDs  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS       "bits/second"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The actual line rate downstream.
+                 Unit: bits/second
+                "
+            ::= { hwadsl2LineEntry 9 }
+            
+        hwadsl2LineStatusLineRateUs  OBJECT-TYPE
+            SYNTAX      Unsigned32
+            UNITS       "bits/second"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The actual line rate upstream.
+                 Unit: bits/second
+                "
+            ::= { hwadsl2LineEntry 10 }
+           
+--                 adsl2SCStatusTable          
+        
+        hwadsl2SCStatusTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  Hwadsl2SCStatusEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2SCStatusTable contains status parameters
+                 of the ADSL2 sub-carriers.  The following points apply to this
+                 table:
+                 1.  The main purpose of this table is to hold the results
+                     of a DELT.
+                 2.  This table also holds parameters obtained at line
+                     initialization time.
+                 3.  The rows in this table are volatile; that is, they are
+                     lost if the SNMP agent is rebooted.
+                 4.  Due to the large OCTET STRING attributes in this table,
+                     the worst case memory requirements for this table are
+                     very high.  The manager may use the row status attribute
+                     of this table to delete rows in order to reclaim memory.
+                 5.  The manager may create rows in this table.  The SNMP
+                     agent may create rows in this table.  Only the manager
+                     may delete rows in this table.
+                 6.  The maximum number of rows allowable in this table is
+                     indicated by the scalar attribute
+                     adsl2ScalarSCMaxInterfaces.
+                     The number of rows available in this table is indicated
+                     by the scalar attribute adsl2ScalarSCAvailInterfaces.
+                 7.  The SNMP agent is permitted to create rows in this table
+                     when a DELT completes successfully or when line
+                     initialization occurs.  It is not mandatory for the SNMP
+                     agent to create rows in this table; hence, it may be
+                     necessary for the manager to create rows in this table
+                     before any results can be stored.
+                 8.  If the manager attempts to create a row in this table
+                     and there are no more rows available, the creation
+                     attempt will fail, and the response to the SNMP SET PDU
+                     will contain the error noCreation(11).
+                 9.  If the SNMP agent attempts to create a row in this table
+                     and there are no more rows available, the creation
+                     attempt will fail, and the attribute
+                     adsl2LineCmndConfLdsfFailReason will indicate the
+                     reason for the failure.  The failure reason will be either
+                     tableFull(10) or noResources(11).
+                 10. An example of use of this table is as follows:
+                     Step 1. : The DELT is started by setting the
+                             : adsl2LineCmndConfLdsf from inhibit to force.
+                     Step 2. : The DELT completes, and valid data is
+                             : available.
+                     Step 3. : The row in the adsl2SCStatusTable where the
+                             : results will be stored does not yet exist so
+                             : the SNMP agent attempts to create the row.
+                     Step 4. : Due to a low memory condition, a row in the
+                             : adsl2SCStatusTable table cannot be created at
+                             : this time.
+                     Step 5. : The reason for the failure, tableFull(10), is
+                             : indicated in the adsl2LineCmndConfLdsfFailReason
+                             : attribute.
+                 11. Another example of use of this table is as follows :
+                     Step 1. : The DELT is started by setting the
+                             : adsl2LineCmndConfLdsf from inhibit to force.
+                     Step 2. : The DELT completes and valid data is
+                             : available.
+                     Step 3. : The row in the adsl2SCStatusTable where the
+                             : results will be stored does not yet exist so
+                             : the SNMP agent attempts to create the row.
+                     Step 4. : The row creation is successful.
+                     Step 5. : The value of the attribute
+                             : adsl2LineCmndConfLdsfFailReasonreason is set
+                             : to success(2).
+                 12. Another example of use of this table is as follows:
+                     Step 1. : The manager creates a row in adsl2SCStatusTable
+                             : for a particular ADSL2 line.
+                     Step 2. : The DELT is started on the above-mentioned
+                             : line by setting the adsl2LineCmndConfLdsf from
+                             : inhibit to force.
+                     Step 3. : The DELT completes, and valid data is
+                             : available.
+                     Step 4. : The value of the attribute
+                             : adsl2LineCmndConfLdsfFailReasonreason is set
+                             : to success(2).
+                 The indexes of this table are ifIndex and adsl2SCStatusDirection.
+                " 
+            ::= { hwadsl2Status 2 }
+        
+        hwadsl2SCStatusEntry  OBJECT-TYPE
+            SYNTAX      Hwadsl2SCStatusEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2SCStatusTable contains status parameters
+                 of the ADSL2 sub-carriers.  The following points apply to this
+                 table:
+                 1.  The main purpose of this table is to hold the results
+                     of a DELT.
+                 2.  This table also holds parameters obtained at line
+                     initialization time.
+                 3.  The rows in this table are volatile; that is, they are
+                     lost if the SNMP agent is rebooted.
+                 4.  Due to the large OCTET STRING attributes in this table,
+                     the worst case memory requirements for this table are
+                     very high.  The manager may use the row status attribute
+                     of this table to delete rows in order to reclaim memory.
+                 5.  The manager may create rows in this table.  The SNMP
+                     agent may create rows in this table.  Only the manager
+                     may delete rows in this table.
+                 6.  The maximum number of rows allowable in this table is
+                     indicated by the scalar attribute
+                     adsl2ScalarSCMaxInterfaces.
+                     The number of rows available in this table is indicated
+                     by the scalar attribute adsl2ScalarSCAvailInterfaces.
+                 7.  The SNMP agent is permitted to create rows in this table
+                     when a DELT completes successfully or when line
+                     initialization occurs.  It is not mandatory for the SNMP
+                     agent to create rows in this table; hence, it may be
+                     necessary for the manager to create rows in this table
+                     before any results can be stored.
+                 8.  If the manager attempts to create a row in this table
+                     and there are no more rows available, the creation
+                     attempt will fail, and the response to the SNMP SET PDU
+                     will contain the error noCreation(11).
+                 9.  If the SNMP agent attempts to create a row in this table
+                     and there are no more rows available, the creation
+                     attempt will fail, and the attribute
+                     adsl2LineCmndConfLdsfFailReason will indicate the
+                     reason for the failure.  The failure reason will be either
+                     tableFull(10) or noResources(11).
+                 10. An example of use of this table is as follows:
+                     Step 1. : The DELT is started by setting the
+                             : adsl2LineCmndConfLdsf from inhibit to force.
+                     Step 2. : The DELT completes, and valid data is
+                             : available.
+                     Step 3. : The row in the adsl2SCStatusTable where the
+                             : results will be stored does not yet exist so
+                             : the SNMP agent attempts to create the row.
+                     Step 4. : Due to a low memory condition, a row in the
+                             : adsl2SCStatusTable table cannot be created at
+                             : this time.
+                     Step 5. : The reason for the failure, tableFull(10), is
+                             : indicated in the adsl2LineCmndConfLdsfFailReason
+                             : attribute.
+                 11. Another example of use of this table is as follows :
+                     Step 1. : The DELT is started by setting the
+                             : adsl2LineCmndConfLdsf from inhibit to force.
+                     Step 2. : The DELT completes and valid data is
+                             : available.
+                     Step 3. : The row in the adsl2SCStatusTable where the
+                             : results will be stored does not yet exist so
+                             : the SNMP agent attempts to create the row.
+                     Step 4. : The row creation is successful.
+                     Step 5. : The value of the attribute
+                             : adsl2LineCmndConfLdsfFailReasonreason is set
+                             : to success(2).
+                 12. Another example of use of this table is as follows:
+                     Step 1. : The manager creates a row in adsl2SCStatusTable
+                             : for a particular ADSL2 line.
+                     Step 2. : The DELT is started on the above-mentioned
+                             : line by setting the adsl2LineCmndConfLdsf from
+                             : inhibit to force.
+                     Step 3. : The DELT completes, and valid data is
+                             : available.
+                     Step 4. : The value of the attribute
+                             : adsl2LineCmndConfLdsfFailReasonreason is set
+                             : to success(2).
+                 The indexes of this entry are ifIndex and adsl2SCStatusDirection.
+                "
+            INDEX  { ifIndex, adsl2SCStatusDirection }
+            ::= { hwadsl2SCStatusTable 1 }  
+        
+        Hwadsl2SCStatusEntry  ::=
+            SEQUENCE 
+                {
+                hwadsl2SCStatusInfoTxPSD         OCTET STRING,
+                hwadsl2SCStatusInfoSnrMargins   OCTET STRING
+                }
+          
+        hwadsl2SCStatusInfoTxPSD  OBJECT-TYPE
+            SYNTAX      OCTET STRING  (SIZE(0..1024)) 
+            UNITS       "0.1 dBm/Hz"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The PSD MASK per sub-carrier.An array of 512 16-bits
+                 values, designed for supporting up to 512 (downstream) sub-carriers. 
+                 It ranges from -1400 to -300 units of 0.1 dBm/Hz (physical values
+                 are -140 to -30 dBm/Hz).
+                 Unit: 0.1 dBm/Hz
+                "
+            ::= { hwadsl2SCStatusEntry 1 }
+            
+        hwadsl2SCStatusInfoSnrMargins  OBJECT-TYPE
+            SYNTAX      OCTET STRING  (SIZE(0..1024))
+            UNITS       "0.1 dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "SNR Margin is the maximum increase in dB of the noise power
+                 received at the ATU (ATU-R on downstream direction and ATU-C
+                 on upstream direction), such that the BER requirements are met
+                 for all bearer channels received at the ATU.  It ranges from
+                 -640 to 630 units of 0.1 dB (physical values are -64 to 63 dB).
+                 Unit: 0.1 dB
+                "
+            ::= { hwadsl2SCStatusEntry 2 }
+         
+--             adsl2ChAlarmConfProfileTable        
+        hwadsl2ChAlarmConfProfileTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  Hwadsl2ChAlarmConfProfileEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2ChAlarmConfProfileTable contains ADSL2 channel PM thresholds profiles.
+                 Entries in this table MUST be maintained in a persistent manner.
+                 The index of this table is adsl2ChAlarmConfProfileName.
+                "
+            ::= { hwadsl2ProfileAlarmConf 1 }
+        
+        hwadsl2ChAlarmConfProfileEntry  OBJECT-TYPE
+            SYNTAX      Hwadsl2ChAlarmConfProfileEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2ChAlarmConfProfileTable contains ADSL2 channel PM thresholds profiles.
+                 Entries in this table MUST be maintained in a persistent manner.
+                 The index of this entry is adsl2ChAlarmConfProfileName.
+                "
+            INDEX  { adsl2ChAlarmConfProfileName }
+            ::= { hwadsl2ChAlarmConfProfileTable 1 }
+        
+        Hwadsl2ChAlarmConfProfileEntry ::=
+            SEQUENCE 
+                {
+                hwadsl2ChAlarmConfProfileMonitoringRateDs    Unsigned32,
+                hwadsl2ChAlarmConfProfileMonitoringRateUs    Unsigned32        
+                }
+        
+        hwadsl2ChAlarmConfProfileMonitoringRateDs  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..200000000)
+            UNITS       "bits/second"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "The channel monitoring rate downstream. 
+                 When the value you set is larger than
+                 the value of the rate downstream defined in the channel 
+                 profile, it will not be successful. The value 0 means 
+                 that no threshold is specified for the associated 
+                 counter.
+                 Unit: bits/second
+                "
+            DEFVAL       { 0 }
+            ::= { hwadsl2ChAlarmConfProfileEntry 1 }
+        
+        hwadsl2ChAlarmConfProfileMonitoringRateUs  OBJECT-TYPE
+            SYNTAX      Unsigned32(0..200000000)
+            UNITS       "bits/second"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                "The channel monitoring rate upstream.
+                 When the value you set is larger than
+                 the value of the rate upstream defined in the channel 
+                 profile, it will not be successful. The value 0 means 
+                 that no threshold is specified for the associated 
+                 counter.
+                 Unit: bits/second
+                "
+            DEFVAL       { 0 }
+            ::= { hwadsl2ChAlarmConfProfileEntry 2 }        
+        
+-- mode INFO  
+
+--             hwadsl2LineAlarmConfProfileTable                
+        hwadsl2LineAlarmConfProfileTable  OBJECT-TYPE
+            SYNTAX      SEQUENCE  OF  Hwadsl2LineAlarmConfProfileEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2LineAlarmConfProfileTable contains ADSL2
+ 	         line PM thresholds profiles.
+ 	         A default profile with an index of 'DEFVAL' will
+ 	         always exist, and its parameters will be set to vendor-
+ 	         specific values, unless otherwise specified in this
+ 	         document.
+ 	         The index of this table is adsl2LineAlarmConfProfileName.
+                "
+            ::= { hwadsl2ProfileAlarmConf 2 }
+        
+        hwadsl2LineAlarmConfProfileEntry  OBJECT-TYPE
+            SYNTAX      Hwadsl2LineAlarmConfProfileEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "The table hwadsl2LineAlarmConfProfileTable contains ADSL2
+ 	         line PM thresholds profiles.
+ 	         A default profile with an index of 'DEFVAL' will
+ 	         always exist, and its parameters will be set to vendor-
+ 	         specific values, unless otherwise specified in this
+ 	         document.
+ 	         The index of this entry is adsl2LineAlarmConfProfileName.
+ 	        "                
+            INDEX  { adsl2LineAlarmConfProfileName }
+            ::= { hwadsl2LineAlarmConfProfileTable 1 }
+        
+        Hwadsl2LineAlarmConfProfileEntry ::=
+            SEQUENCE 
+                {
+                   hwadsl2LineAlarmConfProfileXturThresh15MinLeftrs HCPerfIntervalThreshold,
+                   hwAdsl2LineAlarmConfProfileDyingGaspAlarmSwitch  INTEGER,
+                   hwAdsl2LineAlarmConfProfileActiveFailAlarmSwitch INTEGER        
+                }
+       
+        hwadsl2LineAlarmConfProfileXturThresh15MinLeftrs  OBJECT-TYPE
+            SYNTAX      HCPerfIntervalThreshold
+            UNITS       "seconds"
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+               "A threshold for the hwadsl2PMLCurr15MLeftrs counter,
+                when adsl2PMLCurrUnit is ATUR {2}.
+                The value 0 means that no threshold is specified for the
+                associated counter.
+                Unit: seconds
+               "
+            REFERENCE    "ITU-T G.997.1, paragraph 7.3.1"
+            DEFVAL       { 0 }
+            ::= { hwadsl2LineAlarmConfProfileEntry 1 }  
+            
+        hwAdsl2LineAlarmConfProfileDyingGaspAlarmSwitch OBJECT-TYPE
+            SYNTAX INTEGER {
+                               enable (1),
+                               disable (2)
+                           }
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                       "This object enable/disable the report of LOSS-OF-POWER
+                        alarm in an ADSL line. 
+                        Options:
+                        1. enable(1)  - The report of LOSS-OF-POWER alarm in an ADSL line is enabled
+                        2. disable(2) - The report of LOSS-OF-POWER alarm in an ADSL line is disabled
+                       "
+            DEFVAL       { enable }
+            ::= { hwadsl2LineAlarmConfProfileEntry 2 }
+        
+        hwAdsl2LineAlarmConfProfileActiveFailAlarmSwitch OBJECT-TYPE
+            SYNTAX INTEGER {
+                               enable (1),
+                               disable (2)
+                           }
+            MAX-ACCESS  read-create
+            STATUS      current
+            DESCRIPTION
+                       "This object enable/disable the active fail alarm switch. 
+                        Options:
+                        1. enable(1)  - The active fail alarm switch is enabled
+                        2. disable(2) - The active fail alarm switch is disabled
+                       "         
+            DEFVAL       { enable }
+            ::= { hwadsl2LineAlarmConfProfileEntry 3 }                
+        
+        hwadslmodecfgCfg  OBJECT-TYPE
+            SYNTAX  Adsl2CfgMode
+            MAX-ACCESS  read-write
+            STATUS  current
+            DESCRIPTION
+                "This object is used to change ADSL management mode.            
+                 After the mode being changed, system will automatically
+                 save data and reboot.
+                "
+            ::= { hwadsl2Mode 1 }
+             
+        hwadslabrmodecfgCfg  OBJECT-TYPE
+            SYNTAX INTEGER 
+                {
+                normalMode(1),
+                ptMode(2)
+                }
+            MAX-ACCESS  read-write
+            STATUS  current
+            DESCRIPTION
+                "This object is used to change abr-calculation mode.
+                 Options:
+                 1. normalMode(1) - Normal abr-calculation mode
+                 2. ptMode(2)     - PT abr-calculation mode
+                "
+            ::= { hwadsl2Mode 2 }
+             
+-- hwAdsl2TrapsVbOids
+        hwadsl2LinePMThresholdItem OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..1024))
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                "Indicate the threshold item."
+            ::= { hwAdsl2TrapsVbOids 0 }
+        
+        hwadsl2LineTemplateID OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                "Indicate line template ID."
+            ::= { hwAdsl2TrapsVbOids 1 }
+        
+        hwadsl2ActivationFailureCause OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..1024))
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                "The reason of activation failure."
+            ::= { hwAdsl2TrapsVbOids 2 }
+        
+        hwadsl2ChipsetID OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                "The Chipset ID."
+            ::= { hwAdsl2TrapsVbOids 3 }      
+        
+        hwAdsl2SwitchResult OBJECT-TYPE
+            SYNTAX  INTEGER {
+                  success(0), 
+                  fail(1)                        
+                  }
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                "Mode switch result.
+                 Options:
+                 1. success(0)  - Indicates that the adsl mode switch result is success
+                 2. fail(1)     - Indicates that the adsl mode switch result is fail
+                "
+            ::= { hwAdsl2TrapsVbOids 4 } 
+        
+        hwAdsl2RequestID OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                "Request ID."
+            ::= { hwAdsl2TrapsVbOids 5 }
+        
+        hwadsl2LineCmndConfLdsfResult OBJECT-TYPE
+            SYNTAX  INTEGER {
+                             success(0), 
+                             fail(1)                        
+                            }
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                "The result of the test.
+                 Options:
+                 1. success(0) - Indicates that the test result is success
+                 2. fail(1)    - Indicates that the test result is fail
+                "
+            ::= { hwAdsl2TrapsVbOids 6 }   
+            
+        hwadsl2LinePMThresholdValue OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                "Indicate the threshold value of threshold item."
+            ::= { hwAdsl2TrapsVbOids 7 }
+        
+        hwadsl2LinePMCurrentValue OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                "Indicate the current value of threshold item."
+            ::= { hwAdsl2TrapsVbOids 8 }
+            
+        hwadsl2ChPMThresholdValue OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                "Indicate the threshold value of threshold item."
+            ::= { hwAdsl2TrapsVbOids 9 }
+            
+        hwadsl2ChPMCurrentValue OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                "Indicate the current value of threshold item."
+            ::= { hwAdsl2TrapsVbOids 10 }
+                  
+-- NGADSL TRAP
+        
+        
+        hwAdsl2ModeSwitchResultTrap NOTIFICATION-TYPE
+            OBJECTS 
+                { 
+                hwAdsl2SwitchResult
+                }                                                          
+            STATUS current
+            DESCRIPTION                                               
+                "Adsl2 mode switch result trap.
+                 This trap message is generated when the result of the recent ADSL mode switch process.
+                "                      
+            ::= { hwAdsl2CommonTraps  0 1 }          
+        
+        hwAdsl2AdminModeTrap NOTIFICATION-TYPE                
+            OBJECTS 
+                {  
+                hwadslmodecfgCfg
+                }                                                          
+            STATUS current
+            DESCRIPTION                                               
+                "Adsl2 administration mode trap.
+                 This trap message is generated when the ADSL mode is the system worked.
+                "                      
+            ::= { hwAdsl2CommonTraps 0 2 }         
+             
+        hwAdsl2DeltOperResultTrap NOTIFICATION-TYPE
+            OBJECTS 
+                {
+                hwAdsl2RequestID,
+                hwadsl2LineCmndConfLdsfResult                
+                } 
+            STATUS current
+            DESCRIPTION
+                "NGADSL delt trap.
+                 This trap message is generated when delt test result reported.
+                "
+            ::= { hwAdsl2CommonTraps 0 3 } 
+            
+        hwAdsl2PortStatusChangeTrap NOTIFICATION-TYPE                 
+            OBJECTS 
+                {                                                  
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hwPortOperStatus,
+                hwPortPrimaryStatus,
+                hwPortSecondaryStatus
+                }                                                          
+            STATUS current                                             
+            DESCRIPTION                                                
+                "Adsl2 port status change trap.
+                 This trap message is generated when port status changes.
+                "                      
+            ::= { hwAdsl2CommonTraps 0 4 }         
+        
+-- AlarmTraps
+        hwadsl2PortAutoDeactiveAlarmTrap NOTIFICATION-TYPE
+            OBJECTS 
+                {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+                }  
+            STATUS current
+            DESCRIPTION
+                "Port automatically trap.
+                 This trap message is generated when the ADSL port is automatically deactivated.
+                 The ADSL port is automatically deactivated due to the line fault.
+                "
+            ::= { hwadsl2AlarmTraps 0 0 }
+            
+        hwAdsl2PortReactiveAlarmTrap NOTIFICATION-TYPE
+            OBJECTS 
+                {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+                } 
+            STATUS current
+            DESCRIPTION
+                "Port reactive trap.
+                 This trap message is generated when the ADSL port is re-activated after the 
+                 ADSL line recovers.
+                "
+            ::= { hwadsl2AlarmTraps 0 1 }
+            
+        hwAdsl2PortATURPowerOffAlarmTrap NOTIFICATION-TYPE
+            OBJECTS 
+                {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex
+                } 
+            STATUS current
+            DESCRIPTION
+                "Port ATU-R power off trap.
+                 This trap message is generated when ATU-R is powered off.
+                "
+            ::= { hwadsl2AlarmTraps 0 2 }
+            
+        hwAdsl2ChipsetRecoverAlarmTrap NOTIFICATION-TYPE
+            OBJECTS 
+                {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwadsl2ChipsetID
+                } 
+            STATUS current
+            DESCRIPTION
+                "Chipset recover trap.
+                 This trap message is generated when the ADSL chipset recovers.
+                "
+            ::= { hwadsl2AlarmTraps 0 3 }
+            
+        hwAdsl2PortDeactiveAlarmTrap NOTIFICATION-TYPE
+            OBJECTS 
+                {
+                hwFrameIndex,
+                hwSlotIndex
+                } 
+            STATUS current
+            DESCRIPTION
+                "Port deactive trap.
+                 This trap message is generated when some xDSL ports or all the xDSL ports are automatically deactivated.
+                 Some xDSL ports or all the xDSL ports are automatically deactivated due to lack of licenses.
+                "
+            ::= { hwadsl2AlarmTraps 0 4 }
+            
+        hwAdsl2LinePerformanceStatAlarmTrap NOTIFICATION-TYPE
+            OBJECTS 
+                {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hwadsl2LinePMThresholdItem,
+                hwadsl2LinePMThresholdValue,
+                hwadsl2LinePMCurrentValue
+                } 
+            STATUS current
+            DESCRIPTION
+                "Line performance statistics trap.
+                 This trap message is generated when the line performance statistics of the ADSL 
+                 port reach the threshold.
+                "
+            ::= { hwadsl2AlarmTraps 0 5 }
+            
+        hwAdsl2DownstreamActivationRateAlarmTrap NOTIFICATION-TYPE
+            OBJECTS 
+                {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                adsl2ChStatusChannelNum,
+                adsl2ChStatusActDataRate
+                } 
+            STATUS current
+            DESCRIPTION
+                "ADSL channel downstream activation rate trap.
+                 This trap message is generated when the ADSL channel downstream activation rate is 
+                 lower than the threshold.
+                "
+            ::= { hwadsl2AlarmTraps 0 6 }
+            
+        hwAdsl2ChannelPerformanceStatAlarmTrap NOTIFICATION-TYPE
+            OBJECTS 
+                {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                adsl2ChStatusChannelNum,
+                hwadsl2LinePMThresholdItem,
+                hwadsl2ChPMThresholdValue,
+                hwadsl2ChPMCurrentValue
+                } 
+            STATUS current
+            DESCRIPTION
+                "Channel performance statistics trap.
+                 This trap message is generated when the channel performance statistics of the ADSL 
+                 port reach the threshold.
+                "
+            ::= { hwadsl2AlarmTraps 0 7 }
+            
+        hwAdsl2UpstreamActivationRateAlarmTrap NOTIFICATION-TYPE
+            OBJECTS 
+                {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                adsl2ChStatusChannelNum,
+                adsl2ChStatusActDataRate
+                } 
+            STATUS current
+            DESCRIPTION
+                "ADSL channel upstream activation rate trap.
+                 This trap message is generated when the ADSL channel upstream activation rate is 
+                 lower than the threshold.
+                "
+            ::= { hwadsl2AlarmTraps 0 8 }
+            
+        hwAdsl2UpstreamRateIncreaseAlarmTrap NOTIFICATION-TYPE
+            OBJECTS 
+                {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                adsl2ChStatusActDataRate
+                } 
+            STATUS current
+            DESCRIPTION
+                "ADSL channel upstream rate increases trap.
+                 This trap message is generated when the ADSL channel upstream rate increases to 
+                 a value higher than the threshold.
+                "
+            ::= { hwadsl2AlarmTraps 0 9 }
+            
+        hwAdsl2UpstreamRateDecreaseAlarmTrap NOTIFICATION-TYPE
+            OBJECTS 
+                {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                adsl2ChStatusActDataRate
+                } 
+            STATUS current
+            DESCRIPTION
+                "ADSL channel upstream rate decreases trap.
+                 This trap message is generated when the ADSL channel upstream rate decreases to a value 
+                 lower than the threshold.
+                "
+            ::= { hwadsl2AlarmTraps 0 10 }
+            
+        hwAdsl2DownstreamRateIncreaseAlarmTrap NOTIFICATION-TYPE
+            OBJECTS 
+                {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                adsl2ChStatusActDataRate
+                } 
+            STATUS current
+            DESCRIPTION
+                "ADSL channel downstream rate increases trap.
+                 This trap message is generated when the ADSL channel downstream rate increases to a value 
+                 higher than the threshold.
+                "
+            ::= { hwadsl2AlarmTraps 0 11 }
+            
+        hwAdsl2DownstreamRateDecreaseAlarmTrap NOTIFICATION-TYPE
+            OBJECTS 
+                {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                adsl2ChStatusActDataRate
+                } 
+            STATUS current
+            DESCRIPTION
+                "ADSL channel downstream rate decreases trap.
+                 This trap message is generated when the ADSL channel downstream rate decreases to a value 
+                 lower than the threshold.
+                "
+            ::= { hwadsl2AlarmTraps 0 12 }
+        
+        hwAdsl2FailedActiveAlarmTrap NOTIFICATION-TYPE
+            OBJECTS 
+                {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwPortIndex,
+                hwadsl2LineTemplateID,
+                hwadsl2ActivationFailureCause
+                } 
+            STATUS current
+            DESCRIPTION
+                "Failed active trap.
+                 This trap message is generated when it failed to activate the port using the ADSL 
+                 line configuration parameters.
+                "
+            ::= { hwadsl2AlarmTraps 0 13 }
+        
+        hwAdsl2ChipsetNotAvailableAlarmTrap NOTIFICATION-TYPE
+            OBJECTS 
+                {
+                hwFrameIndex,
+                hwSlotIndex,
+                hwadsl2ChipsetID
+                } 
+            STATUS current
+            DESCRIPTION 
+                "Chipset not available trap.
+                 This trap message is generated when the ADSL chipset is not available.
+                "
+            ::= { hwadsl2AlarmTraps 0 14 }      
+           
+        END

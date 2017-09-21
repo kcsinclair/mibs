@@ -1,0 +1,2065 @@
+CADANT-CMTS-POLICY-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    OBJECT-TYPE, 
+    MODULE-IDENTITY,
+    Integer32, 
+    Unsigned32, 
+    IpAddress, 
+    Counter32,
+    Counter64
+	FROM SNMPv2-SMI
+    TruthValue, 
+    RowStatus, 
+    TimeStamp,
+    MacAddress, 
+    TEXTUAL-CONVENTION
+	FROM SNMPv2-TC
+    SnmpAdminString
+	FROM SNMP-FRAMEWORK-MIB
+    cadPolicy
+	FROM CADANT-PRODUCTS-MIB
+    CadExtAclCondition, 
+    CadIfDirection,
+    CadIpTos, 
+    CadIpTosMask, 
+    CadTcpFlags,
+    CadAclType, 
+    CadProtocolType, 
+    CadAclString,
+    InetAddressIPv4or6
+	FROM CADANT-TC
+    InterfaceIndex
+	FROM IF-MIB
+    InetAddressType,
+    InetAddress
+    FROM INET-ADDRESS-MIB
+    InfoSourceDest
+	FROM DC-RTM-MIB;
+
+cadPolicyMib MODULE-IDENTITY
+    LAST-UPDATED "201403260000Z" -- March 26, 2014
+    ORGANIZATION 
+        "Arris International, Inc."
+    CONTACT-INFO 
+        "Arris Technical Support
+         Postal: ARRIS
+         E-Mail: support@arrisi.com"
+    DESCRIPTION 
+        "Arris Cadant C4 CMTS policy parameters and constants"
+
+    REVISION "201403260000Z" -- March 26, 2014
+    DESCRIPTION
+        "Use new default protocol type"
+    REVISION "201403060000Z" -- March 6, 2014
+    DESCRIPTION
+        "Remove cadAclMemorySize and cadAclMemoryRemaining"
+    REVISION "201305030000Z" -- May 3, 2013
+    DESCRIPTION
+        "Change index of cadPolicyPfxListEntry - Add cadPolicyPfxListAfi and
+         cadPolicyPfxListSafi as part of the index.
+         Change syntax of cadPolicyPfxListIpAddress from IpAddress to InetAddress
+         to support both ipv4 and ipv6."
+    REVISION "201304160000Z" -- April 16, 2013
+    DESCRIPTION
+        "Added the following new objects 
+         cadRouteMapSetIpDscp, cadRouteMapIpDscp, cadRouteMapSetRecursiveNextHop,
+         and cadRouteMapRecursiveNextHop.
+         Change the range of the following objects from up to 2048 to 64
+         cadRouteMapId, cadRouteMapTagId, cadLocalPolicyRouteMap, and cadRouteMapClearStats"
+
+    REVISION "201112020000Z" -- Dec 2, 2011
+    DESCRIPTION
+        "Changed range for cadDistListOutAccessListNum from 1-999 to 0-999"
+    REVISION "201111080000Z" -- Nov 8, 2011
+    DESCRIPTION
+        "Added cadPolicyAccessGroupIpv6AclName and cadDistListOutAccessListName"
+    REVISION "201008260000Z" -- Aug 26, 2010
+    DESCRIPTION
+        "changed the syntax of cadRouteMapClearStats from TruthValue to Integer32"
+    REVISION "201008110000Z" -- Aug 11, 2010
+    DESCRIPTION
+        "changed the range of cadRouteMapTagId and cadRouteMapSeqNum."
+    REVISION "201007020000Z" -- July 2, 2010
+    DESCRIPTION
+        "Add support for policy based routing."
+    REVISION "201006020000Z"
+    DESCRIPTION
+        "Support IPv6 VR Index and IPv6 access numbers in CadDistListOut table."
+    REVISION "200909140000Z" -- Sep 14, 2009
+    DESCRIPTION
+        "change syntax of cadAclSrcIp, cadAclSrcIpMask, cadAclDstIp, cadAclDstIpMask to InetAddressIpv4orv6.
+         add cadAlvIpAddrType.
+         rename cadPolicyAccessGroupAclNum to cadPolicyAccessGroupIpv4ActNum
+         add cadPolicyAccessGroupIpv6AclNum
+         change syntax of cadAclOrderAclIndex from (1..199) to (1..399)"
+
+    REVISION "200803310000Z" -- March 31, 2008
+    DESCRIPTION
+        "Remove support for multiple SCM access ACLs"
+    REVISION "200803170000Z" -- March 17, 2008
+    DESCRIPTION
+        "Add support for ACL memory sizes."
+    REVISION "200704300000Z"
+    DESCRIPTION
+        "ACL support for RCM-based CMTS - remove the range of (1300..2699) in aclNumber."
+    REVISION "200608240000Z"
+    DESCRIPTION
+        "ACL support for RCM-based CMTS."
+    REVISION "200509090000Z"
+    DESCRIPTION
+        "Allow setting of cadAclType to remark."
+    REVISION "200508310000Z"
+    DESCRIPTION
+        "Add support for named ACLs and resequencing of ACLs."
+    REVISION "200506200000Z"
+    DESCRIPTION
+        "Allow arbitrary ACL indexes."
+    REVISION "200506100000Z"
+    DESCRIPTION
+        "Remove redundant access list configuration."
+    REVISION "200506060000Z"
+    DESCRIPTION
+        "Add set-fabric-priority-transmit for Multicast QoS for Arris Channel Bonding."
+    REVISION "200504140000Z"
+    DESCRIPTION
+        "Merge with 4.6."
+    REVISION "200503140000Z"
+    DESCRIPTION
+        "Add policy tables from old Netplane MIB."
+    REVISION "200411290000Z"
+    DESCRIPTION
+        "Swap the key order of src and dest protocol in cadDistListOutTable."
+    REVISION "200411180000Z"
+    DESCRIPTION
+        "Add support for network side data plane ACLs."
+    REVISION "200410260000Z"
+    DESCRIPTION
+        "Create table for output distribution lists."
+    REVISION "200409140000Z"
+    DESCRIPTION
+        "Add support for CAR rate limiting feature."
+    REVISION "200207090000Z"
+    DESCRIPTION
+        "Create table for input distribution lists."
+    REVISION "200205030000Z"
+    DESCRIPTION
+        "Create table for SCM access control policy."
+
+        ::= { cadPolicy 1 }
+
+--
+-- Textual conventions used in policies
+--
+CadPolicyRateLimitAction ::= TEXTUAL-CONVENTION
+    STATUS current
+    DESCRIPTION 
+        "Enumeration of rate limiting actions"
+    SYNTAX INTEGER {
+        transmit(1),
+        drop(2),
+        set-prec-transmit(3),
+        set-dscp-transmit(4),
+        set-priority-transmit(5)
+    }
+
+-- Derived variable types for Netplane policy
+--
+CadPolicyAction ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+       "Action to be taken for Policy Policy Permit(1) Policy Deny (2) "
+    SYNTAX  Integer32 (1..2)
+
+CadPolicyProtocol ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "A value that represents a type of the protocol."
+    SYNTAX  INTEGER {
+        other     (1),  -- not specified
+        local     (2),  -- local interface
+        netmgmt   (3),  -- static route
+        icmp      (4),  -- result of ICMP Redirect
+
+        -- the following are all dynamic
+        -- routing protocols
+
+        egp        (5),  -- Exterior Gateway Protocol
+        ggp        (6),  -- Gateway-Gateway Protocol
+        hello      (7),  -- FuzzBall HelloSpeak
+        rip        (8),  -- Berkeley RIP or RIP-II
+        isIs       (9),  -- Dual IS-IS
+        esIs       (10), -- ISO 9542
+        ciscoIgrp  (11), -- Cisco IGRP
+        bbnSpfIgp  (12), -- BBN SPF IGP
+        ospf       (13), -- Open Shortest Path First
+        bgp        (14), -- Border Gateway Protocol
+        idpr       (15), -- InterDomain Policy Routing
+        ciscoEigrp (16)  -- Cisco EIGRP
+    }
+
+--
+-- The SCM access table
+--
+cadScmAccessTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadScmAccessEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A table contains SCM access control list information. 
+         Each physical interface is associated with the access list number defined 
+         as hjpolAccListNumber in hjpolAccListTable of NETPLANE-POLICY-MIB. With
+         this information, C4 can permit/deny access usnig access list filtering before 
+         the packet reach SCM from the specified physical interface."
+    ::= { cadPolicyMib 1 }
+
+cadScmAccessEntry OBJECT-TYPE
+    SYNTAX  CadScmAccessEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A conceptual row containing information about SCM access list 
+         for each physical interface."
+    INDEX   { cadScmAccIfIndex }
+    ::= { cadScmAccessTable 1 }
+
+CadScmAccessEntry ::= SEQUENCE {
+    cadScmAccIfIndex                InterfaceIndex,
+    cadScmAccListNumber             Integer32,
+    cadScmAccRowStatus              RowStatus
+}
+
+cadScmAccIfIndex OBJECT-TYPE
+    SYNTAX InterfaceIndex
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "The value of this object identifies a physical layer2 interface, such as
+         a DOCSIS MAC or a Gigabit/TenGigabit NAM, on which SCM access control is applied"
+    ::= { cadScmAccessEntry 1 }
+
+cadScmAccListNumber OBJECT-TYPE
+    SYNTAX Integer32 (1..99)
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+       "The value of this object identifies entry(or entries) in the
+        hjpolAccListTable. The identified entry(or entries)
+        contains SCM access parameters to be used when filtering
+        traffic from individual interface sent to SCM."
+    ::= { cadScmAccessEntry 2 }
+
+cadScmAccRowStatus OBJECT-TYPE
+    SYNTAX RowStatus
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "Control Object for row creation and deletion."
+    ::= { cadScmAccessEntry 3 }
+
+--
+-- The distribute-list in table
+--
+
+cadDistListInTable OBJECT-TYPE
+    SYNTAX   SEQUENCE OF CadDistListInEntry
+    MAX-ACCESS not-accessible
+    STATUS   current
+    DESCRIPTION
+       "Distribute List In Table"
+    REFERENCE
+       ""
+    ::= { cadPolicyMib 2 }
+
+cadDistListInEntry OBJECT-TYPE
+    SYNTAX   CadDistListInEntry
+    MAX-ACCESS not-accessible
+    STATUS   current
+    DESCRIPTION
+       "A row in Distribute List In table"
+    INDEX {
+        cadDistListInProtocol,
+        cadDistListInProtocolProcess,
+        cadDistListInIfIndex,
+        cadDistListInAccessListNum
+    }
+    ::= { cadDistListInTable 1 }
+
+CadDistListInEntry ::= SEQUENCE {
+    cadDistListInProtocol           CadPolicyProtocol,
+    cadDistListInProtocolProcess    Integer32,
+    cadDistListInIfIndex            InterfaceIndex,
+    cadDistListInAccessListNum      Integer32,
+    cadDistListInAccessListName     OCTET STRING,
+    cadDistListInStatus             RowStatus
+}
+
+cadDistListInProtocol OBJECT-TYPE
+    SYNTAX   CadPolicyProtocol
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+       "Protocol for which distribute list is applied."
+    ::= { cadDistListInEntry 1 }
+
+cadDistListInProtocolProcess OBJECT-TYPE
+    SYNTAX   Integer32 (1..2147483647)
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+       "VRF for which distribute list is applied."
+    ::= { cadDistListInEntry 2 }
+
+
+cadDistListInIfIndex OBJECT-TYPE
+    SYNTAX   InterfaceIndex
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+       "Interface for which distribute list is applied. The value will be 1
+           if the distribute list is applied to all interfaces."
+    ::= { cadDistListInEntry 3 }
+
+cadDistListInAccessListNum OBJECT-TYPE
+    SYNTAX   Integer32 (1..99)
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+       "The configured distribute in list refers to the access list specified."
+    ::= { cadDistListInEntry 4 }
+
+cadDistListInAccessListName OBJECT-TYPE
+    SYNTAX   OCTET STRING (SIZE(1..32))
+    MAX-ACCESS read-create
+    STATUS   current
+    DESCRIPTION
+       "Name of the access list referred by distribute in list."
+    ::= { cadDistListInEntry 5 }
+
+cadDistListInStatus OBJECT-TYPE
+    SYNTAX RowStatus  
+    MAX-ACCESS read-create
+    STATUS   current
+    DESCRIPTION
+       "The row status variable, used according to row installation and
+        removal conventions. Once access list specified default row status
+        is active."
+    ::= { cadDistListInEntry 6 }
+
+
+
+--
+-- CAR rate limiting
+--
+cadPolicyRateLimitTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CadPolicyRateLimitEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table of rate limiting policies applied to a physical interface."
+    ::= { cadPolicyMib 4 }
+
+cadPolicyRateLimitEntry OBJECT-TYPE
+    SYNTAX      CadPolicyRateLimitEntry 
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "An ordered list of the rate limit polices"
+    INDEX { 
+        cadPolicyRateLimitIfIndex,
+        cadPolicyRateLimitDirection, 
+        cadPolicyRateLimitIndex 
+    }
+    ::= { cadPolicyRateLimitTable 1 } 
+
+CadPolicyRateLimitEntry ::= SEQUENCE {
+    cadPolicyRateLimitIfIndex       InterfaceIndex,
+    cadPolicyRateLimitDirection     CadIfDirection,
+    cadPolicyRateLimitIndex         INTEGER,
+    cadPolicyRateLimitStatus        RowStatus,
+    cadPolicyRateLimitAclType       CadAclType,
+    cadPolicyRateLimitAclNum        Integer32,
+    cadPolicyRateLimitBps           Integer32,
+    cadPolicyRateLimitBurstNormal   Integer32,
+    cadPolicyRateLimitBurstMax      Integer32,
+    cadPolicyRateLimitConformAction CadPolicyRateLimitAction,
+    cadPolicyRateLimitConformValue  INTEGER,
+    cadPolicyRateLimitExceedAction  CadPolicyRateLimitAction,
+    cadPolicyRateLimitExceedValue   INTEGER,
+    cadPolicyRateLimitClearCounts   TruthValue
+}
+
+cadPolicyRateLimitIfIndex OBJECT-TYPE
+    SYNTAX InterfaceIndex
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "The value of this object identifies a physical layer2 interface, such as
+         a DOCSIS MAC or a Gigabit/TenGigabit NAM, on which the rate limit policy is applied"
+    ::= { cadPolicyRateLimitEntry 1 }
+
+cadPolicyRateLimitDirection OBJECT-TYPE
+    SYNTAX      CadIfDirection
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Direction of traffic on interface to apply the
+         rate limit policy" 
+    ::= { cadPolicyRateLimitEntry 2 }
+
+cadPolicyRateLimitIndex OBJECT-TYPE
+    SYNTAX      INTEGER(1..2)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Index of rate limit policy. Policies are applied
+         in the order specified by this index value" 
+    ::= { cadPolicyRateLimitEntry 3 }
+
+cadPolicyRateLimitStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Create and delete table row entries."
+    ::= { cadPolicyRateLimitEntry 4 }
+
+cadPolicyRateLimitAclType OBJECT-TYPE
+    SYNTAX CadAclType
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Type of ACL associated with rate limit policy" 
+    DEFVAL { none }
+    ::= { cadPolicyRateLimitEntry 5 }
+
+cadPolicyRateLimitAclNum OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "ACL number. If the ACL does not exist, then this
+         is treated as if the ACL type is none, i.e. all
+         IP traffic matches the policy." 
+    DEFVAL { 0 }
+    ::= { cadPolicyRateLimitEntry 6 }
+
+cadPolicyRateLimitBps OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Average rate, in bits per second (bps)." 
+    DEFVAL { 0 }
+    ::= { cadPolicyRateLimitEntry 7 }
+
+cadPolicyRateLimitBurstNormal OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Normal burst size, in bytes. 
+         The minimum value is bps divided by 2000. " 
+    DEFVAL { 0 }
+    ::= { cadPolicyRateLimitEntry 8 }
+
+cadPolicyRateLimitBurstMax OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Excess burst size, in bytes. Must be equal
+         to or larger than cadPolicyRateLimitBurstNormal" 
+    DEFVAL { 0 }
+    ::= { cadPolicyRateLimitEntry 9 }
+
+cadPolicyRateLimitConformAction OBJECT-TYPE
+    SYNTAX      CadPolicyRateLimitAction
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Action to take on packets that conform to the specified rate limit." 
+    DEFVAL { transmit }
+    ::= { cadPolicyRateLimitEntry 10 }
+
+cadPolicyRateLimitConformValue OBJECT-TYPE
+    SYNTAX      INTEGER (0..255)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Value to set if action is set-prec-transmit, 
+         set-dscp-transmit or set-priority-transmit. For
+         set-priority-transmit,the valid value range is 0-7." 
+    DEFVAL { 0 }
+    ::= { cadPolicyRateLimitEntry 11 }
+
+cadPolicyRateLimitExceedAction OBJECT-TYPE
+    SYNTAX      CadPolicyRateLimitAction
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Action to take on packets that exceed to the specified rate limit." 
+    DEFVAL { drop }
+    ::= { cadPolicyRateLimitEntry 12 }
+
+cadPolicyRateLimitExceedValue OBJECT-TYPE
+    SYNTAX      INTEGER (0..255)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Value to set if action is set-prec-transmit,
+         set-dscp-transmit or set-priority-transmit. For
+         set-priority-transmit,the valid value range is 0-7." 
+    DEFVAL { 0 }
+    ::= { cadPolicyRateLimitEntry 13 }
+
+cadPolicyRateLimitClearCounts OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "If set to true, clear the counts in the CadPolicyRateLimitStatusEntry.
+         When read, this field always returns false.  The correct way to clear 
+         the counts is to first read them, then set ClearCounts to true."
+    DEFVAL { false }
+    ::= { cadPolicyRateLimitEntry 14 }
+
+--
+-- Counts for rate limiting policy
+--
+cadPolicyRateLimitStatusTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CadPolicyRateLimitStatusEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table of counts of rate limiting policies
+         applied to a physical interface."
+    ::= { cadPolicyMib 5 }
+
+cadPolicyRateLimitStatusEntry OBJECT-TYPE
+    SYNTAX      CadPolicyRateLimitStatusEntry 
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Dyanmic status associated with a rate limit policy"
+    AUGMENTS { cadPolicyRateLimitEntry }
+    ::= { cadPolicyRateLimitStatusTable 1 } 
+
+CadPolicyRateLimitStatusEntry ::= SEQUENCE {
+    cadPolicyRateLimitConformPackets        Counter64,
+    cadPolicyRateLimitConformBytes          Counter64,
+    cadPolicyRateLimitExceedPackets         Counter64,
+    cadPolicyRateLimitExceedBytes           Counter64,
+    cadPolicyRateLimitCurrentBurst          Integer32,
+    cadPolicyRateLimitLastCleared           TimeStamp
+}
+
+cadPolicyRateLimitConformPackets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Number of packets conforming to the policy rate"
+    ::= { cadPolicyRateLimitStatusEntry 1 }
+
+cadPolicyRateLimitConformBytes OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Number of bytes conforming to the policy rate"
+    ::= { cadPolicyRateLimitStatusEntry 2 }
+
+cadPolicyRateLimitExceedPackets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Number of packets exceeding to the policy rate"
+    ::= { cadPolicyRateLimitStatusEntry 3 }
+
+cadPolicyRateLimitExceedBytes OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Number of bytes exceeding to the policy rate"
+    ::= { cadPolicyRateLimitStatusEntry 4 }
+
+cadPolicyRateLimitCurrentBurst OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "The current number of bytes in the burst exceeding the average bps rate"
+    ::= { cadPolicyRateLimitStatusEntry 5 }
+
+cadPolicyRateLimitLastCleared OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "The value of SysUptime when the rate limit counters were last cleared."
+    ::= { cadPolicyRateLimitStatusEntry 6 }
+
+--
+-- Global ACL support
+--
+cadPolicyAclTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadPolicyAclEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A table contains access control list (ACL) information. 
+         Each row corresponds to an access control entry (ACE),
+         and each ACL may have multiple ACEs that are applied
+         in order to the packet being inspected."
+    ::= { cadPolicyMib 6 }
+
+cadPolicyAclEntry OBJECT-TYPE
+    SYNTAX  CadPolicyAclEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A conceptual row containing information about SCM access list 
+        for each physical interface."
+    INDEX   { cadAclNumber, cadAclIndex }
+    ::= { cadPolicyAclTable 1 }
+
+CadPolicyAclEntry ::= SEQUENCE {
+    cadAclNumber            Integer32,
+    cadAclIndex             Integer32,
+    cadAclType              CadAclType,
+    cadAclStatus            RowStatus,
+    cadAclPermit            TruthValue,
+    cadAclProtocol          CadProtocolType,
+    cadAclSrcIp             InetAddressIPv4or6,
+    cadAclSrcIpMask         InetAddressIPv4or6,
+    cadAclSrcPortOp         CadExtAclCondition,
+    cadAclSrcPortLo         Integer32,
+    cadAclSrcPortHi         Integer32,
+    cadAclDstIp             InetAddressIPv4or6,
+    cadAclDstIpMask         InetAddressIPv4or6,
+    cadAclDstPortOp         CadExtAclCondition,
+    cadAclDstPortLo         Integer32,
+    cadAclDstPortHi         Integer32,
+    cadAclProtoType         Integer32,
+    cadAclLogging           TruthValue,
+    cadAclProtoCode         Integer32,
+    cadAclIpTos             CadIpTos,
+    cadAclIpTosMask         CadIpTosMask,
+    cadAclTcpFlags          CadTcpFlags,
+    cadAclTcpFlagsMask      CadTcpFlags,
+    cadAclFragments         TruthValue,
+    cadAclRemark            CadAclString,
+    cadAclIpAddrType        InetAddressType
+}
+
+cadAclNumber OBJECT-TYPE
+    SYNTAX     Integer32 (1..399)
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+        "IPv6 ACL number. IPv6 ACLs are in the range 200-399.
+         Extended ACL number. Extended ACLs are in the range 100-199.
+         Standard ACLs are in the range 1-99."
+    ::= { cadPolicyAclEntry 1 }
+
+cadAclIndex OBJECT-TYPE
+    SYNTAX     Integer32 (1..2147483647)
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+        "Order in which this ACE is used in the ACL."
+    ::= { cadPolicyAclEntry 2 }
+
+cadAclType OBJECT-TYPE
+    SYNTAX     CadAclType
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Indicates whether this EACE is used as a standard, 
+        extended, or remark ACL. The rate-limiting type is 
+        not valid for this table. Remark is the only valid
+	type that can be set, standard and extended are set
+	by the agent when the ACE is created."
+    ::= { cadPolicyAclEntry 3 }
+
+cadAclStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "RowStatus used to add and remove ACEs.  ACEs that contain
+        only remarks should have their status set to notInService
+        and should be created with createAndWait."
+    ::= { cadPolicyAclEntry 4 }
+
+cadAclPermit OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Permit or Deny the packet when matched."
+    DEFVAL { false }
+    ::= { cadPolicyAclEntry 5 }
+
+cadAclProtocol OBJECT-TYPE
+    SYNTAX CadProtocolType
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Protocol number to match"
+    DEFVAL { -1 }  -- not used
+    ::= { cadPolicyAclEntry 6 }
+
+cadAclSrcIp OBJECT-TYPE
+    SYNTAX     InetAddressIPv4or6
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Source IP address to match"
+    DEFVAL { '00000000'h }
+    ::= { cadPolicyAclEntry 7 }
+
+cadAclSrcIpMask OBJECT-TYPE
+    SYNTAX     InetAddressIPv4or6
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Source IP wildcard mask to match.  Default to match anything"
+    DEFVAL { 'FFFFFFFF'h }
+    ::= { cadPolicyAclEntry 8 }
+
+cadAclSrcPortOp OBJECT-TYPE
+    SYNTAX     CadExtAclCondition
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Source port condition (lt,gt,eq,ne) to match."
+    DEFVAL { na }
+    ::= { cadPolicyAclEntry 9 }
+
+cadAclSrcPortLo OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "First Source port number to match.  -1 indicates that this
+        field is not used."
+    DEFVAL { -1 }
+    ::= { cadPolicyAclEntry 10 }
+
+cadAclSrcPortHi OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Second Source port number to match. -1 indicates that this
+        field is not used."
+    DEFVAL { -1 }
+    ::= { cadPolicyAclEntry 11 }
+
+cadAclDstIp OBJECT-TYPE
+    SYNTAX     InetAddressIPv4or6
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Destination IP address to match"
+    DEFVAL { '00000000'h }
+    ::= { cadPolicyAclEntry 12 }
+
+cadAclDstIpMask OBJECT-TYPE
+    SYNTAX     InetAddressIPv4or6
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Destination IP wildcard (inverse) mask to match. 
+        Default to match anything."
+    DEFVAL { 'FFFFFFFF'h }
+    ::= { cadPolicyAclEntry 13 }
+
+cadAclDstPortOp OBJECT-TYPE
+    SYNTAX     CadExtAclCondition
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Destination port condition (lt,gt,eq,ne) to match."
+    DEFVAL { na }
+    ::= { cadPolicyAclEntry 14 }
+
+cadAclDstPortLo OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "First Destination port number to match.  -1 indicates that 
+        this field is not used."
+    DEFVAL { -1 }
+    ::= { cadPolicyAclEntry 15 }
+
+cadAclDstPortHi OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Second Destination port number to match.  -1 indicates that
+        this field is not used"
+    DEFVAL { -1 }
+    ::= { cadPolicyAclEntry 16 }
+
+cadAclLogging OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Turn on or off the ACE matching log"
+    DEFVAL { false }
+    ::= { cadPolicyAclEntry 17 }
+
+cadAclProtoType OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Sub-protocol qualifiers.  For protocol type ICMP, this value
+        matches the ICMP message type (0 - 255).  For IGMP, this 
+        value matches the IGMP message type (0-15).  A value of -1
+        means that this field is not used."
+        DEFVAL { -1 }
+        ::= { cadPolicyAclEntry 18 }
+
+cadAclProtoCode OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Sub-protocol qualifiers.  For protocol type ICMP, this value
+        matches the ICMP message type code (0 - 255). A value of -1
+        indicates this value is not used."
+    DEFVAL { -1 }
+    ::= { cadPolicyAclEntry 19 }
+
+cadAclIpTos OBJECT-TYPE
+    SYNTAX     CadIpTos
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Matches the TOS field of the IP header."
+    DEFVAL { 0 }
+    ::= { cadPolicyAclEntry 20 }
+
+cadAclIpTosMask OBJECT-TYPE
+    SYNTAX     CadIpTosMask
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Mask to apply to the IpTos object when finding a mactch
+        on the TOS field of the IP header.  A value of 0 is used
+        to indicate that the TOS is not used."
+    DEFVAL { 0 }
+    ::= { cadPolicyAclEntry 21 }
+
+cadAclTcpFlags OBJECT-TYPE
+    SYNTAX     CadTcpFlags
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Matches the flags field of the TCP header."
+    DEFVAL { {} }
+    ::= { cadPolicyAclEntry 22 }
+
+cadAclTcpFlagsMask OBJECT-TYPE
+    SYNTAX     CadTcpFlags
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Mask to apply to the TcpFlags object when finding a mactch
+        on the flags field of the TCP header."
+    DEFVAL { {} }
+    ::= { cadPolicyAclEntry 23 }
+
+cadAclFragments OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Indicates whether this EACE applies to noninitial fragments
+        of packets.  The default is disabled."
+    DEFVAL { false }
+    ::= { cadPolicyAclEntry 24 }
+
+cadAclRemark OBJECT-TYPE
+    SYNTAX     CadAclString
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "The comment associated with the access control entry.
+        This is only valid for ACEs of type remark."
+    DEFVAL { ''h }
+    ::= { cadPolicyAclEntry 26 }
+
+cadAclIpAddrType OBJECT-TYPE
+    SYNTAX     InetAddressType
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "IP Address type"
+    DEFVAL { ipv4 }
+    ::= { cadPolicyAclEntry 27 }
+--
+-- The SNMP Community-String Access table
+--
+cadSnmpCommAccessTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadSnmpCommAccessEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A table contains the access list information associated with the 
+        community string. Each community string defined in snmpCommunithTable 
+        can be configured with one access list number. C4 can permit/deny access 
+        usnig access list filtering. Filtering will occur in software, after 
+        the SNMP traffic passed through the OSE protocol stack and received by 
+        the agent. Standard ACLs will be used to enforce the access restrictions"
+    ::= { cadPolicyMib 7 }
+
+cadSnmpCommAccessEntry OBJECT-TYPE
+    SYNTAX          CadSnmpCommAccessEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A conceptual row containing information about access list filtering 
+        associated with community string."
+    INDEX   { IMPLIED cadSnmpCommAccessName }
+    ::= { cadSnmpCommAccessTable 1 }
+
+CadSnmpCommAccessEntry ::= SEQUENCE {
+    cadSnmpCommAccessName           SnmpAdminString,
+    cadSnmpCommAccessList           Integer32,
+    cadSnmpCommAccessStatus         RowStatus
+}
+
+cadSnmpCommAccessName OBJECT-TYPE
+    SYNTAX          SnmpAdminString (SIZE(1..32))
+    MAX-ACCESS      not-accessible
+    STATUS current
+    DESCRIPTION
+        "The index value that uniquely identifies an entry in snmpCommunityTable."
+    ::= { cadSnmpCommAccessEntry 1 }
+
+cadSnmpCommAccessList OBJECT-TYPE
+    SYNTAX          Integer32 (1..99)
+    MAX-ACCESS      read-create
+    STATUS current
+    DESCRIPTION
+        "The value of this object identifies entry (or entries) in the
+         cadPolicyAclTable. The identified entry (or entries) contains 
+         access parameters to be used when filtering traffic sent to SNMP agent."
+    DEFVAL { 1 }
+    ::= { cadSnmpCommAccessEntry 2 }
+
+cadSnmpCommAccessStatus OBJECT-TYPE
+    SYNTAX          RowStatus
+    MAX-ACCESS      read-create
+    STATUS current
+    DESCRIPTION
+        "Control Object for row creation and deletion."
+    ::= { cadSnmpCommAccessEntry 3 }
+
+--
+-- Interface Access Group
+--
+cadPolicyAccessGroupTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CadPolicyAccessGroupEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table of access group policies applied to a physical interface."
+    ::= { cadPolicyMib 8 }
+
+cadPolicyAccessGroupEntry OBJECT-TYPE
+    SYNTAX      CadPolicyAccessGroupEntry 
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "An ordered list of the access group polices"
+    INDEX { cadPolicyAccessGroupIfIndex, cadPolicyAccessGroupDirection }
+    ::= { cadPolicyAccessGroupTable 1 } 
+
+CadPolicyAccessGroupEntry ::= SEQUENCE {
+    cadPolicyAccessGroupIfIndex       InterfaceIndex,
+    cadPolicyAccessGroupDirection     CadIfDirection,
+    cadPolicyAccessGroupStatus        RowStatus,
+    cadPolicyAccessGroupIpv4AclNum    Integer32,
+    cadPolicyAccessGroupClearCounts   TruthValue,
+    cadPolicyAccessGroupIpv6AclNum    Integer32,
+    cadPolicyAccessGroupIpv6AclName   SnmpAdminString
+}
+
+cadPolicyAccessGroupIfIndex OBJECT-TYPE
+    SYNTAX InterfaceIndex
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "The value of this object identifies a physical layer2 interface, such as
+         a DOCSIS MAC or a Gigabit/TenGigabit NAM, on which the access group policy is applied"
+    ::= { cadPolicyAccessGroupEntry 1 }
+
+cadPolicyAccessGroupDirection OBJECT-TYPE
+    SYNTAX      CadIfDirection
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Direction of traffic on interface to apply the access 
+         group policy" 
+    ::= { cadPolicyAccessGroupEntry 2 }
+
+cadPolicyAccessGroupStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "This table supports sets of createAndGo(4) and destroy(6)"
+    ::= { cadPolicyAccessGroupEntry 3 }
+
+cadPolicyAccessGroupIpv4AclNum OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "ACL number. If the ACL does not exist, then this
+         is treated as if the ACL type is none, i.e. all
+         IPv4 traffic matches the policy." 
+    DEFVAL { 0 }
+    ::= { cadPolicyAccessGroupEntry 4 }
+
+cadPolicyAccessGroupClearCounts OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "If set to true, clear the counts in the CadPolicyAccessGroupStatusEntry.
+         When read, this field always returns false.  The correct way to clear 
+         the counts is to first read them, then set ClearCounts to true."
+    DEFVAL { false }
+    ::= { cadPolicyAccessGroupEntry 5 }
+
+cadPolicyAccessGroupIpv6AclNum OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "ACL number. If the ACL does not exist, then this
+         is treated as if the ACL type is none, i.e. all
+         IPv6 traffic matches the policy." 
+    DEFVAL { 0 }
+    ::= { cadPolicyAccessGroupEntry 6 }
+
+cadPolicyAccessGroupIpv6AclName OBJECT-TYPE
+    SYNTAX     SnmpAdminString (SIZE(0..32))
+    MAX-ACCESS read-create 
+    STATUS     current
+    DESCRIPTION
+       "ACL name."
+    DEFVAL { "" }
+    ::= { cadPolicyAccessGroupEntry 7 }
+--
+-- Counts for access group policy
+--
+cadPolicyAccessGroupStatusTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CadPolicyAccessGroupStatusEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table of counts of rate limiting policies
+         applied to a physical interface."
+    ::= { cadPolicyMib 9 }
+
+cadPolicyAccessGroupStatusEntry OBJECT-TYPE
+    SYNTAX      CadPolicyAccessGroupStatusEntry 
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Dyanmic status associated with a rate limit policy"
+    AUGMENTS { cadPolicyAccessGroupEntry }
+    ::= { cadPolicyAccessGroupStatusTable 1 } 
+
+CadPolicyAccessGroupStatusEntry ::= SEQUENCE {
+    cadPolicyAccessGroupPermitPackets         Counter64,
+    cadPolicyAccessGroupDenyPackets           Counter64,
+    cadPolicyAccessGroupLastCleared           TimeStamp
+}
+
+cadPolicyAccessGroupPermitPackets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Number of packets conforming to the access group policy permit ACL"
+    ::= { cadPolicyAccessGroupStatusEntry 1 }
+
+cadPolicyAccessGroupDenyPackets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "Number of packets conforming to the access group policy deny ACL"
+    ::= { cadPolicyAccessGroupStatusEntry 2 }
+
+cadPolicyAccessGroupLastCleared OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "The value of SysUptime when the access group policy counters
+         were last cleared."
+    ::= { cadPolicyAccessGroupStatusEntry 3 }
+
+--
+-- prefix-list configuration
+-- 
+
+cadPolicyPfxListTable OBJECT-TYPE
+    SYNTAX   SEQUENCE OF CadPolicyPfxListEntry
+    MAX-ACCESS not-accessible
+    STATUS   current
+    DESCRIPTION
+        "Prefix List Table"
+    REFERENCE
+        ""
+    ::= { cadPolicyMib 11 }
+
+cadPolicyPfxListEntry OBJECT-TYPE
+    SYNTAX   CadPolicyPfxListEntry
+    MAX-ACCESS not-accessible
+    STATUS   current
+    DESCRIPTION
+        "A row in Prefix list table"
+    INDEX {
+        cadPolicyPfxListNumber,
+        cadPolicyPfxListName,
+        cadPolicyPfxListSeqNumber,
+        cadPolicyPfxListAfi,
+        cadPolicyPfxListSafi,
+        cadPolicyPfxListIpAddress,
+        cadPolicyPfxListIpAddMaskLen,
+        cadPolicyPfxListMaskGeValue,
+        cadPolicyPfxListMaskLeValue     
+    }
+    ::= { cadPolicyPfxListTable 1 }
+
+CadPolicyPfxListEntry ::= SEQUENCE {
+    cadPolicyPfxListNumber             Integer32,
+    cadPolicyPfxListName               OCTET STRING,
+    cadPolicyPfxListSeqNumber          Integer32,
+    cadPolicyPfxListIpAddress          InetAddress,
+    cadPolicyPfxListIpAddMaskLen       Integer32,
+    cadPolicyPfxListMaskGeValue        Integer32,
+    cadPolicyPfxListMaskLeValue        Integer32,
+    cadPolicyPfxListAction             CadPolicyAction,        
+    cadPolicyPfxListStatus             RowStatus,
+    cadPolicyPfxListAfi                InetAddressType,
+    cadPolicyPfxListSafi               INTEGER       
+}
+
+cadPolicyPfxListNumber OBJECT-TYPE
+    SYNTAX   Integer32 (0..2147483647)
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+        "Prefix list is identified by number
+         value of 0 should be passed for this object if prefix list
+         is configured by name"
+    ::= { cadPolicyPfxListEntry 1 }
+
+cadPolicyPfxListName OBJECT-TYPE
+    SYNTAX   OCTET STRING (SIZE (0..32))
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+        "Name of prefix list.Null value is assigned to this
+         Object if the prefix list is identified by number"
+    ::= { cadPolicyPfxListEntry 2 }
+
+cadPolicyPfxListSeqNumber OBJECT-TYPE
+    SYNTAX   Integer32 (5..2147483645)
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+        "A sequence in the prefix list is identified by sequence number.
+         If no sequence is specified defalut sequence of 5 is assumend. IF
+         one more sequence is configured sequence number 10 is assigned
+         (multiples of 5)" 
+   ::= { cadPolicyPfxListEntry 3 }
+
+cadPolicyPfxListIpAddress OBJECT-TYPE
+    SYNTAX   InetAddress
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+        "This is the source ipv4 or ipv6 address on which the
+         filtering needs to be applied"
+    ::= { cadPolicyPfxListEntry 4 }
+
+cadPolicyPfxListIpAddMaskLen OBJECT-TYPE
+    SYNTAX Integer32  (0..32)
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+        "Mask length of the Source IP address"
+    ::= { cadPolicyPfxListEntry 5 }
+
+cadPolicyPfxListMaskGeValue OBJECT-TYPE
+    SYNTAX Integer32  (0..32)
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+        "If the received route matches the source address 
+         and the mask length is greater than the value specified,
+         apply the specified action to the route"
+    ::= { cadPolicyPfxListEntry 6 }
+
+cadPolicyPfxListMaskLeValue OBJECT-TYPE
+    SYNTAX Integer32  (0..32)
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+        "This value specifies if the received route mask length is less
+         the value specified here do the action specified (permit/deny)"
+    ::= { cadPolicyPfxListEntry 7 }
+
+cadPolicyPfxListAction OBJECT-TYPE
+    SYNTAX CadPolicyAction
+    MAX-ACCESS read-create
+    STATUS   current
+    DESCRIPTION
+        "specifies the action to be taken.  Possible actions 
+         include permit(1) and deny(2) "
+    ::= { cadPolicyPfxListEntry 8 }
+
+cadPolicyPfxListStatus OBJECT-TYPE
+    SYNTAX RowStatus  
+    MAX-ACCESS read-create
+    STATUS   current
+    DESCRIPTION
+        "The row status variable, used according to
+         row installation and removal conventions."
+    ::= { cadPolicyPfxListEntry 9 }
+
+cadPolicyPfxListAfi OBJECT-TYPE
+    SYNTAX   InetAddressType
+    MAX-ACCESS not-accessible
+    STATUS   current
+    DESCRIPTION
+        "This is the Address Family Identifier (AFI) of the prefix 
+         that will follow. Only IPv4 or IPv6 prefix-list will be supported."
+    ::= { cadPolicyPfxListEntry 10 }
+
+cadPolicyPfxListSafi OBJECT-TYPE
+    SYNTAX   INTEGER {
+            unicast(1),
+            multicast(2),
+            both(3),
+            mplsBgpVpn(128)
+    }                
+    MAX-ACCESS not-accessible
+    STATUS   current
+    DESCRIPTION
+        "This is the Subsequent Address Family Identifier (SAFI) 
+         of the prefix that will follow."
+    ::= { cadPolicyPfxListEntry 11 }
+
+
+-- Distribute list in configuration
+-- Distribute List is used to specify filtering
+
+cadPolicyDistListOutTable OBJECT-TYPE
+    SYNTAX   SEQUENCE OF CadPolicyDistListOutEntry
+    MAX-ACCESS not-accessible
+    STATUS   current
+    DESCRIPTION
+        "Distribute List Out Table"
+    REFERENCE
+        ""
+    ::= { cadPolicyMib 12 }
+
+cadPolicyDistListOutEntry OBJECT-TYPE
+    SYNTAX   CadPolicyDistListOutEntry
+    MAX-ACCESS not-accessible
+    STATUS   current
+    DESCRIPTION
+        "A row in Distribute List Out table"
+    INDEX {
+        cadPolicyDistListOutSrcProtocol,
+        cadPolicyDistListOutSrcProtocolProcess,
+        cadPolicyDistListOutRoutingProtocol,
+        cadPolicyDistListOutRoutingProcess,
+        cadPolicyDistListOutAutonomousSystemNum,
+        cadPolicyDistListOutIfIndex,
+        cadPolicyDistListOutAccessListNum
+    }
+    ::= { cadPolicyDistListOutTable 1 }
+
+CadPolicyDistListOutEntry ::= SEQUENCE {
+    cadPolicyDistListOutSrcProtocol         CadPolicyProtocol,
+    cadPolicyDistListOutSrcProtocolProcess  Integer32,
+    cadPolicyDistListOutRoutingProtocol     CadPolicyProtocol,
+    cadPolicyDistListOutRoutingProcess      Integer32,
+    cadPolicyDistListOutAutonomousSystemNum Integer32,
+    cadPolicyDistListOutAccessListNum       Integer32,
+    cadPolicyDistListOutAccessListName      OCTET STRING,
+    cadPolicyDistListOutStatus              RowStatus,
+    cadPolicyDistListOutIfIndex             InterfaceIndex
+}
+
+cadPolicyDistListOutSrcProtocol OBJECT-TYPE
+    SYNTAX   CadPolicyProtocol
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+        "Source Protocol under which distribute list is configured."
+    ::= { cadPolicyDistListOutEntry 1 }
+
+cadPolicyDistListOutSrcProtocolProcess OBJECT-TYPE
+    SYNTAX   Integer32 (1..2147483647)
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+        "Source VRF ID under which distribute list is configured."
+    ::= { cadPolicyDistListOutEntry 2 }
+
+cadPolicyDistListOutRoutingProtocol OBJECT-TYPE
+    SYNTAX   CadPolicyProtocol
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+        "Destination Protocol to which routes need to be sent."
+    ::= { cadPolicyDistListOutEntry 3 }
+
+cadPolicyDistListOutRoutingProcess OBJECT-TYPE
+    SYNTAX   Integer32 (1..2147483647)
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+        "Destination VRF ID under which distribute list is configured."
+    ::= { cadPolicyDistListOutEntry 4 }
+
+cadPolicyDistListOutAutonomousSystemNum OBJECT-TYPE
+    SYNTAX   Integer32 (-1..2147483647)
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+        "Autonomous system number of BGP to which routes need to be 
+         redistributed. If destination protocol is BGP appropriate AS
+         number needs to be filled for this object. Otherwise set a
+         value of 1 for this object."
+    ::= { cadPolicyDistListOutEntry 5 }
+
+cadPolicyDistListOutAccessListNum OBJECT-TYPE
+    SYNTAX   Integer32 (1..99)
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+        "The configured distribute out list refers to the access list
+         specified. The access list number must be in the range of 1 - 99"
+    ::= { cadPolicyDistListOutEntry 6 }
+
+cadPolicyDistListOutAccessListName OBJECT-TYPE
+    SYNTAX   OCTET STRING (SIZE(1..32))
+    MAX-ACCESS read-create
+    STATUS   current
+    DESCRIPTION
+        "Name of the access list referred by distribute list. The
+         access list name must be less than 32 characters"
+    ::= { cadPolicyDistListOutEntry 7 }
+
+cadPolicyDistListOutStatus OBJECT-TYPE
+    SYNTAX RowStatus  
+    MAX-ACCESS read-create
+    STATUS   current
+    DESCRIPTION
+        "The row status variable, used according to row installation and
+         removal conventions. Once access list specified default row status
+         is UP."
+    ::= { cadPolicyDistListOutEntry 8 }
+
+cadPolicyDistListOutIfIndex OBJECT-TYPE
+    SYNTAX InterfaceIndex  
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+        "Interface for which distribute list is applied. The value will be 1
+         if the distribute list is applied to all interfaces."
+    ::= { cadPolicyDistListOutEntry 9 }
+
+
+--
+-- The distribute-list out table
+--
+cadDistListOutTable OBJECT-TYPE
+    SYNTAX   SEQUENCE OF CadDistListOutEntry
+    MAX-ACCESS not-accessible
+    STATUS   current
+    DESCRIPTION
+        "Distribute List Out Table"
+    REFERENCE
+       ""
+    ::= { cadPolicyMib 13 }
+
+cadDistListOutEntry OBJECT-TYPE
+    SYNTAX   CadDistListOutEntry
+    MAX-ACCESS not-accessible
+    STATUS   current
+    DESCRIPTION
+        "A row in Distribute List Out table"
+    INDEX {
+        cadDistListOutVrIndex,
+        cadDistListOutDestProtocol,
+        cadDistListOutSrcProtocol
+    }
+    ::= { cadDistListOutTable 1 }
+
+CadDistListOutEntry  ::= SEQUENCE {
+    cadDistListOutVrIndex                  Integer32,
+    cadDistListOutDestProtocol             InfoSourceDest,
+    cadDistListOutSrcProtocol              InfoSourceDest,
+    cadDistListOutAccessListNum            Integer32,
+    cadDistListOutStatus                   RowStatus,
+    cadDistListOutAccessListName           SnmpAdminString
+}
+
+cadDistListOutVrIndex OBJECT-TYPE
+    SYNTAX     Integer32 (1..99)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "virtual router index"
+    ::= { cadDistListOutEntry 1 }
+
+cadDistListOutDestProtocol OBJECT-TYPE
+    SYNTAX   InfoSourceDest
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+        "Destination protocol for which distribute list is applied."
+    ::= { cadDistListOutEntry 2 }
+
+cadDistListOutSrcProtocol OBJECT-TYPE
+    SYNTAX   InfoSourceDest
+    MAX-ACCESS read-only
+    STATUS   current
+    DESCRIPTION
+        "Source protocol for which distribute list is applied."
+    ::= { cadDistListOutEntry 3 }
+
+cadDistListOutAccessListNum OBJECT-TYPE
+    SYNTAX     Integer32 (0..999)
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "Access List Number"
+    ::= { cadDistListOutEntry 4 }
+
+cadDistListOutStatus OBJECT-TYPE
+    SYNTAX RowStatus  
+    MAX-ACCESS read-create
+    STATUS   current
+    DESCRIPTION
+        "The row status variable, used according to row installation and
+         removal conventions. Once access list specified default row status
+         is active."
+    ::= { cadDistListOutEntry 5 }
+
+cadDistListOutAccessListName OBJECT-TYPE
+    SYNTAX     SnmpAdminString (SIZE(0..32))
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "Access List Name"
+    DEFVAL { "" }
+    ::= { cadDistListOutEntry 6 }
+
+--
+-- The ACL name table
+--
+cadAclNameTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadAclNameEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+        "This table maps names to ACL entries.
+         Each row associates a name with the indexed ACL."
+    ::= { cadPolicyMib  14 }
+
+cadAclNameEntry OBJECT-TYPE
+    SYNTAX  CadAclNameEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A conceptual row containing name information about an ACL."
+    INDEX   { cadNameAclName, cadNameAclNumber }
+    ::= { cadAclNameTable 1 }
+
+CadAclNameEntry ::= SEQUENCE {
+    cadNameAclName          SnmpAdminString,
+    cadNameAclNumber        Integer32,
+    cadNameAclStatus        RowStatus
+}
+
+cadNameAclName OBJECT-TYPE
+    SYNTAX     SnmpAdminString (SIZE(1..32))
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "The name of the access control list."
+    ::= { cadAclNameEntry 1 }
+
+cadNameAclNumber OBJECT-TYPE
+    SYNTAX     Integer32 (1..399)
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+        "Extended ACL number. Extended ACLs are in the range 100-199.
+         Standard ACLs are in the range 1-99."
+    ::= { cadAclNameEntry 2 }
+
+cadNameAclStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "RowStatus used to add and remove names for ACLs. When an ACL
+        is removed, the associated name is also removed."
+    ::= { cadAclNameEntry 3 }
+
+--
+-- ACL Control
+--
+-- This group contains control variables for the ACL policy tables.
+--
+cadAclControl  OBJECT IDENTIFIER ::= { cadPolicyMib 15 }
+
+cadAclOrderAcl OBJECT-TYPE
+    SYNTAX TruthValue
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "This variable always returns false(2) upon reading. When
+         set to true(1), the ACL identified in cadAclOrderAclIndex
+         is renumbered with interval cadAclOrderAclInterval."
+    DEFVAL { false }
+    ::= { cadAclControl 1 }
+
+cadAclOrderAclIndex OBJECT-TYPE
+    SYNTAX      INTEGER(1..399)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This variable identifies the ACL that should be renumbered."
+    DEFVAL { 1 }
+    ::= { cadAclControl 2 }
+
+cadAclOrderAclInterval OBJECT-TYPE
+    SYNTAX      INTEGER(1..1000)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This variable specifies the numbering interval used between
+         each ACE when reordering an ACL."
+    DEFVAL { 10 }
+    ::= { cadAclControl 3 }
+
+cadAclOrderAclStart OBJECT-TYPE
+    SYNTAX      INTEGER(1..1000)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This variable specifies the index that ACL reordering
+         will use as the base for the first ACE."
+    DEFVAL { 10 }
+    ::= { cadAclControl 4 }
+
+cadAclClearIpv4AclCounts OBJECT-TYPE
+    SYNTAX      Integer32(0..199)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This variable specifies the access list number for which
+         all IPv4 per-entry counts will be cleared.
+         This number may correspond to an individual access list (1..199).
+         Setting to '0' will cause the per-entry counts to be cleared for ALL
+         IPv4 configured access lists.
+         This variable always returns '0' upon reading"
+    DEFVAL { 0 }
+    ::= { cadAclControl 5 }
+
+cadAclClearIpv6AclCounts OBJECT-TYPE
+    SYNTAX      Integer32(0 | 200..399)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This variable specifies the access list number for which
+         all IPv6 per-entry counts will be cleared.
+         This number may correspond to an individual access list (200..399).
+         Setting to '0' will cause the per-entry counts to be cleared for ALL
+         IPv6 configured access lists.
+         This variable always returns '0' upon reading"
+    DEFVAL { 0 }
+    ::= { cadAclControl 6 }
+
+
+cadPolicyAclExtTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF CadPolicyAclExtEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "The cadPolicyAclExtTable augments the cadPolicyAclTable with
+         a count for total number of times the access list
+         entry has been matched by all referencing applications."
+    ::= { cadPolicyMib 16 }
+
+cadPolicyAclExtEntry OBJECT-TYPE
+    SYNTAX       CadPolicyAclExtEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "Information about the policy access list entry."
+    AUGMENTS { cadPolicyAclEntry }
+    ::= { cadPolicyAclExtTable 1 }
+
+CadPolicyAclExtEntry ::= SEQUENCE {
+    cadAclEntryCount     Counter64
+}
+
+cadAclEntryCount OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Total number of times the access list entry has been matched by all
+         referencing applications."
+    ::= { cadPolicyAclExtEntry 1 }
+
+--
+-- ACL memory sizes
+--
+-- cadAclMemory OBJECT IDENTIFIER ::= { cadPolicyMib 20 }
+
+
+--
+-- Policy Based Routing
+--
+cadPolicyRouting OBJECT IDENTIFIER ::= { cadPolicyMib 30 }
+
+--
+-- Mapping of Route Map Names to Route Map Ids
+--
+
+cadRouteMapTagTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadRouteMapTagEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+        "This table maps policy route map names to route map entries.
+         Each row associates a name with the indexed policy route map."
+    ::= { cadPolicyRouting  1 }
+
+cadRouteMapTagEntry OBJECT-TYPE
+    SYNTAX  CadRouteMapTagEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A conceptual row containing name information for a policy route map."
+    INDEX   { cadRouteMapTagName }
+    ::= { cadRouteMapTagTable 1 }
+
+CadRouteMapTagEntry ::= SEQUENCE {
+    cadRouteMapTagName       SnmpAdminString,
+    cadRouteMapTagId         Integer32,
+    cadRouteMapTagRowStatus  RowStatus
+}
+cadRouteMapTagName OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE(1..64))
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Name to used for this policy route map"
+    ::= { cadRouteMapTagEntry 1 }
+
+cadRouteMapTagId OBJECT-TYPE
+    SYNTAX      Integer32(1..64)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Id used to associate entries in the policy route map table to this name."
+    ::= { cadRouteMapTagEntry 2 }
+
+cadRouteMapTagRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+         "The row status variable used according to row installation
+          and removal convention. In our case, we have simplified this
+          to the usage of only the following states - active, createAndGo,
+          and destroy. Other three states notInService, notReady and
+          createAndWait are not permitted."
+    ::= { cadRouteMapTagEntry 3 }
+
+--
+-- Route Map Match table
+--
+cadRouteMapTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadRouteMapEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+        "This table contains policy route map data where each row
+         contains information about the ACL being used and what
+         set operations should be applied to the IP packet on a match."
+    ::= { cadPolicyRouting  2 }
+
+cadRouteMapEntry OBJECT-TYPE
+    SYNTAX  CadRouteMapEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A conceptual row containing information for a policy route map entry."
+    INDEX   { cadRouteMapId, cadRouteMapSeqNum }
+    ::= { cadRouteMapTable 1 }
+
+CadRouteMapEntry ::= SEQUENCE {
+    cadRouteMapId                Integer32,
+    cadRouteMapSeqNum            Integer32,
+    cadRouteMapMatchType         INTEGER,
+    cadRouteMapMatchAcl          Integer32,
+    cadRouteMapSetIpPrec         TruthValue,
+    cadRouteMapIpPrec            INTEGER,
+    cadRouteMapSetIpTos          TruthValue,
+    cadRouteMapIpTos             INTEGER,
+    cadRouteMapSetNextHop        TruthValue,
+    cadRouteMapNextHopAddrType   InetAddressType,
+    cadRouteMapNextHop           InetAddress,
+    cadRouteMapSetBackupNextHop  TruthValue,
+    cadRouteMapBackupNextHop     InetAddress,
+    cadRouteMapSetNullInterface  TruthValue,
+    cadRouteMapRowStatus         RowStatus,
+    cadRouteMapSetIpDscp         TruthValue,
+    cadRouteMapIpDscp            INTEGER,
+    cadRouteMapSetRecursiveNextHop     TruthValue,
+    cadRouteMapRecursiveNextHop        InetAddress
+}
+
+cadRouteMapId OBJECT-TYPE
+    SYNTAX      Integer32(1..64)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Id used to associate entries in the policy route map table."
+    ::= { cadRouteMapEntry 1 }
+
+cadRouteMapSeqNum OBJECT-TYPE
+    SYNTAX      Integer32(1..2147483647)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Sequence number used to order the match statements."
+    ::= { cadRouteMapEntry 2 }
+
+cadRouteMapMatchType OBJECT-TYPE
+    SYNTAX      INTEGER {
+                  permit(1),
+                  deny(2)
+                }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Type of match to used for this entry.  Permit matches
+         on the provided ACL and then applies the defined set operations
+         before destination routing.  Deny matches on the provided
+         ACL and then directly routes to the destination without applying
+         any of the set critera to the packet."
+    ::= { cadRouteMapEntry 3 }
+
+cadRouteMapMatchAcl OBJECT-TYPE
+    SYNTAX      Integer32 (0..199)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "ACL used to match the incoming packet. Since IPv4 is the only supported 
+         address type, the ACL number must be an extended or standard ACL.  A value 0
+         implies that no ACL is used and all packets will match this entry."
+    ::= { cadRouteMapEntry 4 }
+
+cadRouteMapSetIpPrec OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Indicates whether the IP Precedence should be changed on the packet
+         if it matches the ACL and this is a permit type of match."
+    DEFVAL { false }
+    ::= { cadRouteMapEntry 5 }
+
+cadRouteMapIpPrec OBJECT-TYPE
+    SYNTAX      INTEGER {
+                  routine(0),
+                  priority(1),
+                  immediate(2),
+                  flash(3),
+                  flash-override(4),
+                  critical(5),
+                  internet(6),
+                  network(7)
+                }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The IP precedence value that should be used to replace the
+         existing IP precedence of the matching packet."
+    DEFVAL { routine }
+    ::= { cadRouteMapEntry 6 }
+
+cadRouteMapSetIpTos OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Indicates whether the IP TOS should be changed on the packet
+         if it matches the ACL and this is a permit type of match."
+    DEFVAL { false }
+    ::= { cadRouteMapEntry 7 }
+
+cadRouteMapIpTos OBJECT-TYPE
+    SYNTAX      INTEGER {
+                  normal(0),
+                  min-monetary-cost(1),
+                  max-reliability(2),
+                  max-throughput(4),
+                  min-delay(8)
+                }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The IP TOS value that should be used to replace the
+         existing IP TOS of the matching packet."
+    DEFVAL { normal }
+    ::= { cadRouteMapEntry 8 }
+
+cadRouteMapSetNextHop OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Indicates whether the next hop setting should be used to specify
+         the adjacent next hop router when forwarding the matching packet."
+    DEFVAL { false }
+    ::= { cadRouteMapEntry 9 }
+
+cadRouteMapNextHopAddrType OBJECT-TYPE
+    SYNTAX      InetAddressType
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The address type of the next hop and backup next hop addresses.
+         Currently IPv4 is the only supported address type."
+    DEFVAL { ipv4 } 
+    ::= { cadRouteMapEntry 10 }
+
+cadRouteMapNextHop OBJECT-TYPE
+    SYNTAX      InetAddress
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The address of the adjacent next hop router to use in forwading
+         the matching packet.  The next hop router address must be the 
+         address of an ajacent router, and the routing table (VRF?) is 
+         used to verify that the address can be directly reached. Only IPv4
+         addresses are currently supported." 
+    DEFVAL { ''H } 
+    ::= { cadRouteMapEntry 11 }
+
+cadRouteMapSetBackupNextHop OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Indicates whether the backup next hop setting should be used to specify
+         the adjacent next hop router when forwarding the matching packet. This
+         only would be done if the primary next hop was not set or was unreachable."
+    DEFVAL { false }
+    ::= { cadRouteMapEntry 12 }
+
+cadRouteMapBackupNextHop OBJECT-TYPE
+    SYNTAX      InetAddress
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The address type of a second next hop, that can be used only
+         if the primary next hop address can not be reached.  Only Ipv4
+         addresses are currently supported."
+    DEFVAL { ''H } 
+    ::= { cadRouteMapEntry 13 }
+
+cadRouteMapSetNullInterface OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "If set to true and the packet matches the ACL, it will be dropped."
+    DEFVAL { false }
+    ::= { cadRouteMapEntry 14 }
+
+cadRouteMapRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+         "The row status variable used according to row installation
+          and removal convention. In our case, we have simplified this
+          to the usage of only the following states - active, createAndGo,
+          and destroy. Other three states notInService, notReady and
+          createAndWait are not permitted."
+    ::= { cadRouteMapEntry 15 }
+
+cadRouteMapSetIpDscp OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Indicates whether the IP DSCP should be changed on the packet
+         if it matches the ACL and this is a permit type of match."
+    DEFVAL { false }
+    ::= { cadRouteMapEntry 16 }
+
+cadRouteMapIpDscp OBJECT-TYPE
+    SYNTAX      INTEGER (0..63)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The IP DSCP value that should be used to replace the
+         existing IP DSCP of the matching packet."
+    DEFVAL { 0 }
+    ::= { cadRouteMapEntry 17 }
+
+cadRouteMapSetRecursiveNextHop OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Indicates whether the recursive next hop setting should be used to specify
+         the next hop for the remote router when forwarding the matching packet."
+    DEFVAL { false }
+    ::= { cadRouteMapEntry 18 }
+
+cadRouteMapRecursiveNextHop OBJECT-TYPE
+    SYNTAX      InetAddress
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The address type of a remote router next hop, that is used to perform a recursive 
+          route lookup. Only Ipv4 addresses are currently supported."
+    DEFVAL { ''H } 
+    ::= { cadRouteMapEntry 19 }
+
+--
+-- Route Map Stats table
+--
+cadRouteMapStatsTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadRouteMapStatsEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+        "This table contains policy route map counts where each row
+         contains information about the number of packets that match
+         the specified ACL and were successfully changed with the defined
+         set operations, as well as those that matched the ACL but failed
+         the set operations."
+    ::= { cadPolicyRouting  3 }
+
+cadRouteMapStatsEntry OBJECT-TYPE
+    SYNTAX  CadRouteMapStatsEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A conceptual row containing counts information for a policy route map entry."
+    INDEX   { cadRouteMapId, cadRouteMapSeqNum }
+    ::= { cadRouteMapStatsTable 1 }
+
+CadRouteMapStatsEntry ::= SEQUENCE {
+    cadRouteMapPktMatched           Counter32,
+    cadRouteMapByteMatched          Counter64,
+    cadRouteMapPktFailed            Counter32,
+    cadRouteMapByteFailed           Counter64
+}
+
+cadRouteMapPktMatched OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of packets that match the ACL defined in the route map entry
+         and where the action was also successful.  For matches of type deny, the
+         packet is routed by destination, and for packets of type match, the packet
+         is successfully modified and sent."
+    ::= { cadRouteMapStatsEntry 1 }
+
+cadRouteMapByteMatched OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of bytes that match the ACL defined in the route map entry
+         and where the action was also successful.  For matches of type deny, the
+         packet is routed by destination, and for packets of type match, the packet
+         is successfully modified and sent."
+    ::= { cadRouteMapStatsEntry 2 }
+
+cadRouteMapPktFailed OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of packets that match the ACL defined in the route map entry
+         and where the action failed.  For route map entries of type match, the
+         set operation failed."  
+    ::= { cadRouteMapStatsEntry 3 }
+
+cadRouteMapByteFailed OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of packets that match the ACL defined in the route map entry
+         and where the action failed.  For route map entries of type match, the
+         set operation failed."  
+    ::= { cadRouteMapStatsEntry 4 }
+
+--
+-- Stats control
+--
+cadRouteMapClearStats OBJECT-TYPE
+    SYNTAX      Integer32(0..64)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Setting this value will reset all the byte and packet counts for a 
+         route map. A value of 0 indicates no reset is performed."
+    DEFVAL { 0 }
+    ::= { cadPolicyRouting 4 }
+
+--
+-- Local policy routing
+--
+cadLocalPolicyRouteMap OBJECT-TYPE
+    SYNTAX      Integer32 (0..64)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This value contains the mapId of the policy route map to be used
+         for local policy based routing.  A value of 0 indicates no local
+         policy routing is performed."
+    DEFVAL { 0 }
+    ::= { cadPolicyRouting 5 }
+
+END -- End of CADANT-CMTS-POLICY-MIB

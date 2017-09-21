@@ -1,0 +1,2046 @@
+CADANT-VIRTUAL-ROUTER-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, Counter32, Gauge32, Integer32, Unsigned32
+      FROM SNMPv2-SMI
+    DisplayString, RowStatus, TruthValue, TEXTUAL-CONVENTION, DateAndTime    
+      FROM SNMPv2-TC
+    cadBgIndex                                                  
+      FROM CADANT-CMTS-LAYER2CMTS-MIB
+    InetAddressIPv4or6, CadCpeDeviceTypes
+      FROM CADANT-TC
+    InterfaceIndex
+      FROM IF-MIB
+    cadLayer3
+      FROM CADANT-PRODUCTS-MIB
+    InetScopeType, InetAddressType, InetAddressPrefixLength
+      FROM INET-ADDRESS-MIB
+    IANAifType
+      FROM IANAifType-MIB;
+
+cadVirtualRouterMibModule MODULE-IDENTITY
+    LAST-UPDATED  "201505120000Z" -- May 12, 2015
+    ORGANIZATION "ARRIS International Inc."
+    CONTACT-INFO
+            "        ARRIS Technical Support
+
+             Email:  support@arrisi.com"
+
+    DESCRIPTION  "Remove cadVrGlobalIsisHostNameEnabled"
+    REVISION      "201505120000Z" -- May 12, 2015
+             
+    DESCRIPTION
+            "The MIB module for the implementation of Virtual Router."
+    REVISION      "201408180000Z" -- August 18, 2014
+    DESCRIPTION
+            "Add cadVrGlobalAllowAnyCableMac."
+    REVISION      "201408050000Z" -- August 5, 2014
+    DESCRIPTION
+            "Add cadVrInterfaceIsSdv."
+    REVISION      "201401150000Z" -- January 15, 2014
+    DESCRIPTION
+            "Add cadVrInterfaceGratuitousArpEnabled."
+    REVISION      "201312130000Z" -- December 13, 2013
+    DESCRIPTION
+            "Add Ipv6 BGP route counts support."
+    REVISION      "201311260000Z" -- Nov 26, 2013
+    DESCRIPTION
+            "Added cadVrAutoImportEnabled in cadVrEntry"
+    REVISION      "201308300000Z" -- Aug 30, 2013
+    DESCRIPTION
+            "Added cadVrPhpEnabled in cadVrEntry
+             Added cadVrInterfaceMplsEnabled and cadVrInterfaceLdpEnabled in cadVrInterfaceEntry"
+    REVISION      "201304160000Z" -- April 16, 2013
+    DESCRIPTION
+            "Change range of cadVrInterfacePolicyRouteMap from (0..2048) to (0..64)"
+    REVISION      "201204180000Z" -- April 18, 2012
+    DESCRIPTION
+             "Add cadVrGlobalIsisHostNameEnabled"
+    REVISION      "201203200000Z" -- March 20, 2012
+    DESCRIPTION
+            "Added route lookup table CadVrRtLookupTable"
+    REVISION      "201008110000Z" -- Aug 11, 2010
+    DESCRIPTION
+            "Changed the range of cadVrInterfacePolicyRouteMap"
+    REVISION      "201007020000Z" -- July 2, 2010
+    DESCRIPTION
+            "Add policy routing support."
+    REVISION      "201005060000Z" -- May 6, 2010
+    DESCRIPTION
+            "Add cadVrStatusNumIpv6PdRoutes."
+    REVISION      "200909170000Z" -- Sep 17, 2009
+    DESCRIPTION
+            "Add cadVrInterfacePdRiEnabled ."
+    REVISION      "200909100000Z" -- Sep 10, 2009
+    DESCRIPTION
+            "Add cadVrGlobalStatusIcmpv6UnreachablesDropped."
+    REVISION      "200909030000Z" -- Sep 3, 2009
+    DESCRIPTION
+            "Add
+                cadVrInterfaceIcmpv6UnreachablesEnabled.
+                cadVrGlobalIcmpv6UnreachablesEnabled.
+                cadVrInterfaceIcmpv6TooBigEnabled.
+                cadVrGlobalIcmpv6TooBigEnabled.
+                cadVrInterfaceIcmpv6ParameterProblemEnabled.
+                cadVrGlobalIcmpv6ParameterProblemEnabled.
+                cadVrICMPv6TimeExceededEnabled.
+                cadVrInterfaceStatusIcmpv6UnreachablesDropped
+                cadVrNullInterfacev6."
+    REVISION      "200908280000Z" -- August 28, 2009
+    DESCRIPTION
+            "Add 
+                cadVrInterfacePsFilterDownDefault,
+                cadVrInterfacePsFilterUpDefault,
+                cadVrInterfaceMtaFilterDownDefault,
+                cadVrInterfaceMtaFilterUpDefault,
+                cadVrInterfaceStbFilterDownDefault,  
+                cadVrInterfaceStbFilterDownDefault, and
+                cadVrSecondaryIpAddrDHCPGiaddr
+             Deprecate
+                cadVrSecondaryIpAddrDHCPPolicyEnabled"
+                
+    REVISION      "200802090000Z" -- February 9, 2008
+    DESCRIPTION
+            "Revised support for ipv6 interface forwarding."
+    REVISION      "200712090000Z" -- December 9, 2007
+    DESCRIPTION
+            "Revised support for forwarding and hop limits."
+    REVISION      "200701180000Z" -- January 18, 2007
+    DESCRIPTION
+            "Moved cadVrOspfGracefulRestartEnabled to the end of the CadVrEntry table"
+    REVISION      "200611280000Z" -- November 28, 2006
+    DESCRIPTION
+            "Added cadVrOspfGracefulRestartEnabled to CadVrEntry table"
+    REVISION    "200609250000Z" -- September 25. 2006
+    DESCRIPTION 
+        "Add support for ND configuration."
+    REVISION    "200607170000Z"
+    DESCRIPTION 
+        "Add IP address Type and prefix length"
+    REVISION    "200511140000Z"
+    DESCRIPTION 
+        "Make the secondary address mask a key field"
+    REVISION    "200504060000Z"
+    DESCRIPTION 
+        "Added cadVrInterfaceEncapType and cadVrInterfaceVlanId to cadVrInterfaceTable"
+    REVISION    "200410270000Z"
+    DESCRIPTION 
+        "Added more route types to CadVrStatus table"
+    REVISION    "200403220000Z"
+    DESCRIPTION 
+        "Added cadVrInterfaceDescription to persist ifAlias for layer 3 interfaces"
+    REVISION    "200402090000Z"
+    DESCRIPTION 
+        "Added ICMP per-interface unreachable filtering objects"
+    REVISION    "200401280000Z"
+    DESCRIPTION 
+        "Added ICMP unreachable filtering objects and virtual router status table"
+    REVISION    "200307210000Z"
+    DESCRIPTION 
+        "Added cadVrInterfaceAdminStat for loopback interface"
+    REVISION    "200307160000Z"
+    DESCRIPTION 
+        "Added cadVrInterfaceIsLoopback for loopback interface"
+    REVISION    "200307010000Z"
+    DESCRIPTION 
+        "Added cadVrInterfaceRestrictedFARPEnabled to cadVrInterfaceTable"
+    REVISION    "200306300000Z"
+    DESCRIPTION 
+        "Obsoleted igmpEnabled and irdpEnabled bools in cadVrInterfaceTable"
+    REVISION    "200304070000Z"
+    DESCRIPTION 
+        "make cadVrInterfaceVrIndex writable"
+    REVISION    "200303060000Z"
+    DESCRIPTION 
+        "Added Support for ICMP Time Exceeded"
+    REVISION    "200212160000Z"
+    DESCRIPTION 
+        "Changed cadVRInterfaceTable to be keyed by subinterface number, so that VRF is now
+         an attribute of the VRI instead of a key"
+    REVISION    "200211040000Z"
+    DESCRIPTION 
+        "Adding cadVrInterface*Filter*Default to cadVrInterfaceTable"
+    REVISION    "200209200000Z"
+    DESCRIPTION 
+        "Adding support for NULL interface."
+    REVISION    "200208160000Z"
+    DESCRIPTION 
+        "Adding support for cable source verify to cadVrInterfaceTable."
+    REVISION    "200205210000Z"
+    DESCRIPTION 
+        "Adding support for dhcp giaddr selection to cadVrSecondaryIpAddrTable."
+    REVISION    "200205070000Z"
+    DESCRIPTION 
+        "Adding cadVrScmAccessEnabled and cadVrScmAccessDirectedBroadcastEnabled to cadVrTable"
+    REVISION    "200108180000Z"
+    DESCRIPTION 
+        "Adding igmpEnabled and irdpEnabled bools to cadVrInterfaceTable"
+    REVISION    "200107170000Z"
+    DESCRIPTION 
+        "Demoted cadVrIpAddr, cadVrIpMask from keys to read-write objects.
+         Added cadVrIpIndex as an index. Removed the no longer-needed
+         cadVrIfIpIsPrimary, since its functionality is being replaced by
+         cadVrIpIndex."
+    REVISION    "200107130000Z"
+    DESCRIPTION 
+        "Adding cadVrIfIpIsPrimary bool to cadVrIpAddrTable"
+    REVISION    "200107020000Z"
+    DESCRIPTION 
+        "Adding DHCPEnabled and FARPEnabled bools to cadVrInterfaceTable"
+    REVISION    "200105250000Z"
+    DESCRIPTION 
+        "Adding ospfEnabled and ripEnabled bools to cadVrTable"
+    REVISION    "200105210000Z"
+    DESCRIPTION 
+        "Pulling IP address definitions from interface table into their
+         own table to support multiple IP addresses for a given interface."
+    REVISION    "200104290000Z"
+    DESCRIPTION 
+        "Revisions made by Cadant."
+    ::= { cadLayer3 3 }
+
+CadSourceVerifyType ::= TEXTUAL-CONVENTION
+    STATUS     current
+    DESCRIPTION	
+        "Cable Source Verify configuration option types.  The value `none'
+        implies cable source verify is inhibited.  Any value other than
+        `none' indicates some form of source verify is active.  The value
+        `internal' implies the C4's internal databases are used to verify
+        all source addresses.  `dhcp' implies DHCP lease query messaging
+        is used if a source address cannot be verified directly via the C4's
+        internal databases.  `authoritativeDhcp' implies that DHCP lease
+        query messaging must result in a conclusive identification of the
+        source address on the part of the DHCP server before the C4 will
+        allow traffic to pass for that source."
+    SYNTAX INTEGER {
+        none(0),
+        internal(1),
+        dhcp(3),
+        authoritativeDhcp(7)
+    }
+
+cadVirtualRouter OBJECT IDENTIFIER ::= { cadVirtualRouterMibModule 1 }
+
+--  CAD Virtual Router Name Table
+
+cadVrNameTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CadVrNameEntry
+    MAX-ACCESS         not-accessible
+    STATUS             current
+    DESCRIPTION
+        "The inverse table of cadVrTable, such that a manager can create/lookup
+         a virtual router by its name instead of its index. To ensure consistency,
+         a row must be created in this table prior to the corresponding row being
+         created in the cadVrTable. When a row is created in this table, the SNMP
+         agent assigns it a cadVrNameVrIndex. That value can then be used as
+         cadVrIndex to create a row in the cadVrTable. Likewise, whenever a row
+         is deleted from this table, the SNMP agent also removes the corresponding
+         row from the cadVrTable."
+    ::= { cadVirtualRouter 1 }
+
+cadVrNameEntry OBJECT-TYPE
+    SYNTAX     CadVrNameEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+               ""
+    INDEX { cadVrName }
+    ::= { cadVrNameTable 1 }
+
+CadVrNameEntry ::=
+    SEQUENCE {
+        cadVrNameVrIndex   Integer32,
+        cadVrNameRowStatus RowStatus
+    }
+
+cadVrNameVrIndex OBJECT-TYPE
+    SYNTAX     Integer32 (1..192)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+               "The cadVrIndex of the row in the cadVrTable which has the
+                same cadVrName."
+    ::= { cadVrNameEntry 1 }
+
+cadVrNameRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "The row status variable used according to row installation
+                and removal convention. In our case, we have simplified this
+                to the usage of only the following states - active, createAndGo,
+                and destroy. Other three states notInService, notReady and
+                createAndWait are not permitted."
+    ::= { cadVrNameEntry 2 }
+
+--  CAD Virtual Router Table
+
+cadVrTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CadVrEntry
+    MAX-ACCESS         not-accessible
+    STATUS             current
+    DESCRIPTION
+                       "This entity's Virtual Routing table containing many
+                        virtual routers."
+    ::= { cadVirtualRouter 2 }
+
+cadVrEntry OBJECT-TYPE
+    SYNTAX     CadVrEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+               "A particular virtual router. Prior to creating a row in this
+                table, one must first create a row in the cadVrNameTable. The
+                value that is assigned to cadVrNameVrIndex can then be used as
+                cadVrIndex to create a row in this table. Otherwise, if one
+                attempts to create a row in this table with an unknown cadVrIndex,
+                the setRequest will fail."
+    INDEX { cadVrIndex }
+    ::= { cadVrTable 1 }
+
+CadVrEntry ::=
+    SEQUENCE {
+        cadVrIndex       Integer32,
+        cadVrName        DisplayString,
+        cadVrOspfEnabled TruthValue,
+        cadVrRipEnabled  TruthValue,
+        cadVrRowStatus   RowStatus,
+        cadVrScmAccessEnabled TruthValue,
+        cadVrScmAccessDirectedBroadcastEnabled TruthValue,
+        cadVrNullInterface TruthValue,
+        cadVrICMPTimeExceededEnabled TruthValue,
+        cadVrOspfGracefulRestartEnabled TruthValue,
+        cadVrIPv6ReflectionEnabled   TruthValue,
+        cadVrICMPv6TimeExceededEnabled  TruthValue,
+        cadVrNullInterfacev6        TruthValue,
+        cadVrPhpEnabled	            TruthValue,
+        cadVrAutoImportEnabled      TruthValue
+    }
+
+cadVrIndex OBJECT-TYPE
+    SYNTAX     Integer32 (1..192)
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+               "The index value which identifies a virtual router."
+    ::= { cadVrEntry 1 }
+
+cadVrName OBJECT-TYPE
+    SYNTAX     DisplayString (SIZE (0..64))
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+               "The name of the virtual router. This name must be unique among
+                all virtual routers. Whenever a row in this table is successfully
+                created, its name is copied from the cadVrNameTable. Note that a
+                row must be created in the cadVrNameTable prior to its corresponding
+                row being created in this table."
+    ::= { cadVrEntry 2 }
+
+cadVrOspfEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     obsolete
+    DESCRIPTION
+               "true if OSPFv2 is to be enabled for this Virtual Router,
+                false otherwise."
+    DEFVAL { false }
+    ::= { cadVrEntry 3 }
+
+cadVrRipEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "true if RIPv2 is to be enabled for this Virtual Router,
+                false otherwise."
+    DEFVAL { false }
+    ::= { cadVrEntry 4 }
+
+cadVrRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "The row status variable used according to row installation
+                and removal convention. In our case, we have simplified this
+                to the usage of only the following states - active, createAndGo,
+                and destroy. Other three states notInService, notReady and
+                createAndWait are not permitted."
+    ::= { cadVrEntry 5 }
+
+cadVrScmAccessEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "true if SCM access is enabled for this virtual router, false otherwise"
+    DEFVAL { false }
+    ::= { cadVrEntry 6 }
+
+cadVrScmAccessDirectedBroadcastEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "true if SCM directed-broadcast is enabled for this virtual router, false otherwise"
+    DEFVAL { false }
+    ::= { cadVrEntry 7 }
+
+cadVrNullInterface OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "true if ICMP destination unreachable is send when routing to a null interface, false otherwise"
+    DEFVAL { false }
+    ::= { cadVrEntry 8 }
+
+cadVrICMPTimeExceededEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "true if ICMP Time Exceeded message is sent upon receiving packet with TTL = 0 or 1, false otherwise"
+    DEFVAL { false }
+    ::= { cadVrEntry 9 }
+
+cadVrOspfGracefulRestartEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "true if OSPF graceful restart is enabled,
+                false otherwise."
+    DEFVAL { false }
+    ::= { cadVrEntry 10 }
+
+cadVrIPv6ReflectionEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "true if IPv6 reflection is enabled.  Only for the D card"
+    DEFVAL { false }
+    ::= { cadVrEntry 11 }
+
+cadVrICMPv6TimeExceededEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "true if ICMPv6 Time Exceeded message is sent upon receiving packet with TTL = 0 or 1, false otherwise"
+    DEFVAL { false }
+    ::= { cadVrEntry 12 }
+
+cadVrNullInterfacev6 OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "true if ICMPv6 destination unreachable is send when routing to a null interface, false otherwise"
+    DEFVAL { false }
+    ::= { cadVrEntry 13 }
+
+cadVrPhpEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "Determines whether a VRF uses PHP or UHP for MPLS LSP tail-end behavior."
+    DEFVAL { true }
+    ::= { cadVrEntry 14 }
+
+cadVrAutoImportEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "true if VRF is performing auto import of routes"
+    DEFVAL { true }
+    ::= { cadVrEntry 15 }
+
+--
+-- Cadant Virtual Router Interface Table --
+--
+
+cadVrInterfaceTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CadVrInterfaceEntry
+    MAX-ACCESS         not-accessible
+    STATUS             current
+    DESCRIPTION
+        "This table defines interfaces for each virtual router.
+        A virtual router may have multiple interfaces."
+    ::= { cadVirtualRouter 3 }
+
+cadVrInterfaceEntry OBJECT-TYPE
+    SYNTAX     CadVrInterfaceEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+        "An interface entry for a particular virtual router."
+    INDEX { cadVrInterfaceSubifIndex, cadBgIndex }
+    ::= { cadVrInterfaceTable 1 }
+
+CadVrInterfaceEntry ::=
+    SEQUENCE {
+        cadVrInterfaceSubifIndex              Integer32,
+        cadVrInterfaceIfIndex                 InterfaceIndex,
+        cadVrInterfaceIpAddr                  InetAddressIPv4or6,
+        cadVrInterfaceIpMask                  InetAddressIPv4or6,
+        cadVrInterfaceDHCPEnabled             TruthValue,
+        cadVrInterfaceFARPEnabled             TruthValue,
+        cadVrInterfaceRipEnabled              TruthValue,
+        cadVrInterfaceRipPassive              TruthValue,
+        cadVrInterfaceIGMPEnabled             TruthValue,
+        cadVrInterfaceIRDPEnabled             TruthValue,
+        cadVrInterfaceRowStatus               RowStatus,
+        cadVrInterfaceDHCPPolicyEnabled       TruthValue,
+        cadVrInterfaceDirectedBcastEnabled    TruthValue,
+        cadVrInterfaceSourceVerify            CadSourceVerifyType,
+        cadVrInterfaceSubFilterDownDefault    Integer32,
+        cadVrInterfaceSubFilterUpDefault      Integer32,
+        cadVrInterfaceCmFilterDownDefault     Integer32,
+        cadVrInterfaceCmFilterUpDefault       Integer32,
+        cadVrInterfaceVrIndex                 Integer32,
+        cadVrInterfaceIsLoopback              TruthValue,
+        cadVrInterfaceRestrictedFARPEnabled   TruthValue,
+        cadVrInterfaceAdminStat               INTEGER,
+        cadVrInterfaceIcmpUnreachablesEnabled TruthValue,
+        cadVrInterfaceDescription             DisplayString,
+        cadVrInterfaceEncapType               IANAifType,
+        cadVrInterfaceVlanId                  Integer32,
+        cadVrInterfacePriority                Integer32,
+        cadVrInterfaceScmAccess               TruthValue,
+        cadVrInterfaceIpAddrType              InetAddressType,
+        cadVrInterfaceIpPrefixLength	      Integer32,
+        cadVrInterfaceIpScopeType	      InetScopeType,
+        cadVrInterfaceIpv6Addr                InetAddressIPv4or6,
+        cadVrInterfaceIpv6PrefixLength	      Integer32,
+        cadVrInterfaceDADAttempts	      Unsigned32,
+        cadVrInterfaceIpv6Forwarding	      INTEGER,
+        cadVrInterfacePsFilterDownDefault     Integer32,
+        cadVrInterfacePsFilterUpDefault       Integer32,
+        cadVrInterfaceMtaFilterDownDefault    Integer32,
+        cadVrInterfaceMtaFilterUpDefault      Integer32,
+        cadVrInterfaceStbFilterDownDefault    Integer32,
+        cadVrInterfaceStbFilterUpDefault      Integer32,
+        cadVrInterfaceIcmpv6UnreachablesEnabled TruthValue,
+        cadVrInterfaceIcmpv6TooBigEnabled     TruthValue,
+        cadVrInterfaceIcmpv6ParameterProblemEnabled TruthValue,    
+        cadVrInterfacePdRiEnabled             TruthValue,    
+        cadVrInterfacePolicyRouteMap          Integer32,
+        cadVrInterfacePolicyRouteMap          Integer32,
+        cadVrInterfaceMplsEnabled             TruthValue,
+        cadVrInterfaceLdpEnabled              TruthValue,
+        cadVrInterfaceGratuitousArpEnabled    TruthValue,
+        cadVrInterfaceIsSdv                   TruthValue
+    }
+
+cadVrInterfaceIfIndex OBJECT-TYPE
+    SYNTAX     InterfaceIndex
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "Virtual router interface ID associated with a virtual router
+        and the Bridge Group. This value is computed. It should
+        correspond to the index value in the ifTable."
+    ::= { cadVrInterfaceEntry 1 }
+
+cadVrInterfaceIpAddr  OBJECT-TYPE
+    SYNTAX     InetAddressIPv4or6
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "The primary IP address for this virtual router interface.
+               Currently, only IPv4 is supported, so only values that have 0 or
+               4 OCTETS are allowed. After this value has been set to 4 OCTETS,
+               then it may not be reset back to 0 OCTETS."
+    DEFVAL { ''H }
+    ::= { cadVrInterfaceEntry 2 }
+
+cadVrInterfaceIpMask  OBJECT-TYPE
+    SYNTAX     InetAddressIPv4or6
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "The primary subnet mask for this virtual router interface.
+               Currently, only IPv4 is supported, so only values that have 0 or
+               4 OCTETS are allowed. After this value has been set to 4 OCTETS,
+               then it may not be reset back to 0 OCTETS."
+    DEFVAL { ''H }
+    ::= { cadVrInterfaceEntry 3 }
+
+cadVrInterfaceDHCPEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "This is the current state of DHCP Relay for this virtual
+         router interface. If there is at least one row in the
+         cadVrDhcpServerTable for this interface, then this value
+         is true. Otherwise, it is false."
+    DEFVAL { false }
+    ::= { cadVrInterfaceEntry 4 }
+
+cadVrInterfaceFARPEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "This is the current state of ARP forwarding for this virtual
+         router interface."
+    DEFVAL { true }
+    ::= { cadVrInterfaceEntry 5 }
+
+cadVrInterfaceRipEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     obsolete
+    DESCRIPTION
+        "If this value is set to true, then RIP is enabled for this
+        interface. Otherwise RIP will be turned off for this interface."
+    DEFVAL { true }
+    ::= { cadVrInterfaceEntry 6 }
+
+cadVrInterfaceRipPassive OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     obsolete
+    DESCRIPTION
+        "If this value is set to true, then RIP route updates will not be sent
+        out this interface. Otherwise, RIP routes updates will be sent out
+        this interface, but only if RIP is enabled for this interface."
+    DEFVAL { false }
+    ::= { cadVrInterfaceEntry 7 }
+
+cadVrInterfaceIGMPEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     obsolete
+    DESCRIPTION
+        "If this value is set to true, then IGMP is enabled for this
+        interface. Otherwise IGMP will be turned off for this interface."
+    DEFVAL { true }
+    ::= { cadVrInterfaceEntry 8 }
+
+cadVrInterfaceIRDPEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     obsolete
+    DESCRIPTION
+        "If this value is set to true, then IRDP is enabled for this
+        interface. Otherwise IRDP will be turned off for this interface."
+    DEFVAL { true }
+    ::= { cadVrInterfaceEntry 9 }
+
+cadVrInterfaceRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "The row status variable used according to row installation
+        and removal convention. In our case, we have simplified this
+        to the usage of only the following states - active, createAndGo,
+        and destroy. Other three states notInService, notReady and
+        createAndWait are not permitted."
+    ::= { cadVrInterfaceEntry 10 }
+
+cadVrInterfaceDHCPPolicyEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "If set to true, then the secondary IP address of this interface
+         will be used for the giaddr."
+    DEFVAL { false }
+    ::= { cadVrInterfaceEntry 11 }
+
+cadVrInterfaceDirectedBcastEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "If set to true, then subnet-directed broadcast IP packets are
+        forwarded on this interface. Otherwise, subnet-directed broadcast
+        IP packets are dropped."
+    DEFVAL { false }
+    ::= { cadVrInterfaceEntry 12 }
+
+cadVrInterfaceSourceVerify OBJECT-TYPE
+    SYNTAX     CadSourceVerifyType
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "Current state of Source Verify for this virtual router interface.
+        May only assume values other than `none' for cable interfaces.  May
+        only assume values other than `none' or `internal' for cable
+        interfaces that have a DHCP helper address defined."
+    DEFVAL { none }
+    ::= { cadVrInterfaceEntry 13 }
+
+cadVrInterfaceSubFilterDownDefault OBJECT-TYPE
+    SYNTAX  Integer32(0..1024)
+    MAX-ACCESS read-create
+    STATUS  current
+    DESCRIPTION
+       "per-VRI equivalent of docsSubMgtSubFilterDownDefault"
+    DEFVAL { 0 }
+    ::= { cadVrInterfaceEntry 14 }
+
+cadVrInterfaceSubFilterUpDefault OBJECT-TYPE
+    SYNTAX  Integer32(0..1024)
+    MAX-ACCESS read-create
+    STATUS  current
+    DESCRIPTION
+       "per-VRI equivalent of docsSubMgtSubFilterUpDefault"
+    DEFVAL { 0 }
+    ::= { cadVrInterfaceEntry 15 }
+
+cadVrInterfaceCmFilterDownDefault OBJECT-TYPE
+    SYNTAX  Integer32(0..1024)
+    MAX-ACCESS read-create
+    STATUS  current
+    DESCRIPTION
+       "per-VRI equivalent of docsSubMgtCmFilterDownDefault"
+    DEFVAL { 0 }
+    ::= { cadVrInterfaceEntry 16 }
+
+cadVrInterfaceCmFilterUpDefault OBJECT-TYPE
+    SYNTAX  Integer32(0..1024)
+    MAX-ACCESS read-create
+    STATUS  current
+    DESCRIPTION
+       "per-VRI equivalent of docsSubMgtCmFilterUpDefault"
+    DEFVAL { 0 }
+    ::= { cadVrInterfaceEntry 17 }
+
+cadVrInterfaceSubifIndex OBJECT-TYPE
+    SYNTAX     Integer32 (1..255)
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+               "The index value which identifies a subinterface."
+    ::= { cadVrInterfaceEntry 18 }
+
+cadVrInterfaceVrIndex OBJECT-TYPE
+    SYNTAX     Integer32 (1..192)
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "The cadVrIndex of the row in the cadVrTable associated with this subinterface."
+    DEFVAL { 1 }
+    ::= { cadVrInterfaceEntry 19 }
+
+cadVrInterfaceIsLoopback OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "Determine if this virtual router interface is a loopback interface." 
+    DEFVAL { false }
+    ::= { cadVrInterfaceEntry 20 }
+
+cadVrInterfaceRestrictedFARPEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "This is the current state of Restricted ARP forwarding for this virtual
+         router interface. Note this is only valid for DOCSIS interfaces."
+    DEFVAL { true }
+    ::= { cadVrInterfaceEntry 21 }
+
+cadVrInterfaceAdminStat OBJECT-TYPE
+    SYNTAX       INTEGER { enabled (1),
+                           disabled (2)
+                           }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+           "The  administrative  status  of  the VRInterface.
+           This status is only applicable to loopback interface
+		   which has CadVrInterfaceIsLoopback set to true.
+		   It could be enabled (1) or disabled (2).
+		   All other VRInterfaces will not use this field."
+    DEFVAL { enabled }
+    ::= { cadVrInterfaceEntry 22 }
+
+cadVrInterfaceIcmpUnreachablesEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "True if ICMP unreachable messages are sent"
+    DEFVAL { true }
+    ::= { cadVrInterfaceEntry 23 }
+
+cadVrInterfaceDescription OBJECT-TYPE
+    SYNTAX     DisplayString (SIZE(0..64))
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               " A persistent copy of ifAlias for this interface."
+    ::= { cadVrInterfaceEntry 24 }
+
+cadVrInterfaceEncapType OBJECT-TYPE
+    SYNTAX     IANAifType
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "This object identifies the subinterface encapsulation 
+               type with the following values supported
+                 l3ipvlan (136) - Layer 3 Virtual LAN using IP (SIP prefix selector)
+                 l2vlan (135)   - Layer 2 Virtual LAN using 802.1Q (VLANid selector) "
+    DEFVAL { l3ipvlan }
+    ::= { cadVrInterfaceEntry 25 }
+
+cadVrInterfaceVlanId OBJECT-TYPE
+    SYNTAX     Integer32 (0..4094)
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "- if cadVrInterfaceEncapType is l2vlan (135) then this object contains 
+               the VLANid assigned by the encapsulation dot1q <VLANid> CLI subcommand."
+    DEFVAL { 0 }
+    ::= { cadVrInterfaceEntry 26 }
+
+cadVrInterfacePriority OBJECT-TYPE
+    SYNTAX     Integer32 (0..8)
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "This object contains the enumeration of the priority values to be set in 
+                the 802.1p bits for the subinterface. The enumeration values p0(0)..p7(7) 
+                represent a fixed priority to be applied to the egress Q-tags, and the 
+                value iptos(8) represents the mapping from IP TOS precedence bits to the 
+                802.1p bits on egress. The default value is p0(0). "
+    DEFVAL { 0 }
+    ::= { cadVrInterfaceEntry 27 }
+
+cadVrInterfaceScmAccess OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "This object contains the SCM access permissions whenever the cadVrInterfaceEncapType 
+         object is set to l2vlan. The default value is false(2). "
+    DEFVAL { false }
+    ::= { cadVrInterfaceEntry 28 }
+
+cadVrInterfaceIpAddrType  OBJECT-TYPE
+    SYNTAX     InetAddressType
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "The primary IP address type for this virtual router interface."
+    DEFVAL { ipv4 }
+    ::= { cadVrInterfaceEntry 29 }
+
+cadVrInterfaceIpPrefixLength OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "The prefix length for this virtual router interface IPv4 address.
+		Used in lieu of the subnet mask."
+    DEFVAL { 0 } 
+    ::= { cadVrInterfaceEntry 30 }
+
+cadVrInterfaceIpScopeType OBJECT-TYPE
+    SYNTAX     InetScopeType
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "The scope type for this virtual router interface IP address.
+		Applicable to IPv6 addresses."
+    DEFVAL { linkLocal }
+    ::= { cadVrInterfaceEntry 31 }
+
+cadVrInterfaceIpv6Addr  OBJECT-TYPE
+    SYNTAX     InetAddressIPv4or6
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "The primary IP address for this virtual router interface.
+               This is the IPv6 address, so only values that have 8 or
+               16 OCTETS are allowed. "
+    DEFVAL { ''H }
+    ::= { cadVrInterfaceEntry 32 }
+
+cadVrInterfaceIpv6PrefixLength OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "The prefix length for this virtual router interface IPv6 address.
+		Used in lieu of the subnet mask."
+    DEFVAL { 0 } 
+    ::= { cadVrInterfaceEntry 33 }
+
+cadVrInterfaceDADAttempts OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "The pnumber of IPv6 duplicate address messages sent"
+    DEFVAL { 1 } 
+    ::= { cadVrInterfaceEntry 34 }
+
+cadVrInterfaceIpv6Forwarding OBJECT-TYPE
+    SYNTAX     INTEGER {
+                    forwarding(1),   -- acting as a router
+                    notforwarding(2) -- NOT acting as a router
+                }
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+               "Determines whether IPv6 traffic should be allowed on this interface."
+    DEFVAL { forwarding } 
+    ::= { cadVrInterfaceEntry 35 }
+
+cadVrInterfacePsFilterDownDefault OBJECT-TYPE
+    SYNTAX  Integer32(0..1024)
+    MAX-ACCESS read-create
+    STATUS  current
+    DESCRIPTION
+       "per-VRI equivalent of docsSubMgtPsFilterDownDefault"
+    DEFVAL { 0 }
+    ::= { cadVrInterfaceEntry 36 }
+
+cadVrInterfacePsFilterUpDefault OBJECT-TYPE
+    SYNTAX  Integer32(0..1024)
+    MAX-ACCESS read-create
+    STATUS  current
+    DESCRIPTION
+       "per-VRI equivalent of docsSubMgtPsFilterUpDefault"
+    DEFVAL { 0 }
+    ::= { cadVrInterfaceEntry 37 }
+
+cadVrInterfaceMtaFilterDownDefault OBJECT-TYPE
+    SYNTAX  Integer32(0..1024)
+    MAX-ACCESS read-create
+    STATUS  current
+    DESCRIPTION
+       "per-VRI equivalent of docsSubMgtMtaFilterDownDefault"
+    DEFVAL { 0 }
+    ::= { cadVrInterfaceEntry 38 }
+
+cadVrInterfaceMtaFilterUpDefault OBJECT-TYPE
+    SYNTAX  Integer32(0..1024)
+    MAX-ACCESS read-create
+    STATUS  current
+    DESCRIPTION
+       "per-VRI equivalent of docsSubMgtMtaFilterUpDefault"
+    DEFVAL { 0 }
+    ::= { cadVrInterfaceEntry 39 }
+
+cadVrInterfaceStbFilterDownDefault OBJECT-TYPE
+    SYNTAX  Integer32(0..1024)
+    MAX-ACCESS read-create
+    STATUS  current
+    DESCRIPTION
+       "per-VRI equivalent of docsSubMgtStbFilterDownDefault"
+    DEFVAL { 0 }
+    ::= { cadVrInterfaceEntry 40 }
+
+cadVrInterfaceStbFilterUpDefault OBJECT-TYPE
+    SYNTAX  Integer32(0..1024)
+    MAX-ACCESS read-create
+    STATUS  current
+    DESCRIPTION
+       "per-VRI equivalent of docsSubMgtStbFilterUpDefault"
+    DEFVAL { 0 }
+    ::= { cadVrInterfaceEntry 41 }
+
+--cadVrInterfaceTeaFilterDownDefault OBJECT-TYPE
+--    SYNTAX  Integer32(0..1024)
+--    MAX-ACCESS read-create
+--    STATUS  current
+--    DESCRIPTION
+--       "per-VRI filter for BSOD TEA"
+--    DEFVAL { 0 }
+--    ::= { cadVrInterfaceEntry 42 }
+
+--cadVrInterfaceTeaFilterUpDefault OBJECT-TYPE
+--    SYNTAX  Integer32(0..1024)
+--    MAX-ACCESS read-create
+--    STATUS  current
+--    DESCRIPTION
+--       "per-VRI filter for BSOD TEA"
+--    DEFVAL { 0 }
+--    ::= { cadVrInterfaceEntry 43 }
+
+--cadVrInterfaceErouterFilterDownDefault OBJECT-TYPE
+--    SYNTAX  Integer32(0..1024)
+--    MAX-ACCESS read-create
+--    STATUS  current
+--    DESCRIPTION
+--       "per-VRI filter for eRouter"
+--    DEFVAL { 0 }
+--    ::= { cadVrInterfaceEntry 44 }
+
+--cadVrInterfaceErouterFilterUpDefault OBJECT-TYPE
+--    SYNTAX  Integer32(0..1024)
+--    MAX-ACCESS read-create
+--    STATUS  current
+--    DESCRIPTION
+--       "per-VRI filter for eRouter"
+--    DEFVAL { 0 }
+--    ::= { cadVrInterfaceEntry 45 }
+
+
+cadVrInterfaceIcmpv6UnreachablesEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "True if ICMPv6 unreachable messages are sent"
+    DEFVAL { true }
+    ::= { cadVrInterfaceEntry 46 }
+
+cadVrInterfaceIcmpv6TooBigEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "True if ICMPv6 too big messages are sent"
+    DEFVAL { true }
+    ::= { cadVrInterfaceEntry 47 }
+
+cadVrInterfaceIcmpv6ParameterProblemEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "True if ICMPv6 parameter problem messages are sent"
+    DEFVAL { true }
+    ::= { cadVrInterfaceEntry 48 }
+
+
+cadVrInterfacePdRiEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+     "Enable or disable route injection for DHCP Relay
+      IPv6 prefix delegation per interface"
+    DEFVAL { true }
+    ::= { cadVrInterfaceEntry 49 }
+
+cadVrInterfacePolicyRouteMap OBJECT-TYPE 
+    SYNTAX     Integer32 (0..64)
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+     "Id of the policy route map to use for packets
+      traversing this interface. 0 implies no policy routing."
+    DEFVAL { 0 }
+    ::= { cadVrInterfaceEntry 50 }
+
+cadVrInterfaceMplsEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     obsolete
+    DESCRIPTION
+        "If this value is set to true, then MPLS encapsulation is enabled for this
+        interface. Otherwise MPLS Encapsulation will be turned off for this interface."
+    DEFVAL { false }
+    ::= { cadVrInterfaceEntry 51 }
+
+cadVrInterfaceLdpEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     obsolete
+    DESCRIPTION
+        "If this value is set to true, then LDP is enabled for this
+        interface. Otherwise LDP will be turned off for this interface."
+    DEFVAL { false }
+    ::= { cadVrInterfaceEntry 52 }
+
+cadVrInterfaceGratuitousArpEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+     "Enable or disable sending gratuitous ARPs on
+      an Ethernet or a LAG interface."
+    DEFVAL { false }
+    ::= { cadVrInterfaceEntry 53 }
+
+cadVrInterfaceIsSdv OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+     "Indicates whether this interface is the global SDV 
+      multicast interface."
+    DEFVAL { false }
+    ::= { cadVrInterfaceEntry 54 }
+
+
+--
+-- Cadant Virtual Router Interface Secondary IP Address Table --
+--
+
+cadVrSecondaryIpAddrTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CadVrSecondaryIpAddrEntry
+    MAX-ACCESS         not-accessible
+    STATUS             current
+    DESCRIPTION
+        "This table defines secondary interfaces for each virtual
+        router. A virtual router may have multiple interfaces. A virtual
+        router interface is uniquely identified by its {cadVrInterfaceSubifIndex,
+        cadBgIndex} tuple. Each virtual router interface may also
+        have zero(0) or one(1) primary IP addresses associated with
+        it. There must be a primary address bound to an interface before
+		any secondary IP addresses may be assigned to that same interface.
+		There may be as many secondary IP addresses as desired."
+    ::= { cadVirtualRouter 4 }
+
+cadVrSecondaryIpAddrEntry OBJECT-TYPE
+    SYNTAX     CadVrSecondaryIpAddrEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+               "A secondary, or aliased, IP address for a particular virtual
+               router interface."
+    INDEX      { cadVrInterfaceSubifIndex, cadBgIndex,
+                 cadVrInterfaceIpAddr, cadVrSecondaryIpMask }
+    ::= { cadVrSecondaryIpAddrTable 1 }
+
+CadVrSecondaryIpAddrEntry ::=
+    SEQUENCE {
+        cadVrSecondaryIpMask          InetAddressIPv4or6,
+        cadVrSecondaryIpAddrRowStatus RowStatus,
+        cadVrSecondaryIpAddrDHCPPolicyEnabled TruthValue,
+        cadVrSecondaryIpPrefixLength  Integer32,
+        cadVrSecondaryIpAddrType      InetAddressType,
+        cadVrSecondaryIpScopeType     InetScopeType,
+        cadVrSecondaryIpAddrDHCPGiaddr  CadCpeDeviceTypes
+    }
+
+cadVrSecondaryIpMask  OBJECT-TYPE
+    SYNTAX     InetAddressIPv4or6
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+               "The subnet mask for this secondary IP address for this virtual
+               router interface. Currently, only IPv4 is supported, so only values
+               that have 0 or 4 OCTETS are allowed. After this value has
+               been set to 4 OCTETS, then it may not be reset back to 0 OCTETS."
+    ::= { cadVrSecondaryIpAddrEntry 1 }
+
+cadVrSecondaryIpAddrRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "The row status variable used according to row installation
+               and removal convention. In our case, we have simplified this
+               to the usage of only the following states - active, createAndGo,
+               and destroy. The other three states: notInService, notReady and
+               createAndWait, are not permitted."
+    ::= { cadVrSecondaryIpAddrEntry 2 }
+
+cadVrSecondaryIpAddrDHCPPolicyEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     deprecated
+    DESCRIPTION
+        "This SNMP entry is no longer used and has been replaced by 
+         cadVrSecondaryIpAddrDHCPGiaddr. Old description: 
+         'If set to true, then the secondary IP address of this interface 
+         will be among those used for the giaddr for DHCP of CPEs.'"
+    DEFVAL { false }
+    ::= { cadVrSecondaryIpAddrEntry 4 }
+
+cadVrSecondaryIpPrefixLength OBJECT-TYPE
+    SYNTAX     Integer32 (0..128)
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "The IP prefix length for this secondary IP address for this virtual
+               router interface.  This is used in lieu of the subnet mask."
+    ::= { cadVrSecondaryIpAddrEntry 5 }
+
+cadVrSecondaryIpAddrType OBJECT-TYPE
+    SYNTAX     InetAddressType
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "The IP address type for this secondary IP address for this virtual
+               router interface. "
+    DEFVAL { ipv4 }
+    ::= { cadVrSecondaryIpAddrEntry 6 }
+
+cadVrSecondaryIpScopeType OBJECT-TYPE
+    SYNTAX     InetScopeType
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "The scope type for this virtual router interface IP address.
+		Applicable to IPv6 addresses."
+    DEFVAL { linkLocal }
+    ::= { cadVrSecondaryIpAddrEntry 7 }
+
+cadVrSecondaryIpAddrDHCPGiaddr OBJECT-TYPE
+    SYNTAX      CadCpeDeviceTypes
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "If set, then the secondary IP address of this interface
+         will be among those used for the giaddr for DHCP of that
+         particular type of CPE host. Note: CPE is the default type
+         for any device which can not be classified via option 43.2
+         or 60 of the DHCP-DISCOVER message."
+    DEFVAL { {} }
+    ::= { cadVrSecondaryIpAddrEntry 8 }
+
+
+--
+-- Cadant Virtual Router Status Table --
+--
+
+cadVrStatusTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CadVrStatusEntry
+    MAX-ACCESS         not-accessible
+    STATUS             current
+    DESCRIPTION
+       "This entity's Virtual Routing status table containing many
+        virtual routers."
+    ::= { cadVirtualRouter 5 }
+
+cadVrStatusEntry OBJECT-TYPE
+    SYNTAX     CadVrStatusEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+               "A particular virtual router's status."
+    INDEX {cadVrStatusVrIndex } 
+    ::= { cadVrStatusTable 1 }
+
+CadVrStatusEntry ::=
+    SEQUENCE {
+        cadVrStatusVrIndex                    Integer32,
+        cadVrStatusNumLocalRoutes             Gauge32,
+        cadVrStatusNumNetmgmtRoutes           Gauge32,
+        cadVrStatusNumRipRoutes               Gauge32,
+        cadVrStatusNumIsisInternal1Routes     Gauge32,
+        cadVrStatusNumIsisInternal2Routes     Gauge32,
+        cadVrStatusNumIsisExternal1Routes     Gauge32,
+        cadVrStatusNumIsisExternal2Routes     Gauge32,
+        cadVrStatusNumBgpIntRoutes            Gauge32,
+        cadVrStatusNumBgpExtRoutes            Gauge32,
+        cadVrStatusNumBgpVpnRoutes            Gauge32,
+        cadVrStatusNumOspfIntraAreaRoutes     Gauge32,
+        cadVrStatusNumOspfInterAreaRoutes     Gauge32,
+        cadVrStatusNumOspfInternal1Routes     Gauge32,
+        cadVrStatusNumOspfInternal2Routes     Gauge32,
+        cadVrStatusNumOspfExternal1Routes     Gauge32,
+        cadVrStatusNumOspfExternal2Routes     Gauge32,
+        cadVrStatusNumOspfNssaExternal1Routes Gauge32,
+        cadVrStatusNumOspfNssaExternal2Routes Gauge32,
+        cadVrStatusNumOtherRoutes             Gauge32,
+        cadVrStatusNumIpv6LocalRoutes             Gauge32,
+        cadVrStatusNumIpv6NetmgmtRoutes           Gauge32,
+        cadVrStatusNumIpv6IsisInternal1Routes     Gauge32,
+        cadVrStatusNumIpv6IsisInternal2Routes     Gauge32,
+        cadVrStatusNumIpv6IsisExternal1Routes     Gauge32,
+        cadVrStatusNumIpv6IsisExternal2Routes     Gauge32,
+        cadVrStatusNumIpv6OspfIntraAreaRoutes     Gauge32,
+        cadVrStatusNumIpv6OspfInterAreaRoutes     Gauge32,
+        cadVrStatusNumIpv6OspfInternal1Routes     Gauge32,
+        cadVrStatusNumIpv6OspfInternal2Routes     Gauge32,
+        cadVrStatusNumIpv6OspfExternal1Routes     Gauge32,
+        cadVrStatusNumIpv6OspfExternal2Routes     Gauge32,
+        cadVrStatusNumIpv6OspfNssaExternal1Routes Gauge32,
+        cadVrStatusNumIpv6OspfNssaExternal2Routes Gauge32,
+        cadVrStatusNumIpv6PdRoutes            Gauge32,
+        cadVrStatusNumIpv6OtherRoutes             Gauge32,
+        cadVrStatusNumIpv6BgpIntRoutes            Gauge32,
+        cadVrStatusNumIpv6BgpExtRoutes            Gauge32,
+        cadVrStatusNumIpv6BgpVpnRoutes            Gauge32
+    }
+
+cadVrStatusVrIndex OBJECT-TYPE
+    SYNTAX     Integer32 (1..192)
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+               "The index value which identifies a virtual router."
+    ::= { cadVrStatusEntry 1 }
+
+cadVrStatusNumLocalRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 local routes."
+    ::= { cadVrStatusEntry 2 }
+
+cadVrStatusNumNetmgmtRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 network management routes."
+    ::= { cadVrStatusEntry 3 }
+
+cadVrStatusNumRipRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 RIP routes."
+    ::= { cadVrStatusEntry 4 }
+
+cadVrStatusNumIsisInternal1Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 internal level 1 IS-IS routes."
+    ::= { cadVrStatusEntry 5 }
+
+cadVrStatusNumIsisInternal2Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 internal level 2 IS-IS routes."
+    ::= { cadVrStatusEntry 6 }
+
+cadVrStatusNumIsisExternal1Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 external level 1 IS-IS routes."
+    ::= { cadVrStatusEntry 7 }
+
+cadVrStatusNumIsisExternal2Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 external level 2 IS-IS routes."
+    ::= { cadVrStatusEntry 8 }
+
+cadVrStatusNumBgpIntRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 internal BGP routes."
+    ::= { cadVrStatusEntry 9 }
+
+cadVrStatusNumBgpExtRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 external BGP routes."
+    ::= { cadVrStatusEntry 10 }
+
+cadVrStatusNumBgpVpnRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 VPN BGP routes."
+    ::= { cadVrStatusEntry 11 }
+
+cadVrStatusNumOspfIntraAreaRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 OSPF intra-area routes."
+    ::= { cadVrStatusEntry 12 }
+
+cadVrStatusNumOspfInterAreaRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 OSPF inter-area routes."
+    ::= { cadVrStatusEntry 13 }
+
+cadVrStatusNumOspfInternal1Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 OSPF internal-1 routes."
+    ::= { cadVrStatusEntry 14 }
+
+cadVrStatusNumOspfInternal2Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 OSPF internal-2 routes."
+    ::= { cadVrStatusEntry 15 }
+
+cadVrStatusNumOspfExternal1Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 OSPF external-1 routes."
+    ::= { cadVrStatusEntry 16 }
+
+cadVrStatusNumOspfExternal2Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 OSPF external-2 routes."
+    ::= { cadVrStatusEntry 17 }
+
+cadVrStatusNumOspfNssaExternal1Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 OSPF NSSA external-1 routes."
+    ::= { cadVrStatusEntry 18 }
+
+cadVrStatusNumOspfNssaExternal2Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 OSPF NSSA external-2 routes."
+    ::= { cadVrStatusEntry 19 }
+
+cadVrStatusNumOtherRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv4 routes that are not classified."
+    ::= { cadVrStatusEntry 20 }
+
+cadVrStatusNumIpv6LocalRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 local routes."
+    ::= { cadVrStatusEntry 21 }
+
+cadVrStatusNumIpv6NetmgmtRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 network management routes."
+    ::= { cadVrStatusEntry 22 }
+
+cadVrStatusNumIpv6IsisInternal1Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 internal level 1 IS-IS routes."
+    ::= { cadVrStatusEntry 23 }
+
+cadVrStatusNumIpv6IsisInternal2Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 internal level 2 IS-IS routes."
+    ::= { cadVrStatusEntry 24 }
+
+cadVrStatusNumIpv6IsisExternal1Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 external level 1 IS-IS routes."
+    ::= { cadVrStatusEntry 25 }
+
+cadVrStatusNumIpv6IsisExternal2Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 external level 2 IS-IS routes."
+    ::= { cadVrStatusEntry 26 }
+
+cadVrStatusNumIpv6OspfIntraAreaRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 OSPF intra-area routes."
+    ::= { cadVrStatusEntry 27 }
+
+cadVrStatusNumIpv6OspfInterAreaRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 OSPF inter-area routes."
+    ::= { cadVrStatusEntry 28 }
+
+cadVrStatusNumIpv6OspfInternal1Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 OSPF internal-1 routes."
+    ::= { cadVrStatusEntry 29 }
+
+cadVrStatusNumIpv6OspfInternal2Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 OSPF internal-2 routes."
+    ::= { cadVrStatusEntry 30 }
+
+cadVrStatusNumIpv6OspfExternal1Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 OSPF external-1 routes."
+    ::= { cadVrStatusEntry 31 }
+
+cadVrStatusNumIpv6OspfExternal2Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 OSPF external-2 routes."
+    ::= { cadVrStatusEntry 32 }
+
+cadVrStatusNumIpv6OspfNssaExternal1Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 OSPF NSSA external-1 routes."
+    ::= { cadVrStatusEntry 33 }
+
+cadVrStatusNumIpv6OspfNssaExternal2Routes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 OSPF NSSA external-2 routes."
+    ::= { cadVrStatusEntry 34 }
+
+cadVrStatusNumIpv6PdRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 PD routes."
+    ::= { cadVrStatusEntry 35 }
+
+cadVrStatusNumIpv6OtherRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 routes that are not classified."
+    ::= { cadVrStatusEntry 36 }
+
+cadVrStatusNumIpv6BgpIntRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 internal BGP routes."
+    ::= { cadVrStatusEntry 37 }
+
+cadVrStatusNumIpv6BgpExtRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 external BGP routes."
+    ::= { cadVrStatusEntry 38 }
+
+cadVrStatusNumIpv6BgpVpnRoutes OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "routes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of IPv6 VPN BGP routes."
+    ::= { cadVrStatusEntry 39 }
+
+--
+-- Cadant Virtual Router Interface Status Table --
+--
+
+cadVrInterfaceStatusTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CadVrInterfaceStatusEntry
+    MAX-ACCESS         not-accessible
+    STATUS             current
+    DESCRIPTION
+                       "This entity's Virtual Routing Interface status table containing
+                        many virtual interfaces."
+    ::= { cadVirtualRouter 6 }
+
+cadVrInterfaceStatusEntry OBJECT-TYPE
+    SYNTAX     CadVrInterfaceStatusEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+               "A particular virtual router interface's status."
+    INDEX { cadVrInterfaceStatusIfIndex }
+    ::= { cadVrInterfaceStatusTable 1 }
+
+CadVrInterfaceStatusEntry ::=
+    SEQUENCE {
+        cadVrInterfaceStatusIfIndex                 InterfaceIndex,
+        cadVrInterfaceStatusIcmpUnreachablesDropped Counter32,
+        cadVrInterfaceStatusIcmpv6UnreachablesDropped   Counter32
+    }
+
+cadVrInterfaceStatusIfIndex OBJECT-TYPE
+    SYNTAX     InterfaceIndex
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+        "Virtual router interface ID. This value is computed. It should
+        correspond to the index value in the ifTable."
+    ::= { cadVrInterfaceStatusEntry 1 }
+
+cadVrInterfaceStatusIcmpUnreachablesDropped OBJECT-TYPE
+    SYNTAX      Counter32
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of ICMP unreachable packets dropped."
+    ::= { cadVrInterfaceStatusEntry 2 }
+
+cadVrInterfaceStatusIcmpv6UnreachablesDropped OBJECT-TYPE
+    SYNTAX      Counter32
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of ICMPv6 unreachable packets dropped."
+    ::= { cadVrInterfaceStatusEntry 3 }
+--
+-- Cadant Virtual Router Globals --
+--
+
+cadVrGlobals OBJECT IDENTIFIER ::= { cadVirtualRouter 7 }
+
+cadVrGlobalIcmpUnreachablesEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+           "True if ICMP unreachable messages are sent"
+    DEFVAL { true }
+    ::= { cadVrGlobals 1 }
+
+cadVrGlobalIpForwarding OBJECT-TYPE
+    SYNTAX     INTEGER {
+                    forwarding(1),    -- acting as a router
+                    notForwarding(2)  -- NOT acting as a router
+               }
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+           "The indication of whether this entity is acting as an IPv4
+            router in respect to the forwarding of datagrams received
+            by, but not addressed to, this entity.  IPv4 routers forward
+            datagrams.  IPv4 hosts do not (except those source-routed
+            via the host)."
+    DEFVAL { forwarding }
+    ::= { cadVrGlobals 2 }
+
+cadVrGlobalIpDefaultTTL OBJECT-TYPE
+    SYNTAX     Integer32 (1..255)
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+           "The default value inserted into the Time-To-Live field of
+            the IPv4 header of datagrams originated at this entity,
+            whenever a TTL value is not supplied by the transport layer
+            protocol."
+    DEFVAL { 255 }
+    ::= { cadVrGlobals 3 }
+
+cadVrGlobalIpv6IpForwarding OBJECT-TYPE
+    SYNTAX     INTEGER {
+                    forwarding(1),    -- acting as a router
+                    notForwarding(2)  -- NOT acting as a router
+               }
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+           "The indication of whether this entity is acting as an IPv6
+            router on any interface in respect to the forwarding of
+            datagrams received by, but not addressed to, this entity.
+            IPv6 routers forward datagrams.  IPv6 hosts do not (except
+            those source-routed via the host)."
+    DEFVAL { forwarding }
+    ::= { cadVrGlobals 4 }
+
+cadVrGlobalIpv6IpDefaultHopLimit OBJECT-TYPE
+    SYNTAX     Integer32 (0..255)
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+           "The default value inserted into the Hop Limit field of the
+            IPv6 header of datagrams originated at this entity whenever
+            a Hop Limit value is not supplied by the transport layer
+            protocol."
+    REFERENCE "RFC 2461 Section 6.3.2"
+    DEFVAL { 64 }
+    ::= { cadVrGlobals 5 }
+
+cadVrGlobalIcmpv6UnreachablesEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+           "True if ICMPv6 unreachable messages are sent"
+    DEFVAL { true }
+    ::= { cadVrGlobals 6 }
+
+cadVrGlobalIcmpv6TooBigEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+           "True if ICMPv6 too big enabled."
+    DEFVAL { true }
+    ::= { cadVrGlobals 7 }
+
+cadVrGlobalIcmpv6ParameterProblemEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+           "True if ICMPv6 too big enabled."
+    DEFVAL { true }
+    ::= { cadVrGlobals 8 }
+
+--cadVrGlobalIsisHostNameEnabled  OBJECT-TYPE
+--    ::= { cadVrGlobals 9 }
+--    Removed, do not use 9
+
+cadVrGlobalAllowAnyCableMac OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+               "True if disabling unicast upstream cable-mac checking of the Ethernet DMAC."
+    DEFVAL { false }
+    ::= { cadVrGlobals 10 }   
+
+
+
+--
+-- Cadant Virtual Router Global Status Table --
+--
+
+cadVrGlobalStatus OBJECT IDENTIFIER ::= { cadVirtualRouter 8 }
+
+cadVrGlobalStatusIcmpUnreachablesDropped OBJECT-TYPE
+    SYNTAX      Counter32
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of ICMP unreachable packets dropped."
+    ::= { cadVrGlobalStatus 1 }
+
+cadVrGlobalStatusIcmpv6UnreachablesDropped OBJECT-TYPE
+    SYNTAX      Counter32
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of ICMPv6 unreachable packets dropped."
+    ::= { cadVrGlobalStatus 2 }
+--
+-- Cadant Virtual Router IPV6 Prefix table
+--
+
+cadVrAddressPrefixTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CadVrAddressPrefixEntry
+    MAX-ACCESS         not-accessible
+    STATUS             current
+    DESCRIPTION
+        "This table defines prefixes for each virtual router interface.
+        A virtual router interface may have multiple prefixes."
+    ::= { cadVirtualRouter 9 }
+
+cadVrAddressPrefixEntry OBJECT-TYPE
+    SYNTAX     CadVrAddressPrefixEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+        "An interface entry for a particular virtual router."
+    INDEX { cadVrInterfaceSubifIndex, cadBgIndex,
+            cadVrAddressPrefixType, cadVrAddressPrefixPrefix,
+            cadVrAddressPrefixLength }
+    ::= { cadVrAddressPrefixTable 1 }
+
+CadVrAddressPrefixEntry ::=
+    SEQUENCE {
+        cadVrAddressPrefixType                InetAddressType,
+        cadVrAddressPrefixPrefix              InetAddressIPv4or6,
+        cadVrAddressPrefixLength              InetAddressPrefixLength,
+        cadVrAddressPrefixAdvertiseFlag       TruthValue,
+        cadVrAddressPrefixOnLinkFlag          TruthValue,
+        cadVrAddressPrefixAutonomousFlag      TruthValue,
+        cadVrAddressPrefixAdvValidLifetime    Unsigned32,
+        cadVrAddressPrefixAdvPreferredLifetime Unsigned32,
+        cadVrAddressPrefixAdvValidDate        DateAndTime,
+        cadVrAddressPrefixAdvPreferredDate    DateAndTime,
+        cadVrAddressPrefixRowStatus           RowStatus
+    }
+
+cadVrAddressPrefixType OBJECT-TYPE
+    SYNTAX     InetAddressType
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "The address type of the the address prefix."
+    ::= { cadVrAddressPrefixEntry 1 }
+
+cadVrAddressPrefixPrefix OBJECT-TYPE
+    SYNTAX     InetAddressIPv4or6
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "The address prefix.  The address type of this object is
+        specified in ipAddressPrefixType.  The length of this object
+        is the standard length for objects of that type (4 or 16
+        bytes).  Any bits after ipAddressPrefixLength must be zero.
+
+        Implementors need to be aware that, if the size of
+        ipAddressPrefixPrefix exceeds 114 octets, then OIDS of
+        instances of columns in this row will have more than 128
+        sub-identifiers and cannot be accessed using SNMPv1,
+        SNMPv2c, or SNMPv3."
+    ::= { cadVrAddressPrefixEntry 2 }
+
+cadVrAddressPrefixLength OBJECT-TYPE
+    SYNTAX     InetAddressPrefixLength
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "The prefix length associated with this prefix.
+        The value 0 has no special meaning for this object.  It
+        simply refers to address '::/0'."
+    ::= { cadVrAddressPrefixEntry 3 }
+
+cadVrAddressPrefixAdvertiseFlag  OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "This object have the true(1), if this prefix can be
+         sent in router advertisements.  If false(2), it is not
+         sent in router advertisements."
+    DEFVAL { false }
+    ::= { cadVrAddressPrefixEntry 4 }
+
+cadVrAddressPrefixOnLinkFlag  OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "This object have the true(1), if this prefix can be
+         sent in router advertisements.  If false(2), it is not
+         sent in router advertisements."
+    DEFVAL { false }
+    ::= { cadVrAddressPrefixEntry 5 }
+
+cadVrAddressPrefixAutonomousFlag  OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "Autonomous address configuration flag.  When true(1),
+        indicates that this prefix can be used for autonomous
+        address configuration (i.e., can be used to form a local
+        interface address).  If false(2), it is not used to auto-
+        configure a local interface address.
+
+        The default for IPv4 prefixes is 'false(2)'."
+    REFERENCE "For IPv6 RFC 2461, especially sections 2 and 4.6.2 and RFC 2462"
+    DEFVAL { false }
+    ::= { cadVrAddressPrefixEntry 6 }
+
+cadVrAddressPrefixAdvPreferredLifetime OBJECT-TYPE
+    SYNTAX     Unsigned32
+    UNITS      "seconds"
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "The remaining length of time, in seconds, that this prefix
+        will continue to be preferred, i.e., time until deprecation.
+
+        A value of 4,294,967,295 represents infinity.
+
+        The address generated from a deprecated prefix should no
+        longer be used as a source address in new communications,
+        but packets received on such an interface are processed as
+        expected.
+
+        The default for IPv4 prefixes is 4,294,967,295 (infinity)."
+    REFERENCE "For IPv6 RFC 2461, especially sections 2 and 4.6.2 and RFC 2462"
+    DEFVAL { 2592000 }
+    ::= { cadVrAddressPrefixEntry 7 }
+
+cadVrAddressPrefixAdvValidLifetime OBJECT-TYPE
+    SYNTAX     Unsigned32
+    UNITS       "seconds"
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "The remaining length of time, in seconds, that this prefix
+        will continue to be valid, i.e., time until invalidation.  A
+        value of 4,294,967,295 represents infinity.
+
+        The address generated from an invalidated prefix should not
+        appear as the destination or source address of a packet.
+
+        The default for IPv4 prefixes is 4,294,967,295 (infinity)."
+    REFERENCE "For IPv6 RFC 2461, especially sections 2 and 4.6.2 and RFC 2462"
+    DEFVAL { 2592000 }
+    ::= { cadVrAddressPrefixEntry 8 }
+
+cadVrAddressPrefixAdvPreferredDate OBJECT-TYPE
+    SYNTAX     DateAndTime
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "The date that this prefix will continue to be preferred.
+
+        The address generated from a deprecated prefix should no
+        longer be used as a source address in new communications,
+        but packets received on such an interface are processed as
+        expected."
+    REFERENCE "For IPv6 RFC 2461, especially sections 2 and 4.6.2 and RFC 2462"
+    DEFVAL { ''h }
+    ::= { cadVrAddressPrefixEntry 9 }
+
+cadVrAddressPrefixAdvValidDate OBJECT-TYPE
+    SYNTAX     DateAndTime
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "The date that this prefix will continue to be valid.
+
+        The address generated from an invalidated prefix should not
+        appear as the destination or source address of a packet."
+
+    REFERENCE "For IPv6 RFC 2461, especially sections 2 and 4.6.2 and RFC 2462"
+    DEFVAL { ''h }
+    ::= { cadVrAddressPrefixEntry 10 }
+
+cadVrAddressPrefixRowStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "The control for adding and removing address prefix rows.
+
+        Setting this value to createAndGo(4) will cause a row to
+        be added, and setting this value to destroy(6) will cause
+        the row to be removed.  These are the only two values that
+        may be set."
+    ::= { cadVrAddressPrefixEntry 11 }
+
+--
+-- Cadant Virtual Router Route Lookup Table --
+--
+
+cadVrRtLookupTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CadVrRtLookupEntry
+    MAX-ACCESS         not-accessible
+    STATUS             current
+    DESCRIPTION
+       "This entity's Virtual Routing status table containing many
+        virtual routers."
+    ::= { cadVirtualRouter 10 }
+
+cadVrRtLookupEntry OBJECT-TYPE
+    SYNTAX     CadVrRtLookupEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+               "A particular virtual router's status."
+    INDEX {cadVrRtLookupVrIndex,
+           cadVrRtLookupInetAddrType,
+           cadVrRtLookupInetAddr,
+           cadVrRtLookupPrefixLength} 
+    ::= { cadVrRtLookupTable 1 }
+
+CadVrRtLookupEntry ::=
+    SEQUENCE {
+        cadVrRtLookupVrIndex                    Integer32,
+        cadVrRtLookupInetAddrType               InetAddressType,
+        cadVrRtLookupInetAddr                   InetAddressIPv4or6,
+        cadVrRtLookupPrefixLength               InetAddressPrefixLength,
+        cadVrRtLookupInetAddrResult             InetAddressIPv4or6,
+        cadVrRtLookupPrefixLengthResult         InetAddressPrefixLength
+    }
+
+cadVrRtLookupVrIndex OBJECT-TYPE
+    SYNTAX     Integer32 (1..192)
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+               "The index value which identifies a virtual router."
+    ::= { cadVrRtLookupEntry 1 }
+
+cadVrRtLookupInetAddrType OBJECT-TYPE
+    SYNTAX     InetAddressType
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "The ipv4 or ipv6 address type of the the address prefix."
+    ::= { cadVrRtLookupEntry 2 }
+
+cadVrRtLookupInetAddr  OBJECT-TYPE
+    SYNTAX     InetAddressIPv4or6
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+               "The IP address for the lookup."
+    DEFVAL { ''H }
+    ::= { cadVrRtLookupEntry 3 }
+
+cadVrRtLookupPrefixLength OBJECT-TYPE
+    SYNTAX     InetAddressPrefixLength
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "The address prefix length"
+    ::= { cadVrRtLookupEntry 4 }
+
+cadVrRtLookupInetAddrResult  OBJECT-TYPE
+    SYNTAX     InetAddressIPv4or6
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+               "The IP address result from the lookup."
+    DEFVAL { ''H }
+    ::= { cadVrRtLookupEntry 5 }
+
+cadVrRtLookupPrefixLengthResult OBJECT-TYPE
+    SYNTAX     InetAddressPrefixLength
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "The address prefix length result from the lookup"
+    ::= { cadVrRtLookupEntry 6 }
+
+END
+

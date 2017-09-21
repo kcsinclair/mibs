@@ -1,0 +1,3245 @@
+-- extracted from draft-ietf-isis-wg-mib-02.txt
+-- at Mon Nov 15 17:11:33 1999
+
+     ISIS-MIB DEFINITIONS ::= BEGIN
+
+         IMPORTS
+             TEXTUAL-CONVENTION, DisplayString, RowStatus, TruthValue,
+             TestAndIncr
+                 FROM SNMPv2-TC
+             MODULE-IDENTITY, OBJECT-TYPE,
+             OBJECT-IDENTITY, Integer32, Counter32, IpAddress, TimeTicks
+                 FROM SNMPv2-SMI;
+
+        isis MODULE-IDENTITY
+            LAST-UPDATED "9905181200Z" -- UTC date of the most recent
+REVISION.
+            ORGANIZATION "Nexabit Networks, Inc."
+            CONTACT-INFO
+                 "Jeff Parker
+                 Nexabit Networks, LLC
+                 200 Nickerson Rd.
+                 Marlborough, MA 01752
+
+                 jparker@nexabit.com"
+
+            DESCRIPTION
+             ""
+        ::= { experimental 37 }
+
+     -- OBJECT IDENTIFIER definitions
+        isisSystem OBJECT-IDENTITY
+            STATUS  current
+            DESCRIPTION
+                ""
+        ::= { isis 1 }
+
+        isisCirc OBJECT-IDENTITY
+            STATUS  current
+            DESCRIPTION
+                ""
+        ::= { isis 2 }
+
+        isisISAdj OBJECT-IDENTITY
+            STATUS  current
+            DESCRIPTION
+                ""
+        ::= { isis 3 }
+
+        isisReachAddr OBJECT-IDENTITY
+            STATUS  current
+            DESCRIPTION
+                ""
+        ::= { isis 4 }
+
+        isisIPReachAddr OBJECT-IDENTITY
+            STATUS  current
+            DESCRIPTION
+                ""
+        ::= { isis 5 }
+        isisIPDest OBJECT-IDENTITY
+            STATUS  current
+            DESCRIPTION
+                ""
+        ::= { isis 6 }
+
+     -- Type definitions
+
+        OSINSAddress ::= TEXTUAL-CONVENTION
+           STATUS       current
+           DESCRIPTION
+              "OSI Network Service Address, e.g. NSAP, Network Entity Title"
+           SYNTAX     OCTET STRING (SIZE(0..20))
+
+        SNPAAddress ::= TEXTUAL-CONVENTION
+           STATUS       current
+           DESCRIPTION
+              "A MAC Address or DTE Address or other SNPA Address."
+           SYNTAX     OCTET STRING (SIZE(0..20))
+
+        NSAPPrefix ::= TEXTUAL-CONVENTION
+           STATUS       current
+           DESCRIPTION
+              "NSAP Prefix. The first octet of the string is used to
+               encode as an unsigned integer the length in bits of the
+               subsequent prefix. This length must be a multiple of 4
+               bits and may range from 0..160. The second and
+               subsequent octets are used to hold the prefix value.
+               If the last 4 bits of the last octet are not part of
+               the prefix then their value is undefined."
+           SYNTAX       OCTET STRING (SIZE(1..21))
+
+        SNPAPrefix ::= TEXTUAL-CONVENTION
+           STATUS       current
+           DESCRIPTION
+              "SNPA Prefix. The first octet of the string is used to
+               encode as an unsigned integer the length in bits of the
+               subsequent prefix. The second and
+               subsequent octets are used to hold the prefix value.
+               Bits in the last octet which are not part of
+               the prefix have undefined value."
+           SYNTAX         OCTET STRING (SIZE(1..21))
+
+        SystemID ::= TEXTUAL-CONVENTION
+           STATUS       current
+           DESCRIPTION
+              "A system ID."
+         SYNTAX            OCTET STRING (SIZE(0..8))
+
+        OperState ::= TEXTUAL-CONVENTION
+           STATUS       current
+           DESCRIPTION
+                 "Type used in enabling and disabling a row."
+           SYNTAX       INTEGER
+                         {
+                          off(1),
+                          on(2)
+                         }
+
+        LSPBuffSize ::= TEXTUAL-CONVENTION
+           STATUS       current
+           DESCRIPTION
+                 "Integer sub range for LSP size."
+           SYNTAX         Integer32 (512..1492)
+
+        LevelState ::= TEXTUAL-CONVENTION
+           STATUS       current
+           DESCRIPTION
+                 "states of the ISIS protocol."
+           SYNTAX        INTEGER
+                            {
+                             off (1),
+                             on (2),
+                             waiting (3)
+                            }
+
+        SupportedProtocol ::= TEXTUAL-CONVENTION
+           STATUS       current
+           DESCRIPTION
+                 "Types of network protocol supported by Integrated ISIS.
+                  The values for ISO8473 and IP are those registered for
+                  these protocols in ISO TR9577."
+           SYNTAX        INTEGER
+                            {
+                             iso8473(129),
+                             ip(204),
+                             ipV6(205)
+                            }
+
+        DefaultMetric ::= TEXTUAL-CONVENTION
+           STATUS       current
+           DESCRIPTION
+              "Integer sub-range for default metric for single hop."
+           SYNTAX        Integer32 (1..63)
+
+        OtherMetric ::= TEXTUAL-CONVENTION
+           STATUS       current
+           DESCRIPTION
+              "Integer sub-range for metrics other than the default
+               metric for single hop."
+           SYNTAX         Integer32 (0..63)
+
+        MetricType ::= TEXTUAL-CONVENTION
+           STATUS       current
+           DESCRIPTION
+              "Class of metric at Level 2."
+           SYNTAX           INTEGER
+                               {
+                                internal(1),
+                                external(2)
+                               }
+
+        CircuitID ::= TEXTUAL-CONVENTION
+           STATUS       current
+           DESCRIPTION
+                 "ID for a circuit."
+           SYNTAX OCTET STRING (SIZE(2..9))
+
+        ISPriority ::= TEXTUAL-CONVENTION
+           STATUS       current
+           DESCRIPTION
+              "Integer sub-range for ISIS priority."
+         SYNTAX             Integer32 (1..127)
+
+         TOS ::= INTEGER
+                 {
+                     default(1),
+                     delay(2),
+                     expense(3),
+                     error(4)
+
+                  }
+         -- Types Of Service (equivalent to Qualities Of Service)
+         -- which define types of metric.
+
+            PathCost ::= INTEGER (0..1023)
+             -- Integer sub-range for any metric for complete path.
+
+     -- Behaviour Definitions
+
+     -- ResettingTimer behaviour definition
+     -- "This object specifies the interval between certain events in
+     -- the operation of the protocol state machine. If the value of
+     -- this object is set to a new value while the protocol state
+     -- machine is in operation, the implementation shall take the
+     -- necessary steps to ensure that for any time interval which
+     -- was in progress when the value of the corresponding object
+     -- was changed, the next expiration of that interval takes place
+     -- the specified time after the original start of that interval,
+     -- or immediately, whichever is later. The precision with which
+     -- this time shall be implemented shall be the same as that
+     -- associated with the basic operation of the timer object."
+
+     -- OperationalState behaviour definition
+     -- "This object controls the enabling and disabling of the
+     -- corresponding table row. Setting this object to the value
+     -- off has the effect of disabling the corresponding row.
+     -- Setting this object to the value on has the effect of
+     -- enabling the corresponding row. Setting the value of this
+     -- object to the same value as its current value has no effect.
+     -- If the table entry also contains an object controlling the
+     -- row status then the object following the operationalState
+     -- behaviour shall not be set to on when the object following
+     -- the Row Status behaviour has value off. An attempt to do
+     -- so is rejected."
+
+         isisSysTable OBJECT-TYPE
+             SYNTAX SEQUENCE OF IsisSysEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The set of instances of the Integrated IS-IS protocol
+                 existing on the system."
+         ::= { isisSystem 1 }
+         isisSysEntry OBJECT-TYPE
+             SYNTAX IsisSysEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "Each row defines information specific to a single
+                 instance of the protocol existing on the system."
+             REFERENCE "{ISIS.poi cLNSISISBasic-P (1)}"
+             INDEX { isisSysInstance }
+         ::= { isisSysTable 1 }
+
+         IsisSysEntry ::=
+             SEQUENCE {
+                 isisSysInstance
+                     Integer32,
+                 isisSysVersion
+                     DisplayString,
+                 isisSysType
+                     INTEGER,
+                 isisSysID
+                     SystemID,
+                 isisSysMaxPathSplits
+                     Integer32,
+                 isisSysMaxLSPGenInt
+                     Integer32,
+                 isisSysOrigL1LSPBuffSize
+                     LSPBuffSize,
+                 isisSysMaxAreaAddresses
+                     Integer32,
+                 isisSysMinL1LSPGenInt        -- Change - jdp
+                     Integer32,
+                 isisSysMinL2LSPGenInt        -- Added - jdp
+                     Integer32,
+                 isisSysPollESHelloRate
+                     Integer32,
+                 isisSysWaitTime
+                     Integer32,
+                 isisSysOperState
+                     OperState,
+                 isisSysL1State
+                     LevelState,
+                 isisSysCorrLSPs
+                     Counter32,
+                 isisSysLSPL1DbaseOloads
+                     Counter32,
+
+                 isisSysManAddrDropFromAreas
+                     Counter32,
+                 isisSysAttmptToExMaxSeqNums
+                     Counter32,
+                 isisSysSeqNumSkips
+                     Counter32,
+                 isisSysOwnLSPPurges
+                     Counter32,
+                 isisSysIDFieldLenMismatches
+                     Counter32,
+                 isisSysMaxAreaAddrMismatches
+                     Counter32,
+                 isisSysOrigL2LSPBuffSize
+                     LSPBuffSize,
+                 isisSysL2State
+                     LevelState,
+                 isisSysLSPL2DbaseOloads
+                     Counter32,
+                 isisSysAuthAreaType
+                     INTEGER,
+                 isisSysAuthAreaTransPwd
+                     OCTET STRING,
+                 isisSysAuthDomainType
+                     INTEGER,
+                 isisSysAuthDomainTransPwd
+                     OCTET STRING,
+                 isisSysAuthFails
+                     Counter32,
+                 isisSysLSPIgnoreErrors
+                     TruthValue,
+                 isisSysLogAdjacencyChanges
+                     TruthValue,
+                 isisSysPartChanges
+                     Counter32,
+                 isisSysMaxAreaCheck
+                     TruthValue,
+                 isisSysNextCircIndex
+                     TestAndIncr,
+                 isisSysExistState
+                     RowStatus
+             }
+
+         isisSysInstance OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The unique identifier of the Integrated IS-IS instance
+                 to which this row corresponds. This object follows the
+                 index behaviour."
+         ::= { isisSysEntry 1 }
+
+         isisSysVersion OBJECT-TYPE
+             SYNTAX DisplayString
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The version number of the IS-IS protocol to which this
+                 instance conforms. This value must be set by the
+                 implementation when the row is valid."
+             REFERENCE "{ISIS.aoi version (1)}"
+         ::= { isisSysEntry 2 }
+
+         isisSysType OBJECT-TYPE
+             SYNTAX INTEGER {
+                 level1IS (1),
+                 level2IS (2),
+                 level1l2IS (3)
+                 }
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The type of this instance of the Integrated IS-IS
+                 protocol. This object follows the
+                 replaceOnlyWhileDisabled behaviour."
+             REFERENCE "{ISIS.aoi iSType (2)}"
+         ::= { isisSysEntry 3 }
+
+         isisSysID OBJECT-TYPE
+             SYNTAX SystemID
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The ID for this instance of the Integrated IS-IS
+                 protocol. This value is appended to each of the
+                 instance's area addresses to form the Network Entity
+                 Titles valid for this instance. The derivation of a value
+                 for this object is implementation-specific. Some
+                 implementations may assign values and not permit write
+
+             MAX-ACCESS, others may require the value to be set manually."
+             REFERENCE "{ISIS.aoi systemId (119)}"
+         ::= { isisSysEntry 4 }
+
+         isisSysMaxPathSplits OBJECT-TYPE
+             SYNTAX Integer32 (1..32)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Maximum number of paths with equal routing metric value
+                 which it is permitted to split between. This object
+                 follows the replaceOnlyWhileDisabled behaviour."
+             REFERENCE "{ISIS.aoi maximumPathSplits (3)}"
+             DEFVAL { 2 }
+         ::= { isisSysEntry 5 }
+
+         isisSysMaxLSPGenInt OBJECT-TYPE
+             SYNTAX Integer32 (1..65535)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Maximum interval, in seconds, between generated LSPs
+                 by this instance. This object follows the resettingTimer
+                 behaviour."
+             REFERENCE "{ISIS.aoi maximumLSPGenerationInterval (6)}"
+             DEFVAL { 900 }
+         ::= { isisSysEntry 6 }
+
+         isisSysOrigL1LSPBuffSize OBJECT-TYPE
+             SYNTAX LSPBuffSize
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The maximum size of Level 1 LSPs and SNPs originated by
+                 this instance. This object follows the
+                 replaceOnlyWhileDisabled behaviour."
+             REFERENCE "{ISIS.aoi originatingL1LSPBufferSize (9)}"
+             DEFVAL { 1492 }
+         ::= { isisSysEntry 7 }
+
+         isisSysMaxAreaAddresses OBJECT-TYPE
+             SYNTAX Integer32 (0..254)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The maximum number of area addresses to be permitted for
+                 the area in which this instance exists. Note that all
+                 Intermediate Systems in the same area must have the same
+                 value configured for this attribute if correct operation
+                 is to be assumed. This object follows the
+                 replaceOnlyWhileDisabled behaviour."
+             REFERENCE "{ISIS.aoi maximumAreaAddresses (4)}"
+             DEFVAL { 3 }
+         ::= { isisSysEntry 8 }
+
+         isisSysMinL1LSPGenInt OBJECT-TYPE
+             SYNTAX Integer32 (1..65535)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Minimum interval, in seconds, between successive
+generation
+                 of L1 LSPs with the same LSPID by this instance.
+                 This object follows the resettingTimer behaviour."
+             REFERENCE "{ISIS.aoi minimumLSPGenerationInterval (11)}"
+             DEFVAL { 30 }
+         ::= { isisSysEntry 9 }
+
+         isisSysMinL2LSPGenInt OBJECT-TYPE
+             SYNTAX Integer32 (1..65535)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Minimum interval, in seconds, between successive
+generation
+                 of L2 LSPs with the same LSPID by this instance.
+                 This object follows the resettingTimer behaviour."
+             REFERENCE "{ISIS.aoi minimumLSPGenerationInterval (11)}"
+             DEFVAL { 30 }
+         ::= { isisSysEntry 10 }
+
+         isisSysPollESHelloRate OBJECT-TYPE
+             SYNTAX Integer32 (1..65535)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The value, in seconds, to be used for the suggested ES
+                 configuration timer in ISH PDUs when soliciting the ES
+                 configuration."
+             REFERENCE "{ISIS.aoi pollESHelloRate (13)}"
+             DEFVAL { 50 }
+         ::= { isisSysEntry 11 }
+         isisSysWaitTime OBJECT-TYPE
+             SYNTAX Integer32 (1..65535)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Number of seconds to delay in waiting state before
+                 entering on state. This object follows the resettingTimer
+                 behaviour."
+             REFERENCE "{ISIS.aoi waitingTime (15)}"
+             DEFVAL { 60 }
+         ::= { isisSysEntry 12 }
+
+         isisSysOperState OBJECT-TYPE
+             SYNTAX OperState
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The operational state of this instance of the Integrated
+                 IS-IS protocol. Setting this object to the value on when
+                 its current value is off enables operation of this
+                 instance of the Integrated IS-IS protocol."
+             DEFVAL { off }
+         ::= { isisSysEntry 13 }
+
+         isisSysL1State OBJECT-TYPE
+             SYNTAX LevelState
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The state of the Level 1 database."
+             REFERENCE "{ISIS.aoi l1State (17)}"
+         ::= { isisSysEntry 14 }
+
+         isisSysCorrLSPs OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "Number of corrupted LSPs detected."
+             REFERENCE "{ISIS.aoi corruptedLSPsDetected (19)}"
+         ::= { isisSysEntry 15 }
+
+         isisSysLSPL1DbaseOloads OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "Number of times the LSP L1 database has become
+                 overloaded."
+             REFERENCE "{ISIS.aoi lSPL1DatabaseOverloads (20)}"
+         ::= { isisSysEntry 16 }
+
+         isisSysManAddrDropFromAreas OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "Number of times a manual address has been dropped from
+                 the area."
+             REFERENCE "{ISIS.aoi manualAddressesDroppedFromArea (21)}"
+         ::= { isisSysEntry 17 }
+
+         isisSysAttmptToExMaxSeqNums OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "Number of times the IS has attempted to exceed the
+                 maximum sequence number."
+             REFERENCE "{ISIS.aoi
+                 attemptsToExceedmaximumSequenceNumber (22)}"
+         ::= { isisSysEntry 18 }
+
+         isisSysSeqNumSkips OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "Number of times a sequence number skip has occurred."
+             REFERENCE "{ISIS.aoi sequenceNumberSkips (23)}"
+         ::= { isisSysEntry 19 }
+
+         isisSysOwnLSPPurges OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "Number of times a zero-aged copy of the system's own LSP
+                 is received from some other node."
+             REFERENCE "{ISIS.aoi ownLSPPurges (24)}"
+         ::= { isisSysEntry 20 }
+
+         isisSysIDFieldLenMismatches OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "Number of times a PDU is received with a different value
+                 for ID field length to that of the receiving system."
+             REFERENCE "{ISIS.aoi iDFieldLengthMismatches (25)}"
+         ::= { isisSysEntry 21 }
+
+         isisSysMaxAreaAddrMismatches OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "Number of times a PDU is received with a different value
+                 for MaximumAreaAddresses from that of the receiving
+                 system."
+             REFERENCE "{ISIS.aoi MaximumAreaAddressesMismatches (118)}"
+         ::= { isisSysEntry 22 }
+
+     -- The following objects map those from the cLNSISISLevel2-P
+     -- Package
+
+         isisSysOrigL2LSPBuffSize OBJECT-TYPE
+             SYNTAX LSPBuffSize
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The maximum size of Level 2 LSPs and SNPs originated by
+                 this system. This object follows the
+                 replaceOnlyWhileDisabled behaviour."
+             REFERENCE "{ISIS.aoi originatingL2LSPBufferSize (26)}"
+             DEFVAL { 1492 }
+         ::= { isisSysEntry 23 }
+
+         isisSysL2State OBJECT-TYPE
+             SYNTAX LevelState
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The state of the Level 2 database."
+             REFERENCE "{ISIS.aoi l2State (28)}"
+         ::= { isisSysEntry 24 }
+
+         isisSysLSPL2DbaseOloads OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "Number of times the Level 2 LSP database has become
+                 overloaded."
+             REFERENCE "{ISIS.aoi lSPL2DatabaseOverloads (32)}"
+         ::= { isisSysEntry 25 }
+
+         isisSysAuthAreaType OBJECT-TYPE
+             SYNTAX INTEGER {
+                     none(1),
+                     plaintext(2)
+                 }
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "What authentication scheme, if any, is used to protect
+                  Level 1 Link State packets?"
+             DEFVAL { none }
+         ::= { isisSysEntry 26 }
+
+         isisSysAuthAreaTransPwd OBJECT-TYPE
+             SYNTAX OCTET STRING
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The value to be used as the Authentication Key in
+                 Level 1 Link State Packets whenever the value of
+                 isisSysAuthAreaType has a value of plaintext.
+                 A modification of isisSysAuthAreaType does not
+                 modify the isisSysAuthAreaTransPwd value.
+
+                 Reading this object always results in an  OCTET
+                 STRING of length zero; authentication may not
+                 be bypassed by reading the MIB object."
+             DEFVAL { "" }
+         ::= { isisSysEntry 27 }
+
+         isisSysAuthDomainType OBJECT-TYPE
+             SYNTAX INTEGER {
+                     none(1),
+                     plaintext(2)
+                 }
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "What authentication scheme, if any, is used to protect
+                  Level 2 Link State packets?"
+             DEFVAL { none }
+         ::= { isisSysEntry 28 }
+
+         isisSysAuthDomainTransPwd OBJECT-TYPE
+             SYNTAX OCTET STRING
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The value to be used as the Authentication Key in
+                 Level 2 Link State Packets whenever the value of
+                 isisSysAuthDomainType has a value of plaintext.
+                 A modification of isisSysAuthDomainType does not
+                 modify the isisSysAuthDomainTransPwd value.
+
+                 Reading this object always results in an  OCTET
+                 STRING of length zero; authentication may not
+                 be bypassed by reading the MIB object."
+             DEFVAL { "" }
+         ::= { isisSysEntry 29 }
+
+         isisSysAuthFails OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The number of authentication failures recognized by this
+                 instance of the protocol."
+         ::= { isisSysEntry 30 }
+
+         isisSysLSPIgnoreErrors OBJECT-TYPE
+             SYNTAX TruthValue
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "If true, allow the router to ignore IS-IS link state
+packets
+                 (LSPs) that are received with internal checksum errors
+rather
+                 than purging the LSPs."
+             DEFVAL { false }
+         ::= { isisSysEntry 31 }
+
+         isisSysLogAdjacencyChanges OBJECT-TYPE
+             SYNTAX TruthValue
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "If true, causes IS-IS to generate a log message when an
+                 IS-IS adjacency changes state (up or down)."
+             DEFVAL { false }
+         ::= { isisSysEntry 32 }
+
+         isisSysPartChanges OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "partition changes"
+         ::= { isisSysEntry 33 }
+
+         isisSysMaxAreaCheck OBJECT-TYPE
+             SYNTAX TruthValue
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "When on, enables checking of maximum area
+                 addresses per IS version of ISO10589."
+             DEFVAL { true }
+         ::= { isisSysEntry 34 }
+
+         isisSysNextCircIndex OBJECT-TYPE
+             SYNTAX TestAndIncr
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "This object is used to assign values to
+                 isisCircIndex as described in 'Textual
+                 Conventions for SNMPv2'.  The network manager
+                 reads this object, and then writes the value
+                 back in a SET that creates a new instance of
+                 isisCircEntry.  If the SET fails with the
+                 code 'inconsistentValue', then the process must
+                 be repeated; If the SET succeeds, then the ob-
+                 ject is incremented, and the new instance is
+                 created according to the manager's directions."
+         ::= { isisSysEntry 35 }
+
+         isisSysExistState OBJECT-TYPE
+             SYNTAX RowStatus
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The state of the ISIS router.  Turning this off
+                 forces the router to forget all current state"
+             DEFVAL { active }
+         ::= { isisSysEntry 36 }
+
+     -- The Level 1 Manual Area Address Table
+     -- contains the set of area addresses manually configured
+     -- for each instance of the Integrated IS-IS protocol.
+     -- At least one row in which the value of
+     -- isisManAreaAddrExistState
+     -- is on must be present for each instance of the protocol
+     -- when isisSysOperState is also on for that instance. The
+     -- maximum number of rows in this table for each instance of
+     -- the protocol for which the object isisManAreaAddrExistState
+     -- has the value on is the value of maximumAreaAddresses (as
+     -- defined in ISO 10589) for that instance. An Attempt
+     -- to create a new row such that the number of rows with
+     -- isisManAreaAddrExistState set to on for that protocol
+     -- instance exceeds maximumAreaAddresses is rejected."
+
+         isisManAreaAddrTable OBJECT-TYPE
+             SYNTAX SEQUENCE OF IsisManAreaAddrEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The set of manual area addresses configured on this
+                 Intermediate System."
+             REFERENCE "{ISIS.aoi manualAreaAddresses (10)}"
+         ::= { isisSystem 2 }
+
+         isisManAreaAddrEntry OBJECT-TYPE
+             SYNTAX IsisManAreaAddrEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "Each entry contains one area address manually configured
+                 on this system"
+             INDEX { isisManAreaAddrSysInstance,
+                     isisManAreaAddr }
+         ::= { isisManAreaAddrTable 1 }
+
+         IsisManAreaAddrEntry ::=
+             SEQUENCE {
+                 isisManAreaAddrSysInstance
+                     Integer32,
+                 isisManAreaAddr
+                     OSINSAddress,
+                 isisManAreaAddrExistState
+                     RowStatus
+                 }
+
+         isisManAreaAddrSysInstance OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The unique identifier of the Integrated IS-IS instance
+                 to which this row corresponds. This object follows the
+                 index behaviour."
+         ::= { isisManAreaAddrEntry 1 }
+
+         isisManAreaAddr OBJECT-TYPE
+             SYNTAX OSINSAddress
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "A manually configured area address for this system. This
+                 object follows the index behaviour.
+
+                 Note: an index for the entry {1, {49.0001} active} in
+                 this table would be the ordered pair
+                 (1, (0x03 0x49 0x00 0x01)), as the length of an Octet
+                 string is part of the OID."
+         ::= { isisManAreaAddrEntry 2 }
+
+         isisManAreaAddrExistState OBJECT-TYPE
+             SYNTAX RowStatus
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "The state of the isisManAreaAddrEntry. This object
+                 follows the Row Status behaviour. If an attempt is
+                 made to set this object to the value off when the
+                 corresponding isisManAreaAddrEntry is the only valid
+                 entry for this instance and when the corresponding ISIS
+                 instance has isisSysOperState set to On then the attempt
+                 is rejected."
+             DEFVAL { active }
+         ::= { isisManAreaAddrEntry 3 }
+
+     -- The Level 1 Area Address Table
+
+     -- The Level 1 Area Address Table contains the
+     -- union of the sets of area addresses reported in all Level 1
+     -- LSPs received by this Intermediate System.
+
+         isisAreaAddrTable OBJECT-TYPE
+             SYNTAX SEQUENCE OF IsisAreaAddrEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The union of the sets of area addresses reported in all
+                 Level 1 LSPs received by this instance of the protocol."
+             REFERENCE "{ISIS.aoi areaAddresses (18)}"
+         ::= { isisSystem 3 }
+
+         isisAreaAddrEntry OBJECT-TYPE
+             SYNTAX IsisAreaAddrEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "Each entry contains one area address reported in a
+                 Level 1 LSP received by this instance of the protocol."
+             INDEX { isisAreaAddrSysInstance,
+                     isisAreaAddr }
+         ::= { isisAreaAddrTable 1 }
+
+         IsisAreaAddrEntry ::=
+             SEQUENCE {
+                 isisAreaAddrSysInstance
+                     Integer32,
+                 isisAreaAddr
+                     OSINSAddress
+                 }
+
+         isisAreaAddrSysInstance OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The unique identifier of the Integrated IS-IS instance
+                 to which this row corresponds."
+         ::= { isisAreaAddrEntry 1 }
+
+         isisAreaAddr OBJECT-TYPE
+             SYNTAX OSINSAddress
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "An area address reported in a Level 1 LSP received by
+                 this instance of the protocol."
+         ::= { isisAreaAddrEntry 2 }
+
+     -- The System Integrated Group
+
+     -- The System Integrated Group is present if the system
+     -- supports Integrated ISIS at Level 1.
+
+     -- The System Protocol Supported Table
+
+     -- The System Protocol Supported Table contains the manually
+     -- configured set of protocols supported by each
+     -- instance of the Integrated ISIS protocol.
+     --
+
+         isisSysProtSuppTable OBJECT-TYPE
+             SYNTAX SEQUENCE OF IsisSysProtSuppEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "This table contains the manually configured set of
+                 protocols supported by each instance of the Integrated
+                 ISIS protocol."
+         ::= { isisSystem 4 }
+
+         isisSysProtSuppEntry OBJECT-TYPE
+             SYNTAX IsisSysProtSuppEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "Each entry contains one protocol supported by an
+                 instance of the Integrated ISIS protocol."
+
+             INDEX {  isisSysProtSuppSysInstance,
+                      isisSysProtSuppProtocol }
+
+         ::= { isisSysProtSuppTable 1 }
+
+         IsisSysProtSuppEntry ::=
+             SEQUENCE {
+                 isisSysProtSuppSysInstance
+                     Integer32,
+                 isisSysProtSuppProtocol
+                     SupportedProtocol,
+                 isisSysProtSuppExistState
+                     RowStatus
+                 }
+
+         isisSysProtSuppSysInstance OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The unique identifier of the Integrated IS-IS instance
+                 to which this row corresponds. This object follows the
+                 index behaviour."
+         ::= { isisSysProtSuppEntry 1 }
+
+         isisSysProtSuppProtocol OBJECT-TYPE
+             SYNTAX SupportedProtocol
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "One supported protocol. This object follows the index
+                 behaviour."
+         ::= { isisSysProtSuppEntry 2 }
+
+         isisSysProtSuppExistState OBJECT-TYPE
+             SYNTAX RowStatus
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The state of the isisSysProtSuppEntry. This object
+                 follows the RowStatus behavior."
+             DEFVAL { active }
+         ::= { isisSysProtSuppEntry 3 }
+
+     -- The Level 2 IP Group
+
+     -- The Level 2 IP Group is present if the system
+     -- supports IP Integrated IS-IS at Level 2
+
+     -- The Level 2 Summary Address Table
+
+     -- The Level 2 Summary Address Table contains the set of summary
+     -- addresses manually configured for each Level 2 instance of
+     -- IP Integrated ISIS on the system.
+
+         isisL2SummAddrTable OBJECT-TYPE
+             SYNTAX SEQUENCE OF IsisL2SummAddrEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The set of IP summary addresses to use in forming the
+                 contents of Level 2 LSPs originated by this level 2
+                 Intermediate System."
+         ::= { isisSystem 5 }
+
+         isisL2SummAddrEntry OBJECT-TYPE
+             SYNTAX IsisL2SummAddrEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "Each entry contains one IP summary address."
+             INDEX { isisL2SummAddrSysInstance,
+                     isisL2SummAddress,
+                     isisL2SummAddrMask }
+         ::= { isisL2SummAddrTable 1 }
+
+         IsisL2SummAddrEntry ::=
+             SEQUENCE {
+                 isisL2SummAddrSysInstance
+                     Integer32,
+                 isisL2SummAddress
+                     IpAddress,
+                 isisL2SummAddrMask
+                     IpAddress,
+                 isisL2SummAddrExistState
+                     RowStatus,
+                 isisL2SummAddrOperState
+                     OperState,
+
+                 isisL2SummAddrDefaultMetric
+                     DefaultMetric,
+                 isisL2SummAddrDelayMetric
+                     OtherMetric,
+                 isisL2SummAddrExpenseMetric
+                     OtherMetric,
+                 isisL2SummAddrErrorMetric
+                     OtherMetric
+             }
+
+         isisL2SummAddrSysInstance OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The unique identifier of the Integrated IS-IS instance
+                 to which this row corresponds. This object follows the
+                 index behaviours."
+         ::= { isisL2SummAddrEntry 1 }
+
+         isisL2SummAddress OBJECT-TYPE
+             SYNTAX IpAddress
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The IP Address value for this summary address. This
+                 object follows the index behaviour."
+         ::= { isisL2SummAddrEntry 2 }
+
+         isisL2SummAddrMask OBJECT-TYPE
+             SYNTAX IpAddress
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The mask value for this summary address. This object
+                 follows the index behaviour."
+         ::= { isisL2SummAddrEntry 3 }
+
+         isisL2SummAddrExistState OBJECT-TYPE
+             SYNTAX RowStatus
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "The existence state of this summary address. This object
+                 follows the row status behaviour."
+
+             DEFVAL { active }
+         ::= { isisL2SummAddrEntry 4 }
+
+         isisL2SummAddrOperState OBJECT-TYPE
+             SYNTAX OperState
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "The operational state of this entry. This object follows
+                 the operationalState behaviour. When the operational
+                 state changes if this would cause the contents of Level 2
+                 LSPs originated by the system to change then those new
+                 LSPs must be generated and sent as soon as is permitted
+                 by the ISIS protocol."
+             DEFVAL { off }
+         ::= { isisL2SummAddrEntry 5 }
+
+         isisL2SummAddrDefaultMetric OBJECT-TYPE
+             SYNTAX DefaultMetric
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "The default metric value to announce this summary
+                 address with in Level 2 LSPs generated by this system."
+             DEFVAL { 20 }
+         ::= { isisL2SummAddrEntry 6 }
+
+            isisL2SummAddrDelayMetric OBJECT-TYPE
+                SYNTAX OtherMetric
+                MAX-ACCESS read-create
+                STATUS current
+                DESCRIPTION
+                    "The delay metric value to announce this summary address
+                    with in Level 2 LSPs generated by this system. The value
+                    of zero is reserved to indicate that this metric is not
+                    supported."
+                DEFVAL { 0 }
+            ::= { isisL2SummAddrEntry 7 }
+
+            isisL2SummAddrExpenseMetric OBJECT-TYPE
+                SYNTAX OtherMetric
+                MAX-ACCESS read-create
+                STATUS current
+                DESCRIPTION
+                    "The expense metric value to announce this summary
+                    address with in Level 2 LSPs generated by this system.
+                    The value of zero is reserved to indicate that this
+                    metric is not supported."
+                DEFVAL { 0 }
+            ::= { isisL2SummAddrEntry 8 }
+
+            isisL2SummAddrErrorMetric OBJECT-TYPE
+                SYNTAX OtherMetric
+                MAX-ACCESS read-create
+                STATUS current
+                DESCRIPTION
+                    "The error metric value to announce this summary address
+                    with in Level 2 LSPs generated by this system. The value
+                    of zero is reserved to indicate that this metric is not
+                    supported."
+                DEFVAL { 0 }
+            ::= { isisL2SummAddrEntry 9 }
+
+     -- The Circuit Group
+
+     -- The Circuit Group is current
+
+     -- The Circuit Table
+     -- Each broadcast or point-to-point interface on the system
+     -- corresponds to one entry in the Circuit table. There may be
+     -- many X.25 DA circuit entries in the Circuit table for an
+     -- X.25 interface.
+
+         isisCircTable OBJECT-TYPE
+             SYNTAX SEQUENCE OF IsisCircEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The table of circuits used by each instance of
+                 Integrated IS-IS on this system."
+         ::= { isisCirc 1 }
+
+         isisCircEntry OBJECT-TYPE
+             SYNTAX IsisCircEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "An isisCircEntry exists for each circuit used by
+                 Integrated IS-IS on this system."
+             INDEX { isisCircSysInstance,
+                     isisCircIndex }
+         ::= { isisCircTable 1 }
+
+         IsisCircEntry ::=
+             SEQUENCE {
+                 isisCircSysInstance
+                     Integer32,
+                 isisCircIndex
+                     Integer32,
+                 isisCircIfIndex
+                     Integer32,
+                 isisCircIfSubIndex
+                     Integer32,
+                 isisCircLocalID
+                     Integer32,
+                 isisCircOperState
+                     OperState,
+                 isisCircExistState
+                     RowStatus,
+                 isisCircType
+                     INTEGER,
+                 isisCircL1DefaultMetric
+                     DefaultMetric,
+                 isisCircL1DelayMetric
+                     OtherMetric,
+                 isisCircL1ExpenseMetric
+                     OtherMetric,
+                 isisCircL1ErrorMetric
+                     OtherMetric,
+                 isisCircExtDomain
+                     TruthValue,
+                 isisCircAdjChanges
+                     Counter32,
+                 isisCircInitFails
+                     Counter32,
+                 isisCircRejAdjs
+                     Counter32,
+                 isisCircOutCtrlPDUs
+                     Counter32,
+                 isisCircInCtrlPDUs
+                     Counter32,
+                 isisCircIDFieldLenMismatches
+                     Counter32,
+                 isisCircL2DefaultMetric
+                     DefaultMetric,
+
+                 isisCircL2DelayMetric
+                     OtherMetric,
+                 isisCircL2ExpenseMetric
+                     OtherMetric,
+                 isisCircL2ErrorMetric
+                     OtherMetric,
+                 isisCircManL2Only
+                     TruthValue,
+                 isisCircL1ISPriority
+                     ISPriority,
+                 isisCircL1CircID
+                     CircuitID,
+                 isisCircL1DesIS
+                     SystemID,
+                 isisCircLANL1DesISChanges
+                     Counter32,
+                 isisCircL2ISPriority
+                     ISPriority,
+                 isisCircL2CircID
+                     CircuitID,
+                 isisCircL2DesIS
+                     SystemID,
+                 isisCircLANL2DesISChanges
+                     Counter32,
+                 isisCircMCAddr
+                     INTEGER,
+                 isisCircPtToPtCircID
+                     CircuitID,
+                 isisCircL1HelloTimer
+                     Integer32,
+                 isisCircL2HelloTimer
+                     Integer32,
+                 isisCircL1HelloMultiplier
+                     Integer32,
+                 isisCircL2HelloMultiplier
+                     Integer32,
+                 isisCircDRL1HelloTimer
+                     Integer32,
+                 isisCircDRL2HelloTimer
+                     Integer32,
+                 isisCircMinBroadLSPTransInt
+                     Integer32,
+                 isisCircL1MinLSPTransInt
+                     Integer32,
+                 isisCircL2MinLSPTransInt
+                     Integer32,
+                 isisCircL1CSNPInterval
+                     Integer32,
+                 isisCircL2CSNPInterval
+                     Integer32,
+                 isisCircL1PartSNPInterval
+                     Integer32,
+                 isisCircL2PartSNPInterval
+                     Integer32,
+                 isisCircLSPThrottle
+                     Integer32,
+                 isisCircPassiveCircuit
+                     TruthValue,
+                 isisCircMeshGroupEnabled
+                     INTEGER,
+                 isisCircMeshGroup
+                     Integer32,
+                 isisCircL1AuthType
+                     INTEGER,
+                 isisCircL1Password
+                     OCTET STRING,
+                 isisCircL2AuthType
+                     INTEGER,
+                 isisCircL2Password
+                     OCTET STRING,
+                 isisCircSmallHellos
+                     OperState,
+                 isisManAdjNeighNSAP
+                     OSINSAddress,
+                 isisManAdjNeighSNPA
+                     SNPAAddress,
+                 isisCircIPEncaps
+                     TruthValue,
+                 isisCircUpTime
+                     Integer32
+             }
+
+         isisCircSysInstance OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The unique identifier of the Integrated IS-IS instance
+                 to which this row corresponds. This object follows the
+                 index behaviour."
+         ::= { isisCircEntry 1 }
+
+         isisCircIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The identifier of this circuit, unique within the
+                 instance of the protocol. This object follows the index
+                 behaviour.  This is for SNMP Indexing purposes only
+                 and has no relation to any protocol value."
+         ::= { isisCircEntry 2 }
+
+         isisCircIfIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The value of ifIndex for the interface to which this
+                 circuit corresponds.   This object cannot be modified
+                 after creation"
+         ::= { isisCircEntry 3 }
+
+         isisCircIfSubIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "A specifier for the part of the interface ifIndex to which
+                 this circuit corresponds, such as a DLCI or VPI/VCI.
+                 This object cannot be modified after creation"
+         ::=    { isisCircEntry 4 }
+
+         isisCircLocalID OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "An identification that can be used in protocol packets
+                 to identify a circuit.  Implementations may devise ways
+                 to assure that this value is suitable for the circuit
+                 it is used on.  LAN packets only have space for 8 bits.
+
+                 Values of isisCircLocalID do not need to be unique.  They
+                 are only required to differ on LANs where the Intermediate
+                 System is the Designated Intermediate System."
+         ::=    { isisCircEntry 5 }
+
+         isisCircOperState OBJECT-TYPE
+             SYNTAX OperState
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The operational state of the circuit. This object
+                 follows the operationalState behaviour."
+             DEFVAL { off }
+         ::= { isisCircEntry 6 }
+
+         isisCircExistState OBJECT-TYPE
+             SYNTAX RowStatus
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The existence state of this circuit. This object follows
+                 the Row Status behaviour."
+             DEFVAL { active }
+         ::= { isisCircEntry 7 }
+
+         isisCircType OBJECT-TYPE
+             SYNTAX INTEGER {
+                 broadcast(1),
+                 ptToPt(2),
+                 staticIn(3),
+                 staticOut(4),
+                 dA(5)
+                 }
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The type of the circuit. This object follows the
+                 replaceOnlyWhileDisabled behaviour. The type specified
+                 must be compatible with the type of the interface defined
+                 by the value of isisCircIfIndex."
+             REFERENCE "{ISIS.aoi type (33)}"
+         ::= { isisCircEntry 8 }
+
+         isisCircL1DefaultMetric OBJECT-TYPE
+             SYNTAX DefaultMetric
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The default metric value of this circuit for Level 1
+                 traffic."
+             REFERENCE "{ISIS.aoi l1DefaultMetric (35)}"
+             DEFVAL { 20 }
+         ::= { isisCircEntry 9 }
+
+         isisCircL1DelayMetric OBJECT-TYPE
+             SYNTAX OtherMetric
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The delay metric value of this circuit for Level 1
+                 traffic. The value of zero is reserved to indicate that
+                 this metric is not supported."
+             REFERENCE "{ISIS.aoi l1DelayMetric (36)}"
+             DEFVAL { 0 }
+         ::= { isisCircEntry 10 }
+
+         isisCircL1ExpenseMetric OBJECT-TYPE
+             SYNTAX OtherMetric
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The expense metric value of this circuit for Level 1
+                 traffic. The value of zero is reserved to indicate that
+                 this metric is not supported."
+             REFERENCE "{ISIS.aoi l1ExpenseMetric (37)}"
+             DEFVAL { 0 }
+         ::= { isisCircEntry 11 }
+
+         isisCircL1ErrorMetric OBJECT-TYPE
+             SYNTAX OtherMetric
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The error metric value of this circuit for Level 1
+                 traffic. The value of zero is reserved to indicate that
+                 this metric is not supported."
+             REFERENCE "{ISIS.aoi l1ErrorMetric (38)}"
+             DEFVAL { 0 }
+         ::= { isisCircEntry 12 }
+
+         isisCircExtDomain OBJECT-TYPE
+             SYNTAX TruthValue
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "If true, suppress normal transmission of and
+                 interpretation of Intra-domain ISIS PDUs on this
+                 circuit."
+             REFERENCE "{ISIS.aoi externalDomain (46)}"
+             DEFVAL { false }
+         ::= { isisCircEntry 13 }
+
+         isisCircAdjChanges OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The number of times an adjacency state change has
+                 occurred on this circuit."
+             REFERENCE "{ISIS.aoi changesInAdjacencyState (40)}"
+         ::= { isisCircEntry 14 }
+
+         isisCircInitFails OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The number of times initialization of this circuit has
+                 failed."
+             REFERENCE "{ISIS.aoi initializationFailures (41)}"
+         ::= { isisCircEntry 15 }
+
+         isisCircRejAdjs OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The number of times an adjacency has been rejected on
+                 this circuit."
+             REFERENCE "{ISIS.aoi rejectedAdjacencies (42)}"
+         ::= { isisCircEntry 16 }
+
+         isisCircOutCtrlPDUs OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The number of IS-IS control PDUs sent on this circuit."
+             REFERENCE "{ISIS.aoi iSISControlPDUsSent (43)}"
+         ::= { isisCircEntry 17 }
+
+         isisCircInCtrlPDUs OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The number of IS-IS control PDUs received on this
+                 circuit."
+             REFERENCE "{ISIS.aoi controlPDUsReceived (44)}"
+         ::= { isisCircEntry 18 }
+
+         isisCircIDFieldLenMismatches OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The number of times an IS-IS control PDU with an ID
+                 field length different to that for this system has been
+                 received."
+             REFERENCE "{ISIS.aoi iDFieldLengthMismatches (25)}"
+         ::= { isisCircEntry 19 }
+
+     -- The following objects map those from the linkageISISLevel2-P
+     -- package
+
+         isisCircL2DefaultMetric OBJECT-TYPE
+             SYNTAX DefaultMetric
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The default metric value of this circuit for level 2
+                 traffic."
+             REFERENCE "{ISIS.aoi l2DefaultMetric (68)}"
+             DEFVAL { 20 }
+         ::= { isisCircEntry 20 }
+
+         isisCircL2DelayMetric OBJECT-TYPE
+             SYNTAX OtherMetric
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The delay metric value of this circuit for level 2
+                 traffic. The value of zero is reserved to indicate that
+                 this metric is not supported."
+             REFERENCE "{ISIS.aoi l2DelayMetric (69)}"
+             DEFVAL { 0 }
+         ::= { isisCircEntry 21 }
+
+         isisCircL2ExpenseMetric OBJECT-TYPE
+             SYNTAX OtherMetric
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The expense metric value of this circuit for level 2
+                 traffic. The value of zero is reserved to indicate that
+                 this metric is not supported."
+             REFERENCE "{ISIS.aoi l2ExpenseMetric (70)}"
+             DEFVAL { 0 }
+         ::= { isisCircEntry 22 }
+
+         isisCircL2ErrorMetric OBJECT-TYPE
+             SYNTAX OtherMetric
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The error metric value of this circuit for level 2
+                 traffic. The value of zero is reserved to indicate that
+                 this metric is not supported."
+             REFERENCE "{ISIS.aoi l2ErrorMetric (71)}"
+             DEFVAL { 0 }
+         ::= { isisCircEntry 23 }
+
+         isisCircManL2Only OBJECT-TYPE
+             SYNTAX TruthValue
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "When true, indicates that this circuit is to be used
+                 only for level 2. This object follows the
+                 replaceOnlyWhileDisabled behaviour."
+             REFERENCE "{ISIS.aoi manualL2OnlyMode (72)}"
+             DEFVAL { false }
+         ::= { isisCircEntry 24 }
+
+     -- The following objects map those from the
+     -- linkageISISBroadcast-P package
+         isisCircL1ISPriority OBJECT-TYPE
+             SYNTAX ISPriority
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The priority for becoming LAN Level 1 Deignated
+                 Intermediate System on a broadcast circuit."
+             REFERENCE "{ISIS.aoi l1IntermediateSystemPriority (47)}"
+             DEFVAL { 64 }
+         ::= { isisCircEntry 25 }
+
+         isisCircL1CircID OBJECT-TYPE
+             SYNTAX CircuitID
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The LAN ID allocated by the LAN Level 1 Designated
+                 Intermediate System. Where this system is not aware of
+                 the value (because it is not participating in the Level 1
+                 Designated Intermediate System election), this object has
+                 the value which would be proposed for this circuit (i.e.
+                 the concatenation of the local system ID and the one
+                 octet local Circuit ID for this circuit."
+             REFERENCE "{ISIS.aoi l1CircuitID (48)}"
+         ::= { isisCircEntry 26 }
+
+         isisCircL1DesIS OBJECT-TYPE
+             SYNTAX SystemID
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The ID of the LAN Level 1 Designated Intermediate System
+                 on this circuit. If, for any reason this system is not
+                 partaking in the relevant Designated Intermediate System
+                 election process, then the value returned is the zero
+                 length OCTET STRING."
+             REFERENCE "{ISIS.aoi l1DesignatedIntermediateSystem (49)}"
+         ::= { isisCircEntry 27 }
+
+         isisCircLANL1DesISChanges OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The number of times the LAN Level 1 Designated
+                 Intermediate System has changed."
+             REFERENCE "{ISIS.aoi
+                 lanL1DesignatedIntermediateSystemChanges (50)}"
+         ::= { isisCircEntry 28 }
+
+     -- The following objects map those from the
+     -- linkageISISLevel2Broadcast-P package
+
+         isisCircL2ISPriority OBJECT-TYPE
+             SYNTAX ISPriority
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The priority for becoming LAN level 2 Designated
+                 Intermediate System."
+             REFERENCE "{ISIS.aoi l2IntermediateSystemPriority (73)}"
+             DEFVAL { 64 }
+         ::= { isisCircEntry 29 }
+
+         isisCircL2CircID OBJECT-TYPE
+             SYNTAX CircuitID
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The LAN ID allocated by the LAN Level 2 Designated
+                 Intermediate System. Where this system is not aware of
+                 this value (because it is not participating in the Level
+                 2 Designated Intermediate System election), this object
+                 has the value which would be proposed for this circuit
+                 (i.e. the concatenation of the local system ID and the
+                 one octet local Circuit ID for this circuit."
+             REFERENCE "{ISIS.aoi l2CircuitID (74)}"
+         ::= { isisCircEntry 30 }
+
+         isisCircL2DesIS OBJECT-TYPE
+             SYNTAX SystemID
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The ID of the LAN Level 2 Designated Intermediate System
+                 on this circuit. If, for any reason, this system is not
+                 partaking in the relevant Designated Intermediate System
+                 election process, then the value returned is the zero
+                 length OCTET STRING."
+             REFERENCE "{ISIS.aoi l2DesignatedIntermediateSystem (75)}"
+         ::= { isisCircEntry 31 }
+
+         isisCircLANL2DesISChanges OBJECT-TYPE
+             SYNTAX Counter32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The number of times the LAN Level 2 Designated
+                 Intermediate System has changed."
+             REFERENCE "{ISIS.aoi
+                 lanL2DesignatedIntermediateSystemChanges (76)}"
+         ::= { isisCircEntry 32 }
+
+         isisCircMCAddr OBJECT-TYPE
+             SYNTAX INTEGER{
+                 group (1),
+                 functional (2)
+                 }
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Specifies which type of multicast address will
+                 be used for sending HELLO PDUs on this
+                 circuit."
+             DEFVAL { group }
+         ::= { isisCircEntry 33 }
+
+         isisCircPtToPtCircID OBJECT-TYPE
+             SYNTAX CircuitID
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The ID of the circuit allocated during initialization.
+                 If no value has been negotiated (either because the
+                 adjacency is to an End System, or because initialization
+                 has not yet successfully completed), this object has the
+                 value which would be proposed for this circuit (i.e. the
+                 concatenation of the local system ID and the one octet
+                 local Circuit ID for this circuit."
+             REFERENCE "{ISIS.aoi ptPtCircuitID (51)}"
+         ::= { isisCircEntry 34 }
+
+         isisCircL1HelloTimer OBJECT-TYPE
+             SYNTAX Integer32 (10..600000)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Maximum period, in milliseconds, between Level 1
+                 IIH PDUs on multiaccess networks.  It is also used
+                 as the period between Hellos on point to point circuits.
+                 This object follows the resettingTimer behaviour."
+             REFERENCE "{ISIS.aoi iSISHelloTimer (45)}"
+             DEFVAL { 3000 }
+         ::= { isisCircEntry 35 }
+
+         isisCircL2HelloTimer OBJECT-TYPE
+             SYNTAX Integer32 (10..600000)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Maximum period, in milliseconds, between Level 1
+                 IIH PDUs on multiaccess networks.  This object
+                 follows the resettingTimer behaviour."
+             REFERENCE "{ISIS.aoi iSISHelloTimer (45)}"
+             DEFVAL { 3000 }
+         ::= { isisCircEntry 36 }
+
+         isisCircL1HelloMultiplier OBJECT-TYPE
+             SYNTAX Integer32 (2..100)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "This value is multiplied by the corresponding HelloTimer
+                 and the result in seconds (rounded up) is used as the
+                 holding time in transmitted hellos, to be used by receivers
+                 of hello packets from this IS"
+             REFERENCE "{ISIS.aoi iSISHelloTimer (45)}"
+             DEFVAL { 10 }
+         ::= { isisCircEntry 37 }
+
+         isisCircL2HelloMultiplier OBJECT-TYPE
+             SYNTAX Integer32 (2..100)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "This value is multiplied by the corresponding HelloTimer
+                 and the result in seconds (rounded up) is used as the
+                 holding time in transmitted hellos, to be used by receivers
+                 of hello packets from this IS"
+             REFERENCE "{ISIS.aoi iSISHelloTimer (45)}"
+             DEFVAL { 10 }
+         ::= { isisCircEntry 38 }
+
+         isisCircDRL1HelloTimer OBJECT-TYPE
+             SYNTAX Integer32 (10..120000)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Period, in milliseconds, between Level 1 PDUs on
+                 multiaccess networks when this IS is the Designated
+                 Intermediate System.  This object follows the
+                 resettingTimer behaviour."
+             REFERENCE "{ISIS.aoi iSISHelloTimer (45)}"
+             DEFVAL { 1000 }
+         ::= { isisCircEntry 39 }
+
+         isisCircDRL2HelloTimer OBJECT-TYPE
+             SYNTAX Integer32 (10..120000)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Period, in milliseconds, between Level 2 PDUs on
+                 multiaccess networks when this IS is the Designated
+                 Intermediate System.  This object follows the
+                 resettingTimer behaviour."
+             REFERENCE "{ISIS.aoi iSISHelloTimer (45)}"
+             DEFVAL { 1000 }
+         ::= { isisCircEntry 40 }
+
+         isisCircMinBroadLSPTransInt OBJECT-TYPE
+             SYNTAX Integer32 (1..1000)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Minimum interval, in milliseconds, between transmission
+                 of LSPs on a broadcast circuit. This object follows the
+                 resettingTimer behaviour. This timer shall be capable of
+                 a resolution not coarser than 10 milliseconds."
+             REFERENCE "{ISIS.aoi minimumBroadcastLSPTransmissionInterval
+(7)}"
+             DEFVAL { 33 }
+         ::= { isisCircEntry 41 }
+
+         isisCircL1MinLSPTransInt OBJECT-TYPE
+             SYNTAX Integer32 (1..300)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Minimum interval, in seconds, between re-transmission of
+                 an Level 1 LSP. This object follows the resettingTimer
+                 behaviour."
+             REFERENCE "{ISIS.aoi minimumLSPTransmissionInterval (5)}"
+             DEFVAL { 5 }
+         ::= { isisCircEntry 42 }
+
+         isisCircL2MinLSPTransInt OBJECT-TYPE
+             SYNTAX Integer32 (1..300)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Minimum interval, in seconds, between re-transmission of
+                 an Level 2 LSP. This object follows the resettingTimer
+                 behaviour."
+             REFERENCE "{ISIS.aoi minimumLSPTransmissionInterval (5)}"
+             DEFVAL { 5 }
+         ::= { isisCircEntry 43 }
+
+         isisCircL1CSNPInterval OBJECT-TYPE
+             SYNTAX Integer32 (1..600)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Interval of time, in seconds, between transmission
+                 of Level 1 CSNPs on multiaccess networks if this
+                 router is the designated router."
+             REFERENCE "{}"
+             DEFVAL { 10 }
+         ::= { isisCircEntry 44 }
+
+         isisCircL2CSNPInterval OBJECT-TYPE
+             SYNTAX Integer32 (1..600)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Interval of time, in seconds, between transmission
+                 of Level 2 CSNPs on multiaccess networks if this
+                 router is the designated router."
+             REFERENCE "{}"
+             DEFVAL { 10 }
+         ::= { isisCircEntry 45 }
+
+         isisCircL1PartSNPInterval OBJECT-TYPE
+             SYNTAX Integer32 (1..120)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Minimum interval between sending Level 1 Partial Sequence
+                 Number PDUs. This object follows the resettingTimer
+behaviour."
+             REFERENCE "{ISIS.aoi partialSNPInterval (14)}"
+             DEFVAL { 2 }
+         ::= { isisCircEntry 46 }
+
+         isisCircL2PartSNPInterval OBJECT-TYPE
+             SYNTAX Integer32 (1..120)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Minimum interval between sending Level 2 Partial Sequence
+                 Number PDUs. This object follows the resettingTimer
+behaviour."
+             REFERENCE "{ISIS.aoi partialSNPInterval (14)}"
+             DEFVAL { 2 }
+         ::= { isisCircEntry 47 }
+
+         isisCircLSPThrottle OBJECT-TYPE
+             SYNTAX Integer32 (1..65535)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Minimal interval of time, in milliseconds, between
+                 transmissions of LSPs on a point to point interface."
+             REFERENCE "{}"
+             DEFVAL { 10 }
+         ::= { isisCircEntry 48 }
+
+         isisCircPassiveCircuit OBJECT-TYPE
+             SYNTAX TruthValue
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Should we include this interface in LSPs, even if
+                 it is not running the ISIS Protocol?"
+             REFERENCE "{}"
+             DEFVAL { false }
+         ::= { isisCircEntry 49 }
+         isisCircMeshGroupEnabled OBJECT-TYPE
+             SYNTAX INTEGER {
+                     inactive(1),
+                     blocked(2),
+                     set(3)
+             }
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Is this port a member of a mesh group, or blocked?
+                 Circuits in the same mesh group act as a virtual
+                 multiaccess network.  LSPs seen on one circuit in
+                 a mesh group will not be flooded to another circuit
+                 in the same mesh group."
+             REFERENCE "{}"
+             DEFVAL { inactive }
+         ::= { isisCircEntry 50 }
+
+         isisCircMeshGroup OBJECT-TYPE
+             SYNTAX Integer32 (1..2000000000)
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Circuits in the same mesh group act as a virtual
+                 multiaccess network.  LSPs seen on one circuit in
+                 a mesh group will not be flooded to another circuit
+                 in the same mesh group.  If isisCircMeshGroupEnabled
+                 is false, this value is ignored."
+             REFERENCE "{}"
+             DEFVAL { 1 }
+         ::= { isisCircEntry 51 }
+
+         isisCircL1AuthType OBJECT-TYPE
+             SYNTAX INTEGER {
+                     none(1),
+                     plaintext(2)
+                 }
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "What authentication scheme, if any, is used to protect
+                 Level 1 and Point-to-Point hello packets?"
+             REFERENCE "{}"
+             DEFVAL { none }
+         ::= { isisCircEntry 52 }
+         isisCircL1Password OBJECT-TYPE
+             SYNTAX OCTET STRING
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The value to be used as the Authentication Key in Level 1
+                 and Point-to-Point hello packets whenever the corresponding
+                 instance of isisCircL1AuthType has a value of plaintext.
+                 A modification of the corresponding instance of
+                 isisCircL1AuthType does not modify the isisCircL1Password
+                 value.
+
+                 Reading this object always results in an  OCTET
+                 STRING of length zero; authentication may not
+                 be bypassed by reading the MIB object."
+             REFERENCE "{}"
+             DEFVAL { ''H }
+         ::= { isisCircEntry 53 }
+
+         isisCircL2AuthType OBJECT-TYPE
+             SYNTAX INTEGER {
+                     none(1),
+                     plaintext(2)
+                 }
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "What authentication scheme, if any, is used to protect
+                  Level 2 hello packets?"
+             REFERENCE "{}"
+             DEFVAL { none }
+         ::= { isisCircEntry 54 }
+
+         isisCircL2Password OBJECT-TYPE
+             SYNTAX OCTET STRING
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The value to be used as the Authentication Key in Level 1
+                 Hello packets whenever the corresponding instance of
+                 isisCircL1AuthType has a value of plaintext.  A
+                 modification of the corresponding instance of
+                 isisCircL1AuthType does not modify the
+                 isisCircL1Password value.
+                 Reading this object always results in an  OCTET
+                 STRING of length zero; authentication may not
+                 be bypassed by reading the MIB object."
+             REFERENCE "{}"
+             DEFVAL { ''H }
+         ::= { isisCircEntry 55 }
+
+         isisCircSmallHellos OBJECT-TYPE
+             SYNTAX OperState
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Can we send unpadded hellos on LAN circuits?  Off means
+                 LAN Hellos must be padded."
+              DEFVAL { off }
+         ::= { isisCircEntry 56 }
+
+         isisManAdjNeighNSAP OBJECT-TYPE
+             SYNTAX OSINSAddress
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The address of the neighbour if this is a manual
+adjacency.
+                 This object follows the replaceOnlyWhileDisabled
+behaviour."
+         ::= { isisCircEntry 57 }
+
+         isisManAdjNeighSNPA OBJECT-TYPE
+             SYNTAX SNPAAddress
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The SNPA of the neighbour if this is a manual adjacency.
+                 This object follows the replaceOnlyWhileDisabled
+behaviour."
+         ::= { isisCircEntry 58 }
+
+         isisCircIPEncaps OBJECT-TYPE
+             SYNTAX TruthValue
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Should we encapsulate IS-IS in IP packets?"
+             DEFVAL { false }
+         ::= { isisCircEntry 59 }
+
+         isisCircUpTime OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The amount of time in seconds since this circuit entered
+                  state 'up'.
+
+                 Note: This can be implemented as start time less
+                 the current time."
+         ::= { isisCircEntry 60 }
+
+     -- The Circuit IS Group
+     --
+     -- The Circuit IS Group is present if the system supports the
+     -- IS functions of the ISO 9542 protocol.
+     -- The Circuit IS Table
+     --
+     -- This table is not implemented - jdp
+
+     -- The IS Adjacency Group
+     --
+     -- The IS Adjacency Group is current and contains information
+     -- about adjacencies to routers maintained by the Integrated
+     -- IS-IS protocol
+     --
+     -- The IS Adjacency Table
+     --
+     -- Each adjacency to an IS corresponds to one entry in this
+     -- table.
+
+         isisISAdjTable OBJECT-TYPE
+             SYNTAX SEQUENCE OF IsisISAdjEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The table of adjacencies to Intermediate Systems."
+         ::= { isisISAdj 1 }
+
+         isisISAdjEntry OBJECT-TYPE
+             SYNTAX IsisISAdjEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "Each entry corresponds to one adjacency to an
+                 Intermediate System on this system."
+             INDEX { isisISAdjSysInstance,
+                     isisISAdjCircIndex,
+                     isisISAdjIndex }
+         ::= { isisISAdjTable 1 }
+
+         IsisISAdjEntry ::=
+             SEQUENCE {
+                 isisISAdjSysInstance
+                     Integer32,
+                 isisISAdjCircIndex
+                     Integer32,
+                 isisISAdjIndex
+                     Integer32,
+                 isisISAdjState
+                     INTEGER,
+                 isisISAdjNeighSNPAAddress
+                     SNPAAddress,
+                 isisISAdjNeighSysType
+                     INTEGER,
+                 isisISAdjNeighSysID
+                     OCTET STRING,
+                 isisISAdjUsage
+                     INTEGER,
+                 isisISAdjHoldTimer
+                     Integer32,
+                 isisISAdjNeighPriority
+                     ISPriority,
+                 isisISAdjUpTime
+                     Integer32
+           }
+
+         isisISAdjSysInstance OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The unique identifier of the Integrated IS-IS instance
+                 to which this row corresponds."
+         ::= { isisISAdjEntry 1 }
+
+         isisISAdjCircIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The Circuit Index of the Circuit which is the parent of
+the
+                 IS adjacency."
+         ::= { isisISAdjEntry 2 }
+
+         isisISAdjIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "A unique value identifying the IS adjacency from all
+                 other such adjacencies on this circuit. This value is
+                 assigned by the system when the adjacency is created
+                 automatically."
+         ::= { isisISAdjEntry 3 }
+
+         isisISAdjState OBJECT-TYPE
+             SYNTAX INTEGER {
+                 initializing (1),
+                 up (2),
+                 failed (3),
+                 down (4)
+                 }
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The state of the adjacency"
+             REFERENCE "{ISIS.aoi adjacencyState (78)}"
+         ::= { isisISAdjEntry 4 }
+
+         isisISAdjNeighSNPAAddress OBJECT-TYPE
+             SYNTAX SNPAAddress
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The SNPA address of the neighboring system."
+             REFERENCE "{ISIS.aoi neighbourSNPAAddress (79)}"
+         ::= { isisISAdjEntry 5 }
+
+         isisISAdjNeighSysType OBJECT-TYPE
+             SYNTAX INTEGER {
+                 unknown(1),
+                 intermediateSystem(3),
+                 l1IntermediateSystem(4),
+                 l2IntermediateSystem(5)
+                 }
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The type of the neighboring system."
+             REFERENCE "{ISIS.aoi neighbourSystemType (80)}"
+         ::= { isisISAdjEntry 6 }
+
+         isisISAdjNeighSysID OBJECT-TYPE
+             SYNTAX OCTET STRING (SIZE(0..12))
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The system ID and circuit ID of the neighboring
+                 Intermediate System set from the source ID field
+                 of the neighbor's IIH PDUs."
+             REFERENCE "{ISIS.aoi neighbourSystemIds (83)}"
+         ::= { isisISAdjEntry 7 }
+
+         isisISAdjUsage OBJECT-TYPE
+             SYNTAX INTEGER {
+                 undefined(1),
+                 level1(2),
+                 level2(3),
+                 level1and2(4)
+                 }
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "An adjacency of type level1 is used for level 1
+                 traffic only. An adjacency of type level2 is used
+                 for level 2 traffic only. An adjacency of type level1and2
+                 is used for both level 1 and level 2 traffic. There
+                 may be two adjacencies (of types level1 and level2)
+                 between the same pair of Intermediate Systems."
+             REFERENCE "{ISIS.aoi adjacencyUsage (82)}"
+         ::= { isisISAdjEntry 8 }
+
+         isisISAdjHoldTimer OBJECT-TYPE
+             SYNTAX Integer32 (1..65535)
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The holding time for this adjacency updated from
+                 received IIH PDUs."
+             REFERENCE "{ISIS.aoi holdingTimer (85)}"
+         ::= { isisISAdjEntry 9 }
+
+         isisISAdjNeighPriority OBJECT-TYPE
+             SYNTAX ISPriority
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "Priority of the neighboring Intermediate System for
+                 becoming the LAN Level 1 Designated Intermediate System
+                 if the value of isisISAdjNeighSysType is
+                 L1IntermediateSystem or LAN Level 2 Designated
+                 Intermediate System if the value of
+                 isisISAdjNeighSysType is L2IntermediateSystem."
+             REFERENCE "{ISIS.aoi lANPriority (86)}"
+         ::= { isisISAdjEntry 10 }
+
+         isisISAdjUpTime OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The amount of time in seconds since this adjacency entered
+                 state 'up'.
+
+                 Note: This can be implemented as start time less
+                 the current time."
+         ::= { isisISAdjEntry 11 }
+
+     -- The IS Adjacency Area Address Table
+
+     -- The IS Adjacency Area Address Table contains the set of
+     -- Area Addresses of neighboring
+     -- Intermediate Systems as reported in IIH PDUs.
+
+         isisISAdjAreaAddrTable OBJECT-TYPE
+             SYNTAX SEQUENCE OF IsisISAdjAreaAddrEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "This table contains the set of Area Addresses of
+                 neighboring Intermediate Systems as reported in received
+                 IIH PDUs."
+             REFERENCE "{ISIS.aoi areaAddressesOfNeighbour (84)}"
+         ::= { isisISAdj 2 }
+
+         isisISAdjAreaAddrEntry OBJECT-TYPE
+             SYNTAX IsisISAdjAreaAddrEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "Each entry contains one Area Address reported by a
+                 neighboring Intermediate System in its IIH PDUs."
+             INDEX { isisISAdjAreaAddrSysInstance,
+                     isisISAdjAreaAddrCircIndex,
+                     isisISAdjAreaAddrAdjIndex,
+                     isisISAdjAreaAddress }
+         ::= { isisISAdjAreaAddrTable 1 }
+
+         IsisISAdjAreaAddrEntry ::=
+             SEQUENCE {
+                 isisISAdjAreaAddrSysInstance
+                     Integer32,
+                 isisISAdjAreaAddrCircIndex
+                     Integer32,
+                 isisISAdjAreaAddrAdjIndex
+                     Integer32,
+                 isisISAdjAreaAddress
+                     OSINSAddress
+                 }
+
+         isisISAdjAreaAddrSysInstance OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The unique identifier of the Integrated IS-IS instance
+                 to which this row corresponds."
+         ::= { isisISAdjAreaAddrEntry 1 }
+
+         isisISAdjAreaAddrCircIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The identifier of the Circuit which is the parent of the
+                 IS adjacency to which this Area Address entry
+                 corresponds."
+         ::= { isisISAdjAreaAddrEntry 2 }
+
+         isisISAdjAreaAddrAdjIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The identifier of the IS adjacency to which this entry
+                 belongs."
+         ::= { isisISAdjAreaAddrEntry 3 }
+
+         isisISAdjAreaAddress OBJECT-TYPE
+             SYNTAX OSINSAddress
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "One Area Address as reported in IIH PDUs received from
+                 the neighbor."
+         ::= { isisISAdjAreaAddrEntry 4 }
+
+     -- The IS Adjacency IP Group
+
+     -- The IS Adjacency IP Group is present if the system supports
+     -- IP Integrated IS-IS
+
+     -- The IS Adjacency IP Address Table
+
+     -- The IS Adjacency IP Address Table contains the
+     -- set of IP Addresses of neighboring Intermediate Systems
+     -- as reported in received IIH PDUs.
+
+         isisISAdjIPAddrTable OBJECT-TYPE
+             SYNTAX SEQUENCE OF IsisISAdjIPAddrEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "This table contains the set of IP Addresses of
+                 neighboring Intermediate Systems as reported in received
+                 IIH PDUs."
+         ::= { isisISAdj 3 }
+
+         isisISAdjIPAddrEntry OBJECT-TYPE
+             SYNTAX IsisISAdjIPAddrEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "Each entry contains one IP Address reported by a
+                 neighboring Intermediate System in its IIH PDUs."
+             INDEX { isisISAdjIPAddrSysInstance,
+                     isisISAdjIPAddrCircIndex,
+                     isisISAdjIPAddrAdjIndex
+                     }
+         ::= { isisISAdjIPAddrTable 1 }
+
+         IsisISAdjIPAddrEntry ::=
+             SEQUENCE {
+                 isisISAdjIPAddrSysInstance
+                     Integer32,
+                 isisISAdjIPAddrCircIndex
+                     Integer32,
+                 isisISAdjIPAddrAdjIndex
+                     Integer32,
+                 isisISAdjIPAddress
+                     IpAddress
+             }
+
+         isisISAdjIPAddrSysInstance OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The unique identifier of the Integrated IS-IS instance
+                 to which this row corresponds."
+         ::= { isisISAdjIPAddrEntry 1 }
+
+         isisISAdjIPAddrCircIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The identifier of the Circuit which is the parent of the
+                 IS adjacency to which this IP Address entry corresponds."
+         ::= { isisISAdjIPAddrEntry 2 }
+
+         isisISAdjIPAddrAdjIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The identifier of the IS adjacency to which this entry
+                 belongs."
+         ::= { isisISAdjIPAddrEntry 3 }
+
+         isisISAdjIPAddress OBJECT-TYPE
+             SYNTAX IpAddress
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "One IP Address as reported in IIH PDUs received from the
+                 neighbor."
+         ::= { isisISAdjIPAddrEntry 4 }
+
+     -- The IS Adjacency Integrated Group
+     --
+     -- The IS Adjacency Integrated Group is present if the system
+     -- supports Integrated ISIS.
+     --
+     --
+     -- The IS Adjacency Protocol Supported Table
+     --
+     -- The IS Adjacency Protocol Supported Table contains the set of
+     -- protocols supported by neighboring
+     -- Intermediate Systems as reported in received IIH PDUs.
+     --
+         isisISAdjProtSuppTable OBJECT-TYPE
+             SYNTAX SEQUENCE OF IsisISAdjProtSuppEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "This table contains the set of protocols supported by
+                 neighboring Intermediate Systems as reported in received
+                 IIH PDUs."
+         ::= { isisISAdj 4 }
+
+         isisISAdjProtSuppEntry OBJECT-TYPE
+             SYNTAX IsisISAdjProtSuppEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "Each entry contains one protocol supported by a
+                 neighboring Intermediate System as reported in its IIH
+                 PDUs."
+             INDEX {  isisISAdjProtSuppSysInstance,
+                 isisISAdjProtSuppCircIndex,
+                 isisISAdjProtSuppAdjIndex,
+                 isisISAdjProtSuppProtocol }
+         ::= { isisISAdjProtSuppTable 1 }
+
+         IsisISAdjProtSuppEntry ::=
+             SEQUENCE {
+                 isisISAdjProtSuppSysInstance
+                     Integer32,
+                 isisISAdjProtSuppCircIndex
+                     Integer32,
+                 isisISAdjProtSuppAdjIndex
+                     Integer32,
+                 isisISAdjProtSuppProtocol
+                     SupportedProtocol
+             }
+
+         isisISAdjProtSuppSysInstance OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The unique identifier of the Integrated IS-IS instance
+                 to which this row corresponds."
+         ::= { isisISAdjProtSuppEntry 1 }
+
+         isisISAdjProtSuppCircIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The identifier of the Circuit which is the parent of the
+                 IS adjacency to which this supported protocol entry
+                 corresponds."
+         ::= { isisISAdjProtSuppEntry 2 }
+
+         isisISAdjProtSuppAdjIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The identifier the IS adjacency to which this entry
+                 corresponds."
+         ::= { isisISAdjProtSuppEntry 3 }
+
+         isisISAdjProtSuppProtocol OBJECT-TYPE
+             SYNTAX SupportedProtocol
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "One supported protocol as reported in IIH PDUs received
+                 from the neighbor."
+         ::= { isisISAdjProtSuppEntry 4 }
+     --
+     --
+     -- The ES Adjacency Group
+     --
+     -- The ES Adjacency Group is present if the system supports
+     -- reception of ES Hellos
+     -- The ES Adjacency Table
+     --
+     -- Not supported - jdp
+     --
+     --
+     -- The Reachable Address Group
+     --
+     -- The Reachable Address Group is optional.
+     -- The Reachable Address Table
+     -- Each entry records information about a reachable address
+     -- (NSAP or address prefix) manually configured on the system
+     -- or learned through another protocol.
+
+         isisRATable OBJECT-TYPE
+             SYNTAX SEQUENCE OF IsisRAEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The table of Reachable Addresses to NSAPs or Address
+                 Prefixes."
+         ::= { isisReachAddr 1 }
+
+         isisRAEntry OBJECT-TYPE
+             SYNTAX IsisRAEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "Each entry defines a Reachable Address to a NSAP or
+                 Address Prefix."
+             INDEX { isisRASysInstance,
+                     isisRACircIndex,
+                     isisRAIndex }
+         ::= { isisRATable 1 }
+         IsisRAEntry ::=
+             SEQUENCE {
+                 isisRASysInstance
+                     Integer32,
+                 isisRACircIndex
+                     Integer32,
+                 isisRAIndex
+                     Integer32,
+                 isisRAExistState
+                     RowStatus,
+                 isisRAOperState
+                     OperState,
+                 isisRAAddrPrefix
+                     NSAPPrefix,
+                 isisRAMapType
+                     INTEGER,
+                 isisRADefMetric
+                     DefaultMetric,
+                 isisRADelMetric
+                     OtherMetric,
+                 isisRAExpMetric
+                     OtherMetric,
+                 isisRAErrMetric
+                     OtherMetric,
+                 isisRADefMetricType
+                     MetricType,
+                 isisRADelMetricType
+                     MetricType,
+                 isisRAExpMetricType
+                     MetricType,
+                 isisRAErrMetricType
+                     MetricType,
+                 isisRASNPAAddress
+                     SNPAAddress,
+                 isisRASNPAMask
+                     SNPAPrefix,
+                 isisRASNPAPrefix
+                     SNPAPrefix,
+                 isisRAType
+                     INTEGER
+             }
+
+         isisRASysInstance OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The identifier of the Integrated IS-IS instance to which
+                 this row corresponds. This object follows the index and
+                 manualOrAutomatic behaviours."
+         ::= { isisRAEntry 1 }
+
+         isisRACircIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The identifier of the Circuit over which this
+                 destination is reachable. This object follows the index
+                 and manualOrAutomatic behaviours."
+         ::= { isisRAEntry 2 }
+
+         isisRAIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The identifier for this isisRAEntry. This value must be
+                 unique amongst all Reachable Addresses on the same parent
+                 Circuit. This object follows the index and
+                 manualOrAutomatic behaviours."
+         ::= { isisRAEntry 3 }
+
+         isisRAExistState OBJECT-TYPE
+             SYNTAX RowStatus
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "The existence state of this Reachable Address. This
+                 object follows the Row Status behaviours."
+             DEFVAL { active }
+         ::= { isisRAEntry 4 }
+
+         isisRAOperState OBJECT-TYPE
+             SYNTAX OperState
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "The operational state of the Reachable Address. This
+                 object follows the operationalState and manualOrAutomatic
+                 behaviours."
+             DEFVAL { off }
+         ::= { isisRAEntry 5 }
+
+         isisRAAddrPrefix OBJECT-TYPE
+             SYNTAX NSAPPrefix
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "The destination of this Reachable Address. This is an
+                 Address Prefix. This object follows the
+                 replaceOnlyWhileDisabled and manualOrAutomatic
+                 behaviours."
+             REFERENCE "{ISIS.aoi addressPrefix (98)}"
+         ::= { isisRAEntry 6 }
+
+         isisRAMapType OBJECT-TYPE
+             SYNTAX INTEGER {
+                 none (1),
+                 explicit (2),
+                 extractIDI (3),
+                 extractDSP (4)
+             }
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "The type of mapping to be employed to ascertain the SNPA
+                 Address which should be used in forwarding PDUs for this
+                 Reachable Address prefix. This object follows the
+                 manualOrAutomatic behaviour. The following values of
+                 mapping type are defined:
+                 none: The mapping is null because the neighbor SNPA is
+                             implicit by nature of the subnetwork (e.g. a
+                 point-to-point linkage).
+                 explicit: The subnetwork addresses in the object
+                 isisRASNPAAddress is to be used.
+                 extractIDI: The SNPA is embedded in the IDI of the
+                 destination NSAP Address. The mapping algorithm
+                 extracts the SNPA to be used according to the format
+                 and encoding rules of ISO8473/Add2. This SNPA
+                 extraction algorithm can be used in conjunction with
+                 Reachable Address prefixes from the X.121, F.69, E.163
+                 and E.164 addressing subdomains.
+                 extractDSP: All, or a suffix, of the SNPA is embedded
+                 in the DSP of the destination address. This SNPA
+                 extraction algorithm extracts the embedded subnetwork
+                 addressing information by performing a logical AND of
+                 the isisRASNPAMask object value with the destination
+                 address. The part of the SNPA extracted from the
+                 destination NSAP is appended to the isisRASNPAPrefix
+                 object value to form the next hop subnetwork
+                 addressing information."
+             REFERENCE "{ISO10589-ISIS.aoi mappingType (107)}"
+         ::= { isisRAEntry 7 }
+
+         isisRADefMetric OBJECT-TYPE
+             SYNTAX DefaultMetric
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "The default metric value for reaching the specified
+                 prefix over this circuit. This object follows the
+                 manualOrAutomatic behaviour."
+             REFERENCE "{ISIS.aoi defaultMetric (99)}"
+             DEFVAL { 20 }
+         ::= { isisRAEntry 8 }
+
+         isisRADelMetric OBJECT-TYPE
+             SYNTAX OtherMetric
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "The delay metric for reaching the specified prefix over
+                 this circuit. This object follows the manualOrAutomatic
+                 behaviour. The value zero is reserved to indicate that
+                 this metric is not supported."
+             REFERENCE "{ISIS.aoi delayMetric (100)}"
+             DEFVAL { 0 }
+         ::= { isisRAEntry 9 }
+
+         isisRAExpMetric OBJECT-TYPE
+             SYNTAX OtherMetric
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "The expense metric for reaching the specified prefix
+                 over this circuit. This object follows the
+                 manualOrAutomatic behaviour. The value zero is reserved
+                 to indicate that this metric is not supported."
+             REFERENCE "{ISIS.aoi expenseMetric (101)}"
+             DEFVAL { 0 }
+         ::= { isisRAEntry 10 }
+
+         isisRAErrMetric OBJECT-TYPE
+             SYNTAX OtherMetric
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "The error metric for reaching the specified prefix over
+                 this circuit. This object follows the manualOrAutomatic
+                 behaviour. The value zero is reserved to indicate that
+                 this metric is not supported."
+             REFERENCE "{ISIS.aoi errorMetric (102)}"
+             DEFVAL { 0 }
+         ::= { isisRAEntry 11 }
+
+         isisRADefMetricType OBJECT-TYPE
+             SYNTAX MetricType
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "Indicates whether the default metric is internal or
+                 external. This object follows the manualOrAutomatic
+                 behaviour."
+             REFERENCE "{ISIS.aoi defaultMetricType (103)}"
+             DEFVAL { internal }
+         ::= { isisRAEntry 12 }
+
+         isisRADelMetricType OBJECT-TYPE
+             SYNTAX MetricType
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "Indicates whether the delay metric is internal or
+                 external. This object follows the manualOrAutomatic
+                 behaviour."
+             REFERENCE "{ISO10589-ISIS.aoi delayMetricType (104)}"
+             DEFVAL { internal }
+         ::= { isisRAEntry 13 }
+
+         isisRAExpMetricType OBJECT-TYPE
+             SYNTAX MetricType
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "Indicates whether the expense metric is internal or
+                 external. This object follows the manualOrAutomatic
+                 behaviour."
+             REFERENCE "{ISIS.aoi expenseMetricType (105)}"
+             DEFVAL { internal }
+         ::= { isisRAEntry 14 }
+
+         isisRAErrMetricType OBJECT-TYPE
+             SYNTAX MetricType
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "Indicates whether the error metric is internal or
+                 external. This object follows the manualOrAutomatic
+                 behaviour."
+             REFERENCE "{ISIS.aoi errorMetricType (106)}"
+             DEFVAL { internal }
+         ::= { isisRAEntry 15 }
+
+         isisRASNPAAddress OBJECT-TYPE
+             SYNTAX SNPAAddress
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "The SNPA Address to which a PDU may be forwarded in
+                 order to reach a destination which matches the address
+                 prefix of the Reachable Address. This object follows the
+                 manualOrAutomatic behaviour."
+             REFERENCE "{ISIS.aoi sNPAAddresses (109)}"
+     -- note only one address may be specified per Reachable Address
+     -- in the MIB
+             DEFVAL { ''H }
+         ::= { isisRAEntry 16 }
+
+         isisRASNPAMask OBJECT-TYPE
+             SYNTAX SNPAPrefix
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "A bit mask with 1 bits indicating the positions in the
+                 effective destination address from which embedded SNPA
+                 information is to be extracted. For the extraction the
+                 first octet of the isisRASNPAMask object value is aligned
+                 with the first octet (AFI) of the NSAP Address. If the
+                 isisRASNPAMask object value and NSAP Address are of
+                 different lengths, the shorter of the two is logically
+                 padded with zeros before performing the extraction. This
+                 object follows the manualOrAutomatic behaviour."
+             REFERENCE "{ISIS.aoi sNPAMask (122)}"
+             DEFVAL { '00'H }
+         ::= { isisRAEntry 17 }
+
+         isisRASNPAPrefix OBJECT-TYPE
+             SYNTAX SNPAPrefix
+             MAX-ACCESS read-create
+             STATUS current
+             DESCRIPTION
+                 "A fixed SNPA prefix for use when the isisRAMapType is
+                 extractDSP. The SNPA Address to use is formed by
+                 concatenating the fixed SNPA prefix with a variable SNPA
+                 part that is extracted from the effective destination
+                 address. For Reachable Address prefixes in which the
+                 entire SNPA is embedded in the DSP the SNPA Prefix shall
+                 be null. This object follows the manualOrAutomatic
+                 behaviour."
+             REFERENCE "{ISIS.aoi sNPAPrefix (123)}"
+             DEFVAL { '00'H }
+         ::= { isisRAEntry 18 }
+
+         isisRAType OBJECT-TYPE
+             SYNTAX INTEGER
+                 {
+                 manual (1),
+                 automatic (2)
+                 }
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 " The type of Reachable address. Those of type
+                 manual are created by the network manager. Those
+                 of type automatic are created through propogation
+                 of routing information from another routing
+                 protocol (eg. IDRP). "
+             DEFVAL {manual}
+         ::= {isisRAEntry 19 }
+
+     -- The IP Reachable Address Group
+     -- The IP Reachable Address Group is optional.
+
+     -- The IP Reachable Address Table
+
+     -- Each entry records information about one IP reachable
+     -- address manually configured on this system or learned from
+     -- another protocol.
+
+         isisIPRATable OBJECT-TYPE
+             SYNTAX SEQUENCE OF IsisIPRAEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The table of IP Reachable Addresses to networks,
+                 subnetworks or hosts either manually configured or
+                 learned from another protocol."
+         ::= { isisIPReachAddr 1 }
+
+         isisIPRAEntry OBJECT-TYPE
+             SYNTAX IsisIPRAEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "Each entry defines an IP Reachable Address to a network,
+                 subnetwork or host."
+             INDEX {  isisIPRASysInstance,
+                 isisIPRACircIndex,
+                 isisIPRAType,
+                 isisIPRAIndex }
+         ::= { isisIPRATable 1 }
+
+         IsisIPRAEntry ::=
+             SEQUENCE {
+                 isisIPRASysInstance
+                     Integer32,
+                 isisIPRACircIndex
+                     Integer32,
+                 isisIPRAIndex
+                     Integer32,
+                 isisIPRAType
+                     INTEGER,
+                 isisIPRADest
+                     IpAddress,
+                 isisIPRAMask
+                     IpAddress,
+                 isisIPRAExistState
+                     RowStatus,
+                 isisIPRAOperState
+                     OperState,
+                 isisIPRADefMetric
+                     DefaultMetric,
+                 isisIPRADelMetric
+                     OtherMetric,
+                 isisIPRAExpMetric
+                     OtherMetric,
+                 isisIPRAErrMetric
+                     OtherMetric,
+                 isisIPRADefMetricType
+                     MetricType,
+                 isisIPRADelMetricType
+                     MetricType,
+                 isisIPRAExpMetricType
+                     MetricType,
+                 isisIPRAErrMetricType
+                     MetricType,
+                 isisIPRASNPAAddress
+                     SNPAAddress
+             }
+
+         isisIPRASysInstance OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The identifier of the Integrated IS-IS instance to which
+                 this row corresponds. This object follows the index and
+                 manualOrAutomatic behaviours."
+         ::= { isisIPRAEntry 1 }
+
+         isisIPRACircIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The identifier of the Circuit over which this IP
+                 destination is reachable. This object follows the index
+                 and manualOrAutomatic behaviours."
+         ::= { isisIPRAEntry 2 }
+         isisIPRAIndex OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The identifier for this isisIPRAEntry. This value must
+                 be unique amongst all IP Reachable Addresses on the same
+                 parent Circuit. This object follows the index and
+                 manualOrAutomatic behaviours."
+         ::= { isisIPRAEntry 3 }
+
+         isisIPRAType OBJECT-TYPE
+             SYNTAX   INTEGER
+                 {
+                     manual (1),
+                     automatic (2)
+                 }
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The type of this IP Reachable Address. Those of type
+                 manual are created by the network manager. Those of type
+                 automatic are created through propagation of routing
+                 information from another routing protocol."
+         ::= { isisIPRAEntry 4 }
+
+         isisIPRADest OBJECT-TYPE
+             SYNTAX IpAddress
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The destination of this IP Reachable Address. This is
+                 either a network address, subnetwork address or host
+                 address. This object follows the manualOrAutomatic
+                 behaviour."
+         ::= { isisIPRAEntry 5 }
+
+         isisIPRAMask OBJECT-TYPE
+             SYNTAX IpAddress
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The network mask for the IP Address in the isisIPRADest
+                 object. This object follows the manualOrAutomatic
+                 behaviour."
+         ::= { isisIPRAEntry 6 }
+
+         isisIPRAExistState OBJECT-TYPE
+             SYNTAX RowStatus
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The state of this IP Reachable Address. This object
+                 follows the ExistenceState and manualOrAutomatic
+                 behaviours."
+             DEFVAL { active }
+         ::= { isisIPRAEntry 7 }
+
+         isisIPRAOperState OBJECT-TYPE
+             SYNTAX OperState
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The operational state of the IP Reachable Address. This
+                 object follows the operationalState and manualOrAutomatic
+                 behaviours."
+             DEFVAL { off }
+         ::= { isisIPRAEntry 8 }
+
+         isisIPRADefMetric OBJECT-TYPE
+             SYNTAX DefaultMetric
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The default metric value for reaching the specified
+                 destination over this circuit. This object follows the
+                 manualOrAutomatic behaviour."
+             DEFVAL { 20 }
+         ::= { isisIPRAEntry 9 }
+
+         isisIPRADelMetric OBJECT-TYPE
+             SYNTAX OtherMetric
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The delay metric value for reaching the specified
+                 destination over this circuit. The value zero is reserved
+                 to mean the metric is not supported. This object follows
+                 the manualOrAutomatic behaviour."
+             DEFVAL { 0 }
+         ::= { isisIPRAEntry 10 }
+
+         isisIPRAExpMetric OBJECT-TYPE
+             SYNTAX OtherMetric
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The expense metric value for reaching the specified
+                 destination over this circuit. The value zero is reserved
+                 to mean the metric is not supported. This object follows
+                 the manualOrAutomatic behaviour."
+             DEFVAL { 0 }
+         ::= { isisIPRAEntry 11 }
+
+         isisIPRAErrMetric OBJECT-TYPE
+             SYNTAX OtherMetric
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The error metric value for reaching the specified
+                 destination over this circuit. The value zero is reserved
+                 to mean the metric is not supported. This object follows
+                 the manualOrAutomatic behaviour."
+             DEFVAL { 0 }
+         ::= { isisIPRAEntry 12 }
+
+         isisIPRADefMetricType OBJECT-TYPE
+             SYNTAX MetricType
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Indicates whether the default metric is internal or
+                 external. This object follows the manualOrAutomatic
+                 behaviour."
+             DEFVAL { internal }
+         ::= { isisIPRAEntry 13 }
+
+         isisIPRADelMetricType OBJECT-TYPE
+             SYNTAX MetricType
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Indicates whether the delay metric is internal or
+                 external. This object follows the manualOrAutomatic
+                 behaviour."
+
+             DEFVAL { internal }
+         ::= { isisIPRAEntry 14 }
+
+         isisIPRAExpMetricType OBJECT-TYPE
+             SYNTAX MetricType
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Indicates whether the expense metric is internal or
+                 external. This object follows the manualOrAutomatic
+                 behaviour."
+             DEFVAL { internal }
+         ::= { isisIPRAEntry 15 }
+
+         isisIPRAErrMetricType OBJECT-TYPE
+             SYNTAX MetricType
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "Indicates whether the error metric is internal or
+                 external. This object follows the manualOrAutomatic
+                 behaviour."
+             DEFVAL { internal }
+         ::= { isisIPRAEntry 16 }
+
+         isisIPRASNPAAddress OBJECT-TYPE
+             SYNTAX SNPAAddress
+             MAX-ACCESS read-write
+             STATUS current
+             DESCRIPTION
+                 "The SNPA Address to which a PDU may be forwarded in
+                 order to reach a destination which matches this IP
+                 Reachable Address. This object follows the
+                 manualOrAutomatic behaviour."
+             DEFVAL { ''H }
+         ::= { isisIPRAEntry 17 }
+
+     -- The Circuit CLNS Group
+     --
+     -- The Circuit CLNS Table contains objects controlling the
+     -- operation of the IS functions of the CLNS protocol
+     --
+     -- Removed - jdp
+     --
+     -- The IP Destination Group
+
+     -- The IP Destination Group is present if the system forwards
+     -- IP packets.
+
+     -- The IP Destination Table
+
+     -- The IP Destination Table records information about each
+     -- destination known to the Intermediate System
+
+         isisIPDestTable OBJECT-TYPE
+             SYNTAX SEQUENCE OF IsisIPDestEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The IP Destination Table records information about each
+                 destination known to the Intermediate System."
+         ::= { isisIPDest 1 }
+
+         isisIPDestEntry OBJECT-TYPE
+             SYNTAX IsisIPDestEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "Each entry records information about one IP destination
+                 known to the Intermediate System."
+             INDEX {  isisIPRouteMetTOS,
+                 isisIPRouteDest,
+                 isisIPRouteMask,
+                 isisIPRouteForw }
+             ::= { isisIPDestTable 1 }
+
+         IsisIPDestEntry ::=
+             SEQUENCE {
+                 isisIPRouteDest
+                     IpAddress,
+                 isisIPRouteMask
+                     IpAddress,
+                 isisIPRouteMetTOS
+                     TOS,
+                 isisIPRouteMetType
+                     INTEGER,
+                 isisIPRouteIntMetric
+                     PathCost,
+
+                 isisIPRouteExtMetric
+                     Integer32,
+                 isisIPRouteForw
+                     OBJECT IDENTIFIER,
+                 isisIPRouteSource
+                     INTEGER,
+                 isisIPRouteSysInstance
+                     Integer32
+             }
+
+         isisIPRouteDest OBJECT-TYPE
+             SYNTAX IpAddress
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The destination IP Address."
+         ::= { isisIPDestEntry 1 }
+
+         isisIPRouteMask OBJECT-TYPE
+             SYNTAX IpAddress
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The mask for the isisIPRouteDest value."
+         ::= { isisIPDestEntry 2 }
+
+         isisIPRouteMetTOS OBJECT-TYPE
+             SYNTAX TOS
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The TOS of the metric for this destination."
+         ::= { isisIPDestEntry 3 }
+
+         isisIPRouteMetType OBJECT-TYPE
+             SYNTAX   INTEGER  {
+                 internal (1),
+                 external (2)
+             }
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "Indicates whether the metric includes an external
+             component or not."
+         ::= { isisIPDestEntry 4 }
+         isisIPRouteIntMetric OBJECT-TYPE
+             SYNTAX PathCost
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The internal path metric value for this destination."
+         ::= { isisIPDestEntry 5 }
+
+         isisIPRouteExtMetric OBJECT-TYPE
+             SYNTAX Integer32 (0..63)
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The external metric value for this destination. If the
+                 metric type is internal then this value is zero."
+         ::= { isisIPDestEntry 6 }
+
+         isisIPRouteForw OBJECT-TYPE
+             SYNTAX OBJECT IDENTIFIER
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+                 "The OBJECT IDENTIFIER for the first object in the table
+                 entry which corresponds to the entry used for forwarding
+                 packets to this destination. This value is either an
+                 OBJECT IDENTIFIER for an instance of one of the following
+                 objects: isisL2SummAddrSysInstance, isisVirtSysInstance,
+                 isisISAdjSysInstance, isisIPRASysInstance."
+         ::= { isisIPDestEntry 7 }
+
+         isisIPRouteSource OBJECT-TYPE
+             SYNTAX   INTEGER {
+                 manual (1),
+                 level1 (2),
+                 level2 (3)
+             }
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The source of the destination. Manual is used if the
+                 source is manually configured information on the system.
+                 Level1 is used if the source is Level 1 LSPs. Level2 is
+                 used if the source is Level 2 LSPs."
+         ::= { isisIPDestEntry 8 }
+         isisIPRouteSysInstance OBJECT-TYPE
+             SYNTAX Integer32
+             MAX-ACCESS read-only
+             STATUS current
+             DESCRIPTION
+                 "The identifier of the Integrated IS-IS instance from
+                 which this reachability information was learned."
+         ::= { isisIPDestEntry 9 }
+
+         END
+
+-- 
+--      Copyright (C) The Internet Society (1997).  All Rights
+--      Reserved.
+-- 
+--      This document and translations of it may be copied and
+--      furnished to others, and derivative works that comment on or
+--      otherwise explain it or assist in its implementation may be
+--      prepared, copied, published and distributed, in whole or in
+--      part, without restriction of any kind, provided that the above
+--      copyright notice and this paragraph are included on all such
+--      copies and derivative works.  However, this document itself
+--      may not be modified in any way, such as by removing the
+--      copyright notice or references to the Internet Society or
+--      other Internet organizations, except as needed for the purpose
+--      of developing Internet standards in which case the procedures
+--      for copyrights defined in the Internet Standards process must
+--      be followed, or as required to translate it into languages
+--      other than English.
+-- 
+--      The limited permissions granted above are perpetual and will
+--      not be revoked by the Internet Society or its successors or
+--      assigns.
+-- 
+--      This document and the information contained herein is provided
+--      on an "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET
+--      ENGINEERING TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR
+--      IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE
+--      USE OF THE INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR
+--      ANY IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A
+--      PARTICULAR PURPOSE."
+

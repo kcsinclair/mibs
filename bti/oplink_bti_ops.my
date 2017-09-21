@@ -1,0 +1,1038 @@
+-- Copyright OPLINK 2004-2013.
+-- Oplink-MIB { iso org(3) dod(6) internet(1) private(4)
+--              enterprises(1) oplink(19547) }
+-- mngdproducts := { oplink 1 }
+
+Oplink-MIB DEFINITIONS ::= BEGIN
+IMPORTS
+    MODULE-IDENTITY FROM SNMPv2-SMI
+    enterprises  FROM SNMPv2-SMI;
+    oplink MODULE-IDENTITY
+    LAST-UPDATED "201304021500Z"
+    ORGANIZATION "OPLINK"
+    CONTACT-INFO " oplink ems "
+    DESCRIPTION " oplink mib "
+    REVISION    "201304021500Z"
+    DESCRIPTION " reorg oplink mib "
+    ::= { enterprises 19547}
+
+    mngdproducts OBJECT IDENTIFIER ::= { oplink 1 }
+                                          -- snmp managed products
+END
+
+-- OPLINK Device 6 Version 1 -MIB
+-- Rev.1.1.14.1
+
+OPLINK-BTI-OPS-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY FROM SNMPv2-SMI
+    mngdproducts                 FROM Oplink-MIB
+    DisplayString                FROM SNMPv2-TC
+    TEXTUAL-CONVENTION	      	 FROM SNMPv2-TC
+    OBJECT-TYPE                  FROM SNMPv2-SMI
+    Integer32                    FROM SNMPv2-SMI
+    IpAddress                    FROM SNMPv2-SMI 
+    OBJECT-GROUP                 FROM SNMPv2-CONF
+    MODULE-COMPLIANCE            FROM SNMPv2-CONF
+    NOTIFICATION-TYPE            FROM SNMPv2-SMI;
+
+deviceOPSMv2-MIB MODULE-IDENTITY
+    LAST-UPDATED "201304021700Z"
+    ORGANIZATION "OPLINK"
+    CONTACT-INFO "OPLINK"
+    DESCRIPTION " oplink device OPSM version 2 mib "
+    REVISION    "201304021700Z"
+    DESCRIPTION " reorg oplink mib "
+    ::= { mngdproducts   7}
+
+version2 OBJECT IDENTIFIER ::= { deviceOPSMv2-MIB 1}
+                   -- .1.3.6.1.4.1.19547.1.7.1    
+-- Textual Conventions
+HeTenthdB ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "d-1"
+    STATUS       current
+    DESCRIPTION
+        "This data type represents power discrepancy levels 
+         that are normally expressed in dB. Units 
+         are in tenths of a dB;
+         for example, -5.1 dB will be represented as -51."
+    SYNTAX       Integer32 
+    
+HeTenthdBm ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "d-1"
+    STATUS       current
+    DESCRIPTION
+        "This data type represents power levels 
+         that are normally expressed in dBm. Units 
+         are in tenths of a dBm;
+         for example, -5.1 dBm will be represented as -51."
+    SYNTAX       Integer32 
+    
+HeTenthmA ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "d-1"
+    STATUS       current
+    DESCRIPTION
+        "This data type represents  laser bias current threshold 
+         that are normally expressed in mA. Units 
+         are in tenths of a mA;
+         for example, -5.1 mA will be represented as -51."
+    SYNTAX       Integer32
+
+HeTenthmV ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "d-1"
+    STATUS       current
+    DESCRIPTION
+        "This data type represents pump voltage  
+         that are normally expressed in mA. Units 
+         are in tenths of a mV;
+         for example, -5.1 mV will be represented as -51."
+    SYNTAX       Integer32
+      
+HeTenthCentigrade   ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "d-1"
+    STATUS       current
+    DESCRIPTION
+        "This data type represents  Temperature Threshold 
+         that are normally expressed in mA. Units 
+         are in tenths of a  C.
+         for example, -5.1 C will be represented as -51."
+    SYNTAX       Integer32
+       
+-- ++++++++++++++++++++++++++
+--
+-- System/Shelf Manage Card table (1)
+-- emu system/shelf manage card
+--
+emuTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF EmuEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION "controller card parameters"
+    ::= {version2 1}
+
+emuEntry OBJECT-TYPE
+    SYNTAX EmuEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION "Row definition for emuTable "
+    INDEX { emuChassisId, emuSlotId, emuItemId }
+    ::= { emuTable 1}
+
+EmuEntry ::=
+    SEQUENCE {
+    emuChassisId                  Integer32,
+    emuSlotId                     Integer32,
+    emuItemId                     Integer32,
+
+    --Manufacture information node
+    emuMfgName                    DisplayString,
+    emuModuleType                 DisplayString,
+    emuPartNum                    DisplayString,
+    emuSerialNum                  DisplayString,
+    emuMfgDate                    DisplayString,
+    emuCaliDate                   DisplayString,
+    emuFirmwareVer                DisplayString,
+    emuHardwareVer                DisplayString,
+    emuVendorID                   DisplayString,
+        
+    --System information and configuration node
+    emuSysDate                    DisplayString,
+    emuSysTime                    DisplayString,
+    emuIpAddr                     DisplayString,
+    emuNetMask                    DisplayString,
+    emuGateway                    DisplayString,
+    emuMacAddr                    DisplayString,
+    emuUptime			  Integer32,
+    emuBoardTemp		  HeTenthCentigrade,
+    emuHighTemperatureThreshold	  HeTenthCentigrade,
+    emuLowTemperatureThreshold	  HeTenthCentigrade,
+    emuGetModConfig		  DisplayString,
+    emuDelModConfig		  DisplayString,
+    emuAddModConfig		  DisplayString,
+    emuSaveConfig		  DisplayString,
+    emuRestoreDefault		  DisplayString,
+    emuReset		          DisplayString,
+    
+    --Upgrade management
+    emuFirmwareUpgradeStart       DisplayString,
+    emuFirmwareUpgradeStatus      DisplayString,
+
+    --SNMP configuration
+    emuGetSNMPConfig              OCTET STRING,
+    emuDelSNMPConfig		  OCTET STRING,
+    emuAddSNMPConfig  		  OCTET STRING,
+    
+    --Alarm and log information
+    emuGetCurrentAlarm            OCTET STRING,
+    emuGetHisAlarm                DisplayString
+   }
+
+emuChassisId OBJECT-TYPE
+    SYNTAX Integer32 (0..32)
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "chassis index"
+    ::= { emuEntry  1001}
+
+emuSlotId OBJECT-TYPE
+    SYNTAX Integer32 (0..32)
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "slot index"
+    ::= { emuEntry  1002}
+
+emuItemId OBJECT-TYPE
+    SYNTAX Integer32 (0..32)
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "port/channel index"
+    ::= { emuEntry  1003}
+
+--Manufacture information node
+emuMfgName OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Manufacturer name."
+    ::= { emuEntry  1}
+
+emuModuleType OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Module type."
+    ::= { emuEntry  2}
+
+emuPartNum OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Part Number. Can be any combination of alphanumerical characters."
+    ::= { emuEntry  3}
+
+emuSerialNum OBJECT-TYPE
+    SYNTAX DisplayString(SIZE(0..10))
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Serial number. Can be any combination of alphanumerical characters."
+    ::= { emuEntry  4}
+
+emuMfgDate OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Manufacturing date. The format is yyyy-mm-dd."
+    ::= { emuEntry  5}
+
+emuCaliDate OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Manufacturing date. The format is yyyy-mm-dd"
+    ::= { emuEntry  6}
+
+emuFirmwareVer OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Software version. The format is X.Y.Z"
+    ::= { emuEntry  7}
+    
+emuHardwareVer OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Hardware version. The format is X.Y.Z"
+    ::= { emuEntry  8}
+
+emuVendorID OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Vendor ID. The ID number of vendor."
+    ::= { emuEntry  9}
+
+--System information and configuration node            
+emuSysDate OBJECT-TYPE
+    SYNTAX DisplayString (SIZE(10))
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "System date. The format is YYYY-MM-DD"
+    ::= { emuEntry 10}
+    
+emuSysTime OBJECT-TYPE
+    SYNTAX DisplayString (SIZE(10))
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "System time. The format is HH:MM:SS"
+    ::= { emuEntry 11}     
+
+emuIpAddr OBJECT-TYPE
+    SYNTAX DisplayString (SIZE(10..15))
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "IP address. The format is aaa.bbb.ccc.ddd"
+    ::= { emuEntry 12}
+    
+emuNetMask OBJECT-TYPE
+    SYNTAX DisplayString (SIZE(10..15))
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "Netmask. The format is aaa.bbb.ccc.ddd"
+    ::= { emuEntry 13}
+
+emuGateway OBJECT-TYPE
+    SYNTAX DisplayString (SIZE(10..15))
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "Gateway. The format is aaa.bbb.ccc.ddd"
+    ::= { emuEntry 14}    
+    
+emuMacAddr OBJECT-TYPE
+    SYNTAX DisplayString (SIZE(18))
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Mac address. The format is aa:bb:cc:dd:ee:ff"
+    ::= { emuEntry 15}
+
+emuUptime OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Uptime. System uptime (Unit: s)"
+    ::= { emuEntry 16}
+
+emuBoardTemp OBJECT-TYPE
+    SYNTAX HeTenthCentigrade
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "BoardTemp. Get temperature of EMU card(Unit: 0.1 degree celsius)"
+    ::= { emuEntry 17}
+
+emuHighTemperatureThreshold OBJECT-TYPE
+    SYNTAX HeTenthCentigrade
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "HighTempThreshold. Get/Set high temperature threshold value of EMU card(Unit: 0.1 degree celsuis),
+         range:550~750"
+    ::= { emuEntry 18}
+
+emuLowTemperatureThreshold OBJECT-TYPE
+    SYNTAX HeTenthCentigrade
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "LowTempThreshold. Get/Set low temperature threshold value of EMU card(Unit: 0.1 degree celsius),
+         range:-250~0"
+    ::= { emuEntry 19} 
+
+emuGetModConfig OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "GetModConfig. Get current OPSM module config.
+         format: OPSM.PA600/OPSM.BA "
+    ::= { emuEntry 20}
+    
+emuDelModConfig OBJECT-TYPE
+    SYNTAX DisplayString (SIZE(0..20))
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "DelModConfig. 
+         get: return a blank character
+         set: Delete current OPSM module config.
+	      format: OPSM.PA600/OPSM.BA "
+    ::= { emuEntry 21}
+    
+emuAddModConfig OBJECT-TYPE
+    SYNTAX DisplayString (SIZE(0..20))
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "AddModConfig.
+         get: return a blank character 
+         set: Add OPSM module config,
+              format: OPSM.PA600/OPSM.BA "
+    ::= { emuEntry 22}
+            
+emuSaveConfig OBJECT-TYPE
+    SYNTAX DisplayString (SIZE(0)) 
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "SaveConfig. 
+         get: return a blank character
+         set: parameter is null." 
+    ::= { emuEntry 23}
+    
+emuRestoreDefault OBJECT-TYPE
+    SYNTAX DisplayString (SIZE(0))
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+    	"RestoreDefault. 
+         get: return a blank character
+         set: parameter is null." 
+    ::= { emuEntry 24}
+    
+emuReset OBJECT-TYPE
+    SYNTAX DisplayString (SIZE(0)) 
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "Reset. 
+         get: return a blank character
+         set: parameter is null."    
+    ::= { emuEntry 25}
+
+--Upgrade management    
+emuFirmwareUpgradeStart OBJECT-TYPE
+    SYNTAX DisplayString (SIZE(0..100))
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "FirmwareUpgradeStart. 
+         get: return a blank character
+         set: The name of the upgrade iamge which must be upload
+         to the /var/ftp directory before do this operation."
+    ::= { emuEntry  40}
+
+emuFirmwareUpgradeStatus OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "FirmwareUpgradeStatus. The status and percent of upgrade
+         format: [status], [percent]
+         status:0--none upgrade, 1--in progress, 2--upgrade successful, others-upgrade error code
+         percent:1-100"
+    ::= { emuEntry  41}
+
+--SNMP configuration    
+emuGetSNMPConfig OBJECT-TYPE
+    SYNTAX OCTET STRING(SIZE(0..1200))
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Get all snmp users' information.
+         format:[Version] [Trap on/off] [IP] [Port] [Community/Username] [Access/Level]...
+         Version:v1|v2c|v3
+         Trap on/off:trap|notrap
+         Access:Read|Write
+         level:noauth|authNoPriv MD5/SHA|authPriv MD5/SHA DES/AES"
+    ::= { emuEntry 50}
+
+emuDelSNMPConfig OBJECT-TYPE
+    SYNTAX OCTET STRING (SIZE(0..40))
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "Delete snmp user.
+         get: return a blank character
+         set: v1 or v2c format:[version] [IP] [Community]
+              v3 format: [version] [username]
+              Version:v1|v2c|v3
+              Community/Username:6-15 characters 
+              IP:xxx.xxx.xxx.xxx"
+    ::= { emuEntry 51}
+
+emuAddSNMPConfig OBJECT-TYPE
+    SYNTAX OCTET STRING (SIZE(0..200))
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "Add snmp user.
+         get: return a blank character
+         set: v1 or v2c format:[Version] [Trap on/off] [IP] [Port] [Community] [Access]
+              v3 format:[Version] [Trap on/off] [IP] [Port] [Username] [Access] [EngineID] [Level] [Auth protocol] [AuthKey]
+                        [Priv protocal] [PrivKey]
+              Version:v1|v2c|v3
+              Trap on/off:trap|notrap
+              IP:xxx.xxx.xxx.xxx
+              Port:0-65535
+              Community/Username:6-15 characters
+              Access:r|w (r:read;w:write)
+              EngineID:0x(10-128) characters
+              Level:AuthPriv|AuthNoPriv|noAuthNoPriv
+              Auth protocol:MD5|SHA
+              AuthKey:8-15 characters
+              Priv protocal:DES|AES
+              PrivKey:8-15 characters"
+    ::= { emuEntry 52}
+
+--Alarm and log information
+emuGetCurrentAlarm OBJECT-TYPE
+    SYNTAX OCTET STRING
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Current alarm. The current alarm of system."
+    ::= { emuEntry  60}
+
+emuGetHisAlarm OBJECT-TYPE
+    SYNTAX DisplayString (SIZE(0..100))
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "History alarm. Full directory of history alarm file."
+    ::= { emuEntry 61}
+
+--
+-- This is OPSM Table.
+-- OPSM
+--
+-- SYNTAX SEQUENCE OF emuEntry
+opsmTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF OPSMEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION "OPSM parameters"
+    ::= {version2 2}
+
+opsmEntry OBJECT-TYPE
+    SYNTAX OPSMEntry 
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION "Row definition for opsmTable "
+    INDEX { opsmChassisId, opsmSlotId, opsmItemId }
+    ::= { opsmTable 1}
+
+OPSMEntry ::=
+    SEQUENCE {     
+    opsmChassisId                 Integer32,
+    opsmSlotId                    Integer32,
+    opsmItemId                    Integer32, 
+    
+    --OPSM manufacture information
+    opsmMfgName                   DisplayString,
+    opsmPartNum                   DisplayString,
+    opsmSerialNum                 DisplayString,
+    opsmMfgDate                   DisplayString,
+    opsmCaliDate                  DisplayString,
+    opsmHardwareVer               DisplayString,
+    opsmVendorID                  DisplayString,    
+    opsmModuleType                DisplayString,    	
+    opsmFirmwareVer               DisplayString,
+
+    --OPSM control information   
+    opsmReset                     Integer32,
+    
+    --OPSM protection information       
+    opsmProtectionMode            Integer32, -- port
+    opsmRevertiveSetting          Integer32, -- port
+    opsmDiffSwitchSetting         Integer32,
+    opsmDiffAlarmThreshold        HeTenthdBm,    
+    opsmDiffSwitchThreshold       HeTenthdBm,
+    opsmInherentDiffOffset        HeTenthdBm, 
+    opsmWTRTime                   Integer32, -- port     
+    opsmSwitchStatus              Integer32, -- port
+    opsmSwitchPosition            Integer32, -- port
+    
+    --OPSM parameter information             
+    opsmInputLosAlarmThrPathP     HeTenthdBm,  -- port
+    opsmInputLosAlarmThrPathS     HeTenthdBm, -- port
+    opsmInputLosAlarmHys          HeTenthdBm, -- port 
+    opsmInputPowerPathP           Integer32,
+    opsmInputPowerPathS           Integer32,
+    opsmSwitchCount               Integer32
+    }
+
+opsmChassisId OBJECT-TYPE
+    SYNTAX Integer32 (0..32)
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "chassis index"
+    ::= { opsmEntry  1001}
+
+opsmSlotId OBJECT-TYPE
+    SYNTAX Integer32 (0..32)
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "slot index"
+    ::= { opsmEntry  1002}
+
+opsmItemId OBJECT-TYPE
+    SYNTAX Integer32 (0..32)
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "port/channel index"
+    ::= { opsmEntry  1003}
+
+--OPSM manufacture information
+opsmMfgName OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Manufacturer name."
+    ::= { opsmEntry  1}
+
+opsmPartNum OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Part Number. Can be any combination of alphanumerical characters."
+    ::= { opsmEntry  2}
+
+opsmSerialNum OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Serial number. Can be any combination of alphanumerical characters."
+    ::= { opsmEntry  3}
+
+opsmMfgDate OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Manufacturing date. The format is yyyy-mm-dd.
+        yyyy-1st and 2nd bytes. mm-3rd byte, dd-4th byte"
+    ::= { opsmEntry  4}
+
+opsmCaliDate OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Manufacturing date. The format is yyyy-mm-dd.
+        yyyy-1st and 2nd bytes. mm-3rd byte, dd-4th byte"
+    ::= { opsmEntry  5}
+
+opsmHardwareVer OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Hardware version. The format is X.Y.Z"
+    ::= { opsmEntry  6}
+
+opsmVendorID OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Vendor ID. The ID number of vendor"
+    ::= { opsmEntry  7}
+
+opsmModuleType OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Module type."
+    ::= { opsmEntry  8}
+
+opsmFirmwareVer OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Software version. The format is X.Y.Z"
+    ::= { opsmEntry  9}
+
+--OPSM control information      
+opsmReset OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "0: hard reset, 
+         1: soft reset."
+    ::= { opsmEntry  10}
+
+--OPSM protection information
+opsmProtectionMode OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "The mode of protection switch.
+         0: clear, 
+         1: force to primary, 
+         2: force to secondary."
+    ::= { opsmEntry  20}
+
+opsmRevertiveSetting OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "The action when the opticial of primary channel is resumed.
+         0: Non-Revertive,
+         1: Revertive."
+    ::= { opsmEntry  21}
+
+opsmDiffSwitchSetting OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "Enable or disable the function of input power different detection.
+         0: Disable,
+         1: Enable."
+    ::= { opsmEntry  22}
+
+opsmDiffAlarmThreshold OBJECT-TYPE
+    SYNTAX HeTenthdBm
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "Get/Set Input optical power different alarm threshold between primary and secondary,
+         default:10,(Unit:0.1dBm),range: 0--100"
+    ::= { opsmEntry  23}
+
+opsmDiffSwitchThreshold OBJECT-TYPE
+    SYNTAX HeTenthdBm
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "Get/Set Input optical power switching threshold between primary and secondary,
+        default:20,(Unit:0.1dBm),range: 0--100"
+    ::= { opsmEntry  24}
+
+opsmInherentDiffOffset OBJECT-TYPE
+    SYNTAX HeTenthdBm
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "Get/Set Input Optical Power different Offset between 
+        primary and secondary,default:0,(Unit:0.1dBm),range: -300--300"
+    ::= { opsmEntry  25}
+
+opsmWTRTime OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "Used in conjunction with PortID to access WTR time:
+        default:5,(Unit:1s),range: 1--720"
+    ::= { opsmEntry  26}
+
+opsmSwitchStatus OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "The status of protection switch.
+         0: IDLE,
+         1: WTR,
+         2: Auto,
+         3: SF_ALL,
+         4: N/A,
+         5: Forced."
+    ::= { opsmEntry  27}
+
+opsmSwitchPosition OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "The position of switch.
+         0: Secondary  
+         1: Primary"
+    ::= { opsmEntry  28}
+
+--OPSM parameter information 
+opsmInputLosAlarmThrPathP OBJECT-TYPE
+    SYNTAX HeTenthdBm
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "The input los alarm threshold on primary path
+         default: -250,(Unit:0.1dBm),range: -350--350"
+    ::= { opsmEntry  40}
+
+opsmInputLosAlarmThrPathS OBJECT-TYPE
+    SYNTAX HeTenthdBm
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "The input los alarm threshold on secondary path
+         default: -250,(Unit:0.1dBm),range: -350--350"
+    ::= { opsmEntry  41}
+                
+opsmInputLosAlarmHys OBJECT-TYPE
+    SYNTAX HeTenthdBm
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "The input los alarm hystersis on both path
+         default: 10,(Unit:0.1dB),range: 10--30"
+    ::= { opsmEntry  42}
+                    
+opsmInputPowerPathP OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "The input power on primary path. (Unit:0.1dBm)"
+    ::= { opsmEntry  43}
+
+opsmInputPowerPathS OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "The input power on secondary path. (Unit:0.1dBm)"
+    ::= { opsmEntry  44}
+        
+opsmSwitchCount OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Times the switch has changed its position."
+    ::= { opsmEntry  45}
+
+
+-- Traps/notification. 
+oplkV6Traps OBJECT IDENTIFIER ::= {version2 1001}
+oplkemuNotifications OBJECT IDENTIFIER ::= { oplkV6Traps 1}
+oplkemuNotificationPrefix   OBJECT IDENTIFIER ::= { oplkemuNotifications 0 }
+
+oplinkTrapCode OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+      "This object describes oplink trap. It contains information about
+       chassis, slot, port, device type (card type) and specific error
+       code. When get, return 0"
+    ::= {version2  1002}
+
+oplinkemuTemperatureAbnormal NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode }
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that emu temperature is exceess or bellow normal 
+        temperature range."
+      ::= { oplkemuNotificationPrefix   1 }
+
+oplinkemuTemperatureResume NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode }
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that emu temperature abnormal alarm is clear."
+      ::= { oplkemuNotificationPrefix   2 }
+
+oplinkemuFanRemove NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that emu fan card is removed."
+      ::= { oplkemuNotificationPrefix   3 }
+
+oplinkemuFanInsert NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that emu fan remove alarm is clear."
+      ::= { oplkemuNotificationPrefix   4 }     
+
+oplinkemuPowerRemove NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that emu power card is removed."
+      ::= { oplkemuNotificationPrefix   5 }     
+      
+oplinkemuPowerInsert NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that emu power remove alarm is clear."
+      ::= { oplkemuNotificationPrefix   6 }   
+
+oplinkemuVoltageAbnormal NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that emu voltage is exceess or bellow normal 
+        voltage range."
+      ::= { oplkemuNotificationPrefix   7 }     
+      
+oplinkemuVoltageResume NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that emu voltage abnormal alarm is clear."
+      ::= { oplkemuNotificationPrefix   8 }   
+
+oplinkemuSubCardDelete NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that emu sub-card is delete."
+      ::= { oplkemuNotificationPrefix   9 }     
+      
+oplinkemuSubCardAdd NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that emu sub-card delete alarm is clear."
+      ::= { oplkemuNotificationPrefix   10 }   
+
+oplinkemuSubCardUnmatch NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that emu sub-card is unmatch with the configuration."
+      ::= { oplkemuNotificationPrefix   11 }     
+      
+oplinkemuSubCardMatch NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that emu sub-card unmatch alarm is clear."
+      ::= { oplkemuNotificationPrefix   12 }
+
+oplkopsmNotifications OBJECT IDENTIFIER ::= { oplkV6Traps 2}
+oplkopsmNotificationPrefix   OBJECT IDENTIFIER ::= { oplkopsmNotifications 0 }
+
+oplinkopsmInputLosRPI1 NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+         "This trap signifies that opsm input power los alarm on CH1 primary path is on."
+      ::= { oplkopsmNotificationPrefix   1 }
+
+oplinkopsmInputLosResumeRPI1 NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+         "This trap signifies that opsm input power los alarm on CH1 primary path is clear."
+      ::= { oplkopsmNotificationPrefix   2 }
+            
+oplinkopsmInputLosRSI1 NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+         "This trap signifies that opsm input power los alarm on CH1 secondary path is on."
+      ::= { oplkopsmNotificationPrefix   3 }
+
+oplinkopsmInputLosResumeRSI1 NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+         "This trap signifies that opsm input power los alarm on CH1 secondary path is clear."
+      ::= { oplkopsmNotificationPrefix   4 }
+
+oplinkopsmInputLosRPI2 NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+         "This trap signifies that opsm input power los alarm on CH2 primary path is on."
+      ::= { oplkopsmNotificationPrefix   5 }
+
+oplinkopsmInputLosResumeRPI2 NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+         "This trap signifies that opsm input power los alarm on CH2 primary path is clear."
+      ::= { oplkopsmNotificationPrefix   6 }
+            
+oplinkopsmInputLosRSI2 NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+         "This trap signifies that opsm input power los alarm on CH2 secondary path is on."
+      ::= { oplkopsmNotificationPrefix   7 }
+
+oplinkopsmInputLosResumeRSI2 NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+         "This trap signifies that opsm input power los alarm on CH2 secondary path is clear."
+      ::= { oplkopsmNotificationPrefix   8 }
+            
+oplinkopsmPowerDiffChannel1 NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that opsm input power different alarm on CH1 is on."
+      ::= { oplkopsmNotificationPrefix   9 }
+
+oplinkopsmPowerDiffResumeChannel1 NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that opsm input power different alarm on CH1 is clear."
+      ::= { oplkopsmNotificationPrefix   10 }      
+
+oplinkopsmPowerDiffChannel2 NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that opsm input power different alarm on CH2 is on."
+      ::= { oplkopsmNotificationPrefix   11 }
+
+oplinkopsmPowerDiffResumeChannel2 NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that opsm input power different alarm on CH2 is clear."
+      ::= { oplkopsmNotificationPrefix   12 }    
+      
+oplinkopsmSwitchFailChannel1 NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that opsm switch fail alarm on CH1 is on."
+      ::= { oplkopsmNotificationPrefix   13 }
+
+oplinkopsmSwitchSuccessChannel1 NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that opsm switch fail alarm on CH1 is clear."
+      ::= { oplkopsmNotificationPrefix   14 }  
+
+oplinkopsmSwitchFailChannel2 NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that opsm switch fail alarm on CH2 is on."
+      ::= { oplkopsmNotificationPrefix   15 }
+
+oplinkopsmSwitchSuccessChannel2 NOTIFICATION-TYPE
+       OBJECTS { oplinkTrapCode}
+       STATUS  current
+       DESCRIPTION
+        "This trap signifies that opsm switch fail alarm on CH2 is clear."
+      ::= { oplkopsmNotificationPrefix   16 }                                                     
+--
+-- Conformance Group?-
+--
+
+
+END

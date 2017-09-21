@@ -1,0 +1,1268 @@
+--
+-- Cadant DQoS Gate MIB
+--
+
+CADANT-DQOS-GATE-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY,
+    OBJECT-TYPE,
+    Integer32,
+    Unsigned32
+        FROM SNMPv2-SMI
+
+    TEXTUAL-CONVENTION,
+    RowStatus,
+    TruthValue,
+    DisplayString
+	FROM SNMPv2-TC
+
+    MODULE-COMPLIANCE,
+    OBJECT-GROUP
+        FROM SNMPv2-CONF
+
+    docsQosIfDirection
+        FROM DOCS-QOS3-MIB
+
+    InetAddressIPv4or6
+        FROM CADANT-TC
+
+    cadPCMibObjects
+        FROM CADANT-CMTS-PACKETCABLE-MIB;
+
+cadDQoSMib   MODULE-IDENTITY
+    LAST-UPDATED    "200710250000Z" -- October 25, 2007
+    ORGANIZATION    
+      "Arris International, Inc."
+    CONTACT-INFO    
+      "Arris Technical Support
+       Postal: ARRIS
+       E-Mail: support@arrisi.com"
+    DESCRIPTION             
+	"This MIB Module supplies the management objects which are
+	 specific to the PacketCable DQoS Gate client of COPS. The 
+	 objects for the management of the standard COPS protocol
+	 reside in RFC2940."
+
+
+    REVISION        "200108090000Z" 
+    DESCRIPTION
+        "   v1.0 August 9, 2001 Bill Hanks
+            Original version"
+    REVISION        "200301070000Z"
+    DESCRIPTION
+        "   v1.1 January 7, 2003 Kathy Ashe
+            Added service flow ID to gateEntry"
+    REVISION        "200303210000Z"
+    DESCRIPTION
+        "Added new Tear Reason for associating a call to a new gate."
+    REVISION                "200305230000Z"
+    DESCRIPTION
+	    "   v1.3 April 23, 2003 Ruth Kulhanek
+	    Added CCC ID to gateEntry."
+    REVISION                "200401190000Z"
+    DESCRIPTION
+	    "   v1.4 January 19, 2004 Jeff Howe
+	    Added source IP to gateEntry."
+    REVISION                "200402110000Z"
+    DESCRIPTION
+	    "   v1.5 February 11, 2004 Brian Barker
+	    Added QoS Descriptor Data to GateEntry."
+    REVISION                "200509300000Z"
+    DESCRIPTION
+	    "Fixed units on timers to match usage."
+
+    REVISION        "200710240000Z" -- October 24, 2007 Kathy Ashe
+    DESCRIPTION     "Move from cadExperimental to cadPCMIB in the hierarchy"
+
+
+    ::= { cadPCMibObjects 2 }
+
+CadDQoSSource ::= TEXTUAL-CONVENTION
+    STATUS          current
+    DESCRIPTION     
+	"The origin of the database entry"
+    SYNTAX          INTEGER {
+	snmp (1),
+	configurationFile (2),
+	externalDatabase (3),
+	other (4),
+	policyServer (5),
+	compiledIntoCode (6)
+    }
+
+PCReasonCode ::= TEXTUAL-CONVENTION
+    STATUS          current
+    DESCRIPTION     
+	"The reason why a call is being torn down"
+    SYNTAX          INTEGER {
+	noReason (-1),              -- no teardown in progress
+	normal (0),                 -- MTA requested tear at end of call
+	resourceReassignment (1),   -- preemption for emergency calls
+	reservationMaintFail (2),   -- RSVP only - not for T7 timer
+	deregistration (3),         -- no station maintenance
+	timerT0Expiry (4),          -- no GateSet from CMS
+	timerT1Expiry (5),          -- no COMMIT from MTA
+	timerT7Expiry (6),          -- no service flow reservation
+	timerT8Expiry (7),          -- upstream inactivity
+	newGateForFlows (8),        -- DSC is associating Flows w/ a new Gate
+	unspecified (127)
+    }
+                    
+
+SDPString ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1024a"
+    STATUS          current
+    DESCRIPTION     
+	"A large (up to 1024 octets) string containing Session
+	 Description protocol for the call. Uses the same semantics
+	 as DisplayString but allows a larger size to handle the
+	 sizes allowable by the SDP protocol (see RFC2327)."
+    SYNTAX       OCTET STRING (SIZE (0..1024))
+                     
+
+cadDQoSMibObjects OBJECT IDENTIFIER ::= { cadDQoSMib 1 }
+cadDQoSConfigBase OBJECT IDENTIFIER ::= { cadDQoSMibObjects 1 }
+
+--=============================================================================
+--
+--  cadDQoSGateTable
+--
+--  The cadDQoSGateTable provides management ojects to display the data 
+--  associated with a particular DQoS Gate. However, due to the fact that any
+--  particular Gate may be associated with multiple component authorized flow 
+--  specifications, the authorized flow specifications are located in the 
+--  cadDQoSAuthFlowSpecTable.
+--
+--  All of the objects in this table are read-write.
+--
+--=============================================================================
+
+cadDQoSGateTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadDQoSGateEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+	"Table of DQoS Gate Data"
+    ::= { cadDQoSConfigBase 1 }
+
+cadDQoSGateEntry OBJECT-TYPE
+    SYNTAX          CadDQoSGateEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     
+	"This entry contains all of the data (except
+	 for the Authorized flow specs) for one Gate."
+    INDEX { docsQosIfDirection, cadDQoSGateId }
+    ::= { cadDQoSGateTable 1 }
+
+CadDQoSGateEntry ::= SEQUENCE {
+    cadDQoSGateId                           Unsigned32,
+    cadDQoSGateSubscriberID                 InetAddressIPv4or6,
+    cadDQoSGateClassifierProtoID            Unsigned32,
+    cadDQoSGateClassifierSrcIP              InetAddressIPv4or6,
+    cadDQoSGateClassifierDestIP             InetAddressIPv4or6,
+    cadDQoSGateClassifierSrcPort            Unsigned32,
+    cadDQoSGateClassifierDestPort           Unsigned32,
+    cadDQoSMgmtGateCommitNotAllowed         TruthValue,
+    cadDQoSGateAutoCommit                   TruthValue,
+    cadDQoSGateResourceID                   Unsigned32,
+    cadDQoSGateSessionClass                 INTEGER,
+    cadDQoSGateDSField                      Unsigned32,
+    cadDQoSGateTimerT7                      Unsigned32,
+    cadDQoSGateTimerT8                      Unsigned32,
+    cadDQoSGateReserveRequest               TruthValue,
+    cadDQoSGateCommited                     TruthValue,
+    cadDQoSTearFlows                        PCReasonCode,
+    cadDQoSSFID                             Unsigned32,
+    cadDQoSGateESPDupContent                TruthValue,
+    cadDQoSGateESPSrcCCCIp                  InetAddressIPv4or6,
+    cadDQoSGateESPDfCCCIp                   InetAddressIPv4or6,
+    cadDQoSGateESPDfCCCPort                 Unsigned32,
+    cadDQoSGateESPCCCId                     Unsigned32,
+    cadDQoSGateServiceClassName             DisplayString,
+    cadDQoSGateUsSFSchedType                Unsigned32,
+    cadDQoSGateUsNomGrantInterval           Unsigned32,
+    cadDQoSGateUsTolGrantJitter             Unsigned32,
+    cadDQoSGateUsGrantsPerInterval          Unsigned32,
+    cadDQoSGateUsUnsolitedGrantSize         Unsigned32,
+    cadDQoSGateUsReqTransPolicy             Unsigned32,
+    cadDQoSGateUsNomPollingInterval         Unsigned32,
+    cadDQoSGateUsTolPollJitter              Unsigned32,
+    cadDQoSGateUsIpToSOverride              Unsigned32,
+    cadDQoSGateUsMaxConcatBurst             Unsigned32,
+    cadDQoSGateDsTrafficPriority            Unsigned32,
+    cadDQoSGateDsMaxSustainedRate           Unsigned32,
+    cadDQoSGateDsMaxTrafBurst               Unsigned32,
+    cadDQoSGateDsMinReservedTrafRate        Unsigned32,
+    cadDQoSGateDsMinPacketSize              Unsigned32,
+    cadDQoSGateDsMaxLatency                 Unsigned32
+}
+
+cadDQoSGateId OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     
+	"The GateID is 32 bit identifier that is allocated from the
+	 local space at the CMTS where the Gate resides. Up to two
+	 gates MAY share the same Gate-ID. Typically, a Gate-ID will
+	 identify a single upstream flow and a single downstream flow,
+	 and correspond to a single Multi-media session.  All gates
+	 assigned the same Gate-ID by the CMTS MUST transition together
+	 through the cadDQoSGateState."
+    ::= { cadDQoSGateEntry 1 }
+
+cadDQoSGateSubscriberID OBJECT-TYPE
+    SYNTAX          InetAddressIPv4or6
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"The Subscriber-ID identifies the subscriber (cable modem) for
+	 this service request. Its main use is to prevent various 
+	 denial-of-service attacks."
+    ::= { cadDQoSGateEntry 2 }
+
+cadDQoSGateClassifierProtoID OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"protocol ID (see http://www.iana.org/assignments/protocol-numbers)
+	 to match in the IP header for the classifier - 0 for no match"
+    ::= { cadDQoSGateEntry 3 }
+
+cadDQoSGateClassifierSrcIP OBJECT-TYPE
+    SYNTAX          InetAddressIPv4or6
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Source IP Address to match in the IP header for the classifier"
+    ::= { cadDQoSGateEntry 4 }
+
+cadDQoSGateClassifierDestIP OBJECT-TYPE
+    SYNTAX          InetAddressIPv4or6
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Destination IP Address to match in the IP header for the classifier"
+    ::= { cadDQoSGateEntry 5 }
+
+cadDQoSGateClassifierSrcPort OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Source port number to match in the IP header for the classifier"
+    ::= { cadDQoSGateEntry 6 }
+
+cadDQoSGateClassifierDestPort OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Source port number to match in the IP header for the classifier"
+    ::= { cadDQoSGateEntry 7 }
+
+cadDQoSMgmtGateCommitNotAllowed OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"If cadDQoSGateSource is policyServer(5), then when this field
+	 is TRUE, then the policy is in a transient state and the
+	 policy server does not wish for this policy to be committed
+	 as it currently exists. Typically, the policy server will
+	 amend this policy to be more complete and then set this flag
+	 to FALSE."
+    DEFVAL          { false }
+    ::= { cadDQoSGateEntry 8 }
+
+cadDQoSGateAutoCommit OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"When this flag is set, resources are immediately activated
+	 upon reservation."
+    DEFVAL          { false }
+    ::= { cadDQoSGateEntry 9 }
+
+--=============================================================================
+--
+-- Reserved Flow Specification
+--
+-- The Reserved flow specification describes the envelope that the
+-- data flow is currently reserving.
+--
+-- Flow specifications are composed of a 'TSpec' and an 'RSpec'.
+--
+-- A Traffic Specification, or TSpec, is a description of the traffic
+-- pattern for which service is being requested. In general, the TSpec
+-- forms one side of a contract between the data flow and the service.
+-- Once a service request is accepted, the service module has agreed to
+-- provide a specific QoS as long as the flow's data traffic continues
+-- to be accurately described by the TSpec.
+--
+-- A service accepting an invocation request may be thought of as
+-- entering into a contract to provide the service described by the
+-- RSpec as long as the flow's traffic continues to be described by the
+-- TSpec.
+--
+--=============================================================================
+
+cadDQoSGateResourceID OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"The Resource-ID is a local 32-bit identifier that is allocated
+	 at the CMTS where the Gate resides. Any number of gates MAY
+	 share a resource-ID, and therefore share a common set of
+	 resources, with the restriction that only one of these gates
+	 in each direction have resources committed."
+    ::= { cadDQoSGateEntry 17 }
+
+cadDQoSGateSessionClass OBJECT-TYPE
+    SYNTAX         INTEGER {
+	unspecified (0),
+	normalVoIP (1),
+	emergency (2)
+    }
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Session class identifies the proper admission control policy
+	 or parameters to be applied for this gate."
+    ::= {cadDQoSGateEntry 18 }
+
+cadDQoSGateDSField OBJECT-TYPE
+    SYNTAX          Unsigned32 (0..255)
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Access to the bandwidth and differentiated treatment is
+	 provided to packets with the appropriate encoding of bits in
+	 the field of the IP header specified for Differentiated
+	 Service. This is called the Diffserv code point (DSCP).
+	 The DS field also maintains backward compatibility with the
+	 present uses of the IP Precedence bits of the IPv4 TOS byte."
+    ::= { cadDQoSGateEntry 19 }
+
+cadDQoSGateTimerT7 OBJECT-TYPE
+    SYNTAX          Unsigned32 (0..60000)
+    UNITS           "seconds"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"The CMTS MUST set the Timeout for Admitted QoS Parameters for the
+	 service flow to the value specified by this timer.  The timeout for
+	 Admitted QoS Parameters limits the period of time that the CMTS must
+	 hold resources for a service flow's Admitted QoS Parameter Set while 
+	 they are in excess of its Active QoS Parameter Set.  See Appendix C,
+	 section C.2.2.5.7 of the DOCSIS RFI for more details on the use of 
+	 this timer.
+                                         
+	 In order to allow the EMTA to refresh this timer, the CMTS MUST inform
+	 the EMTA of the Timeout for Admitted QoS Parameters value in the 
+	 response (i.e. in the DSA-RSP) to the EMTA's reservation request.
+	 
+	 The recommended default value of this timer is 200 seconds."
+    DEFVAL          { 200 }
+    ::= { cadDQoSGateEntry 20 }
+
+cadDQoSGateTimerT8 OBJECT-TYPE
+    SYNTAX          Unsigned32 (0..60000)
+    UNITS           "seconds"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"The CMTS MUST set the Timeout for Active QoS Parameters for the service
+	 flow to the value specified by this timer.  The Timeout for Active QoS
+	 Parameters limits the period of time resources remain unused on an
+	 active service flow.  See Appendix C,
+	 section C.2.2.5.6 of the DOCSIS RFI for more details on the use of 
+	 this timer.
+
+	 In order to allow the EMTA to refresh this timer, the CMTS MUST inform
+	 the EMTA of the Timeout for Active QoS Parameters value in the 
+	 response (i.e. in the DSA-RSP) to the EMTA's reservation request.
+	 
+	 The default value of this timer is 0, which instructs the CMTS not to
+	 poll for activity on the service flow."
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 21 }
+
+cadDQoSGateReserveRequest OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Flag indicating that a reservation request has been received 
+	 for this gate."
+    DEFVAL          { false }
+    ::= { cadDQoSGateEntry 22 }
+
+cadDQoSGateCommited OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Flag indicating that a reservation request has been received
+	 for this gate."
+    DEFVAL          { false }
+    ::= { cadDQoSGateEntry 23 }
+
+cadDQoSTearFlows OBJECT-TYPE
+    SYNTAX          PCReasonCode
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Enumeration indicating whether the Flows for this Gate are to
+	 be torn down. If set to anything other than noReason by the 
+	 CAM, then the flows have been torn down for the reason specified 
+	 and the gate must update itself. If set to anything other than
+	 noReason by the gate state machine, then it is a command to the 
+	 CAM to tear down and delete the flows."
+    DEFVAL          { noReason }
+    ::= { cadDQoSGateEntry 24 }
+
+cadDQoSGateESPDupContent OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"If set, CMTS MUST send a duplicate copy of all packets
+	 matching the classifier(s) for this gate to the
+	 DF-IP-Address-for-CCC."
+    ::= {cadDQoSGateEntry 25 }
+
+cadDQoSGateESPDfCCCIp OBJECT-TYPE
+    SYNTAX          InetAddressIPv4or6
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"DF-IP-Address-for-CCC is the address of the Electronic
+	 Surveillance Delivery Function to whom the duplicated
+	 call content packets are to be sent."
+    ::= {cadDQoSGateEntry 26 }
+
+cadDQoSGateESPDfCCCPort OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"DF-Port-for-CCC is the port number of the Electronic
+	 Surveillance Delivery Function to whom the duplicated
+	 call content packets are to be sent."
+    ::= {cadDQoSGateEntry 27 }
+
+cadDQoSSFID OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Service flow ID for this gate ID and flow direction"
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 28 }
+
+cadDQoSGateESPCCCId OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"CCC-ID is the call connection channel identifier
+	 to be used by the Elecronic Surveillance Delivery Function
+	 to correlate call content packets."
+    ::= {cadDQoSGateEntry 29 }
+
+cadDQoSGateESPSrcCCCIp OBJECT-TYPE
+    SYNTAX          InetAddressIPv4or6
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"This is the source IP address of packets sent to the Electronic
+	 Surveillance Delivery Function to whom the duplicated
+	 call content packets are to be sent."
+    ::= {cadDQoSGateEntry 30 }
+
+cadDQoSGateServiceClassName OBJECT-TYPE
+    SYNTAX          DisplayString (SIZE(1..15))
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION    
+	"Service Class Name. DOCSIS specifies that the
+	maximum size is 15 printable ASCII characters with 
+	a terminating zero. The terminating zero is not
+	represented in this DisplayString syntax object."
+    REFERENCE      
+	"SP-RFIv1.1-I05-000714, Appendix C.2.2.3.4"
+    ::= {cadDQoSGateEntry 31 }
+
+cadDQoSGateUsSFSchedType OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Upstream Service Flows Scheduling Type (e.g. UGS)"
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 32 }
+
+cadDQoSGateUsNomGrantInterval OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Upstream Nominal Grant Interval"
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 33 }
+
+cadDQoSGateUsTolGrantJitter OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Upstream Tolerated Grant Jitter"
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 34 }
+
+cadDQoSGateUsGrantsPerInterval OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Upstream Grants Per Interval"
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 35 }
+
+cadDQoSGateUsUnsolitedGrantSize OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Upstream Unsolicited Grant Size"
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 36 }
+
+cadDQoSGateUsReqTransPolicy OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Upstream Request Transmission Policy"
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 37 }
+
+cadDQoSGateUsNomPollingInterval OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Upstream Nominal Polling Interval"
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 38 }
+
+cadDQoSGateUsTolPollJitter OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Upstream Tolerated Poll Jitter"
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 39 }
+
+cadDQoSGateUsIpToSOverride OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Upstream IP Type Of Service Override"
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 40 }
+
+cadDQoSGateUsMaxConcatBurst OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Upstream Maximum Concatenated Burst"
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 41 }
+
+cadDQoSGateDsTrafficPriority OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Downstream Traffic Priority"
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 42 }
+
+cadDQoSGateDsMaxSustainedRate OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Downstream Maximum Sustained Traffic Rate"
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 43 }
+
+cadDQoSGateDsMaxTrafBurst OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Downstream Maximum Traffic Burst"
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 44 }
+
+cadDQoSGateDsMinReservedTrafRate OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Downstream Minimum Reserved Traffic Rate"
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 45 }
+
+cadDQoSGateDsMinPacketSize OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Downstream Minimum Reserved Rate Packet Size"
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 46 }
+
+cadDQoSGateDsMaxLatency OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Downstream Maximum Latency"
+    DEFVAL          { 0 }
+    ::= { cadDQoSGateEntry 47 }
+
+--=============================================================================
+-- 
+--  cadDQoSMgmtGateTable
+-- 
+--  Contains gate information which is not needed on the CAM.
+-- 
+--=============================================================================
+cadDQoSMgmtGateTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadDQoSMgmtGateEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+	"Table of DQoS Gate Data that is not needed on the CAM."
+    ::= { cadDQoSConfigBase 2 }
+
+cadDQoSMgmtGateEntry OBJECT-TYPE
+    SYNTAX          CadDQoSMgmtGateEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     
+	"This entry contains all of the data (except
+	 for the Authorized flow specs) for one Gate."
+    INDEX { docsQosIfDirection, cadDQoSGateId }
+    ::= { cadDQoSMgmtGateTable 1 }
+
+CadDQoSMgmtGateEntry ::= SEQUENCE {
+    cadDQoSMgmtGateControllerIP                 InetAddressIPv4or6,
+    cadDQoSMgmtGateRemoteGateIP                 InetAddressIPv4or6,
+    cadDQoSMgmtGateRemoteGatePort               Unsigned32,
+    cadDQoSMgmtGateRemoteGateNoRequireGateOpen  TruthValue,
+    cadDQoSMgmtGateRemoteGateNoSendGateOpen     TruthValue,
+    cadDQoSMgmtGateRemoteGateID                 Unsigned32,
+    cadDQoSMgmtGateRemoteGateAlgorithm          INTEGER,
+    cadDQoSMgmtGateRemoteGateSecurityKey        OCTET STRING,
+    cadDQoSMgmtGateEventGenPriRKSIP             InetAddressIPv4or6,
+    cadDQoSMgmtGateEventGenPriRKSPort           Unsigned32,
+    cadDQoSMgmtGateEventGenBatchIndicator       TruthValue,
+    cadDQoSMgmtGateEventGenSecRKSIP             InetAddressIPv4or6,
+    cadDQoSMgmtGateEventGenSecRKSPort           Unsigned32,
+    cadDQoSMgmtGateEventGenBillCorrID           Unsigned32,
+    cadDQoSMgmtGateMediaConnCalledParty         DisplayString,
+    cadDQoSMgmtGateMediaConnRoutingNum          DisplayString,
+    cadDQoSMgmtGateMediaConnChargeNum           DisplayString,
+    cadDQoSMgmtGateMediaConnLocRouteNum         DisplayString,
+    cadDQoSMgmtGateESPDfCDCIP                   InetAddressIPv4or6,
+    cadDQoSMgmtGateESPDfCDCPort                 Unsigned32,
+    cadDQoSMgmtGateESPDupEvent                  TruthValue,
+    cadDQoSMgmtGateSDPStrings                   SDPString,
+    cadDQoSMgmtGateState                        INTEGER,
+    cadDQoSMgmtGateSource                       CadDQoSSource
+}
+
+cadDQoSMgmtGateControllerIP OBJECT-TYPE
+    SYNTAX          InetAddressIPv4or6
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"IP Address of the Gate Controller which sourced this gate. If
+	 gate was created from another source, this field is 0."
+    ::= { cadDQoSMgmtGateEntry 1 }
+
+--  Remote Gate Coordination Info
+cadDQoSMgmtGateRemoteGateIP OBJECT-TYPE
+    SYNTAX          InetAddressIPv4or6
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"IP Address for remote Gate coordinator"
+    ::= { cadDQoSMgmtGateEntry 2 }
+
+cadDQoSMgmtGateRemoteGatePort OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Port number of remote Gate coordinator"
+    ::= { cadDQoSMgmtGateEntry 3 }
+
+cadDQoSMgmtGateRemoteGateNoRequireGateOpen  OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"When this flag is set, the CMTS MUST not expect a Gate-Open
+	 message from a remote gate coordinator."
+    ::= { cadDQoSMgmtGateEntry 4 }
+
+cadDQoSMgmtGateRemoteGateNoSendGateOpen OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"When this flag is set, the CMTS MUST not send a Gate-Open
+	 message to a remote gate coordinator."
+    ::= { cadDQoSMgmtGateEntry 5 }
+
+cadDQoSMgmtGateRemoteGateID OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Gate-ID used by remote gate coordinator."
+    ::= { cadDQoSMgmtGateEntry 6 }
+
+cadDQoSMgmtGateRemoteGateAlgorithm OBJECT-TYPE
+    SYNTAX         INTEGER {
+	md5BasedMac (100)
+    }
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Authentication algorithm for Gate Coordination messages"
+    ::= { cadDQoSMgmtGateEntry 7 }
+
+cadDQoSMgmtGateRemoteGateSecurityKey OBJECT-TYPE
+    SYNTAX          OCTET STRING (SIZE (0..128))
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"A variable length key used in producing the authentication
+	 check in the gate coordination messages"
+    ::= { cadDQoSMgmtGateEntry 8 }
+
+--  Event Generation Info
+cadDQoSMgmtGateEventGenPriRKSIP OBJECT-TYPE
+    SYNTAX          InetAddressIPv4or6
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Primary-Record-Keeping-Server-IP-Address is the address
+	 of the record keeper to whom event records are sent."
+    ::= { cadDQoSMgmtGateEntry 9 }
+
+cadDQoSMgmtGateEventGenPriRKSPort OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Primary-Record-Keeping-Server-Port is the port number
+	 of the record keeper to whom event records are sent."
+    ::= { cadDQoSMgmtGateEntry 10 }
+
+cadDQoSMgmtGateEventGenBatchIndicator OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"If set, the CMTS MUST accumulate event records as part
+	 of a batch file and send to Record Keeping Server at
+	 periodic intervals. If clear, the CMTS MUST send the
+	 event records to the Record Keeping Server in real-time."
+    ::= { cadDQoSMgmtGateEntry 11 }
+
+cadDQoSMgmtGateEventGenSecRKSIP OBJECT-TYPE
+    SYNTAX          InetAddressIPv4or6
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Secondary-Record-Keeping-Server-IP-Address is the address
+	 of the secondary record keeper to whom records are sent
+	 if the primary record keeping server is unavailable."
+    ::= { cadDQoSMgmtGateEntry 12 }
+
+cadDQoSMgmtGateEventGenSecRKSPort OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Secondary-Record-Keeping-Server-Port is the port number
+	 of the record keeper to whom event records are sent
+	 if the primary record keeping server is unavailable."
+    ::= { cadDQoSMgmtGateEntry 13 }
+
+cadDQoSMgmtGateEventGenBillCorrID OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Billing-Correlation-ID is the identifier assigned by
+                     the CMS for all records related to this session."
+    ::= { cadDQoSMgmtGateEntry 14 }
+
+--  Media Connection Event Info
+cadDQoSMgmtGateMediaConnCalledParty OBJECT-TYPE
+    SYNTAX          DisplayString (SIZE (0..20))
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "E.164 formatted address specifying the actual dialed
+                     digits of the number of the terminating party.  This
+                     field is a space-padded ASCII character string."
+    ::= {cadDQoSMgmtGateEntry 15 }
+
+cadDQoSMgmtGateMediaConnRoutingNum OBJECT-TYPE
+    SYNTAX          DisplayString (SIZE (0..20))
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"E.164 formatted address specifying the routable number
+	 of the terminating party.  This field is a space-padded
+	 ASCII character string."
+    ::= {cadDQoSMgmtGateEntry 16 }
+
+cadDQoSMgmtGateMediaConnChargeNum OBJECT-TYPE
+    SYNTAX          DisplayString (SIZE (0..20))
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"E.164 formatted address specifying the number of the
+	 party to be charged.  This field is a space-padded
+	 ASCII character string."
+    ::= {cadDQoSMgmtGateEntry 17 }
+
+cadDQoSMgmtGateMediaConnLocRouteNum OBJECT-TYPE
+    SYNTAX          DisplayString (SIZE (0..20))
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"E.164 formatted address for local number portability use.
+	 This field is a space-padded ASCII character string."
+    ::= {cadDQoSMgmtGateEntry 18 }
+
+-- Electronic Surveillance Parameters
+cadDQoSMgmtGateESPDfCDCIP OBJECT-TYPE
+    SYNTAX          InetAddressIPv4or6
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"DF-IP-Address-for-CDC is the IP address of the Electronic
+	 Surveillance Delivery Function to whom the duplicated
+	 event messages are to be sent."
+    ::= {cadDQoSMgmtGateEntry 19 }
+
+cadDQoSMgmtGateESPDfCDCPort OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"DF-Port-for-CDC is the port number of the Electronic
+	 Surveillance Delivery Function to whom the duplicated
+	 event messages are to be sent."
+    ::= {cadDQoSMgmtGateEntry 20 }
+
+cadDQoSMgmtGateESPDupEvent OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"If set, CMTS MUST send a duplicate copy of all event
+	 messages related to this gate (e.g. QoS-Start, QoS-Stop,
+	 and possibly Call-Answer and Call-Disconnect) to the
+	 DF-IP-Address-for-CDC."
+    ::= {cadDQoSMgmtGateEntry 21 }
+
+
+
+-- Session Description Parameters for QoS-Start
+cadDQoSMgmtGateSDPStrings OBJECT-TYPE
+    SYNTAX          SDPString
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"SDP-strings is the Session Description (SDP) of the
+	 upstream packet stream, followed by a NULL octet,
+	 followed by the Session Description (SDP) of the downstream
+	 packet stream. Sufficient padding of NULL octets is
+	 appended to make the total length a multiple of four octets."
+    ::= {cadDQoSMgmtGateEntry 25 }
+
+
+cadDQoSMgmtGateState OBJECT-TYPE
+    SYNTAX          INTEGER {
+	allocated (1),
+	authorized (2),
+	reserved (3),
+	remoteCommitted (4),
+	localCommitted (5),
+	committed (6)
+    }
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"This is the current state of the Gate as defined in the Gate
+	 Transition Diagram of section 5.1.4 of [pkt-sp-dqos-i02-000818].
+	 Allocated        - The initial state of a gate created at the request of the GC
+	 Authorized       - GC has authorized the flow with resource limits defined
+	 Reserved         - Resources have been reserved for the flow
+	 Remote-Committed - Transient state in which remote CMTS has
+			    committed the gate and a Gate-Open message
+			    has been received by this CMTS
+	 Local-Committed  - Transient state in which this CMTS has
+			    committed the resources for this gate
+	 Committed        - Resources are being used"
+    ::= {cadDQoSMgmtGateEntry 26 }
+
+cadDQoSMgmtGateSource OBJECT-TYPE
+    SYNTAX          CadDQoSSource
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"This object indicates how the policy reached the CMTS. Other
+	 means that it originated from a source not identified above."
+    ::= { cadDQoSMgmtGateEntry 27 }
+
+--=============================================================================
+--
+-- Authorized Flow Specification Table
+--
+-- Flow specifications are composed of a 'TSpec' and an 'RSpec'.
+--
+-- A Traffic Specification, or TSpec, is a description of the traffic
+-- pattern for which service is being requested. In general, the TSpec
+-- forms one side of a contract between the data flow and the service.
+-- Once a service request is accepted, the service module has agreed to
+-- provide a specific QoS as long as the flow's data traffic continues
+-- to be accurately described by the TSpec.
+--
+-- A service accepting an invocation request may be thought of as
+-- entering into a contract to provide the service described by the
+-- RSpec as long as the flow's traffic continues to be described by the
+-- TSpec.
+--
+--=============================================================================
+cadDQoSAuthFlowSpecTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadDQoSAuthFlowSpecEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+	"The Authorized flow specification describes the
+	 envelope that the data flow is allowed to use. Issues
+	 such as subscribed level of service, account state,
+	 etc. are components that may affect the authorized
+	 envelope.
+
+	 There is a one-to-many mapping between Gates and
+	 authorized flow specifications. However, only one
+	 authorized flow spec may be in effect at a time for
+	 each Gate."
+    ::= { cadDQoSConfigBase 3 }
+
+cadDQoSAuthFlowSpecEntry OBJECT-TYPE
+    SYNTAX          CadDQoSAuthFlowSpecEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     
+	"This entry contains one row in the table."
+    INDEX { docsQosIfDirection, cadDQoSGateId,
+            cadDQoSAuthFlowSpecIdx }
+    ::= { cadDQoSAuthFlowSpecTable 1 }
+
+CadDQoSAuthFlowSpecEntry ::= SEQUENCE {
+    cadDQoSAuthFlowSpecIdx              Unsigned32,
+    cadDQoSAuthFlowSpecBucketDepthb     Unsigned32,
+    cadDQoSAuthFlowSpecBucketRater      Unsigned32,
+    cadDQoSAuthFlowSpecPeakRatep        Unsigned32,
+    cadDQoSAuthFlowSpecMinPolicedUnitm  Unsigned32,
+    cadDQoSAuthFlowSpecMaxPktSizeM      Unsigned32,
+    cadDQoSAuthFlowSpecReservedRateR    Unsigned32,
+    cadDQoSAuthFlowSpecSlackTermS       Unsigned32,
+    cadDQoSAuthFlowSpecSubscriberID     InetAddressIPv4or6
+}
+
+cadDQoSAuthFlowSpecIdx OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     
+	"Index of flow specification within Gate"
+    ::= { cadDQoSAuthFlowSpecEntry 1 }
+
+cadDQoSAuthFlowSpecBucketDepthb OBJECT-TYPE
+    SYNTAX          Unsigned32
+    UNITS           "octets"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Parameter 'b' in TSpec leaky bucket description.
+
+	 The token bucket size controls the maximum amount
+	 of data that the flow can send at the peak rate.
+	 More formally, if the token bucket size is 'b' and
+	 the token bucket rate is 'r', over any arbitrarily
+	 chosen interval T in the life of the flow, the
+	 amount of data that the flow sends cannot have
+	 exceeded b + (r * T) bytes.
+
+	 The bucket size limits how many credits the flow may
+	 store.  When the bucket is full, new credits are
+	 discarded."
+    ::= { cadDQoSAuthFlowSpecEntry 2 }
+
+cadDQoSAuthFlowSpecBucketRater OBJECT-TYPE
+    SYNTAX          Unsigned32
+    UNITS           "bits per second"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Parameter 'r' in TSpec leaky bucket description.
+
+	 The token bucket rate is the rate at which credits
+	 are placed into an imaginary token bucket.  For each
+	 flow, a separate bucket is maintained.  To send a
+	 packet over the flow, a host must remove a number of
+	 credits equal to the size of the packet from the token
+	 bucket.  If there are not enough credits, the host
+	 must wait until enough credits accumulate in the bucket."
+    ::= { cadDQoSAuthFlowSpecEntry 3 }
+
+cadDQoSAuthFlowSpecPeakRatep OBJECT-TYPE
+    SYNTAX          Unsigned32
+    UNITS           "bits per second"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Parameter 'p' in TSpec leaky bucket description.
+
+	 The maximum transmission rate limits how fast packets
+	 may be sent back to back from the host. Consider that
+	 if the token bucket is full, it is possible for the
+	 flow to send a series of back-to-back packets equal
+	 to the size of the token bucket.
+
+	 At all times, 'p' MUST be greater than or equal to the
+	 token bucket rate, 'r'."
+    ::= { cadDQoSAuthFlowSpecEntry 4 }
+
+cadDQoSAuthFlowSpecMinPolicedUnitm OBJECT-TYPE
+    SYNTAX          Unsigned32
+    UNITS           "octets"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Parameter 'm' in TSpec leaky bucket description.
+
+	 All IP datagrams less than size 'm' will be counted,
+	 when policed and tested for conformance to the TSpec,
+	 as being of size 'm'.
+
+	 This is the smallest size packet that the source will
+	 generate."
+    ::= { cadDQoSAuthFlowSpecEntry 5 }
+
+cadDQoSAuthFlowSpecMaxPktSizeM OBJECT-TYPE
+    SYNTAX          Unsigned32
+    UNITS           "octets"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Parameter 'M' in TSpec leaky bucket description.
+
+	 This is the maximum packet size (including IP and header
+	 layers) that can be generated by the source."
+    ::= { cadDQoSAuthFlowSpecEntry 6 }
+
+cadDQoSAuthFlowSpecReservedRateR OBJECT-TYPE
+    SYNTAX          Unsigned32
+    UNITS           "bits per second"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Parameter 'R' in RSpec.
+
+	 A service accepting an invocation request may be thought
+	 of as entering into a contract to provide the service
+	 described by the RSpec as long as the flow's traffic
+	 continues to be described by the TSpec.
+
+	 This is the policed, reserved transmission flow rate
+	 toward the destination."
+    ::= { cadDQoSAuthFlowSpecEntry 7 }
+
+cadDQoSAuthFlowSpecSlackTermS OBJECT-TYPE
+    SYNTAX          Unsigned32
+    UNITS           "microseconds"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"Parameter 'S' in RSpec.
+
+	 This is the maximum amount of slack (in microseconds) that
+	 can be added to the inherent delay to produce an acceptable
+	 delay bound."
+    ::= { cadDQoSAuthFlowSpecEntry 8 }
+
+cadDQoSAuthFlowSpecSubscriberID OBJECT-TYPE
+    SYNTAX          InetAddressIPv4or6
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"The Subscriber-ID identifies the subscriber (cable modem) for
+	 this service request. Its main use is to prevent various 
+	 denial-of-service attacks."
+    ::= { cadDQoSAuthFlowSpecEntry 9 }
+
+cadDQoSTimerT0 OBJECT-TYPE
+    SYNTAX          Unsigned32 (1..60)
+    UNITS           "seconds"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"This timer is implemented in the CMTS in the Gate state
+	 machine, and limits the period of time that a gate may 
+	 be allocated without the gate parameters being set.  This 
+	 enables the CMTS to recover the gate-ID resources when the 
+	 Call Management System fails to complete the signaling 
+	 sequence for a new session. The default value of 
+	 this timer is 30 seconds. This timer has a range of 1 to 
+	 60 seconds."
+    DEFVAL          { 30 }
+    ::= { cadDQoSConfigBase 4 }
+
+cadDQoSTimerT1 OBJECT-TYPE
+    SYNTAX          Unsigned32 (0..600)
+    UNITS           "seconds"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"This timer is implemented in the CMTS in the Gate state
+	 machine, and limits the period of time that may elapse 
+	 between the authorization and a commit is performed.  
+	 This timer is started whenever a Gate is established.
+	 This timer is reset whenever a Commit operation is performed 
+	 on the resources authorized by the gate.
+
+	 Timer-T1 MUST be set to the value given in the GATE-SET 
+	 message. If the value given in the GATE-SET message is 
+	 zero, then Timer-T1 MUST be set to a provisionable default 
+	 value. The default value of this timer is 250 seconds."
+    DEFVAL          { 250 }
+    ::= { cadDQoSConfigBase 5 }
+
+cadDQoSTimerT2 OBJECT-TYPE
+    SYNTAX          Unsigned32 (0..60)
+    UNITS           "seconds"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"This timer is implemented in the CMTS in the Gate state
+	 machine, and limits the time in the transient states of 
+	 gate coordination. This timer is long enough to accommodate
+	 loss and retransmission of Gate coordination messages, but 
+	 is short enough to not allow significant theft of service.
+
+	 Timer-T2 MUST be set to the value given in the GATE-SET 
+	 message. If the value given in the GATE-SET message is 
+	 zero, then Timer-T2 MUST be set to a provisionable default 
+	 value. The default value of this default is 2 seconds."
+    DEFVAL          { 2 }
+    ::= { cadDQoSConfigBase 6 }
+
+cadDQoSTimerT3 OBJECT-TYPE
+    SYNTAX          Unsigned32 (5..50)
+    UNITS           "tenths of a second"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"This timer is implemented in the MTA or CMTS in the handling
+	 of RSVP reservations. It controls the total time that can 
+	 elapse before the RSVP retransmit process gives up without 
+	 receiving an acknowledgement in the presence of network loss. 
+	 It is short enough to recover quickly from lost messages and 
+	 not significantly impact the post-dial delay, but is long enough 
+	 to allow the CMTS to acknowledge the request and all intermediate 
+	 routers in the customer network.  The default value of this timer 
+	 is 4 seconds."
+    DEFVAL          { 40 }
+    ::= { cadDQoSConfigBase 7 }
+
+cadDQoSTimerT4 OBJECT-TYPE
+    SYNTAX          Unsigned32 (1..10)
+    UNITS           "tenths of a second"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"This timer is implemented in the MTA in the handling of
+	 COMMIT messages. It controls the retransmission of COMMIT 
+	 messages that may have been lost by the network. It is short 
+	 enough to recover quickly from lost commit requests and not
+	 significantly impact the post-pickup delay, but is long enough 
+	 to allow processing of the COMMIT request at the CMTS.  The 
+	 default value of this timer is 500ms."
+    DEFVAL          { 5 }
+    ::= { cadDQoSConfigBase 8 }
+
+
+cadDQoSTimerT5 OBJECT-TYPE
+    SYNTAX          Unsigned32 (1..10)
+    UNITS           "tenths of a second"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"This timer is implemented in the CMTS (and CMTS-proxy) in
+	 the gate coordination processing. It controls the retransmission 
+	 of GATE-OPEN and GATE-CLOSE messages that may have been lost by 
+	 the network. It is short enough to recover quickly from lost 
+	 gate coordination messages, but long enough to allow processing of
+	 the gate coordination message at the CMTS or CMTS-proxy. This 
+	 timer interacts in the case of GATE-OPEN with Timer-T2, and 
+	 SHOULD be significantly smaller than Timer-T2.  The default value 
+	 of this timer is 500ms."
+    DEFVAL          { 5 }
+    ::= { cadDQoSConfigBase 9 }
+
+cadDQoSTimerT6 OBJECT-TYPE
+    SYNTAX          Unsigned32 (1..10)
+    UNITS           "tenths of a second"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     
+	"This timer is implemented in the MTA or CMTS in the handling
+	 of RSVP reservations. It controls the initial delay used by 
+	 the RSVP retransmit procedure.  The default value of this timer 
+	 is 500ms." 
+    DEFVAL          { 5 }
+    ::= { cadDQoSConfigBase 10 }
+
+-- notification group is for future extension.
+--cadDQoSNotificationPrefix OBJECT IDENTIFIER    ::= { cadDQoSMib 2 }
+--cadDQoSNotification OBJECT IDENTIFIER          ::= { cadDQoSNotificationPrefix 0 }
+
+--cadDQoSConformance  OBJECT IDENTIFIER          ::= { cadDQoSMib 3 }
+--cadDQoSCompliances  OBJECT IDENTIFIER          ::= { cadDQoSConformance 1 }
+--cadDQoSGroups       OBJECT IDENTIFIER          ::= { cadDQoSConformance 2 }
+
+END

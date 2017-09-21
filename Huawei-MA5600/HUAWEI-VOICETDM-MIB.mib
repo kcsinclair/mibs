@@ -1,0 +1,235 @@
+-- =================================================================
+-- Copyright (C) 2012 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description: Demonstrates how to maintain VOICE TDM ports.
+-- Reference:   None
+-- Version:     V1.07
+-- =================================================================
+
+HUAWEI-VOICETDM-MIB DEFINITIONS ::= BEGIN  
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE, Unsigned32,Integer32
+                              FROM SNMPv2-SMI
+    hwFrameIndex, hwSlotIndex
+                              FROM HUAWEI-DEVICE-MIB
+    huaweiUtility
+                              FROM HUAWEI-MIB
+    ifIndex     
+                              FROM IF-MIB
+    hwConfigChangeIP
+                              FROM HUAWEI-DEVICE-MIB
+    hwPortMask, hwVoicePTPSlot, hwVoicePTPFrame 
+                              FROM HUAWEI-VOICEPORT-MIB;  
+                              
+                                
+
+    hwVoiceTdm MODULE-IDENTITY
+        LAST-UPDATED "201212111455Z"
+        ORGANIZATION "Huawei Technologies co.,Ltd."
+        CONTACT-INFO                                        
+                     "Huawei Industrial Base                
+                      Bantian, Longgang                     
+                      Shenzhen 518129                       
+                      People's Republic of China            
+                      Website: http://www.huawei.com        
+                      Email: support@huawei.com             
+                     "                                             
+        DESCRIPTION
+                "
+                 Demonstrates how to maintain VOICE TDM ports.
+                "
+            
+--  Revision history
+        REVISION    "201212111455Z"                           
+        DESCRIPTION "V1.07, change in this revision:          
+                    - Modified the enumerative value and the description of hwE1PTPRunMode.
+                    - Modified the description of hwE1PTPRunModeTable."
+        
+        REVISION    "201111121455Z"                           
+        DESCRIPTION "V1.06, change in this revision:          
+                    - Modified the enumerative value and the description of hwVoiceTdmBoardRunmode.
+                    - Added a new table :hwE1PTPRunModeTable.
+                    - Added a new trap :hwE1PTPRunTrap."
+        
+        REVISION    "201101252155Z"                           
+        DESCRIPTION "V1.05, change in this revision:          
+                    - Modified the year of the copyright."
+                    
+        REVISION    "201101121055Z"                           
+        DESCRIPTION "V1.04, change in this revision:          
+                    - Modified the enumerative value and the description of runmode."
+                    
+        REVISION    "201011172213Z"                           
+        DESCRIPTION "V1.03, change in this revision:          
+                    - Modified the description."
+
+        REVISION    "201009130000Z"
+        DESCRIPTION "V1.02, change in this revision:
+                    - Modified the description of all tables."
+
+        REVISION    "201007070000Z"
+        DESCRIPTION "V1.01, change in this revision:
+                    - new document."
+                                        
+        ::= { huaweiUtility 156 }
+        
+        
+
+        hwVoiceTdmMibObjects OBJECT IDENTIFIER ::= { hwVoiceTdm 1 }
+        hwVoiceTdmMibTraps OBJECT IDENTIFIER ::= { hwVoiceTdm 2 }
+        
+        hwVoiceTdmBoardTable OBJECT-TYPE
+            SYNTAX      SEQUENCE OF HwVoiceTdmBoardEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "
+                Table of Voice Tdm board.
+                The indexes of this table are hwFrameIndex and hwSlotIndex.
+                "
+            ::= { hwVoiceTdmMibObjects 1 }
+
+        hwVoiceTdmBoardEntry OBJECT-TYPE
+            SYNTAX      HwVoiceTdmBoardEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "
+                Table of Voice Tdm board.
+                The indexes of this entry are hwFrameIndex and hwSlotIndex.
+                "
+            INDEX
+                {
+                    hwFrameIndex,
+                    hwSlotIndex
+                }
+            ::= { hwVoiceTdmBoardTable 1 }
+
+        HwVoiceTdmBoardEntry ::=
+            SEQUENCE
+                {
+                    hwVoiceTdmBoardRunmode
+                        INTEGER,
+                    hwVoiceTdmClockSource
+                        INTEGER,
+                    hwVoiceTdmLineClock
+                        Integer32  
+                }
+                
+        hwVoiceTdmBoardRunmode OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                    hwVoiceTdmService(1),
+                    hwVoiceTdmTransparent(2),
+                    hwVoiceTdmPraV3(3)
+                }
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "Describes running mode of voice tdm board. 
+            Options: 
+            1. hwVoiceTdmService(1)   -indicates that the voice tdm board is service mode
+            2. hwVoiceTdmTransparent(2) -indicates that the voice tdm board is transparent mode
+            3. hwVoiceTdmPraV3(3)      -indicates that the voice tdm board is pra-v3 mode 
+                "
+            ::= { hwVoiceTdmBoardEntry 1 }
+
+        hwVoiceTdmClockSource OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                    hwSystemClock(1),
+                    hwLineClock(2)
+                }
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "Describes clock source of voice tdm. 
+            Options:
+                1. hwSystemClock(1)  -indicates that the voice tdm is System clock
+                2. hwLineClock(2)    -indicates that the voice tdm is Line clock
+                "
+            ::= { hwVoiceTdmBoardEntry 2 }
+
+        hwVoiceTdmLineClock OBJECT-TYPE
+            SYNTAX Integer32(-1 | 0..31)
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "
+                The port of Line Clock.
+                "
+            ::= { hwVoiceTdmBoardEntry 3 } 
+            
+        hwE1PTPRunModeTable OBJECT-TYPE
+            SYNTAX      SEQUENCE OF HwE1PTPRunModeEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "
+                Table of E1 run mode.
+                The index of this table is ifIndex.
+                "
+            ::= { hwVoiceTdmMibObjects 2 }
+
+        hwE1PTPRunModeEntry OBJECT-TYPE
+            SYNTAX      HwE1PTPRunModeEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "
+                Table of E1 run mode.
+                The index of this entry is ifIndex.
+                "
+            INDEX
+                {
+                    ifIndex
+                }
+            ::= { hwE1PTPRunModeTable 1 }
+
+        HwE1PTPRunModeEntry ::=
+            SEQUENCE
+                {
+                    hwE1PTPRunMode
+                        INTEGER  
+                }
+                
+        hwE1PTPRunMode OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                    hwVoiceTdmService(1),
+                    hwVoiceTdmTransparent(2),
+                    hwVoiceTdmPraV3(3),
+                    hwVoiceTdmData(4)
+                }
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "Describes running mode of e1 port. 
+            Options: 
+                1. hwVoiceTdmService(1)     -indicates that the E1 port is service mode
+                2. hwVoiceTdmTransparent(2) -indicates that the E1 port is transparent mode 
+                3. hwVoiceTdmPraV3(3)       -indicates that the E1 port is pra-v3 mode
+                4. hwVoiceTdmData(4)        -indicates that the E1 port is data mode
+                "
+            
+            DEFVAL { hwVoiceTdmService }
+            ::= { hwE1PTPRunModeEntry 1 }
+        
+        hwE1PTPRunTrap NOTIFICATION-TYPE
+        OBJECTS { hwConfigChangeIP,
+                  hwVoicePTPFrame,
+                  hwVoicePTPSlot,
+                  hwPortMask,
+                  hwE1PTPRunMode
+                }
+              
+        STATUS current
+        DESCRIPTION
+                "This notification indicates that the trap for switched runmode of E1 port:
+                 1. hwConfigChangeIP
+                 2. ifIndex
+                 3. hwE1PTPRunMode"
+        ::= { hwVoiceTdmMibTraps 0 }
+        
+        END
+            

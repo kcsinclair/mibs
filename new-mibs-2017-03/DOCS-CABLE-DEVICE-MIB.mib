@@ -1,0 +1,812 @@
+DOCS-CABLE-DEVICE-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+        MODULE-IDENTITY,
+        OBJECT-TYPE,
+        IpAddress,
+        Unsigned32,
+        Counter32,
+        Integer32,
+        zeroDotZero,
+        mib-2
+                FROM SNMPv2-SMI           -- RFC 2578
+        RowStatus,
+        RowPointer,
+        DateAndTime,
+        TruthValue,
+        StorageType
+                FROM SNMPv2-TC            -- RFC 2579
+        InetAddressType,
+        InetAddress
+                FROM INET-ADDRESS-MIB     -- RFC 4001
+        OBJECT-GROUP,
+        MODULE-COMPLIANCE
+                FROM SNMPv2-CONF          -- RFC 2580
+        SnmpAdminString
+                FROM SNMP-FRAMEWORK-MIB   -- RFC 3411
+        InterfaceIndexOrZero
+                FROM IF-MIB;              -- RFC 2863
+
+
+docsDev MODULE-IDENTITY
+        LAST-UPDATED    "200612200000Z" -- December 20, 2006
+        ORGANIZATION    "IETF IP over Cable Data Network
+                         Working Group"
+        CONTACT-INFO
+            "        Rich Woundy
+             Postal: Comcast Cable
+                     27 Industrial Avenue
+                     Chelmsford, MA 01824 U.S.A.
+             Phone:  +1 978 244 4010
+             E-mail: richard_woundy@cable.comcast.com
+
+                     Kevin Marez
+             Postal: Motorola Corporation
+                     6450 Sequence Drive
+                     San Diego, CA 92121 U.S.A.
+             Phone:  +1 858 404 3785
+             E-mail: kevin.marez@motorola.com
+
+             IETF IPCDN Working Group
+             General Discussion: ipcdn@ietf.org
+             Subscribe: http://www.ietf.org/mailman/listinfo/ipcdn
+             Archive: ftp://ftp.ietf.org/ietf-mail-archive/ipcdn
+             Co-chairs: Richard Woundy,
+                        richard_woundy@cable.comcast.com
+                        Jean-Francois Mule,
+                        jf.mule@cablelabs.com"
+
+        DESCRIPTION
+            "This is the MIB Module for DOCSIS-compliant cable modems
+             and cable-modem termination systems.
+
+             Copyright (C) The IETF Trust (2006).  This version
+             of this MIB module was published in RFC 4639; for full
+             legal notices see the RFC itself."
+
+        REVISION "200612200000Z" -- December 20, 2006
+        DESCRIPTION
+            "Second version, published as RFC 4639.
+
+             Modifications to this MIB module since RFC 2669 include:
+             - Deprecation of the docsDevFilter group in favor of the
+               DiffServ MIB groups, to enable support for IPv6
+               filtering and DiffServ Code Point (DSCP) marking.
+             - Deprecation of the docsDevCpeGroup in favor of the
+               docsDevCpeInetGroup, to enable support of IPv6.
+             - Addition of various InetAddress objects to enable
+               support of IPv6.
+             - Deprecation of docsDevNmAccessTable in favor of SNMP
+               Coexistence and SNMPv3 -- yet adding
+               docsDevNmAccessTrapVersion and clarifying
+               docsDevNmAccessIp for current use of this table,
+             - Addition of docsDevIgmpModeControl for management and
+               control of the IGMP mode of operation,
+             - Addition of docsDevMaxCpe for management of the
+               maxmium number of CPEs permitted access through a
+               cable modem,
+             - Addition of docsDevSwServerTransportProtocol, and
+               modifications to docsDevSoftware object DESCRIPTIONS,
+               to enable software downloads via either TFTP or HTTP,
+             - Replacement of docsDevEvThrottleInhibited with
+               docsDevEvThrottleThresholdExceeded to simplify
+               event threshold management,
+             - Modification of docsDevEvReporting to enable local
+               logging to the internal volatile log, and not to the
+               internal non-volatile log,
+             - Modification of the compliance statement to make the
+               docsDevCpe objects optional
+             - Created placeholders for two OIDs in the
+               docsDevFilterPolicyTable that were never used
+             - Modified the DESCRIPTION of
+               docsDevSwServerTransportProtocol and
+               docsDevSwServerAddressType to address the
+               dependence between each object
+             - Added a reference to docsDevServerConfigTftpAddress
+             - Clarified the scope of notifications that are covered
+               by docsDevEvThrottleThreshold
+             - Clarified an error condition that could occur when
+               doing a SET to docsDevEvReporting
+             - Defined each of the enumerated types for both
+               docsDevEvLevel and docsDevEvPriority
+             - Added UNITS clause to docsDevFilterLLCMatches,
+               docsDevFilterIpMatches, docsDevMaxCpe,
+               docsDevEvThrottleThreshold and docsDevEvCounts.
+             - Added REFERENCE clause to docsDevFilterIpProtocol
+             - Modified DESCRIPTION of docsDevCpeInetAddr to be
+               more protocol-neutral
+             - Removed the enumerated value (1) from both
+               docsDevCpeInetSource and docsDevCpeSource
+             - Covered additional read-write and read-create objects
+               in the Security Considerations section
+             - Modified the default value of docsDevNmAccessIpMask
+               to be consistent with OSSI specification
+             - Modified the SYNTAX of docsDevNmAccessCommunity and
+               docsDevNmAccessInterfaces in the Conformance
+               Statement section
+             - Added SYNTAX clause to docsDevEvReporting in the
+               Conformance Statement section
+             - Modified SYNTAX clause of docsDevEvReporting to
+               move new enumerated type to byte boundary
+             - Added references to DOCSIS 2.0 specifications to
+               multiple objects
+             - Clarified non-persistency across reboots for
+               all tables
+             - Clarified functionality of docsDevSw objects as
+               they relate to docsDevSwOperStatus
+             - Clarified enumerated types (9) and (10) for
+               docsDevServerBootState
+             - Defined the state of unknown(0) for the following
+               objects:  docsDevServerDhcpAddressType,
+               docsDevServerTimeAddressType,
+               docsDevServerConfigTftpAddressType and
+               docsDevServerConfigTftpAddressType
+             - Modified the value in docsDevFilterIpDaddr to be
+               consistent with the SYNTAX
+             - Specified which rows could be modified in an
+               active row for docsDevFilterPolicyStatus
+             - Defined the term 'manually' in docsDevCpeEnroll
+             - Clarified the description for
+               docsDevFilterTosOrMask
+             - Covered the case of a non-existent row for
+               docsDevFilterPolicyPtr
+             - Added DEFVAL clauses for multiple objects
+             - Replaced docsDevNotification OBJECT IDENTIFIER
+               with docsDevNotifications to address possible
+               compatibility issues
+             - Added support for the usage of RFC 3413 and RFC 3014
+               as event notification mechanisms
+             - Removed docsDevFilterPolicyObsoleteGroup
+             - Added stdInterface(9) type to docsDevEvReporting to
+               support the usage of RFC3413 and RFC3014
+             - Modified DESCRIPTION for docsDevMaxCpe"
+
+        REVISION "199908190000Z"
+        DESCRIPTION
+            "Initial version, published as RFC 2669."
+
+        ::= { mib-2 69 }
+
+docsDevMIBObjects  OBJECT IDENTIFIER ::= { docsDev 1 }
+
+docsDevBase OBJECT IDENTIFIER ::= { docsDevMIBObjects 1 }
+
+docsDevDateTime OBJECT-TYPE
+        SYNTAX      DateAndTime
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The current date and time, with time zone information
+             (if known).
+
+             If the real data and time cannot be determined, this
+             shall represent elapsed time from boot relative to
+             the standard epoch '1970-1-1,0:0:0.0'.  In other
+             words, if this agent has been up for 3 minutes and
+             not been able to determine what the actual date and
+             time are, this object will return the value
+             '1970-1-1,0:03:0.0'."
+        ::= { docsDevBase 2 }
+
+--
+-- Event Reporting
+--
+
+docsDevEvent OBJECT IDENTIFIER ::= { docsDevMIBObjects 5 }
+
+docsDevEvControl OBJECT-TYPE
+        SYNTAX INTEGER {
+            resetLog(1),
+            useDefaultReporting(2)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Setting this object to resetLog(1) empties the event
+             log.  All data is deleted.  Setting it to
+             useDefaultReporting(2) returns all event priorities to
+             their factory-default reporting.  Reading this object
+             always returns useDefaultReporting(2)."
+        ::= { docsDevEvent 1 }
+
+docsDevEvSyslog OBJECT-TYPE
+        SYNTAX      IpAddress
+        MAX-ACCESS  read-write
+        STATUS      deprecated
+        DESCRIPTION
+            "The IP address of the Syslog server.  If 0.0.0.0, either
+             syslog transmission is inhibited, or the Syslog server
+             address is not an IPv4 address.
+
+             This object is deprecated and is replaced by
+             docsDevEvSyslogAddress."
+        ::= { docsDevEvent 2 }
+
+docsDevEvThrottleAdminStatus OBJECT-TYPE
+        SYNTAX INTEGER {
+            unconstrained(1),
+            maintainBelowThreshold(2),
+            stopAtThreshold(3),
+            inhibited(4)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Controls the transmission of traps and syslog messages
+             with respect to the trap pacing threshold.
+
+             unconstrained(1) causes traps and syslog messages to be
+             transmitted without regard to the threshold settings.
+
+             maintainBelowThreshold(2) causes trap transmission and
+             syslog messages to be suppressed if the number of traps
+             would otherwise exceed the threshold.
+
+             stopAtThreshold(3) causes trap transmission to cease at
+             the threshold and not to resume until directed to do so.
+
+             inhibited(4) causes all trap transmission and syslog
+             messages to be suppressed.
+
+             A single event is always treated as a single event for
+             threshold counting.  That is, an event causing both a
+             trap and a syslog message is still treated as a single
+             event.
+
+             Writing to this object resets the thresholding state."
+        DEFVAL { unconstrained }
+        ::= { docsDevEvent 3 }
+
+docsDevEvThrottleInhibited OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "If true(1), trap and syslog transmission is currently
+             inhibited due to thresholds and/or the current setting
+             of docsDevEvThrottleAdminStatus.  In addition, this is
+             true(1) when transmission is inhibited because no
+             syslog (docsDevEvSyslog) or trap (docsDevNmAccessEntry)
+             destinations have been set.
+
+             This object is deprecated and is replaced by
+             docsDevEvThrottleThresholdExceeded."
+        ::= { docsDevEvent 4 }
+
+docsDevEvThrottleThreshold OBJECT-TYPE
+        SYNTAX      Unsigned32
+        UNITS       "events"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Number of events per docsDevEvThrottleInterval permitted
+             before throttling is to occur.
+
+             A single event, whether the notification could result in
+             messages transmitted using syslog, SNMP, or both
+             protocols, and regardless of the number of destinations,
+             (including zero) is always treated as a single event for
+             threshold counting.  For example, an event causing both
+             a trap and a syslog message is still treated as a single
+             event.
+
+             All system notifications that occur within the device
+             should be taken into consideration when calculating
+             and monitoring the threshold."
+        DEFVAL { 0 }
+        ::= { docsDevEvent 5 }
+
+docsDevEvThrottleInterval OBJECT-TYPE
+        SYNTAX      Integer32 (1..2147483647)
+        UNITS       "seconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The interval over which docsDevEvThrottleThreshold
+             applies."
+        DEFVAL { 1 }
+        ::= { docsDevEvent 6 }
+
+--
+-- The following table controls the reporting of the various classes
+-- of events.
+--
+
+docsDevEvControlTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF DocsDevEvControlEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table allows control of the reporting of event
+             classes.  For each event priority, a combination of
+             logging and reporting mechanisms may be chosen.  The
+             mapping of event types to priorities is
+             vendor dependent.  Vendors may also choose to allow
+             the user to control that mapping through proprietary
+             means.  Table entries MUST persist across reboots for
+             CMTS devices and MUST NOT persist across reboots for CM
+             devices."
+        ::= {  docsDevEvent 7 }
+
+docsDevEvControlEntry OBJECT-TYPE
+        SYNTAX      DocsDevEvControlEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Allows configuration of the reporting mechanisms for a
+             particular event priority."
+        INDEX { docsDevEvPriority }
+        ::= { docsDevEvControlTable 1 }
+
+DocsDevEvControlEntry ::= SEQUENCE {
+            docsDevEvPriority        INTEGER,
+            docsDevEvReporting       BITS
+        }
+
+docsDevEvPriority OBJECT-TYPE
+        SYNTAX INTEGER {
+            emergency(1),
+            alert(2),
+            critical(3),
+            error(4),
+            warning(5),
+            notice(6),
+            information(7),
+            debug(8)
+        }
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The priority level that is controlled by this
+             entry.  These are ordered from most (emergency) to least
+             (debug) critical.  Each event with a CM or CMTS has a
+             particular priority level associated with it (as defined
+             by the vendor).
+
+             emergency(1) events indicate vendor-specific fatal
+             hardware or software errors that prevent normal system
+             operation.
+
+             alert(2) events indicate a serious failure that causes
+             the reporting system to reboot but is not caused by
+             hardware or software malfunctioning.
+
+             critical(3) events indicate a serious failure that
+             requires attention and prevents the device from
+             transmitting data but that could be recovered without
+             rebooting the system.
+
+             error(4) and warning(5) events indicate that a failure
+             occurred that could interrupt the normal data flow but
+             that does not cause the device to re-register.
+
+             notice(6) and information(7) events indicate a
+             milestone or checkpoint in normal operation that could
+             be of particular importance for troubleshooting.
+
+             debug(8) events are reserved for vendor-specific
+             events.
+
+             During normal operation, no event more
+             critical than notice(6) should be generated.  Events
+             between warning and emergency should be generated at
+             appropriate levels of problems (e.g., emergency when the
+             box is about to crash)."
+        ::= { docsDevEvControlEntry 1 }
+
+docsDevEvReporting OBJECT-TYPE
+        SYNTAX BITS {
+            local(0),
+            traps(1),
+            syslog(2),
+            local-volatile(3), -- backward compatibility with pre-3.0 devices
+            reserved4(4),
+            reserved5(5),
+            reserved6(6),
+            reserved7(7),
+            -- The following are extensions to the original set of
+            -- labels.  The extensions start at an octet boundary.
+            -- So for bits 3 - 7, one MUST set them to zero on send
+            -- and one MUST ignore them on receipt.
+            localVolatile(8),
+            stdInterface(9)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Defines the action to be taken on occurrence of this
+             event class.  Implementations may not necessarily
+             support all options for all event classes but at
+             minimum must allow traps and syslogging to be
+             disabled.
+
+             If the local(0) bit is set, then log to the internal
+             log and update non-volatile store, for backward
+             compatibility with the original RFC 2669 definition.
+             If the traps(1) bit is set, then generate
+             an SNMP trap; if the syslog(2) bit is set, then
+             send a syslog message (assuming that the syslog address
+             is set).  If the localVolatile(8) bit is set, then
+             log to the internal log without updating non-volatile
+             store.  If the stdInterface(9) bit is set, then the
+             agent ignores all other bits except the local(0),
+             syslog(2), and localVolatile(8) bits.  Setting the
+             stdInterface(9) bit indicates that RFC3413 and
+             RFC3014 are being used to control event reporting
+             mechanisms."
+        ::= { docsDevEvControlEntry 2 }
+
+docsDevEventTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF DocsDevEventEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Contains a log of network and device events that may be
+             of interest in fault isolation and troubleshooting.
+             If the local(0) bit is set in docsDevEvReporting,
+             entries in this table MUST persist across reboots."
+        ::= {  docsDevEvent 8 }
+
+docsDevEventEntry OBJECT-TYPE
+        SYNTAX      DocsDevEventEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Describes a network or device event that may be of
+             interest in fault isolation and troubleshooting.
+             Multiple sequential identical events are represented by
+             incrementing docsDevEvCounts and setting
+             docsDevEvLastTime to the current time rather than
+             creating multiple rows.
+
+             Entries are created with the first occurrence of an
+             event.  docsDevEvControl can be used to clear the
+             table.  Individual events cannot be deleted."
+        INDEX { docsDevEvIndex }
+        ::= { docsDevEventTable 1 }
+
+DocsDevEventEntry ::= SEQUENCE {
+            docsDevEvIndex           Integer32,
+            docsDevEvFirstTime       DateAndTime,
+            docsDevEvLastTime        DateAndTime,
+            docsDevEvCounts          Counter32,
+            docsDevEvLevel           INTEGER,
+            docsDevEvId              Unsigned32,
+            docsDevEvText            SnmpAdminString
+        }
+
+docsDevEvIndex OBJECT-TYPE
+        SYNTAX      Integer32 (1..2147483647)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Provides relative ordering of the objects in the event
+             log.  This object will always increase except when
+             (a) the log is reset via docsDevEvControl,
+             (b) the device reboots and does not implement
+             non-volatile storage for this log, or (c) it reaches
+             the value 2^31.  The next entry for all the above
+             cases is 1."
+        ::= { docsDevEventEntry 1 }
+
+docsDevEvFirstTime OBJECT-TYPE
+        SYNTAX      DateAndTime
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The value of docsDevDateTime at the time this entry was
+             created."
+        ::= { docsDevEventEntry 2 }
+
+docsDevEvLastTime OBJECT-TYPE
+        SYNTAX      DateAndTime
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "When an entry reports only one event, this object will
+             have the same value as the corresponding instance of
+             docsDevEvFirstTime.  When an entry reports multiple
+             events, this object will record the value that
+             docsDevDateTime had when the most recent event for this
+             entry occurred."
+        ::= { docsDevEventEntry 3 }
+
+-- This object was renamed from docsDevEvCount to meet naming
+-- requirements for Counter32
+docsDevEvCounts OBJECT-TYPE
+        SYNTAX      Counter32
+        UNITS       "events"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The number of consecutive event instances reported by
+             this entry.  This starts at 1 with the creation of this
+             row and increments by 1 for each subsequent duplicate
+             event."
+        ::= { docsDevEventEntry 4 }
+docsDevEvLevel OBJECT-TYPE
+        SYNTAX INTEGER {
+            emergency(1),
+            alert(2),
+            critical(3),
+            error(4),
+            warning(5),
+            notice(6),
+            information(7),
+            debug(8)
+        }
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The priority level of this event, as defined by the
+             vendor.  These are ordered from most serious (emergency)
+             to least serious (debug).
+
+             emergency(1) events indicate vendor-specific fatal
+             hardware or software errors that prevent normal system
+             operation.
+
+             alert(2) events indicate a serious failure that causes
+             the reporting system to reboot but that is not caused by
+             hardware or software malfunctioning.
+
+             critical(3) events indicate a serious failure that
+             requires attention and prevents the device from
+             transmitting data but that could be recovered without
+             rebooting the system.
+
+             error(4) and warning(5) events indicate that a failure
+             occurred that could interrupt the normal data flow but
+             that does not cause the device to re-register.
+
+             notice(6) and information(7) events indicate a
+             milestone or checkpoint in normal operation that could
+             be of particular importance for troubleshooting.
+
+             debug(8) events are reserved for vendor-specific
+             events.
+
+             During normal operation, no event more
+             critical than notice(6) should be generated.  Events
+             between warning and emergency should be generated at
+             appropriate levels of problems (e.g., emergency when the
+             box is about to crash)."
+        ::= { docsDevEventEntry 5 }
+
+--
+-- It is strongly recommended that implementors follow the CableLabs
+-- enumerations for docsDevEvId, per the DOCSIS OSSIv1.1 spec
+-- and follow-on specifications.
+--
+
+docsDevEvId OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "For this product, uniquely identifies the type of event
+             that is reported by this entry."
+        REFERENCE
+            "DOCSIS OSSI 1.1 Specification, Appendix H and
+             DOCSIS OSSI 2.0 Specification, Annex D."
+        ::= { docsDevEventEntry 6 }
+
+docsDevEvText OBJECT-TYPE
+        SYNTAX      SnmpAdminString
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Provides a human-readable description of the event,
+             including all relevant context (interface numbers,
+             etc.)."
+        ::= { docsDevEventEntry 7 }
+
+docsDevEvSyslogAddressType OBJECT-TYPE
+        SYNTAX      InetAddressType
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The type of address of docsDevEvSyslogAddress.  If
+             no syslog server exists, this value should return
+             unknown(0)."
+        DEFVAL { unknown }
+        ::= { docsDevEvent 9 }
+
+docsDevEvSyslogAddress OBJECT-TYPE
+        SYNTAX      InetAddress
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The Internet address of the Syslog server, as provided
+             by DHCP option 7 or set via SNMP management.  If the
+             address of the server is set to the zero-length
+             string, the 0.0.0.0 IPv4 address, or the 0: IPv6
+             address, Syslog transmission is inhibited.
+
+             Note that if multiple values are provided to the CM in
+             DHCP option 7, the value of this MIB object MUST be the
+             first Syslog server address received.
+
+             By default at agent boot, this object returns the zero
+             length string."
+        ::= { docsDevEvent 10 }
+
+docsDevEvThrottleThresholdExceeded OBJECT-TYPE
+        SYNTAX TruthValue
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "If true(1), trap and syslog transmission is currently
+             inhibited due to exceeding the trap/syslog event
+             threshold in the current interval."
+        ::= { docsDevEvent 11 }
+
+--
+-- Placeholder for notifications/traps.
+--
+
+-- erroneous, DO NOT USE docsDevNotification
+docsDevNotification OBJECT IDENTIFIER   ::= { docsDev 2 }
+-- erroneous, DO NOT USE docsDevNotification
+
+docsDevNotifications OBJECT IDENTIFIER   ::= { docsDev 0 }
+
+
+--
+-- RFC 2669 Conformance definitions
+--
+
+docsDevConformance  OBJECT IDENTIFIER   ::= { docsDev 3 }
+docsDevGroups       OBJECT IDENTIFIER   ::= { docsDevConformance 1 }
+docsDevCompliances  OBJECT IDENTIFIER   ::= { docsDevConformance 2 }
+
+docsDevBasicCompliance MODULE-COMPLIANCE
+        STATUS  deprecated
+        DESCRIPTION
+            "The RFC 2669 compliance statement for MCNS/DOCSIS
+             Cable Modems and Cable Modem Termination Systems."
+
+MODULE  -- docsDev
+
+-- conditionally mandatory groups
+
+GROUP docsDevBaseGroup
+        DESCRIPTION
+            "Mandatory in Cable Modems, optional in Cable Modem
+             Termination Systems."
+
+GROUP docsDevEventGroup
+        DESCRIPTION
+            "Mandatory in Cable Modems, optional in Cable Modem
+             Termination Systems."
+
+OBJECT docsDevEvReporting
+         MIN-ACCESS read-only
+         DESCRIPTION
+             "It is compliant to implement this object as read-only.
+              Devices need only support local(0).  An agent need not
+              enforce that trap or syslog logging be accompanied
+              by local(0) or localVolatile(3) logging."
+         ::= { docsDevCompliances 1 }
+
+docsDevBaseGroup OBJECT-GROUP
+        OBJECTS {
+             docsDevDateTime
+        }
+        STATUS      current
+        DESCRIPTION
+            "A collection of objects providing device status and
+             control."
+        ::= { docsDevGroups 1 }
+
+docsDevEventGroup OBJECT-GROUP
+        OBJECTS {
+            docsDevEvControl,
+            docsDevEvSyslog,
+            docsDevEvThrottleAdminStatus,
+            docsDevEvThrottleInhibited,
+            docsDevEvThrottleThreshold,
+            docsDevEvThrottleInterval,
+            docsDevEvReporting,
+            docsDevEvFirstTime,
+            docsDevEvLastTime,
+            docsDevEvCounts,
+            docsDevEvLevel,
+            docsDevEvId,
+            docsDevEvText
+        }
+        STATUS      deprecated
+        DESCRIPTION
+            "A collection of objects used to control and monitor
+             events.
+
+             This group has been deprecated and replaced by
+             docsDevEventGroupV2.  The object docsDevEvSyslog has
+             been replaced by docsDevEvSyslogAddressType and
+             docsDevEvSyslogAddress, and docsDevEvThrottleInhibited
+             has been replaced by
+             docsDevEvThrottleThresholdExceeded."
+        ::= { docsDevGroups 5 }
+
+--
+-- RFC 4639 Conformance definitions
+--
+
+docsDevGroupsV2       OBJECT IDENTIFIER  ::= { docsDevConformance 3 }
+docsDevCompliancesV2  OBJECT IDENTIFIER  ::= { docsDevConformance 4 }
+
+
+docsDevCmtsCompliance MODULE-COMPLIANCE
+         STATUS  current
+         DESCRIPTION
+             "The compliance statement for DOCSIS Cable Modem
+              Termination Systems.
+
+              This compliance statement applies to implementations
+              of DOCSIS versions that are not IPv6 capable."
+
+MODULE  -- docsDev
+
+-- conditionally mandatory groups
+
+GROUP docsDevBaseGroup
+        DESCRIPTION
+            "Optional in Cable Modem Termination Systems."
+
+GROUP docsDevEventGroupV2
+        DESCRIPTION
+            "Optional in Cable Modem Termination Systems."
+
+OBJECT docsDevDateTime
+         MIN-ACCESS read-only
+         DESCRIPTION
+             "It is compliant to implement this object as read-only."
+
+OBJECT docsDevEvReporting
+         MIN-ACCESS read-only
+         DESCRIPTION
+             "It is compliant to implement this object as read-only.
+              Devices need only support local(0)."
+
+--OBJECT docsDevEvSyslogAddressType
+--         SYNTAX InetAddressType { ipv4(1) }
+--         DESCRIPTION
+--             "An implementation is only required to support IPv4
+--              addresses."
+
+OBJECT docsDevEvSyslogAddress
+         SYNTAX  InetAddress (SIZE(4))
+         DESCRIPTION
+             "An implementation is only required to support IPv4
+              addresses."
+
+        ::= { docsDevCompliancesV2 2 }
+
+docsDevEventGroupV2 OBJECT-GROUP
+        OBJECTS {
+            docsDevEvControl,
+            docsDevEvThrottleAdminStatus,
+            docsDevEvThrottleThreshold,
+            docsDevEvThrottleInterval,
+            docsDevEvReporting,
+            docsDevEvFirstTime,
+            docsDevEvLastTime,
+            docsDevEvCounts,
+            docsDevEvLevel,
+            docsDevEvId,
+            docsDevEvText,
+            docsDevEvSyslogAddressType,
+            docsDevEvSyslogAddress,
+            docsDevEvThrottleThresholdExceeded
+        }
+        STATUS      current
+        DESCRIPTION
+            "A collection of objects used to control and monitor
+             events.  This group replaces docsDevEventGroup.
+             The event reporting mechanism, and more specifically
+             docsDevEvReporting, can be used to take advantage of
+             the event reporting features of RFC3413 and RFC3014."
+        ::= { docsDevGroupsV2 6 }
+
+
+END

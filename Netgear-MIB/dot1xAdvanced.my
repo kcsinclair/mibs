@@ -1,0 +1,125 @@
+NETGEAR-DOT1X-ADVANCED-FEATURES-MIB DEFINITIONS ::= BEGIN
+
+-- This SNMP Management Information Specification
+-- embodies Broadcom Corporation's confidential and proprietary
+-- intellectual property.  Broadcom Corporation retains all title
+-- and ownership in the Specification including any revisions.
+
+-- This Specification is supplied "AS IS", Broadcom Corporation
+-- makes no warranty, either expressed or implied,
+-- as to the use, operation, condition, or performance of the
+-- Specification.
+
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE,
+    Unsigned32                          FROM SNMPv2-SMI
+    dot1xPaePortNumber                  FROM IEEE8021-PAE-MIB
+    RowStatus                           FROM SNMPv2-TC
+    ng700smartswitch                    FROM NETGEAR-REF-MIB;
+    
+
+    agentdot1xAdvanced MODULE-IDENTITY
+           LAST-UPDATED "200803180000Z" -- 18 Mar 2008 12:00:00 GMT
+           ORGANIZATION "Netgear"
+           CONTACT-INFO
+           ""
+           
+     DESCRIPTION
+          "The Netgear Private MIB for Dot1x Advanced Features "
+
+      -- Revision history.
+     REVISION
+          "200803180000Z" -- 18 Mar 2008 12:00:00 GMT
+     DESCRIPTION
+          "Initial Version"
+
+      ::= { ng700smartswitch 36 }
+
+ 
+--**************************************************************************************
+-- agentGuestVlanConfigGroup -> Contains MIB objects displaying Guest VLAN and
+-- associated Functionality
+--
+--**************************************************************************************
+
+    agentGuestVlanConfigGroup OBJECT IDENTIFIER ::= { agentdot1xAdvanced 1 }
+
+    agentGuestVlanSupplMode OBJECT-TYPE
+         SYNTAX      INTEGER {
+                     enable(1),
+                     disable(2)
+                     }
+         MAX-ACCESS  read-write
+         STATUS      current
+         DESCRIPTION
+               "Mode showing whether at the global level,Guest VLAN Supplicant Mode is
+               enabled or not."
+         DEFVAL { disable }
+         ::= { agentGuestVlanConfigGroup 1 }
+
+--------------------------------------------------------------
+-- The PAE Port Table
+--------------------------------------------------------------
+
+    agentDot1xGuestVlanPortConfigTable OBJECT-TYPE
+         SYNTAX      SEQUENCE OF AgentDot1xGuestVlanPortConfigEntry
+         MAX-ACCESS  not-accessible
+         STATUS      current
+         DESCRIPTION "A table for Guest Vlan and associated functionality."
+         ::= { agentGuestVlanConfigGroup 2 }
+
+    agentDot1xGuestVlanPortConfigEntry OBJECT-TYPE
+         SYNTAX      AgentDot1xGuestVlanPortConfigEntry
+         MAX-ACCESS  not-accessible
+         STATUS      current
+         DESCRIPTION "Represents entry for guest config table."
+         INDEX       { dot1xPaePortNumber }
+         ::= { agentDot1xGuestVlanPortConfigTable 1 }
+
+    AgentDot1xGuestVlanPortConfigEntry ::= SEQUENCE { 
+            agentDot1xGuestVlanId
+                 Unsigned32,
+            agentDot1xGuestVlanPeriod
+                 Unsigned32
+          }
+
+    agentDot1xGuestVlanId  OBJECT-TYPE
+         SYNTAX      Unsigned32
+         MAX-ACCESS   read-write
+         STATUS       current
+         DESCRIPTION
+               "Specifies the Guest Vlan of the interface. An interface will
+               be moved to its Guest Vlan if its access is unsucessfully
+               authenticated. A value of zero indicates no Guest Vlan
+               configured for the interface."
+         DEFVAL {0}
+         ::= { agentDot1xGuestVlanPortConfigEntry 1}
+
+    agentDot1xGuestVlanPeriod OBJECT-TYPE
+         SYNTAX      Unsigned32 (0..65535)
+         MAX-ACCESS  read-write
+         STATUS      current
+         DESCRIPTION
+               "The value, in seconds, of the guestVlanPeriod constant
+               currently in use for Guest Vlan Assignment for the 
+               interface ."
+         DEFVAL { 90 }
+         ::= { agentDot1xGuestVlanPortConfigEntry 2 }
+
+    agentDot1xEnhancementConfigGroup OBJECT IDENTIFIER ::= { agentdot1xAdvanced 2 }
+
+    agentDot1xRadiusVlanAssignment OBJECT-TYPE
+         SYNTAX      INTEGER {
+                     enable(1),
+                     disable(2)
+                     }
+         MAX-ACCESS  read-write
+         STATUS      current
+         DESCRIPTION
+               "Enable/Disable dot1x Vlan Assignment Support on the switch."
+         DEFVAL { disable }
+         ::= { agentDot1xEnhancementConfigGroup 1 }
+
+END
+

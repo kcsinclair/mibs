@@ -1,0 +1,224 @@
+
+-- orig ERROR_MIB
+
+ERROR-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    DisplayString
+        FROM RFC1213-MIB
+
+    IpAddress
+        FROM RFC1155-SMI
+
+    NetworkTimeInSeconds
+        FROM ASAM-TC-MIB
+
+    OBJECT-TYPE
+	FROM RFC-1212
+    asam
+        FROM SYSTEM-MIB;
+
+asamErrorMIB  OBJECT IDENTIFIER ::= { asam 12 }
+
+asamErrorDefinitionTable		OBJECT-TYPE
+	SYNTAX			SEQUENCE OF AsamErrorDefinitionEntry
+	ACCESS			not-accessible
+	STATUS			mandatory
+	DESCRIPTION		"This table defines all the errors at the agent. 
+				For each error, there is an entry. Each entry 
+				consists of  error code and a brief explanation
+				for each error code."
+::=					{asamErrorMIB 1}
+
+asamErrorDefinitionEntry	    OBJECT-TYPE
+	SYNTAX			AsamErrorDefinitionEntry
+	ACCESS			not-accessible
+	STATUS			mandatory
+	DESCRIPTION		"Entry for SNMP error definitions"
+	INDEX			{asamErrorCode}
+::=					{asamErrorDefinitionTable 1}
+
+AsamErrorDefinitionEntry	::= SEQUENCE
+			{asamErrorCode		    INTEGER,
+			asamErrorDescription    DisplayString}
+
+asamErrorCode			  OBJECT-TYPE
+	SYNTAX			INTEGER
+	ACCESS			read-only
+	STATUS			mandatory
+	DESCRIPTION		"This is the unique id for an SNMP error.
+                    Error codes from 1 to 255 are reserved for
+                    standard SNMP error. The asam specific errors
+                    are defined from 256."
+::=					{asamErrorDefinitionEntry 1}
+
+asamErrorDescription	  OBJECT-TYPE
+	SYNTAX			DisplayString
+	ACCESS			read-only
+	STATUS			mandatory
+	DESCRIPTION		"Each SNMP error is represented by an error code.
+                    Each error code is brifly described by this object."
+::=					{asamErrorDefinitionEntry 2}
+
+asamErrorLogLastEntry      OBJECT-TYPE
+	SYNTAX			    INTEGER (0..4294967295)
+	ACCESS			    read-only
+	STATUS			    mandatory
+	DESCRIPTION			"This object gives the index of the last entry 
+                        that is added to the error log table."
+::=                     {asamErrorMIB 2}
+
+asamErrorLogReset           OBJECT-TYPE
+	SYNTAX			    INTEGER {
+                            resetCompleted      (1),
+                            reset               (2)}
+	ACCESS			    read-write
+	STATUS		        mandatory
+    DESCRIPTION  	    "This object is a button-like object to reset 
+                        error log buffer. When it is set to Reset value, 
+                        all log records are cleared, and logging
+                        starts from index 1. When resetting action is
+                        completed, agent sets the value to ResetCompleted 
+                        value. If SNMP Manager sets this object to 
+	    				resetCompleted, agent does not take any action."
+                     
+::=                    {asamErrorMIB 3}
+
+asamErrorLogResetTime       OBJECT-TYPE
+	SYNTAX	            NetworkTimeInSeconds
+	ACCESS	            read-only
+	STATUS		        mandatory
+    DESCRIPTION  	    "Time value when the error log is resetted"
+::=                     {asamErrorMIB 4}
+
+asamErrorLogBufferSize      OBJECT-TYPE
+    SYNTAX              INTEGER
+    ACCESS              read-only
+    STATUS              mandatory
+    DESCRIPTION         "This object gives the size of the internal
+                        log buffer. This object value is useful to inform
+                        when an overflow in log buffer may occur."
+    DEFVAL              {100}
+::=                     {asamErrorMIB 5}
+
+asamErrorLogFullAction        OBJECT-TYPE
+	SYNTAX			    INTEGER {
+                            wrap     (1), 
+                            halt     (2)}
+	ACCESS			    read-write
+	STATUS			    mandatory
+	DESCRIPTION			"This object defines which action to be taken 
+                        when error log buffer is completely full. If its
+                        value is set to 'Wrap', then older log records 
+                        are overwritten by recent ones. If it is set to
+                        'Halt', then logging is stopped until log buffer 
+                        is reset."
+	DEFVAL              {wrap}
+::=                     {asamErrorMIB 6}
+
+asamErrorLogOverflowed            OBJECT-TYPE
+	SYNTAX			   INTEGER {
+                    	 notoverflowed       (1), 
+                     	 overflowed  	     (2)}
+	ACCESS			    read-only
+	STATUS			    mandatory
+	DESCRIPTION			"This object gives the value if log buffer is 
+                        overflowed. When log buffer is reset, this object 
+                        value is set to Notoverflowed by the agent. This
+                        object is not useful when FullAction is set to
+                        Wrap around."
+::=                     {asamErrorMIB 7}
+
+asamErrorLogTable                 OBJECT-TYPE
+	SYNTAX			    SEQUENCE OF AsamErrorLogEntry
+	ACCESS			    not-accessible
+	STATUS			    mandatory
+	DESCRIPTION			"This table is to log all detected SNMP errors.
+                        Log records are ordered by time. The latest detected
+                        SNMP error detected as the last entry of this table."
+::=                     {asamErrorMIB 8}
+
+asamErrorLogEntry                 OBJECT-TYPE
+	SYNTAX			    AsamErrorLogEntry
+	ACCESS			    not-accessible
+	STATUS			    mandatory
+	DESCRIPTION			"Entry for Error Log Table"
+    INDEX        	    {asamErrorLogIndex}
+::=                     {asamErrorLogTable 1}
+
+AsamErrorLogEntry       ::=                       SEQUENCE
+                        {asamErrorLogIndex              INTEGER,
+                        asamErrorLogIpAddress           IpAddress,
+                        asamErrorLogRequestId           INTEGER,
+                        asamErrorLogObjectId            DisplayString,
+                        asamErrorLogErrorCode           INTEGER,
+                        asamErrorLogObjectValue         DisplayString,
+                        asamErrorLogAddInfo             DisplayString,
+                        asamErrorLogTimeStamp           NetworkTimeInSeconds}
+
+asamErrorLogIndex              OBJECT-TYPE
+	SYNTAX	            INTEGER
+	ACCESS			    read-only
+	STATUS			    mandatory
+	DESCRIPTION			"Index for Error Log Entry"
+::=            {asamErrorLogEntry 1}
+
+asamErrorLogIpAddress          OBJECT-TYPE
+	SYNTAX	            IpAddress
+	ACCESS			    read-only
+	STATUS			    mandatory
+	DESCRIPTION			"IpAddress of the SNMP Manager that
+                        generated the SNMP error"
+::=            {asamErrorLogEntry 2}
+
+asamErrorLogRequestId          OBJECT-TYPE
+	SYNTAX	            INTEGER
+	ACCESS			    read-only
+	STATUS			    mandatory
+	DESCRIPTION			"Request id of the SNMP request that generated
+                        the SNMP error."
+::=            {asamErrorLogEntry 3}
+
+asamErrorLogObjectId          OBJECT-TYPE
+	SYNTAX	            DisplayString
+	ACCESS			    read-only
+	STATUS			    mandatory
+	DESCRIPTION			"Object identifier in the SNMP request that caused
+                        the SNMP error."
+::=            {asamErrorLogEntry 4}
+
+asamErrorLogErrorCode          OBJECT-TYPE
+	SYNTAX	            INTEGER
+	ACCESS			    read-only
+	STATUS			    mandatory
+	DESCRIPTION			"Error code of the SNMP error that is detected
+                        by ASAM. This error code is described in
+                        asamErrorDefinitionTable."
+::=            {asamErrorLogEntry 5}
+
+asamErrorLogObjectValue          OBJECT-TYPE
+	SYNTAX	            DisplayString
+	ACCESS			    read-only
+	STATUS			    mandatory
+	DESCRIPTION			"Object value that is received from the SNMP Manager
+                        for the object that generated the SNMP error."
+::=            {asamErrorLogEntry 6}
+
+asamErrorLogAddInfo          OBJECT-TYPE
+	SYNTAX	            DisplayString
+	ACCESS			    read-only
+	STATUS			    mandatory
+	DESCRIPTION			"The additional information that is given by ASAM
+                        to giude the SNMP Manager to correct the SNMP
+                        error that is detected."
+::=            {asamErrorLogEntry 7}
+
+asamErrorLogTimeStamp          OBJECT-TYPE
+	SYNTAX	            NetworkTimeInSeconds
+	ACCESS			    read-only
+	STATUS			    mandatory
+	DESCRIPTION			"Network time when the SNMP error is generated."
+::=            {asamErrorLogEntry 8}
+
+END
+

@@ -1,0 +1,215 @@
+CADANT-CMTS-EXPORTIMPORT-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY,
+    NOTIFICATION-TYPE,
+    OBJECT-TYPE
+        FROM SNMPv2-SMI
+    DisplayString, TEXTUAL-CONVENTION, TruthValue
+        FROM SNMPv2-TC
+    InterfaceIndexOrZero
+        FROM IF-MIB
+    cadExperimental
+        FROM CADANT-PRODUCTS-MIB
+    trapCounter, trapSeverity
+        FROM CADANT-CMTS-EQUIPMENT-MIB;
+
+cadExportImportMib MODULE-IDENTITY
+    LAST-UPDATED "200402160000Z"  -- 2004, February 16th, midnight
+    ORGANIZATION "Arris International Inc."
+    CONTACT-INFO "Email: support@arrisi.com"
+
+    DESCRIPTION
+      "This MIB defines object which are used to control and report on
+       the exporting and importing of MIB configuration data in the
+       Cadant C4 CMTS."
+    REVISION "200103090000Z" -- 2001, March 9th, midnight
+    DESCRIPTION "Created."
+    REVISION "200402130000Z" -- 2004, February 13th, midnight
+    DESCRIPTION "Added cadCmtsExportImportWithLineNums, cadCmtsExportImportWithDefaults,
+                 cadCmtsExportImportNested, and cadCmtsExportImportWithCertificates."
+    REVISION "200402160000Z" -- 2004, February 16th, midnight
+    DESCRIPTION "Added cadCmtsExportImportIfIndex"
+	::= { cadExperimental 1 }
+
+--
+-- Textual Conventions
+--
+
+ExportImportAction ::= TEXTUAL-CONVENTION
+    STATUS current
+    DESCRIPTION
+        " Upon reading, this object always returns noop(0). If set to noop(0),
+          no action is taken. If set to export(1), all of the configuraton data
+          in the MIB will be written to the specified file. If set to import(2),
+          the specified file is read in as configuration data."
+    SYNTAX INTEGER {
+        noop(0),
+        export(1),
+        import(2),
+        pCmCertExport(3),
+        caCertExport(4)
+    }
+
+ExportResult ::= TEXTUAL-CONVENTION
+    STATUS current
+    DESCRIPTION
+        " The status of the last export operation. The value of unknown
+          is used upon system initialization."
+    SYNTAX INTEGER {
+        unknown(0),
+        success(1),
+        fileNameTooLong(2),
+        invalidCharactersInFilename(3),
+        fileSystemFull(4),
+        otherError(5)
+    }
+
+ImportResult ::= TEXTUAL-CONVENTION
+    STATUS current
+    DESCRIPTION
+        " The status of the last import operation. The value of unknown
+          is used upon system initialization."
+    SYNTAX INTEGER {
+        unknown(0),
+        success(1),
+        fileNotFound(2),
+        fileDecodingError(3),
+        otherError(4)
+    }
+
+--
+-- The system-wide export/import group
+--
+cadCmtsExportImportGroup OBJECT IDENTIFIER ::= { cadExportImportMib 1 }
+
+cadCmtsExportImportFilename OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        " The filename to which the MIB configuration data will be written to."
+    DEFVAL { "update:/export.txt" }
+    ::= { cadCmtsExportImportGroup 1 }
+
+cadCmtsExportImportAction OBJECT-TYPE
+    SYNTAX      ExportImportAction
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        " A cadCmtsExportNotification is sent when an export operation has
+          completed.  A cadCmtsImportNotification is sent when an import
+          operation has completed."
+    DEFVAL { noop }
+    ::= { cadCmtsExportImportGroup 2 }
+
+cadCmtsExportResult OBJECT-TYPE
+    SYNTAX      ExportResult
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        " The status of the last export operation. The value of unknown
+          is used upon system initialization."
+    DEFVAL { unknown }
+    ::= { cadCmtsExportImportGroup 3 }
+
+cadCmtsImportResult OBJECT-TYPE
+    SYNTAX      ImportResult
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        " The status of the last import operation. The value of unknown
+          is used upon system initialization."
+    DEFVAL { unknown }
+    ::= { cadCmtsExportImportGroup 4 }
+
+cadCmtsExportImportWithLineNums OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        " If set to true(1) at the time when CadCmtsExportImportAction causes
+          output to be generated, then each line of the output will be prepended with
+          its line number. Note that this output cannot then be put back into the CLI
+          and processed. The line numbers are not valid CLI syntax.
+          Otherwise, if false(2), then output is normal without numbers."
+    DEFVAL { false } -- don't include line numbers
+    ::= { cadCmtsExportImportGroup 5 }
+
+cadCmtsExportImportWithDefaults OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        " If set to true(1) at the time when CadCmtsExportImportAction causes
+          output to be generated, then all configuration objects are exported,
+          even the ones with default values or otherwise untouched.
+          Otherwise, if false(2), then output is abbreviated and only includes
+          values which are different from their default values or are otherwise
+          difficult to disinguish from their default values."
+    DEFVAL { false } -- keep it as short as possible
+    ::= { cadCmtsExportImportGroup 6 }
+
+cadCmtsExportImportNested OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        " If set to true(1) at the time when CadCmtsExportImportAction causes
+          output to be generated, then output is grouped in a nested, modal style
+          and contains fewer characters, though a greater number of lines.
+          Otherwise, if false(2), then each output line is fully qualified and
+          capable of being put into a CLI session as-is."
+    DEFVAL { true } -- output is nested Cisco-style
+    ::= { cadCmtsExportImportGroup 7 }
+
+cadCmtsExportImportWithCertificates OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        " If set to true(1) at the time when CadCmtsExportImportAction causes
+          output to be generated, then output contains BPI+ certificates.
+          Otherwise, if false(2), then output does not contain BPI+ certificates."
+    DEFVAL { true } -- output includes BPI+ certificates
+    ::= { cadCmtsExportImportGroup 8 }
+
+cadCmtsExportImportIfIndex OBJECT-TYPE
+    SYNTAX      InterfaceIndexOrZero
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        " If specified, then only the provisioned information for the specified
+          interface will be exported when cadCmtsExportImportAction is set to true(1).
+          Only cable and fastEthernet interfaces are supported at this time."
+    DEFVAL { 0 }
+    ::= { cadCmtsExportImportGroup 9 }
+
+--
+-- Export/Import trap definitions
+--
+cadCmtsExportImportTraps OBJECT IDENTIFIER ::= { cadExportImportMib 0 }
+
+cadCmtsExportNotification NOTIFICATION-TYPE
+	OBJECTS {
+		trapCounter,
+		trapSeverity,
+		cadCmtsExportResult
+	}
+	STATUS current
+	DESCRIPTION
+		""
+	::= { cadCmtsExportImportTraps 1 }
+
+cadCmtsImportNotification NOTIFICATION-TYPE
+	OBJECTS {
+		trapCounter,
+		trapSeverity,
+		cadCmtsImportResult
+	}
+	STATUS current
+	DESCRIPTION
+		""
+	::= { cadCmtsExportImportTraps 2 }
+
+END

@@ -1,0 +1,194 @@
+--
+-- Cadant CMTS PacketCable Event Message MIB
+--
+
+CADANT-CMTS-PC-EVENTMSG-MIB DEFINITIONS ::= BEGIN
+
+
+IMPORTS
+	MODULE-IDENTITY,
+	OBJECT-TYPE,
+	Integer32,
+	IpAddress,
+	Unsigned32
+		FROM SNMPv2-SMI
+
+        TEXTUAL-CONVENTION,
+	RowStatus,
+	TruthValue
+		FROM SNMPv2-TC
+
+	cadPCMibObjects
+		FROM CADANT-CMTS-PACKETCABLE-MIB;
+
+cadEvMsgMIB   MODULE-IDENTITY
+        LAST-UPDATED    "200710240000Z" -- October 24, 2007
+        ORGANIZATION    "Arris Interactive"
+        CONTACT-INFO    "Kathy Ashe"
+        DESCRIPTION     "PacketCable event message MIB. This MIB
+                         contains objects for PacketCable Event Messaging
+                         between the Cadant C4 CMTS and a record keeping server
+                         or distribution function."
+
+        REVISION        "200710240000Z" -- October 24, 2007
+        DESCRIPTION     "Move from cadExperimental to cadPCMIB in the hierarchy"
+
+        REVISION        "200505230000Z" -- May 23, 2005
+        DESCRIPTION     "Change the default value of cadEvMsgMaxBatchSize, cadEvMsgEnableFlag,
+                         and cadEvMsgMaxRetry"
+
+        REVISION        "200302050000Z" -- February 5, 2003
+        DESCRIPTION     "added cadEvMsgEnableFlag object"
+
+        REVISION        "200212270000Z" --December 27, 2002
+        DESCRIPTION     "added cadEvMsgMaxBatchSize object"
+
+
+	::= { cadPCMibObjects 5 }
+
+
+TimeOfDay ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1d:1d"
+    STATUS       current
+    DESCRIPTION
+            "A time-of-day specification in hours:minutes.
+
+            field  octets  contents                  range
+            -----  ------  --------                  -----
+              1       1    hour                      0..23
+              2       1    minutes                   0..59"
+    SYNTAX    OCTET STRING (SIZE (0..5))
+
+    
+cadEvMsgMibBase OBJECT IDENTIFIER ::= { cadEvMsgMIB 1 }
+
+
+cadEvMsgElementType OBJECT-TYPE
+    SYNTAX          Unsigned32(0..2)
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Element type to be included in Event Message header.
+                     Default value 2 = CMTS."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 4.2.0.0.1"
+    DEFVAL          {2}
+    ::= { cadEvMsgMibBase 1 }
+
+cadEvMsgElementId OBJECT-TYPE
+    SYNTAX          Unsigned32(0..100000)
+    MAX-ACCESS      read-write
+    STATUS	    current
+    DESCRIPTION     "Five digit Element ID to be included in Event Message header.
+                     Must be unique network-wide."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 4.2.0.0.2"
+    DEFVAL          {100000}
+    ::= { cadEvMsgMibBase 2 }
+
+cadEvMsgMaxAge OBJECT-TYPE
+    SYNTAX          Unsigned32(0..30)
+    UNITS           "minutes"
+    MAX-ACCESS      read-write
+    STATUS	    current
+    DESCRIPTION     "Maximum amount of time, in minutes, that an event message 
+                     destined for the RKS may reside in the CMTS, for UDP-based
+                     batch mode."
+    DEFVAL          {1}
+    ::= { cadEvMsgMibBase 3 }
+
+cadEvMsgRetransTimer OBJECT-TYPE
+    SYNTAX          Unsigned32(10..10000)
+    UNITS           "milliseconds"
+    MAX-ACCESS      read-write
+    STATUS	    current
+    DESCRIPTION     "Maximum amount of time, in milliseconds, that the CMTS will wait 
+                     for the RKS to acknowledge an event message before
+		     attempting to retransmit the message."
+    DEFVAL          {1000}
+    ::= { cadEvMsgMibBase 4 }
+
+
+cadEvMsgMaxRetry    OBJECT-TYPE
+    SYNTAX          Unsigned32(0..9)
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Maximum number of retry attempts for transmitting an event
+                     message. If this value is set to 0, then we only try 
+                     once."
+    DEFVAL          {0}
+    ::= { cadEvMsgMibBase 5 }
+
+cadEvMsgMaxBatchSize    OBJECT-TYPE
+    SYNTAX          Unsigned32(2..10)
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Maximum number of radius event messages that can be batched.
+                   This value must be set  to greater than  1 to allow batching" 
+    DEFVAL          {10}
+    ::= { cadEvMsgMibBase 6 }
+
+cadEvMsgEnableFlag    OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Boolean for enabling/disabling Event Messaging"
+                    
+    DEFVAL          {false}
+    ::= { cadEvMsgMibBase 7 }
+--=============================================================================
+--
+--  cadEvMsgTransTimeTable
+--
+--  The cadEvMsgTransTimeTable stores up to 24 time-of-day values
+--  when the CMTS will transmit any event messages stored locally.
+--
+--  All of the objects in this table are read-write.
+--
+--=============================================================================
+
+cadEvMsgTransTimeTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadEvMsgTransTimeEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Table of up to 24 time-of-day values for Event Messaging."
+    REFERENCE       "'Cadant CMTS Requirements for PacketCable' requirement 4.2.0.0.5"
+    ::= { cadEvMsgMIB 2 }
+
+cadEvMsgTransTimeEntry OBJECT-TYPE
+    SYNTAX          CadEvMsgTransTimeEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "This entry contains one row in the table."
+    INDEX { cadEvMsgTransTimeIdx }
+    ::= { cadEvMsgTransTimeTable 1 }
+
+CadEvMsgTransTimeEntry ::= SEQUENCE {
+    cadEvMsgTransTimeIdx        Unsigned32,
+    cadEvMsgTransTOD		TimeOfDay,
+    cadEvMsgTransTimeStatus	RowStatus
+    }
+
+cadEvMsgTransTimeIdx OBJECT-TYPE
+    SYNTAX          Unsigned32(1..24)
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "An index into the cadEvMsgTransTimeTable. There can
+                     be up to 24 entries. "
+    ::= { cadEvMsgTransTimeEntry 1 }
+
+
+cadEvMsgTransTOD OBJECT-TYPE
+    SYNTAX          TimeOfDay
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION     "Time of day to transmit Event Messages, in HH:MM format"
+    DEFVAL          {"00:00"}
+    ::= { cadEvMsgTransTimeEntry 2 }
+
+cadEvMsgTransTimeStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Row status entry for the table."
+    ::= { cadEvMsgTransTimeEntry 3 }
+
+END

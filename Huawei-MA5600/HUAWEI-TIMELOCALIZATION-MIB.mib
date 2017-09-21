@@ -1,0 +1,192 @@
+-- ============================================================================
+-- Copyright (C) 2010 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description: This mib object for the time localization indicates the configurations of the DST, 
+--              time zone and time stamp.
+-- Reference:  
+-- Version: V1.09
+-- ============================================================================
+HUAWEI-TIMELOCALIZATION-MIB DEFINITIONS ::= BEGIN
+ 
+        IMPORTS
+
+            Integer32, OBJECT-TYPE, MODULE-IDENTITY                 
+                FROM SNMPv2-SMI 
+            TEXTUAL-CONVENTION
+                FROM SNMPv2-TC      
+            huaweiUtility           
+                FROM HUAWEI-MIB ;
+    
+
+        DSTDateAndTime ::= TEXTUAL-CONVENTION
+        --DISPLAY-HINT "1d-1d,1d:1d:1d or 1d 1d 1d,1d:1d:1d"
+        STATUS       current
+        DESCRIPTION
+         "The Daylight Saving Time (DST) can be set in the following two ways:
+
+             octets  date      range             week          range
+             -----   ------    -----             --------      -----
+               1     month     1..12             month         1..12
+               2     day       1..31             week          1..5  (Which week of the current month)
+               3     hour      0..23             wday          0..6  (which day of the week. Sunday = 0)
+               4     minutes   0..59             hour          0..23
+               5     seconds   0..59             minutes       0..59
+               6                                 seconds       0..59
+
+          Note: If 5 Bytes, to calculate Daylight Saving Time with date.
+          If 6 Bytes, to calculate Daylight Saving Time with week.
+         "
+        SYNTAX       OCTET STRING (SIZE (0 | 5 | 6))
+    
+        hwTimeLocalization MODULE-IDENTITY
+            LAST-UPDATED "201011090000Z"
+            ORGANIZATION "Fix-Net Dep, Huawei Technologies Co.,Ltd."
+            CONTACT-INFO                                        
+                         "Huawei Industrial Base                
+                          Bantian, Longgang                     
+                          Shenzhen 518129                       
+                          People's Republic of China            
+                          Website: http://www.huawei.com        
+                          Email: support@huawei.com             
+                         "                                      
+            DESCRIPTION 
+                "This mib object for the time localization indicates the configurations of the DST, 
+                 time zone and time stamp.
+                "           
+
+    --  Revision history
+        REVISION    "201011090000Z"
+        DESCRIPTION "V1.09, The description of this MIB is modified according to the tool."
+                    
+        REVISION    "201008250000Z"
+        DESCRIPTION "V1.08, modified the contact-info and the revision history. Modified the description of the mib header file."
+
+        REVISION    "201006190000Z"
+        DESCRIPTION "V1.07, the description of hwDstEndTime, hwDstAdjustTime, hwTimeStampMode and hwTimeFormat was modified and supplemented."
+
+        REVISION    "201003030000Z"
+        DESCRIPTION "V1.06, DT requirements were implemented and the syntax and semantics of SIMPLETEST were changed."
+
+        REVISION    "201002020000Z"
+        DESCRIPTION "V1.05, hwTimeDateFormat was added for modifying the time display format."
+
+        REVISION    "201001260000Z"        
+        DESCRIPTION "V1.04, used SimpleTest clean warning and error. Used MIB browser clean warning and error. 
+                    Added MIB description."
+
+        REVISION    "200706050000Z"        
+        DESCRIPTION "V1.02, added time zone and set leaf object."
+
+        REVISION    "200611240000Z"        
+        DESCRIPTION "V1.01, optimized and collated."
+
+        REVISION    "200604270000Z"        
+        DESCRIPTION "V1.00, completed the draft."
+        ::= { huaweiUtility 66 }
+    
+        hwDstPara  OBJECT IDENTIFIER ::= { hwTimeLocalization 1 }
+
+        hwDstStartTime OBJECT-TYPE
+        SYNTAX DSTDateAndTime
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "The start time of the DST.
+          The start time of the DST can be set according to week or date.
+          For example, the format of date is # 0x5 0x1 0x0 0x0 0x0, 
+          indicating May 1, 00:00:00; the format of week is # 0x5 0x1 0x6 0x0 
+          0x0 0x0, indicating 00:00:00 on Saturday, the first week in May.
+         "
+        ::= { hwDstPara 1 }
+        
+        hwDstEndTime OBJECT-TYPE
+        SYNTAX DSTDateAndTime
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "The end time of the DST.
+          The end time of the DST cannot be the same as hwDstStartTime.
+          For example, the format of date is # 0x9 0x1e 0x16 0x3b 0x3b, 
+          indicating September 30, 22:59:59; the format of week is 
+          # 0x9 0x5 0x4 0x16 0x3b 0x3b, indicating 22:59:59 on Thursday, 
+          the last week in September; the format of week is 
+          # 0x9 0x3 0x4 0x16 0x3b 0x3b, indicating 22:59:59 on Thursday, 
+          the third week in September.
+         "
+        ::= { hwDstPara 2 }
+                
+        hwDstAdjustTime OBJECT-TYPE
+        SYNTAX Integer32
+        UNITS  "minute"
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "The adjustment time of the DST with the unit of minute. 
+          Default: 60 
+          Unit: minute  
+         "                          
+        ::= { hwDstPara 3 }
+        
+        hwTimeStamp OBJECT  IDENTIFIER   ::= { hwTimeLocalization 2 }
+                        
+        hwTimeStampMode OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+                local(1),
+                utc(2)
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+         "The time information in the trap and syslog uses the formats of the time stamp.
+          The time stamp has two formats: local(1) and utc(2).
+          Options:
+          1. local(1) -indicates that the time stamp uses the local time of the node.
+          2. utc(2)   -indicates that the time stamp uses the UTC(Universal Time Coordinated) time.
+          Default:utc
+         "                          
+        ::= { hwTimeStamp 1 }
+        
+        hwTimezone   OBJECT-TYPE
+        SYNTAX OCTET STRING  (SIZE (1..9))
+        MAX-ACCESS   read-write
+        STATUS       current
+        DESCRIPTION
+         "The object is used for setting the time zone of the place where the device is located. 
+          The format is GMT+HH:MM or GMT-HH:MM.
+          Example: GMT+11:30 or GMT-11:30.
+          If the time zone is changed, the local time is changed accordingly.
+         " 
+       ::= { hwTimeLocalization 3 }      
+                            
+           
+        hwTimeFormat   OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+                dateformat1(1),
+                dateformat2(2),
+                dateformat3(3),
+                dateformat4(4),
+                dateformat5(5),
+                dateformat6(6),
+                dateformat7(7),
+                dateformat8(8),
+                dateformat9(9)
+            }
+        MAX-ACCESS   read-write
+        STATUS       current
+        DESCRIPTION
+         "The format of date.
+          Options:
+          1. dateformat1(1) -YYYY-MM-DD.
+          2. dateformat2(2) -DD-MM-YYYY.
+          3. dateformat3(3) -MM-DD-YYYY. 
+          4. dateformat4(4) -YYYY.MM.DD.
+          5. dateformat5(5) -DD.MM.YYYY.
+          6. dateformat6(6) -MM.DD.YYYY. 
+          7. dateformat7(7) -YYYY/MM/DD. 
+          8. dateformat8(8) -DD/MM/YYYY. 
+          9. dateformat9(9) -MM/DD/YYYY.
+         " 
+       ::= { hwTimeLocalization 4 }     
+                            
+    END

@@ -1,0 +1,591 @@
+-- ============================================================================
+-- Copyright (C) 2012 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description:  CPE management MIB.The hwCpeMgmtPara table is used for managing PVC parameters.
+--               The hwCpeSelect table is used for establishing PVC and starting terminal       
+--               device management.The hwCpeUpgrade table is used for software updating         
+--               of terminal device.            
+-- Reference:
+-- Version: V1.15  
+-- ============================================================================
+	HUAWEI-CPE-MGMT-MIB DEFINITIONS ::= BEGIN
+
+		IMPORTS
+			Integer32, IpAddress, OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE
+				FROM SNMPv2-SMI
+			huaweiUtility
+				FROM HUAWEI-MIB				
+            hwFrameIndex,hwSlotIndex,hwPortIndex
+                FROM HUAWEI-DEVICE-MIB
+            hwLoadFileName
+                FROM HUAWEI-LOAD-BACKUP-MIB;	
+
+
+		hwCpeMgmt MODULE-IDENTITY
+			LAST-UPDATED "201202080900Z"
+			ORGANIZATION "Huawei Technologies Co.,Ltd."
+			CONTACT-INFO                                 
+			             "Huawei Industrial Base         
+			              Bantian, Longgang              
+			              Shenzhen 518129                
+			              People's Republic of China     
+			              Website: http://www.huawei.com 
+			              Email: support@huawei.com      
+			             "                               
+            DESCRIPTION 
+				"CPE management MIB.The hwCpeMgmtPara table is used for managing PVC parameters.
+				 The hwCpeSelect table is used for establishing PVC and starting terminal 
+				 device management.The hwCpeUpgrade table is used for software updating 
+				 of terminal device."
+      
+	--  Revision history
+	          REVISION    "201202080900Z"
+            DESCRIPTION "V1.15, modified the description of hwCpeMgmtFlowPara and hwCpePortIndex."
+                
+            REVISION    "201011230900Z"
+            DESCRIPTION "V1.14, modified the description of hwBatchCpeAdminStatus."     
+ 
+            REVISION    "201011200900Z"
+            DESCRIPTION "V1.13, modified the description of MIB."
+
+            REVISION    "201008050900Z"
+            DESCRIPTION "V1.12, The descriptions of objects in hwCpeMgmtPara, hwCpeSelect, 
+                         and hwCpeUpgrade are modified and supplemented."
+
+            REVISION    "201005060900Z"
+            DESCRIPTION "V1.11, Modify this MIB for clearing Simple Tester errors and warnings"
+
+            REVISION    "201004060900Z"
+            DESCRIPTION "V1.10, Add hwCpeTraps for DT"
+
+            REVISION    "200604270900Z"
+            DESCRIPTION "V1.00, Initial version"
+
+			::= { huaweiUtility 106 }
+
+		hwCpeMgmtPara  OBJECT IDENTIFIER ::= { hwCpeMgmt 1 }
+
+		hwCpeMgmtIpAddr OBJECT-TYPE
+			SYNTAX IpAddress
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				IP address of CPE terminal.
+				DSLAM uses this IP address to connect to CPE terminal.
+				Default: 3232235777 (IP address 192.168.1.1)
+				"
+			
+			::= { hwCpeMgmtPara 1 }
+
+		hwCpeMgmtVpi OBJECT-TYPE
+			SYNTAX Integer32
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				VPI of terminal management channel.
+				It is necessary to config VPI/VCI value when establish management channel.
+                Default: 1
+				"
+			
+			::= { hwCpeMgmtPara 2 }
+
+		hwCpeMgmtVci OBJECT-TYPE
+			SYNTAX Integer32
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				VCI of terminal management channel.
+				It is necessary to config VPI/VCI value when establish management channel.
+                Default: 39
+				"
+			
+			::= { hwCpeMgmtPara 3 }
+
+		hwCpeMgmtDslamVlan OBJECT-TYPE
+			SYNTAX Integer32
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				VLAN ID of DSLAM's VLAN interface.
+				It is necessary to config VLAN ID value when establish management channel.
+                Default: 3999
+				"			
+			::= { hwCpeMgmtPara 4 }
+
+		hwCpeMgmtCpeVlan OBJECT-TYPE
+			SYNTAX Integer32
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				VLAN ID of VDSL CPE's management VLAN.
+				It is necessary to config VLAN ID value when establish management channel.
+                Default: 4014
+				"			
+			::= { hwCpeMgmtPara 5 }
+
+		hwCpeMgmtFlowType OBJECT-TYPE
+			SYNTAX INTEGER
+				{
+				cpevlan(1),
+				vlanethertype(2),
+				vlan8021p(3)
+				}
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				 Flow type of VDSL CPE's management VLAN,the default value is cpevlan(1).
+                 Options:
+				  1. cpevlan(1)       - indicates that the Cpe management flow type is vlan
+				  2. vlanethertype(2) - indicates that the Cpe management flow type is vlanethert
+				  3. vlan8021p(3)     - indicates that the Cpe management flow type is vlan8021p
+  				"			
+			::= { hwCpeMgmtPara 6 }
+
+		hwCpeMgmtFlowPara OBJECT-TYPE
+			SYNTAX Integer32
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				Flow parameter of VDSL CPE's management flow.
+				While hwCpeMgmtFlowType equals to 1(cpevlan),this node will be invalid.
+				While hwCpeMgmtFlowType equals to 2(vlanethertype),this node will mean the encapsulation type of user's side.
+				1 - pppoe
+				2 - ipoe
+				While hwCpeMgmtFlowType equals to 3(vlan8021p),this node will mean the 802.1p user's level.The range is from 1 to 7.
+				The invalid value -1 indicates that the CPE management parameter is not configured.
+				"
+			::= { hwCpeMgmtPara 7 }
+
+		hwCpeSelect OBJECT IDENTIFIER ::= { hwCpeMgmt 2 }
+
+		hwCpeFrameIndex OBJECT-TYPE
+			SYNTAX Integer32
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				Terminal's frame ID
+				"
+			::= { hwCpeSelect 1 }
+
+		hwCpeSlotIndex OBJECT-TYPE
+			SYNTAX Integer32
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				Terminal's slot ID
+				"
+			::= { hwCpeSelect 2 }
+
+		hwCpePortIndex OBJECT-TYPE
+			SYNTAX Integer32
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				Terminal's port ID,The invalid value -1 indicates that the CPE management parameter is not configured.
+				"
+			::= { hwCpeSelect 3 }
+
+		hwCpeMgmtOper OBJECT-TYPE
+			SYNTAX INTEGER
+				{
+				start(1),
+				stop(2),
+				invalid(-1)
+				}
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				 Operation of terminal management.
+				 Options:
+				 1. start(1)    - terminal management start
+				 2. stop(2)     - terminal management end
+				 3. invalid(-1) - returned to GET request.
+				 NMS starts telnet to CPE terminal from here.
+				 User only need Start operation if he want to telnet to CPE terminal.
+				 User need both Start operation and Stop operation if he want to update files to CPE terminal.
+				"
+			::= { hwCpeSelect 4 }
+
+		hwCpeUpgrade OBJECT  IDENTIFIER   ::= { hwCpeMgmt 3 }
+
+		hwCpeLoadServerIpAddr OBJECT-TYPE
+			SYNTAX IpAddress
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				 Server IP address.
+				 DSLAM download files from this server.
+				"
+			::= { hwCpeUpgrade 1 }
+
+		hwCpeLoadProtocol OBJECT-TYPE
+			SYNTAX INTEGER
+				{
+				tftp(1),
+				ftp(2),
+				sftp(3),
+				other(4),
+				invalid(-1)
+				}
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				 Load protocol.
+				 Options:
+				 1.tftp(1)     - TFTP mode
+				 2.ftp(2)      - FTP mode
+				 3.sftp(3)     - SFTP mode
+				 4.other(4)    - Other mode
+				 5.invalid(-1) - indicates that there is no CPE load operation.
+				 User can choose TFTP,FTP or SFTP mode to transfer files.
+				 The third transfer mode is used to extend.
+				"
+			::= { hwCpeUpgrade 2 }
+
+		hwCpeLoadFileName OBJECT-TYPE
+			SYNTAX OCTET STRING
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				Name of file to be loaded.
+				Absolute path is needed if the file is not in the default path of FTP/TFTP server.
+				"
+			::= { hwCpeUpgrade 3 }
+
+		hwCpeLoadUserName OBJECT-TYPE
+			SYNTAX OCTET STRING
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				User name,use to visit FTP server.
+				User name is not needed if TFTP protocol is used.
+				This value will be discarded if TFTP protocol is used.
+				"
+			::= { hwCpeUpgrade 4 }
+
+		hwCpeLoadPassword OBJECT-TYPE
+			SYNTAX OCTET STRING
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				Password,use to visit FTP server.
+				Password is not needed if TFTP protocol is used.
+				This value will be discarded if TFTP protocol is used.
+				"
+			::= { hwCpeUpgrade 5 }
+
+		hwCpeLoadAdminStatus OBJECT-TYPE
+			SYNTAX INTEGER
+				{
+				start(1),
+				stop(2),
+				invalid(-1)
+				}
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				 Load operation.
+				 Options:
+				 1.start(1)    - Start loading operation
+				 2.stop(2)     - Stop loading operation
+				 3.invalid(-1) - is returned to GET request.
+				 NMS start update files from here.
+				"
+			::= { hwCpeUpgrade 6 }
+
+		hwCpeLoadOperStatus OBJECT-TYPE
+			SYNTAX INTEGER
+				{
+				noLoadOperation(1),
+				ready(2),
+				getingToDslam(3),
+				puttingToCpe(4),
+				getToDslamFail(5),
+				putToCpeFail(6)
+				}
+			MAX-ACCESS read-only
+			STATUS current
+			DESCRIPTION
+				"          
+				 Load result.
+				 Options:
+				 1.noLoadOperation(1)   -  No load operation
+				 2.ready(2)             -  Wait to load
+				 3.getingToDslam(3)     -  Geting to dslam
+				 4.puttingToCpe(4)      -  Putting to cpe
+				 5.getToDslamFail(5)    -  Get to dslam fail
+				 6.putToCpeFail(6)      -   Put to cpe fail
+				 DSLAM return loading result to NMS by this node.
+				"
+			::= { hwCpeUpgrade 7 }
+
+		hwCpeLoadFileType OBJECT-TYPE
+			SYNTAX INTEGER
+				{
+				image(1),
+				cfgfile(2),
+				otherfile(3)
+				}
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				File Type.
+				Options:
+				1.image(1)     - software of CPE
+				2.cfgfile(2)   - configuration file
+				3.otherfile(3) - other file
+				"
+			::= { hwCpeUpgrade 8 }
+
+		hwCpeLoadServerPort OBJECT-TYPE
+			SYNTAX Integer32 (0..65535)
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				Cpe load server port in SFTP mode
+                Default: 22 (SFTP's well-known port)
+				"
+			::= { hwCpeUpgrade 9 }
+
+		hwBatchCpeSelectTable OBJECT-TYPE
+			SYNTAX SEQUENCE OF HwBatchCpeSelectEntry
+			MAX-ACCESS not-accessible
+			STATUS current
+			DESCRIPTION
+				"Cpe Batch Management table(the max record number is 1024). The indexes of this table
+				 are hwBatchCpeFrameIndex,hwBatchCpeSlotIndex,hwBatchCpePortIndex and hwBatchCpeid."
+			::= { hwCpeMgmt 4 }
+
+
+		hwBatchCpeSelectEntry OBJECT-TYPE
+			SYNTAX HwBatchCpeSelectEntry
+			MAX-ACCESS not-accessible
+			STATUS current
+			DESCRIPTION
+				"Cpe Batch Management table(the max record number is 1024). The indexes of this entry
+				 are hwBatchCpeFrameIndex,hwBatchCpeSlotIndex,hwBatchCpePortIndex and hwBatchCpeid."
+			INDEX { hwBatchCpeFrameIndex,
+	          		hwBatchCpeSlotIndex,
+	          		hwBatchCpePortIndex,
+	          		hwBatchCpeid
+	          	   }
+			::= { hwBatchCpeSelectTable 1 }
+
+		HwBatchCpeSelectEntry ::=
+			SEQUENCE {
+				hwBatchCpeFrameIndex
+					Integer32,
+				hwBatchCpeSlotIndex
+					Integer32,
+				hwBatchCpePortIndex
+					Integer32,
+				hwBatchCpeid
+					Integer32,
+				hwBatchCpeAdminStatus
+					INTEGER,
+				hwBatchCpeRowStatus
+					INTEGER,                     
+				hwBatchCpeLoadProgress
+					Integer32
+			 }
+
+		hwBatchCpeFrameIndex OBJECT-TYPE
+			SYNTAX Integer32
+			MAX-ACCESS not-accessible
+			STATUS current
+			DESCRIPTION
+				"
+				ID of the shelf to which the terminal is connected
+				"
+			::= { hwBatchCpeSelectEntry 1 }
+
+		hwBatchCpeSlotIndex OBJECT-TYPE
+			SYNTAX Integer32
+			MAX-ACCESS not-accessible
+			STATUS current
+			DESCRIPTION
+				"
+				ID of the slot to which the terminal is connected
+
+				"
+			::= { hwBatchCpeSelectEntry 2 }
+
+		hwBatchCpePortIndex OBJECT-TYPE
+			SYNTAX Integer32
+			MAX-ACCESS not-accessible
+			STATUS current
+			DESCRIPTION
+				"
+				ID of the port to which the terminal is connected
+
+				"
+			::= { hwBatchCpeSelectEntry 3 }
+
+		hwBatchCpeid OBJECT-TYPE
+			SYNTAX Integer32
+			MAX-ACCESS not-accessible
+			STATUS current
+			DESCRIPTION
+				"
+				Terminal ID such as ONT ID (0-63)
+				"
+			::= { hwBatchCpeSelectEntry 4 }
+
+		hwBatchCpeAdminStatus OBJECT-TYPE
+			SYNTAX INTEGER
+				{
+				prepareToLoad(1),
+				loading(2),
+				loadsuccess(3),
+				loadfail(4)
+				}
+
+			MAX-ACCESS read-only
+			STATUS current
+			DESCRIPTION
+				"
+				Current loading status of the terminal
+				You can query this leaf, through the NMS, to learn the current loading status of a terminal.
+				Loading result.
+				Options:
+				1. prepareToLoad(1)  - Preparing to load
+				2. loading(2)       - Loading
+				3. loadsuccess(3)   - Loading is successful
+				4. loadfail(4)      - Loading fails
+				DSLAM returns loading result to NMS by this node.				
+				"
+			::= { hwBatchCpeSelectEntry 5 }
+
+		hwBatchCpeRowStatus OBJECT-TYPE
+			SYNTAX INTEGER
+				{
+				createAndGo(4),
+				delete(6)
+				}
+			MAX-ACCESS read-write
+			STATUS current
+			DESCRIPTION
+				"
+				Terminal management.
+				Options:
+			        1. createAndGo(4)   -Add this terminal to the sequence of terminals to be loaded
+			        2. delete(6)        -Remove this terminal from the sequence of terminals to be loaded	
+				Through createAndGo, the NMS adds terminals one by one to the sequence of terminals to be loaded.
+				After the operation of batch loading is performed, no terminal can be added to or removed from the sequence of terminals to be loaded.
+				"
+			::= { hwBatchCpeSelectEntry 6 }
+                                               
+                                               
+		hwBatchCpeLoadProgress OBJECT-TYPE
+			SYNTAX Integer32 (0..100)
+			MAX-ACCESS read-only
+			STATUS current               
+			DESCRIPTION
+				"          
+				display ont load progress   
+				"  
+			::= { hwBatchCpeSelectEntry 7 }
+
+		hwCpeTraps OBJECT IDENTIFIER ::= { hwCpeMgmt 5 }
+		
+		hwCpeTrapVbOids OBJECT IDENTIFIER ::= { hwCpeTraps 1 }	
+			
+		hwCpeLoadstate OBJECT-TYPE
+			SYNTAX INTEGER
+				{
+				cpedownloadfail(1),
+				cpeuploadfail(2),
+				cpeloadsucceed(3)
+				}
+			MAX-ACCESS accessible-for-notify
+			STATUS current
+			DESCRIPTION
+				"
+				 CPE load result.
+				 Options:				
+				 1. cpedownloadfail(1)   - down load operation failed 
+				 2. cpeuploadfail(2)     - up load operation failed
+				 3. cpeloadsucceed(3)    - load operation succeed 
+				"
+			::= { hwCpeTrapVbOids 1 }
+
+		hwCpeTelstate OBJECT-TYPE
+			SYNTAX INTEGER
+				{
+				cpetelfail(1),   
+				cpetelstop(2),  
+				cpetelpvcoccupied(3) 
+				}
+			MAX-ACCESS accessible-for-notify
+			STATUS current
+			DESCRIPTION
+				"
+				 CPE telnet result.
+				 Options:				
+				 1.cpetelfail(1)        - telnet operation failed 
+				 2.cpetelstop(2)        - telnet operation stopped
+				 3.cpetelpvcoccupied(3) - telnet pvc occupied was occupied  
+				"
+			::= { hwCpeTrapVbOids 2 }
+
+		hwCpeCommonTraps OBJECT IDENTIFIER ::= { hwCpeTraps 2 }
+		
+		hwCpeCommonTrapsPrefix OBJECT IDENTIFIER ::= { hwCpeCommonTraps 0 }
+    
+		hwCpeLoadStateTrap NOTIFICATION-TYPE
+		    OBJECTS     {
+		        hwFrameIndex,
+		        hwSlotIndex,
+		        hwPortIndex,
+		        hwLoadFileName,
+		        hwCpeLoadstate,
+		        hwCpeTelstate
+		        }
+		    STATUS      current
+		    DESCRIPTION    
+		        "
+		        This trap will send when CPE load operation is finished.
+		        CPE load result from the cpe terminal. 
+		        "
+		    ::= { hwCpeCommonTrapsPrefix 1 }	
+
+		hwCpeTelStateTrap NOTIFICATION-TYPE
+		    OBJECTS     {   
+		        hwFrameIndex,
+		        hwSlotIndex,
+		        hwPortIndex,
+		        hwLoadFileName,
+		        hwCpeLoadstate,
+		        hwCpeTelstate
+		        }
+		    STATUS      current
+		    DESCRIPTION    
+		        "
+		        This trap will send when telnet operation on CPE processed.
+		        CPE telnet result from the CPE terminal. 
+		        "
+		    ::= { hwCpeCommonTrapsPrefix 2 }
+		    
+		hwCpeAlarmTraps OBJECT IDENTIFIER ::= { hwCpeTraps 3 }
+
+		
+			
+	END

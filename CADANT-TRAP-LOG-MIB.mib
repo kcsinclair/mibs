@@ -1,0 +1,432 @@
+CADANT-TRAP-LOG-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-COMPLIANCE, OBJECT-GROUP
+        FROM SNMPv2-CONF
+    MODULE-IDENTITY, OBJECT-TYPE, Integer32, Unsigned32
+        FROM SNMPv2-SMI
+    TruthValue, RowStatus
+        FROM SNMPv2-TC
+    docsDevEvControlEntry
+        FROM DOCS-CABLE-DEVICE-MIB
+    InetAddressIPv4or6
+        FROM CADANT-TC
+    cadNotification
+        FROM CADANT-PRODUCTS-MIB;
+
+cadTrapLogMib MODULE-IDENTITY
+    LAST-UPDATED "200604200000Z" -- April 20 2006
+    ORGANIZATION "Arris International, Inc."
+    CONTACT-INFO "support@arrisi.com"
+
+    DESCRIPTION
+      "This MIB defines objects which are used to control and
+       report on Cadant proprietary event notificaton (trap) and
+       logging operation."
+
+    REVISION "200604200000Z" -- April 20 2006
+    DESCRIPTION "Add event priority override."
+    REVISION "200503310000Z" -- March 31 2005
+    DESCRIPTION "Add CM Registration notification control."
+    REVISION "200403160000Z" -- March 16 2004
+    DESCRIPTION "CM reset traps should be disabled by default."
+    REVISION "200402040000Z" -- Febuary 4 2004
+    DESCRIPTION "Add CMResetClear notification control."
+    REVISION "200306300000Z" -- 2003, June 30th, midnight
+    DESCRIPTION "Add global CM reset notification control."
+    REVISION "200305300000Z" -- 2003, May 30th, midnight
+    DESCRIPTION "Added cadCliAuthToLogLevelTable objects"
+    REVISION "200305070000Z" -- 2003, May 7th, midnight
+    DESCRIPTION "Changed default of cadLogHistorySize to be 2000"
+    REVISION "200304290000Z" -- 2003, April 29th, midnight
+    DESCRIPTION "Removed cadR101LoggingEnabled and cadR102LoggingEnabled.
+                 Moved cadTrapLogMib from cadExperimental.6 to cadNotification.2"
+    REVISION "200208130000Z" -- 2002, August 13th, midnight
+    DESCRIPTION "Modify to make syslog svr table conform to standards"
+    REVISION "200208060000Z" -- 2002, August 6th, midnight
+    DESCRIPTION "Add syslog server table"
+    REVISION "200106190000Z" -- 2001, June 19th, midnight
+    DESCRIPTION "Added more gloabls variables and cadEvControlTable."
+    REVISION "200106110000Z" -- 2001, June 11th, midnight
+    DESCRIPTION "Created."
+        ::= { cadNotification 2 }
+
+--
+-- The system-wide trap and logging globals.
+-- These values persist across resets.
+--
+cadTrapLogGlobals OBJECT IDENTIFIER ::= { cadTrapLogMib 1 }
+
+cadProprietaryLoggingEnabled OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        " If this value is set to true, then all Cadant proprietary log
+        entries are enabled. Otherwise, the syslog logs will consist only
+        of standard logs entries. "
+    DEFVAL { false }
+    ::= { cadTrapLogGlobals 1 }
+
+cadLocalLogSize OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..300)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        " The maximum size of the local log, in number of entries. The local log
+        is only what is put into the docsDevEventTable. "
+    DEFVAL { 10 } -- This value is DOCSIS defined
+    ::= { cadTrapLogGlobals 2 }
+
+cadLogHistorySize OBJECT-TYPE
+    SYNTAX      Unsigned32 (0..2000)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        " The maximum size of the log history, in number of entries. This log
+        contains both Cadant prioprietary and DOCSIS notifications. "
+    DEFVAL { 2000 }
+    ::= { cadTrapLogGlobals 3 }
+
+cadSyslogFacility OBJECT-TYPE
+    SYNTAX INTEGER {
+      local0(0),
+      local1(1),
+      local2(2),
+      local3(3),
+      local4(4),
+      local5(5),
+      local6(6),
+      local7(7)     
+    }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        " The syslog logging facility. "
+    DEFVAL { local0 }
+    ::= { cadTrapLogGlobals 4 }
+
+cadCmTrapInhibit  OBJECT-TYPE
+    SYNTAX BITS {
+      resetRanging(0),      -- 0x80
+      resetProvisioning(1), -- 0x40
+      resetRegistered(2),   -- 0x20
+      resetClear(3),        -- 0x10
+      registered(4)         -- 0x08
+    }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+    " Controls the generation of SNMP traps regarding to CM status change. A cleared bit indicates that a
+      trap must be generated if a CM resets while in the corresponding state.  If resetRanging(0) is
+      clear, a CM reset while in the ranging state will generate a cmResetNotification trap.  If
+      resetProvisioning(1) is clear, a CM reset while in the rangingComplete or ipComplete states 
+      will generate a cmResetNotification trap.  If resetRegistered(2) is clear, a CM reset while in the
+      registrationComplete state will generate a cmResetNotification trap. If resetClear(3) is clear, 
+          a on-line CM from previous flap will generate a cmResetClearNotification trap. If registered(4) is 
+          clear, a registered CM will generate a cmRegistrationNotification trap."
+    DEFVAL { 'f8'h }
+    ::= { cadTrapLogGlobals 5 }
+
+--
+-- The following table controls the reporting of the various classes of
+-- Cadant proprietary events. The docsDevEvControlTable is used to control
+-- DOCSIS-specific events.
+--
+
+cadEvControlTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadEvControlEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table allows control of the reporting of event classes.
+             For each event priority, a combination of logging and
+             reporting mechanisms may be chosen."
+        ::= { cadTrapLogMib 2 }
+
+cadEvControlEntry OBJECT-TYPE
+        SYNTAX      CadEvControlEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Allows configuration of the reporting mechanisms for a
+             particular event priority."
+        AUGMENTS { docsDevEvControlEntry }
+        ::= { cadEvControlTable 1 }
+
+CadEvControlEntry ::= SEQUENCE {
+            cadEvReporting BITS
+        }
+
+cadEvReporting OBJECT-TYPE
+        SYNTAX BITS {
+          console(0)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            " Currently, only the console destination is persistent in SNMP.
+            Transient sessions, such as telnet, are not configurable via the MIB.
+            Those are configurable only via CLI. "
+        ::= { cadEvControlEntry 1 }
+--
+-- The following table provides the ability to inhibit or admit events
+-- without consideration to their priority.
+--
+
+cadEvOverrideTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadEvOverrideEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table allows the event priority to be overridden.
+             Each entry indicates an override condition for the given
+             event."
+        ::= { cadTrapLogMib 3 }
+
+cadEvOverrideEntry OBJECT-TYPE
+        SYNTAX      CadEvOverrideEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Allows configuration of the event priority overrides."
+        INDEX { cadEvOvrdEvId }
+        ::= { cadEvOverrideTable 1 }
+
+CadEvOverrideEntry ::= SEQUENCE {
+            cadEvOvrdEvId           Unsigned32,
+            cadEvOvrdState          INTEGER,
+            cadEvOvrdRowStatus      RowStatus,
+            cadEvOvrdPriority       INTEGER
+        }
+
+cadEvOvrdEvId OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Uniquely identifies the type of event that is reported
+             by this entry."
+        ::= { cadEvOverrideEntry 1 }
+
+cadEvOvrdState OBJECT-TYPE
+        SYNTAX INTEGER {
+          admit (1),
+          inhibit (2),
+          priority (3)
+        }
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+           "Indicates the current override state of the event.
+            admit allows the event to be generated and inhibit
+            prevents the event from being generated regardless
+            of the priority is enabled for the event.  Setting
+            the priority allows the event to generated with the
+            desired priority."
+        ::= { cadEvOverrideEntry 2 }
+
+cadEvOvrdRowStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+           "This variable indicates the status of  the  entry.
+            Valid values for a set include createAndGo(4) and
+            destroy(6)."
+        ::= { cadEvOverrideEntry 3 }
+
+cadEvOvrdPriority OBJECT-TYPE
+        SYNTAX INTEGER {
+            invalid(0),
+            emergency(1),
+            alert(2),
+            critical(3),
+            error(4),
+            warning(5),
+            notice(6),
+            information(7),
+            debug(8)
+        }
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+           "This field is only valid when the override state is
+            set to priority and indicates the priority level that
+            should be used when this notification is generated."
+        ::= { cadEvOverrideEntry 4 }
+
+--
+-- The following table stores syslog server information when
+-- there are more than one syslog server configured.
+--
+
+cadSyslogSvrTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadSyslogSvrEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table stores syslog server information when
+             there is more than one syslog server configured."
+        ::= { cadTrapLogMib 4 }
+
+cadSyslogSvrEntry OBJECT-TYPE
+        SYNTAX      CadSyslogSvrEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Syslog server information."
+        INDEX { cadSyslogSvrIpAddr }
+        ::= { cadSyslogSvrTable 1 }
+
+CadSyslogSvrEntry ::= SEQUENCE {
+            cadSyslogSvrIpAddr      InetAddressIPv4or6,
+            cadSyslogSvrFacility    INTEGER,
+            cadSyslogSvrRowStatus   RowStatus
+        }
+
+cadSyslogSvrIpAddr OBJECT-TYPE
+        SYNTAX      InetAddressIPv4or6
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "IP address of the syslog server."
+        ::= { cadSyslogSvrEntry 1 }
+
+cadSyslogSvrFacility OBJECT-TYPE
+        SYNTAX INTEGER {
+          local0(0),
+          local1(1),
+          local2(2),
+          local3(3),
+          local4(4),
+          local5(5),
+          local6(6),
+          local7(7)     
+        }
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+           "Facility associated with the syslog server."
+        DEFVAL { local0 }
+        ::= { cadSyslogSvrEntry 2 }
+
+cadSyslogSvrRowStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+           "This variable displays the status of  the  entry."
+        ::= { cadSyslogSvrEntry 3 }
+
+--
+-- cadCliAuthToLogLevelTable
+--
+
+cadCliAuthToLogLevelTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadCliAuthToLogLevelEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table is used to configure the logging level for
+             each of the CLI authorization levels."
+        ::= { cadTrapLogMib 5 }
+
+cadCliAuthToLogLevelEntry OBJECT-TYPE
+        SYNTAX      CadCliAuthToLogLevelEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Syslog server information."
+        INDEX { cadCliAuthLevel }
+        ::= { cadCliAuthToLogLevelTable 1 }
+
+CadCliAuthToLogLevelEntry ::= SEQUENCE {
+            cadCliAuthLevel Integer32,
+            cadCliLogLevel  INTEGER
+        }
+
+cadCliAuthLevel OBJECT-TYPE
+        SYNTAX      Integer32 (1..16)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A CLI authorization level."
+        ::= { cadCliAuthToLogLevelEntry 1 }
+
+cadCliLogLevel OBJECT-TYPE
+        SYNTAX INTEGER {
+            emergency(1),
+            alert(2),
+            critical(3),
+            error(4),
+            warning(5),
+            notice(6),
+            information(7),
+            debug(8)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The logging level that all commands assigned to this authorization
+             level will be output at when executed."
+        ::= { cadCliAuthToLogLevelEntry 2 }
+
+---
+--- Conformance information
+---
+cadTrapLogMibConformance OBJECT IDENTIFIER ::= { cadTrapLogMib 10 } 
+cadTrapLogCompliances    OBJECT IDENTIFIER ::= { cadTrapLogMibConformance 1 } 
+cadTrapLogGroups         OBJECT IDENTIFIER ::= { cadTrapLogMibConformance 2 }
+
+cadTrapLogCompliance MODULE-COMPLIANCE
+        STATUS current
+        DESCRIPTION
+                " Compliance statement for entities implementing the CADANT-TRAP-LOG-MIB"
+        MODULE -- this module
+                MANDATORY-GROUPS { cadTrapLogGlobalsGroup, cadTrapLogEventGroup,
+                                   cadSyslogGroup, cadCliAuthToLogLevelGroup }
+        ::= { cadTrapLogCompliances 1 }
+
+cadTrapLogGlobalsGroup OBJECT-GROUP
+        OBJECTS {
+        cadProprietaryLoggingEnabled,
+        cadLocalLogSize,
+        cadLogHistorySize,
+        cadSyslogFacility,
+            cadCmTrapInhibit
+        }
+        STATUS current
+        DESCRIPTION "Global trap and logging objects"
+        ::= { cadTrapLogGroups 1 }
+
+
+cadTrapLogEventGroup OBJECT-GROUP
+        OBJECTS {
+        cadEvReporting,
+        cadEvOvrdEvId,
+        cadEvOvrdState,
+        cadEvOvrdRowStatus
+        }
+        STATUS current
+        DESCRIPTION "Trap and log event control objects"
+        ::= { cadTrapLogGroups 2 }
+
+cadSyslogGroup OBJECT-GROUP
+        OBJECTS {
+        cadSyslogSvrFacility,
+        cadSyslogSvrRowStatus
+        }
+        STATUS current
+        DESCRIPTION "Syslog control objects"
+        ::= { cadTrapLogGroups 3 }
+
+cadCliAuthToLogLevelGroup OBJECT-GROUP
+        OBJECTS {
+        cadCliLogLevel
+        }
+        STATUS current
+        DESCRIPTION "CLI authorization to log level mapping control objects"
+        ::= { cadTrapLogGroups 4 }
+
+END

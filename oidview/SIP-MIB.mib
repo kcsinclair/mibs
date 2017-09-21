@@ -1,0 +1,3785 @@
+SIP-MIB DEFINITIONS ::= BEGIN
+
+   IMPORTS
+        MODULE-IDENTITY,
+        OBJECT-TYPE,
+        Counter32,
+        Integer32,
+        Gauge32,
+        mib-2,
+        TimeTicks,
+        Unsigned32
+             FROM SNMPv2-SMI
+
+        TEXTUAL-CONVENTION,
+        DateAndTime,
+        RowStatus,
+        TimeStamp,
+        TruthValue
+             FROM SNMPv2-TC
+
+        MODULE-COMPLIANCE,
+        OBJECT-GROUP,
+        NOTIFICATION-GROUP
+             FROM SNMPv2-CONF
+
+        SnmpAdminString
+             FROM SNMP-FRAMEWORK-MIB;
+
+   sipMIB MODULE-IDENTITY
+        LAST-UPDATED   "200003020000Z"
+        ORGANIZATION   "IETF SIP Working Group, SIP MIB Team"
+        CONTACT-INFO
+                "SIP MIB Team email: sip-mib@egroups.com
+
+                 Co-editor  Kevin Lingle
+                            Cisco Systems, Inc.
+                 postal:    7025 Kit Creek Road
+                            P.O. Box 14987
+                            Research Triangle Park, NC 27709
+                            USA
+                 email:     klingle@cisco.com
+                 phone:     +1-919-392-2029
+                 Co-editor  Joon Maeng
+                            VTEL Corporation
+                 postal:    108 Wild Basin Rd.
+                            Austin, TX 78746
+                            USA
+                 email:     joon_maeng@vtel.com
+                 phone:     +1-512-437-4567
+
+                 Co-editor  Dave Walker
+                            SS8 Networks, Inc.
+                 postal:    135 Michael Cowpland Drive, Suite 200
+                            Kanata, ON  K2M 2E9
+                            Canada
+                 email:     drwalker@ss8networks.com
+                 phone:     +1 613 592 2459"
+        DESCRIPTION
+                "Initial version of Session Initiation Protocol (SIP)
+                 MIB module.  SIP is an application-layer signalling
+                 protocol for creating, modifying and terminating
+                 multimedia sessions with one or more participants.
+                 These sessions include Internet multimedia conferences
+                 and Internet telephone calls.  SIP is defined in
+                 RFC 2543 (March 1999).
+
+                 This MIB is defined for the management of SIP User
+                 Agents (UAs), Proxy and Redirect Servers, and
+                 registrars.
+
+                 A User Agent is an application that contains both a
+                 User Agent Client (UAC) and a User Agent Server (UAS).
+                 A UAC is an application that initiates a SIP request.
+                 A UAS is an application that contacts the user when a
+                 SIP request is received and that returns a response on
+                 behalf of the user.  The response accepts, rejects, or
+                 redirects the request.
+
+                 A Proxy Server acts as both a client and a server.
+                 It accepts requests from other clients, either
+                 responding to them or passing them on to other
+                 servers, possibly after modification.
+
+                 A Redirect Server accepts requests from clients and
+                 returns zero or more addresses to that client. Unlike
+                 a Proxy server it does not initiate requests.  Unlike
+                 a User Agent Server it does not accept calls.
+
+                 A Registrar is a server that accepts REGISTER
+                 requests.  A Registrar is typically co-located with a
+                 Proxy or Redirect Server.
+
+                 A SIP transaction occurs between a client and a server
+                 and comprises all messages from the first request sent
+                 from the client to the server up to a final (non-1xx)
+                 response sent from the server to the client."
+        ::= { mib-2 9998 } -- to be assigned by IANA
+
+   --
+   -- High Level Structure of MIB Object Definitions
+   --
+   sipMIBObjects             OBJECT IDENTIFIER ::= { sipMIB 1 }
+   sipCommon                 OBJECT IDENTIFIER ::= { sipMIBObjects 1 }
+   sipUA                     OBJECT IDENTIFIER ::= { sipMIBObjects 2 }
+   sipServer                 OBJECT IDENTIFIER ::= { sipMIBObjects 3 }
+   sipProxy                  OBJECT IDENTIFIER ::= { sipMIBObjects 4 }
+   sipRedir                  OBJECT IDENTIFIER ::= { sipMIBObjects 5 }
+   sipReg                    OBJECT IDENTIFIER ::= { sipMIBObjects 6 }
+
+   --
+   -- Textual Conventions
+   --
+   SipServerActions ::= TEXTUAL-CONVENTION
+           STATUS current
+           DESCRIPTION
+                "Lists the possible actions of a SIP network server.
+                 A specific action may be requested by a user agent
+                 as a Contact parameter in a REGISTER."
+           SYNTAX INTEGER {
+                          redirect(1),
+                          proxy(2)
+           }
+
+   --
+   -- sipCommon Group
+   -- This group contains MIB objects that are common to all SIP
+   -- entities.
+   --
+   sipCommonCfg              OBJECT IDENTIFIER ::= { sipCommon 1 }
+   sipCommonStats            OBJECT IDENTIFIER ::= { sipCommon 2 }
+   sipCommonStatsSummary     OBJECT IDENTIFIER ::= { sipCommonStats 1 }
+   sipCommonStatsMethod      OBJECT IDENTIFIER ::= { sipCommonStats 2 }
+   sipCommonStatsInfo        OBJECT IDENTIFIER ::= { sipCommonStats 3 }
+   sipCommonStatsSuccess     OBJECT IDENTIFIER ::= { sipCommonStats 4 }
+   sipCommonStatsRedirect    OBJECT IDENTIFIER ::= { sipCommonStats 5 }
+   sipCommonStatsErrClient   OBJECT IDENTIFIER ::= { sipCommonStats 6 }
+   sipCommonStatsErrServer   OBJECT IDENTIFIER ::= { sipCommonStats 7 }
+   sipCommonStatsGlobalFail  OBJECT IDENTIFIER ::= { sipCommonStats 8 }
+   sipCommonStatsTrans       OBJECT IDENTIFIER ::= { sipCommonStats 9 }
+
+   --
+   -- Common Configuration Objects
+   --
+   sipProtocolVersion OBJECT-TYPE
+       SYNTAX      SnmpAdminString
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object will reflect the version of SIP supported by
+             this user agent.  It will follow the same format as SIP
+             version information contained in the SIP messages
+             generated by this SIP entity.  For example, entities
+             supporting SIP version 2 will return 'SIP/2.0' as dictated
+             by RFC 2543."
+       ::= { sipCommonCfg 1 }
+
+   sipServiceOperStatus OBJECT-TYPE
+       SYNTAX     INTEGER {
+                          up(1),
+                          down(2),
+                          testing(3),
+                          unknown(4),
+                          halted(5),
+                          restarting(6)
+                  }
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains the current operational state of the
+             SIP application.
+
+             up(1)         : The application is operating normally, and
+                             is processing (receiving and possibly
+                             issuing) SIP requests and responses.
+             down(2)       : The application is currently unable to
+                             process SIP messages.
+             testing(3)    : The application is currently in test mode
+                             and unable to process SIP messages.
+             unknown(4)    : The operational status of the application
+                             cannot be determined for some reason.
+             halted(5)     : The application has been manually
+                             prevented from processing SIP messages.
+             restarting(6) : The application is booting and will soon
+                             be able to process SIP messages."
+       ::= { sipCommonCfg 2 }
+
+   sipServiceAdminStatus OBJECT-TYPE
+       SYNTAX     INTEGER {
+                          shutdown(1),
+                          reset(2),
+                          restart(3),
+                          stop(4),
+                          rts(5)
+                  }
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object is used to affect the overall operational
+             state of the SIP server application.
+
+             shutdown(1) : Immediately kill the application, don't
+                           restart.
+             reset(2)    : Restart application, reinitialize data,
+                           requires rts.
+             restart(3)  : Restart application, no data loss, requires
+                           rts.
+             stop(4)     : Stop processing new requests, requires rts.
+             rts(5)      : Return to service."
+       ::= { sipCommonCfg 3 }
+
+   sipServiceStartTime OBJECT-TYPE
+       SYNTAX     TimeTicks
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "The value of sysUpTime at the time the SIP entity was last
+             started. If the current state was entered prior to the
+             last re-initialization of the local network management
+             subsystem, then this object contains a zero value."
+       ::= { sipCommonCfg 4 }
+
+   sipServiceLastChange OBJECT-TYPE
+       SYNTAX     TimeTicks
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "The value of sysUpTime at the time the SIP entity entered
+             its current operational state.  If the current state was
+             entered prior to the last re-initialization of the local
+             network management subsystem, then this object contains a
+             zero value."
+       ::= { sipCommonCfg 5 }
+
+   --
+   -- Support for multiple ports
+   --
+   sipPortTable OBJECT-TYPE
+       SYNTAX     SEQUENCE OF SipPortEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "This table contains the list of ports that this SIP entity
+             is allowed to use.  These ports can be advertised using
+             the Contact header in a REGISTER request or response.
+             Port 5060 (the default SIP port registered with IANA) must
+             always be present in this table."
+       ::= { sipCommonCfg 6 }
+
+   sipPortEntry OBJECT-TYPE
+       SYNTAX     SipPortEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "Specification of a particular port."
+       INDEX { sipPort }
+       ::= { sipPortTable 1 }
+
+   SipPortEntry ::=
+       SEQUENCE {
+                sipPort                 INTEGER,
+                sipTransport            INTEGER,
+                sipPortStatus           RowStatus
+       }
+
+   sipPort OBJECT-TYPE
+       SYNTAX     INTEGER (0..65535)
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "This object reflects a particular port that can be used by
+             the SIP application."
+       ::= { sipPortEntry 1 }
+
+   sipTransport OBJECT-TYPE
+       SYNTAX     INTEGER {
+                          udp(1),
+                          tcp(2),
+                          udpAndTcp(3)
+                  }
+       MAX-ACCESS read-create
+       STATUS     current
+       DESCRIPTION
+            "This object will specify the transport protocol the SIP
+             application will use to receive SIP messages.
+
+             udp(1)       : Use User Datagram Protocol.
+             tcp(2)       : Use Transmission Control Protocol.
+             udpAndTcp(3) : Use both UDP and TCP."
+       ::= { sipPortEntry 2 }
+
+   sipPortStatus OBJECT-TYPE
+       SYNTAX     RowStatus
+       MAX-ACCESS read-create
+       STATUS     current
+       DESCRIPTION
+            "The row status of the entry. This object is required to
+             create or delete rows remotely by a manager.  The row
+             associated with port 5060 need not be created and cannot
+             be deleted.  It is always present in the table."
+       ::= { sipPortEntry 3 }
+
+   --
+   -- Support for multiple non-SIP URIs
+   --
+   sipUriSupportedTable OBJECT-TYPE
+       SYNTAX     SEQUENCE OF SipUriSupportedEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "This table contains a list of URIs supported by the SIP
+             entity. These are in addition to the SIP URL which must
+             necessarily be supported.  Normally the list of URIs
+             supported by an entity is static (i.e. will not change
+             over time).
+
+             A URI is a Uniform Resource Identifier (as defined in RFC
+             2396).
+
+             URIs could, for example, contain URLs for phones, fax, or
+             irc if they were defined) or a mailto: (RFC 2368) URL."
+       REFERENCE
+             "RFC 2543, Section 6.13"
+       ::= { sipCommonCfg 7 }
+
+   sipUriSupportedEntry OBJECT-TYPE
+       SYNTAX     SipUriSupportedEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+
+            "A particular non-SIP URI supported by the SIP entity."
+       INDEX { sipUriSupportedIndex }
+       ::= { sipUriSupportedTable 1 }
+
+   SipUriSupportedEntry ::=
+       SEQUENCE {
+                sipUriSupportedIndex           Unsigned32,
+                sipUriSupported                SnmpAdminString
+       }
+
+   sipUriSupportedIndex OBJECT-TYPE
+       SYNTAX     Unsigned32 (1..4294967295)
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "This object uniquely identifies a conceptual row
+             in the table."
+       ::= { sipUriSupportedEntry 1 }
+
+   sipUriSupported OBJECT-TYPE
+       SYNTAX SnmpAdminString
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+            "This object indicates a particular non-SIP URI supported
+             by the SIP entity.  Only the scheme itself (as described
+             in RFC 2396) is indicated.  For example, if the mailto:
+             URLs are supported,then the table entry contains 'mailto'
+             without the colon."
+       REFERENCE
+             "RFC 2396 section 3"
+       ::= { sipUriSupportedEntry 2 }
+
+   --
+   -- Support for features which may be requested in Proxy-Require
+   -- and Require headers
+   --
+   sipFtrSupportedTable OBJECT-TYPE
+       SYNTAX     SEQUENCE OF SipFtrSupportedEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "This table contains a list of the non-standard features
+             supported by the SIP entity, and which may be required by
+             a peer. Definition of such features is outside the scope
+             of SIP, which only provides mechanisms whereby support for
+             specific features may be signalled or requested.
+
+             For example, a user agent client may require that a server
+             support the 'com.example.billing' feature, which it would
+             indicate in a Require header.  Such a client would have
+             a row in its sipFtrSupportedTable containing the string
+             'com.example.billing'.  Similarly, a server which is
+             capable of handling requests for such features would list
+             the string in its sipFtrSupportedTable.
+
+             If a server does not support the required feature
+             (indicated in a Require header to a UAS, or in a Proxy-
+             Require to a proxy server), the server returns a 420 Bad
+             Extension listing the feature in an Unsupported header.
+
+             Normally the list of such features supported by an entity
+             is static (i.e. will not change over time)."
+       REFERENCE
+            "RFC 2543, Sections 6.28, 6.30, and 6.38"
+       ::= { sipCommonCfg 8 }
+
+   sipFtrSupportedEntry OBJECT-TYPE
+       SYNTAX SipFtrSupportedEntry
+       MAX-ACCESS not-accessible
+       STATUS current
+       DESCRIPTION
+            "A particular non-standard feature supported by the SIP
+             entity, and which may be required by a peer."
+       INDEX { sipFtrSupportedIndex }
+       ::= { sipFtrSupportedTable 1 }
+
+   SipFtrSupportedEntry ::=
+       SEQUENCE {
+                sipFtrSupportedIndex           Unsigned32,
+                sipFtrSupported                SnmpAdminString
+       }
+
+   sipFtrSupportedIndex OBJECT-TYPE
+       SYNTAX     Unsigned32 (1..4294967295)
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "This object uniquely identifies a conceptual row in the
+             table."
+       ::= { sipFtrSupportedEntry 1 }
+
+   sipFtrSupported OBJECT-TYPE
+       SYNTAX     SnmpAdminString
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object indicates a particular non-standard feature
+             which is supported by the SIP entity."
+       ::= { sipFtrSupportedEntry 2 }
+
+   --
+   -- Additional Common Configuration Objects
+   --
+   sipOrganization OBJECT-TYPE
+       SYNTAX     SnmpAdminString
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object contains the name of the organization issuing
+             the request or response.  It may also be inserted by a
+             proxy at a boundary of an organization.  If the object
+             exists, it is inserted into requests and responses."
+       REFERENCE
+             "RFC 2543, Section 6.24"
+       ::= { sipCommonCfg 9 }
+
+   sipMaxTransactions OBJECT-TYPE
+       SYNTAX     Unsigned32 (1..4294967295)
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object indicates the maximum number of simultaneous
+             transactions that the SIP entity can manage."
+       ::= { sipCommonCfg 10 }
+
+   sipRequestDfltExpires OBJECT-TYPE
+       SYNTAX     Unsigned32 (0..4294967295)
+       UNITS      "seconds"
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies the default duration that a SIP
+             client will wait for a response to an INVITE request.
+
+             For proxy servers, if a received request contained an
+             Expires header, then the value in the header takes
+             precedence.  The server returns a 408 Request Timeout if
+             no response is received before
+             expiration of the request timer.
+
+             For user agent clients, this value is inserted into the
+             Expires header."
+       ::= { sipCommonCfg 11 }
+
+   sipHideOperation OBJECT-TYPE
+       SYNTAX     INTEGER {
+                          none(1),
+                          hop(2),
+                          route(3)
+                  }
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies which type of Hide header the server
+             adds to requests.  These headers are normally added by a
+             User Agent, but may be added by a proxy.  The value of
+             this object does not affect processing of Hide headers in
+             received requests.
+
+             The value of this object only applies to requests that do
+             not contain a Hide:route header.
+
+             none(1)  : The server doesn't insert a Hide header.
+             hop(2)   : The server inserts a Hide:hop header.
+             route(3) : The server inserts a Hide:route header."
+       REFERENCE
+             "RFC 2543, Section 6.22"
+       DEFVAL { none }
+       ::= { sipCommonCfg 12 }
+
+   sipUserLocationServerAddr OBJECT-TYPE
+       SYNTAX      SnmpAdminString
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+            "This object will specify the address of the User Location
+             Server (ULS) being used to resolve the location of end
+             points.
+
+             This could be a Domain Name Server (DNS) or a SIP
+             proxy/redirect server in the case where this entity is a
+             user agent. This could be some sort of database server if
+             this entity is a proxy/redirect server.
+
+             The format of the address follows the IETF service
+             location protocol. The syntax is as follows:
+
+                mapping-type:type-specific-syntax
+
+             The mapping-type specifies a scheme for mapping the
+             matching dial  string to a target server. The type-
+             specific-syntax is exactly that, something that the
+             particular mapping scheme can understand.
+             For example,
+                Session target           Meaning
+                ipv4:171.68.13.55:1006   The session target is the IP
+                                         version 4 address of
+                                         171.68.13.55 and port 1006.
+                dns:pots.cisco.com       The session target is the IP
+                                         host with dns name
+                                         pots.cisco.com.
+
+             The valid Mapping type definitions for the peer are as
+             follows:
+                ipv4  - Syntax: ipv4:w.x.y.z:port or  ipv4:w.x.y.z
+                dns   - Syntax: dns:host.domain."
+       ::= { sipCommonCfg 13 }
+
+   --
+   -- Common Statistics Objects
+   --
+
+   --
+   -- Summary Statistics
+   --
+   sipSummaryInRequests OBJECT-TYPE
+       SYNTAX     Counter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object indicates the total number of SIP request
+             messages received by the SIP entity."
+       ::= { sipCommonStatsSummary 1 }
+
+   sipSummaryOutRequests OBJECT-TYPE
+       SYNTAX     Counter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains the total number of SIP request
+             messages sent out (originated and relayed) by the SIP
+             entity.  Where a particular message is sent more than
+             once, for example as a retransmission, or as a result of
+             forking, each transmission is counted separately."
+       ::= { sipCommonStatsSummary 2 }
+
+   sipSummaryInResponses OBJECT-TYPE
+       SYNTAX     Counter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains the total number of SIP response
+             messages received by the SIP entity."
+       ::= { sipCommonStatsSummary 3 }
+
+   sipSummaryOutResponses OBJECT-TYPE
+       SYNTAX     Counter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains the total number of SIP response
+             messages sent (originated and relayed) by the SIP entity."
+       ::= { sipCommonStatsSummary 4 }
+
+   sipSummaryTotalTransactions OBJECT-TYPE
+       SYNTAX Counter32
+       MAX-ACCESS read-only
+       STATUS current
+       DESCRIPTION
+            "This object contains a count of the number of transactions
+             completed or in progress.
+
+             A SIP transaction occurs between a client and a server and
+             comprises all messages from the first request sent from
+             the client to the server up to a final (non-1xx) response
+             sent from the server to the client.
+
+             A transaction is identified by the CSeq sequence number
+             within a single call leg.  The ACK request has the same
+             CSeq number as the corresponding INVITE request, but
+             comprises a transaction of its own.
+
+             In the case of a forked request, all branches count as a
+             single transaction."
+       ::= { sipCommonStatsSummary 5 }
+
+   --
+   -- SIP Method Statistics
+   -- Total counts for each SIP method.
+   --
+   sipStatsInviteIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of INVITE requests
+             received by the SIP entity."
+       REFERENCE
+            "RFC 2543, Section 4.2.1"
+       ::= { sipCommonStatsMethod 1 }
+
+   sipStatsInviteOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of INVITE requests
+             sent by the SIP entity."
+       REFERENCE
+            "RFC 2543, Section 4.2.1"
+       ::= { sipCommonStatsMethod 2 }
+
+   sipStatsAckIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of ACK requests
+             received by the SIP entity."
+       REFERENCE
+            "RFC 2543, Section 4.2.2"
+       ::= { sipCommonStatsMethod 3 }
+
+   sipStatsAckOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of ACK requests sent
+             by the SIP entity."
+       REFERENCE
+            "RFC 2543, Section 4.2.2"
+       ::= { sipCommonStatsMethod 4 }
+
+   sipStatsByeIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of BYE requests
+             received by the SIP entity."
+       REFERENCE
+            "RFC 2543, Section 4.2.4"
+       ::= { sipCommonStatsMethod 5 }
+
+   sipStatsByeOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of BYE requests sent
+             by the SIP entity."
+       REFERENCE
+            "RFC 2543, Section 4.2.4"
+       ::= { sipCommonStatsMethod 6 }
+
+   sipStatsCancelIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of CANCEL requests
+             received by the SIP entity."
+       REFERENCE
+            "RFC 2543, Section 4.2.5"
+       ::= { sipCommonStatsMethod 7 }
+
+   sipStatsCancelOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of CANCEL requests
+             sent by the SIP entity."
+       REFERENCE
+            "RFC 2543, Section 4.2.5"
+       ::= { sipCommonStatsMethod 8 }
+
+   sipStatsOptionsIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of OPTIONS requests
+             received by the SIP entity."
+       REFERENCE
+            "RFC 2543, Section 4.2.3"
+       ::= { sipCommonStatsMethod 9 }
+
+   sipStatsOptionsOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of OPTIONS requests
+             sent by the SIP entity."
+       REFERENCE
+            "RFC 2543, Section 4.2.3"
+       ::= { sipCommonStatsMethod 10 }
+
+   sipStatsRegisterIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of REGISTER requests
+             received by the SIP entity."
+       REFERENCE
+            "RFC 2543, Section 4.2.6"
+       ::= { sipCommonStatsMethod 11 }
+
+   sipStatsRegisterOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of REGISTER requests
+             sent by the SIP entity."
+       REFERENCE
+            "RFC 2543, Section 4.2.6"
+       ::= { sipCommonStatsMethod 12 }
+
+   sipStatsInfoIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of INFO requests
+             received by the SIP entity."
+       REFERENCE
+            "draft-ietf-sip-info-method-02.txt"
+       ::= { sipCommonStatsMethod 13 }
+
+   sipStatsInfoOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of INFO requests
+             sent by the SIP entity."
+       REFERENCE
+            "draft-ietf-sip-info-method-02.txt"
+       ::= { sipCommonStatsMethod 14 }
+
+   --
+   -- SIP Informational Response Statistics
+   --
+   -- These counters reflect the number of SIP messages sent and
+   -- received by this system that relate to providing some
+   -- informational response to the progress of processing a SIP
+   -- request.
+   --
+   sipStatsInfoTryingIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Trying
+             (100) responses received by the SIP entity.
+             Trying responses indicate that some unspecified
+             action is being taken on behalf of this call, but
+             the user has not yet been located.  Inbound Trying
+             responses indicate that outbound INVITE requests
+             sent out by this system have been received and
+             are processed."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.1.1"
+       ::= { sipCommonStatsInfo 1 }
+
+   sipStatsInfoTryingOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Trying
+             (100) responses sent by the SIP entity.
+             Trying responses indicate that some unspecified
+             action is being taken on behalf of this call, but
+             the user has not yet been located.  Outbound Trying
+             responses indicate that this system is successfully
+             receiving INVITE requests and processing them on
+             behalf of the system initiating the INVITE."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.1.1"
+       ::= { sipCommonStatsInfo 2 }
+
+   sipStatsInfoRingingIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Ringing
+             (180) responses received by the SIP entity.
+             A inbound Ringing response indicates that the UAS that is
+             processing an INVITE initiated by this system has
+             found a possible location where the desired end user
+             has registered recently and is trying to alert the user."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.1.2"
+       ::= { sipCommonStatsInfo 3 }
+
+   sipStatsInfoRingingOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Ringing
+             (180) responses sent by the SIP entity.
+             A outbound Ringing response indicates that this
+             system has processed an INVITE for a particular
+             end user and found a possible location where that
+             user has registered recently.  The system is trying
+             to alert the end user and is conveying that status
+             to the system that originated the INVITE."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.1.2"
+       ::= { sipCommonStatsInfo 4 }
+
+   sipStatsInfoForwardedIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Call Is Being
+             Forwarded (181) responses received by the SIP entity.
+             A proxy server might use a Forwarded status code to
+             indicate that the call is being forwarded to a different
+             set of destinations.  Inbound Forwarded responses indicate
+             to this system that forwarding actions are taking place
+             with regard to calls initiated by this system."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.1.3"
+       ::= { sipCommonStatsInfo 5 }
+
+   sipStatsInfoForwardedOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Call Is Being
+             Forwarded (181) responses sent by the SIP entity.
+             A proxy server might use a Forwarded status code to
+             indicate that the call is being forwarded to a different
+             set of destinations.  Outbound Forwarded responses
+             indicate this system is taking some forwarding action
+             for calls and conveying that status to the system that
+             initiated the calls."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.1.3"
+       ::= { sipCommonStatsInfo 6 }
+
+   sipStatsInfoQueuedIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Queued
+             (182) responses received by the SIP entity.
+             Inbound Queued responses indicate that the users that
+             this system is attempting to call are temporarily
+             unavailable but the SIP agents operating on behalf
+             of those users wish to queue the calls rather than
+             reject them.  When the called parties become available,
+             this system can expect to receive the appropriate
+             final status response.  The Reason-Phrase from the
+             Queued response messages Status-Line can give further
+             details about the status of the call.  Multiple
+             Queued responses to update this system about the status
+             of the queued call might be received."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.1.4"
+       ::= { sipCommonStatsInfo 7 }
+
+   sipStatsInfoQueuedOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Queued
+             (182) responses sent by the SIP entity.
+             Outbound Queued responses indicate that this system
+             has determined that the called party is temporarily
+             unavailable but the call is not rejected.  Instead,
+             the call is queued until the called party becomes
+             available.  Queued responses messages are sent to
+             the system originating the call request to convey
+             the current status of a queued call."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.1.4"
+       ::= { sipCommonStatsInfo 8 }
+
+   sipStatsInfoSessionProgIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Session
+             Progress (183) responses received by the SIP entity."
+       ::= { sipCommonStatsInfo 9 }
+
+   sipStatsInfoSessionProgOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Session
+             Progress (183) responses sent by the SIP entity."
+       ::= { sipCommonStatsInfo 10 }
+
+   --
+   -- SIP Success Response Statistics
+   --
+   -- These counters reflect the number of SIP messages sent and
+   -- received by this system that relate to successful completion of a
+   -- SIP request.
+   --
+   sipStatsSuccessOkIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Ok
+             (200) responses received by the SIP entity.
+             The meaning of inbound Ok responses depends
+             on the method used in the associated request.
+
+             BYE      : The Ok response means the call has
+                        been terminated.
+
+             CANCEL   : The Ok response means the search for
+                        the end user has been cancelled.
+
+             INVITE   : The Ok response means the called party
+                        has agreed to participate in the call.
+
+             OPTIONS  : The Ok response means the called party
+                        has agreed to share its capabilities.
+
+             REGISTER : The Ok response means the registration
+                        has succeeded.
+
+             INFO     : The Ok response means the INFO request
+                        was received and processed correctly."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.2.1"
+       ::= { sipCommonStatsSuccess 1 }
+
+   sipStatsSuccessOkOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Ok
+             (200) responses sent by the SIP entity.
+             The meaning of outbound Ok responses depends
+             on the method used in the associated request.
+
+             BYE      : The Ok response means the call has
+                        been terminated.
+
+             CANCEL   : The Ok response means the search for
+                        the end user has been cancelled.
+
+             INVITE   : The Ok response means the called party
+                        has agreed to participate in the call.
+
+             OPTIONS  : The Ok response means the called party
+                        has agreed to share its capabilities.
+
+             REGISTER : The Ok response means the registration
+                        has succeeded.
+
+             INFO     : The Ok response means the INFO request
+                        was received and processed correctly."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.2.1"
+       ::= { sipCommonStatsSuccess 2 }
+
+   --
+   -- SIP Redirection Response Statistics
+   --
+   -- These counters reflect the number of SIP messages sent and
+   -- received by this system that relate to call redirection actions
+   -- taken by a Redirect Server.
+   --
+   sipStatsRedirMultipleChoiceIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Multiple
+             Choices (300) responses received by the SIP entity.
+             Multiple Choices responses indicate that the called
+             party can be reached at several different locations
+             and the server cannot or prefers not to proxy the
+             request."
+       REFERENCE
+            "RFC 2543, Section 5.1.1 & 7.3.1"
+       ::= { sipCommonStatsRedirect 1 }
+
+   sipStatsRedirMultipleChoiceOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Multiple
+             Choices (300) responses sent by the SIP entity.
+             Multiple Choices responses indicate that the called
+             party can be reached at several different locations
+             and the server cannot or prefers not to proxy the
+             request."
+       REFERENCE
+            "RFC 2543, Section 5.1.1 & 7.3.1"
+       ::= { sipCommonStatsRedirect 2 }
+
+   sipStatsRedirMovedPermIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Moved
+             Permanently (301) responses received by the SIP entity.
+             Moved Permanently responses indicate that the called party
+             can no longer be found at the address offered in the
+             request and the requesting UAC should retry at the new
+             address given by the Contact header field of the
+             response."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.3.2"
+       ::= { sipCommonStatsRedirect 3 }
+
+   sipStatsRedirMovedPermOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Moved
+             Permanently (301) responses sent by the SIP entity.
+             Moved Permanently responses indicate that the called party
+             can no longer be found at the address offered in the
+             request and the requesting UAC should retry at the new
+             address given by the Contact header field of the
+             response."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.3.2"
+       ::= { sipCommonStatsRedirect 4 }
+
+   sipStatsRedirMovedTempIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Moved
+             Temporarily (302) responses received by the SIP entity.
+             Moved Temporarily responses indicate the UAC should
+             retry the request directed at the new address(es)
+             given by the Contact header field of the response.
+             The duration of this redirection can be indicated
+             through the Expires header.  If no explicit expiration
+             time is given, the new address(es) are only valid
+             for this call."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.3.3"
+       ::= { sipCommonStatsRedirect 5 }
+
+   sipStatsRedirMovedTempOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Moved
+             Temporarily (302) responses sent by the SIP entity.
+             Moved Temporarily responses indicate the UAC should
+             retry the request directed at the new address(es)
+             given by the Contact header field of the response.
+             The duration of this redirection can be indicated
+             through the Expires header.  If no explicit expiration
+             time is given, the new address(es) are only valid
+             for this call."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.3.3"
+       ::= { sipCommonStatsRedirect 6 }
+
+   sipStatsRedirSeeOtherIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of See Other
+             (303) responses received by the SIP entity."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1"
+       ::= { sipCommonStatsRedirect 7 }
+
+   sipStatsRedirSeeOtherOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of See Other
+             (303) responses sent by the SIP entity."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1"
+       ::= { sipCommonStatsRedirect 8 }
+
+   sipStatsRedirUseProxyIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Use Proxy
+             (305) responses received by the SIP entity.
+             Use Proxy responses indicate that requested resources
+             must be accessed through the proxy given by the
+             Contact header field of the response.  The recipient
+             of this response is expected to repeat this single
+             request via the proxy."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.3.4"
+       ::= { sipCommonStatsRedirect 9 }
+
+   sipStatsRedirUseProxyOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Use Proxy
+             (305) responses sent by the SIP entity.
+             See Other responses indicate that requested resources
+             must be accessed through the proxy given by the
+             Contact header field of the response.  The recipient
+             of this response is expected to repeat this single
+             request via the proxy."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.3.4"
+       ::= { sipCommonStatsRedirect 10 }
+
+   sipStatsRedirAltServiceIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Alternative
+             Service (380) responses received by the SIP entity.
+             Alternative Service responses indicate that the call
+             was not successful, but alternative services are
+             possible.  Those alternative services are described
+             in the message body of the response."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.3.5"
+       ::= { sipCommonStatsRedirect 11 }
+
+   sipStatsRedirAltServiceOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Alternative
+             Service (380) responses sent by the SIP entity.
+             Alternative Service responses indicate that the call
+             was not successful, but alternative services are
+             possible.  Those alternative services are described
+             in the message body of the response."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.3.5"
+       ::= { sipCommonStatsRedirect 12 }
+
+   --
+   -- SIP Client Error Responses Statistics
+   --
+   -- The following Inbound counters reflect failure responses received
+   -- by a SIP entity providing a client function.
+   --
+   -- The following Outbound counters reflect failure responses sent by
+   -- a SIP entity providing a server function.
+   --
+   -- Servers generally send these responses to Clients.
+   --
+   sipStatsClientBadRequestIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Bad Request (400)
+             responses received by the SIP entity. Inbound Bad Request
+             responses indicate that requests issued by this system
+             could not be understood due to malformed syntax."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.1"
+       ::= { sipCommonStatsErrClient 1 }
+
+   sipStatsClientBadRequestOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Bad Request (400)
+             responses sent by the SIP entity.  Outbound Bad Request
+             responses indicate that requests received by this system
+             could not be understood due to malformed syntax."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.1"
+       ::= { sipCommonStatsErrClient 2 }
+
+   sipStatsClientUnauthorizedIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Unauthorized
+             (401) responses received by the SIP entity. Inbound
+             Unauthorized responses indicate that requests issued by
+             this system require user authentication."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.2"
+       ::= { sipCommonStatsErrClient 3 }
+
+   sipStatsClientUnauthorizedOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Unathorized (401)
+             responses sent by the SIP entity.
+             Outbound Unauthorized responses indicate that requests
+             received by this system require user authentication."
+
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.2"
+       ::= { sipCommonStatsErrClient 4 }
+
+   sipStatsClientPaymentReqdIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Payment Required
+             (402) responses received by the SIP entity."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.3"
+       ::= { sipCommonStatsErrClient 5 }
+
+   sipStatsClientPaymentReqdOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Payment Required
+             (402) responses sent by the SIP entity."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.3"
+       ::= { sipCommonStatsErrClient 6 }
+
+   sipStatsClientForbiddenIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Forbidden (403)
+             responses received by the SIP entity.  Inbound Forbidden
+             responses indicate that requests issued by this system are
+             understood by the server but the server refuses to fulfill
+             the request.  Authorization will not help and the requests
+             should not be repeated."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.4"
+       ::= { sipCommonStatsErrClient 7 }
+
+   sipStatsClientForbiddenOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Forbidden (403)
+             responses sent by the SIP entity. Outbound Forbidden
+             responses indicate that requests received by this system
+             are understood but this system is refusing to
+             fulfill the requests."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.4"
+       ::= { sipCommonStatsErrClient 8 }
+
+   sipStatsClientNotFoundIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Not Found (404)
+             responses received by the SIP entity.
+             Inbound Not Found responses indicate that the called party
+             does not exist at the domain specified in the Request-URI
+             or the domain is not handled by the recipient of the
+             request."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.5"
+       ::= { sipCommonStatsErrClient 9 }
+
+   sipStatsClientNotFoundOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Not Found (404)
+             responses sent by the SIP entity.
+             Outbound Not Found responses indicate that this system
+             knows that the called party does not exist at the domain
+             specified in the Request-URI or the domain is not handled
+             by this system."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.5"
+       ::= { sipCommonStatsErrClient 10 }
+
+   sipStatsClientMethNotAllowedIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Method Not
+             Allowed (405) responses received by the SIP entity.
+             Inbound Method Not Allowed responses indicate that
+             requests issued by this system have specified a SIP method
+             in the Request-Line that is not allowed for the address
+             identified by the Request-URI."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.6"
+       ::= { sipCommonStatsErrClient 11 }
+
+   sipStatsClientMethNotAllowedOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Method Not
+             Allowed (405) responses sent by the SIP entity.
+             Outbound Method Not Allowed responses indicate that
+             requests received by this system have SIP methods
+             specified in the Request-Line that are not allowed for the
+             address identified by the Request-URI."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.6"
+       ::= { sipCommonStatsErrClient 12 }
+
+   sipStatsClientNotAcceptableIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Not Acceptable
+             (406) responses received by the SIP entity.
+             Inbound Not Acceptable responses indicate that the
+             resources identified by requests issued by this system
+             cannot generate responses with content characteristics
+             acceptable to this system according to the accept headers
+             sent in the requests."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.7"
+       ::= { sipCommonStatsErrClient 13 }
+
+   sipStatsClientNotAcceptableOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Not Acceptable
+             (406) responses sent by the SIP entity.
+             Outbound Not Acceptable responses indicate that the
+             resources identified by requests received by this system
+             cannot generate responses with content characteristics
+             acceptable to the system sending the requests."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.7"
+       ::= { sipCommonStatsErrClient 14 }
+
+   sipStatsClientProxyAuthReqdIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Proxy
+             Authentication Required (407) responses received by the
+             SIP entity.
+             Inbound Proxy Authentication Required responses indicate
+             that this system must authenticate itself with the proxy
+             before gaining access to the requested resource."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.8"
+       ::= { sipCommonStatsErrClient 15 }
+
+   sipStatsClientProxyAuthReqdOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Proxy
+             Authenticaion Required (407) responses sent by the SIP
+             entity.
+             Outbound Proxy Authentication Required responses indicate
+             that the systems issuing requests being processed by this
+             system must authenticate themselves with this system
+             before gaining access to requested resources."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.8"
+       ::= { sipCommonStatsErrClient 16 }
+
+   sipStatsClientReqTimeoutIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Request Timeout
+             (408) responses received by the SIP entity.
+             Inbound Request Timeout responses indicate that requests
+             issued by this system are not being processed by the
+             server within the time indicated in the Expires header of
+             the request."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.9"
+       ::= { sipCommonStatsErrClient 17 }
+
+   sipStatsClientReqTimeoutOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Request Timeout
+             (408) responses sent by the SIP entity.
+             Outbound Request Timeout responses indicate that this
+             system is not able to produce an appropriate response
+             within the time indicated in the Expires header of the
+             request."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.9"
+       ::= { sipCommonStatsErrClient 18 }
+
+   sipStatsClientConflictIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Conflict (409)
+             responses received by the SIP entity.
+             Inbound Conflict responses indicate that requests issued
+             by this system could not be completed due to a conflict
+             with the current state of a requested resource."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.10"
+       ::= { sipCommonStatsErrClient 19 }
+
+   sipStatsClientConflictOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Conflict (409)
+             responses sent by the SIP entity.
+             Outbound Conflict responses indicate that requests
+             received by this system could not be completed due to a
+             conflict with the current state of a requested resource."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.10"
+       ::= { sipCommonStatsErrClient 20 }
+
+   sipStatsClientGoneIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Gone (410)
+             responses received by the SIP entity.
+             Inbound Gone responses indicate that resources requested
+             by this system are no longer available at the recipient
+             server and no forwarding address is known."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.11"
+       ::= { sipCommonStatsErrClient 21 }
+
+   sipStatsClientGoneOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Gone (410)
+             responses sent by the SIP entity.
+             Outbound Gone responses indicate that the requested
+             resources are no longer available at this system and
+             no forwarding address is known."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.11"
+       ::= { sipCommonStatsErrClient 22 }
+
+   sipStatsClientLengthRequiredIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Length Required
+             (411) responses received by the SIP entity.
+             Inbound Length Required responses indicate that requests
+             issued by this system are being refused by servers because
+             of no defined Content-Length header field."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.12"
+       ::= { sipCommonStatsErrClient 23 }
+
+   sipStatsClientLengthRequiredOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Length Required
+             (411) responses sent by the SIP entity.
+             Outbound Length Required responses indicate that requests
+             received by this system are being refused because of no
+             defined Content-Length header field."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.12"
+       ::= { sipCommonStatsErrClient 24 }
+
+   sipStatsClientReqEntTooLargeIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Request Entity
+             Too Large 413) responses received by the SIP entity.
+             Inbound Request Entity Too Large responses indicate that
+             requests issued by this system are being refused because
+             the request is larger than the server is willing or able
+             to process."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.13"
+       ::= { sipCommonStatsErrClient 25 }
+
+   sipStatsClientReqEntTooLargeOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Request Entity
+             Too Large (413) responses sent by the SIP entity.
+             Outbound Request Entity Too Large responses indicate that
+             requests received by this system are larger than this
+             system is willing or able to process."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.13"
+       ::= { sipCommonStatsErrClient 26 }
+
+   sipStatsClientReqURITooLargeIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Request-URI Too
+             Large (414) responses received by the SIP entity.
+             Inbound Request-URI Too Large responses indicate that
+             requests issued by this system are being refused because
+             the Request-URI is longer than the server is willing or
+             able to interpret."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.14"
+       ::= { sipCommonStatsErrClient 27 }
+
+   sipStatsClientReqURITooLargeOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Request-URI Too
+             Large (414) responses sent by the SIP entity.
+             Outbound Request-URI Too Large responses indicate that
+             Request-URIs received by this system are longer than this
+             system is willing or able to interpret."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.14"
+       ::= { sipCommonStatsErrClient 28 }
+
+   sipStatsClientNoSupMediaTypeIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Unsupported Media
+             Type (415) responses received by the SIP entity.
+             Inbound Unsupported Media Type responses indicate that
+             requests issued by this system are being refused because
+             the message body of the request is in a format not
+             supported by the requested resource for the requested
+             method."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.15"
+       ::= { sipCommonStatsErrClient 29 }
+
+   sipStatsClientNoSupMediaTypeOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Unsupported Media
+             Type (415) responses sent by the SIP entity.
+             Outbound Unsupported Media Type responses indicate that
+             the body of requests received by this system are in a
+             format not supported by the requested resource for the
+             requested method."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.15"
+       ::= { sipCommonStatsErrClient 30 }
+
+   sipStatsClientBadExtensionIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Bad Extension
+             (420) responses received by the SIP entity.
+             Inbound Bad Extension responses indicate that the
+             recipient did not understand the protocol extension
+             specified in a Require header field."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.5.16"
+       ::= { sipCommonStatsErrClient 31 }
+
+   sipStatsClientBadExtensionOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Bad Extension
+             (420) responses sent by the SIP entity.
+             Outbound Bad Extension responses indicate that this system
+             did not understand the protocol extension specified in a
+             Require header field of requests."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.16"
+       ::= { sipCommonStatsErrClient 32 }
+
+   sipStatsClientTempNotAvailIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Temporarily Not
+             Available 480) responses received by the SIP entity.
+             Inbound Temporarily Not Available responses indicate that
+             the called party is currently unavailable."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.17"
+       ::= { sipCommonStatsErrClient 33 }
+
+   sipStatsClientTempNotAvailOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Temporarily Not
+             Available (480) responses sent by the SIP entity.
+             Outbound Temporarily Not Available responses indicate that
+             the called party's end system was contacted successfully
+             but the called party is currently unavailable."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.17"
+       ::= { sipCommonStatsErrClient 34 }
+
+   sipStatsClientCallLegNoExistIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Call
+             Leg/Transaction Does Not Exist (481) responses received by
+             the SIP entity.
+             Inbound Call Leg/Transaction Does Not Exist responses
+             indicate that either BYE or CANCEL requests issued by this
+             system were received by a server and no matching call leg
+             or transaction existed."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.18"
+       ::= { sipCommonStatsErrClient 35 }
+
+   sipStatsClientCallLegNoExistOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Call
+             Leg/Transaction Does Not Exist (481) responses sent by the
+             SIP entity.
+             Outbound Call Leg/Transaction Does Not Exist responses
+             indicate that BYE or CANCEL requests have been received by
+             this system and no call leg or transaction matching that
+             request exists."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.18"
+       ::= { sipCommonStatsErrClient 36 }
+
+   sipStatsClientLoopDetectedIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Loop Detected
+             (482) responses received by the SIP entity.
+             Inbound Loop Detected responses indicate that requests
+             issued by this system were received at servers and the
+             server found itself in the Via path more than once."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.19"
+       ::= { sipCommonStatsErrClient 37 }
+
+   sipStatsClientLoopDetectedOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Loop Detected
+             (482) responses sent by the SIP entity.
+             Outbound Loop Detected responses indicate that requests
+             received by this system contain a Via path with this
+             system appearing more than once."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.19"
+       ::= { sipCommonStatsErrClient 38 }
+
+   sipStatsClientTooManyHopsIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Too Many Hops
+             (483) responses received by the SIP entity.
+             Inbound Too Many Hops responses indicate that requests
+             issued by this system contain more Via entries (hops) than
+             allowed by the Max-Forwards header field of the requests."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.20"
+       ::= { sipCommonStatsErrClient 39 }
+
+   sipStatsClientTooManyHopsOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Too Many Hops
+             (483) responses sent by the SIP entity.
+             Outbound Too Many Hops responses indicate that requests
+             received by this system contain more Via entries (hops)
+             than are allowed by the Max-Forwards header field of the
+             requests."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.20"
+       ::= { sipCommonStatsErrClient 40 }
+
+   sipStatsClientAddrIncompleteIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Address
+             Incomplete (484) responses received by the SIP entity.
+             Inbound Address Incomplete responses indicate that
+             requests issued by this system had To addresses or
+             Request-URIs that were incomplete."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.21"
+       ::= { sipCommonStatsErrClient 41 }
+
+   sipStatsClientAddrIncompleteOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Address
+             Incomplete (484) responses sent by the SIP entity.
+             Outbound Address Incomplete responses indicate that
+             requests received by this system had To addresses or
+             Request-URIs that were incomplete."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.21"
+       ::= { sipCommonStatsErrClient 42 }
+
+   sipStatsClientAmbiguousIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Ambiguous (485)
+             responses received by the SIP entity.
+             Inbound Ambiguous responses indicate that requests issued
+             by this system provided ambiguous address information."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.22"
+       ::= { sipCommonStatsErrClient 43 }
+
+   sipStatsClientAmbiguousOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Ambiguous (485)
+             responses sent by the SIP entity.
+             Outbound Ambiguous responses indicate that requests
+             received by this system contained ambiguous address
+             information."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.22"
+       ::= { sipCommonStatsErrClient 44 }
+
+   sipStatsClientBusyHereIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Busy Here (486)
+             responses received by the SIP entity.
+             Inbound Busy Here responses indicate that the
+             called party is currently not willing or not able to
+             take additional calls."
+       REFERENCE
+            "RFC 2543, Section 5.1.1 & 7.4.23"
+       ::= { sipCommonStatsErrClient 45 }
+
+   sipStatsClientBusyHereOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Busy Here (486)
+             responses sent by the SIP entity.
+             Outbound Busy Here responses indicate that the
+             called party's end system was contacted successfully but
+             the called party is currently not willing or able to take
+             additional calls."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.4.23"
+       ::= { sipCommonStatsErrClient 46 }
+
+   --
+   -- SIP Server Error Responses Statistics
+   --
+   -- The following Inbound counters reflect failure responses received
+   -- by a SIP entity providing a client function.
+   --
+   -- The following Outbound counters reflect failure responses sent by
+   -- a SIP entity providing a server function.
+   --
+   -- Servers generally send these responses to Clients.  They are not
+   -- definite failures and must not terminate a search if other
+   -- possible locations remain untried.
+   --
+   sipStatsServerIntErrorIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Internal Server
+             Error (500) responses received by the SIP entity.
+             Inbound Internal Server Error responses indicate that
+             servers to which this system is sending requests have
+             encountered unexpected conditions that prevent them from
+             fulfilling the requests."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.5.1"
+       ::= { sipCommonStatsErrServer 1 }
+
+   sipStatsServerIntErrorOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Internal Server
+             Error (500) responses sent by the SIP entity.
+             Outbound Internal Server Error responses indicate that
+             this system has encountered unexpected conditions that
+             prevent it from fulfilling received requests."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.5.1"
+       ::= { sipCommonStatsErrServer 2 }
+
+   sipStatsServerNotImplementedIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Not Implemented
+             (501) responses received by the SIP entity.
+             Inbound Not Implemented responses indicate that servers to
+             which this system is sending requests do not support the
+             functionality required to fulfill the requests."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.5.2"
+       ::= { sipCommonStatsErrServer 3 }
+
+   sipStatsServerNotImplementedOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Not Implemented
+             (501) responses sent by the SIP entity.
+             Outbound Not Implemented responses indicate that this
+             system does not support the functionality required to
+             fulfill the requests."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.5.2"
+       ::= { sipCommonStatsErrServer 4 }
+
+   sipStatsServerBadGatewayIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Bad Gateway (502)
+             responses received by the SIP entity."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.5.3"
+       ::= { sipCommonStatsErrServer 5 }
+
+   sipStatsServerBadGatewayOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Bad Gateway (502)
+             responses sent by the SIP entity."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.5.3"
+       ::= { sipCommonStatsErrServer 6 }
+
+   sipStatsServerServiceUnavailIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Service
+             Unavailable (503) responses received by the SIP entity.
+             Inbound Service Unavailable responses indicate that the
+             server servicing this system's request is temporarily
+             unavailable to handle the request."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.5.4"
+       ::= { sipCommonStatsErrServer 7 }
+
+   sipStatsServerServiceUnavailOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Service
+             Unavailable (503) responses sent by the SIP entity.
+             Outbound Service Unavailable responses indicate that this
+             system is temporarily unable to handle received requests."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.5.4"
+       ::= { sipCommonStatsErrServer 8 }
+
+   sipStatsServerGatewayTimeoutIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Gateway Time-out
+             (504) responses received by the SIP entity.
+             Inbound Gateway Time-out responses indicate that the
+             server attempting to complete this system's request did
+             not receive a timely response from yet another system it
+             was accessing to complete the request."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.5.5"
+       ::= { sipCommonStatsErrServer 9 }
+
+   sipStatsServerGatewayTimeoutOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Gateway Time-out
+             (504) responses sent by the SIP entity.
+             Outbound Gateway Time-out responses indicate that this
+             system did not receive a timely response from the system
+             it had accessed to assist in completing a received
+             request."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.5.5"
+       ::= { sipCommonStatsErrServer 10 }
+
+   sipStatsServerBadSipVersionIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of SIP Version Not
+             Supported (505) responses received by the SIP entity.
+             Inbound SIP Version Not Supported responses indicate that
+             the server does not support, or refuses to support, the
+             SIP protocol version that was used in the request
+             message."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.5.6"
+       ::= { sipCommonStatsErrServer 11 }
+
+   sipStatsServerBadSipVersionOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of SIP Version Not
+             Supported (505) responses sent by the SIP entity.
+             Outbound SIP Version Not Supported responses indicate that
+             this system does not support, or refuses to support, the
+             SIP protocol version used in received requests."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.5.6"
+       ::= { sipCommonStatsErrServer 12 }
+
+   --
+   -- SIP Global Failure Response Statistics
+   --
+   -- The following Inbound counters reflect failure responses received
+   _- by a SIP entity providing a client function.
+   --
+   -- The following Outbound counters reflect failure responses sent by
+   -- a SIP entity providing a server function.
+   --
+   -- Servers generally send these responses to Clients.  The responses
+   -- generally indicate that a server has definitive information about
+   -- a particular called party, not just the particular instance
+   -- indicated in the Request-URI.  All further searches for this user
+   -- are doomed to failure and pending searches should be terminated.
+   --
+   sipStatsGlobalBusyEverywhereIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Busy
+             Everywhere (600) responses received by the SIP entity.
+             Inbound Busy Everywhere responses indicate that the
+             called party's end system was contacted successfully
+             but the called party is busy and does not want to take
+             the call at this time."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.6.1"
+       ::= { sipCommonStatsGlobalFail 1 }
+
+   sipStatsGlobalBusyEverywhereOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Busy
+             Everywhere (600) responses sent by the SIP entity.
+             Outbound Busy Everywhere responses indicate that
+             this system has successfully contacted a called party's
+             end system and the called party does not want to take
+             the call at this time."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.6.1"
+       ::= { sipCommonStatsGlobalFail 2 }
+
+   sipStatsGlobalDeclineIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Decline
+             (603) responses received by the SIP entity.
+             Decline responses indicate that the called party's end
+             system was contacted successfully but the called party
+             explicitly does not want to, or cannot, participate."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.6.2"
+       ::= { sipCommonStatsGlobalFail 3 }
+
+   sipStatsGlobalDeclineOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Decline
+             (603) responses sent by the SIP entity.
+             Outbound Decline responses indicate that this system
+             has successfully contacted a called party's end system
+             and the called party explicitly does not want to, or
+             cannot, participate."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.6.2"
+       ::= { sipCommonStatsGlobalFail 4 }
+
+   sipStatsGlobalNotAnywhereIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Does Not
+             Exist Anywhere (604) responses received by the SIP entity.
+             Inbound Does Not Exist Anywhere responses indicate that
+             the server handling this system's request has
+             authoritative information that the called party indicated
+             in the To request field does not exist anywhere."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.6.3"
+       ::= { sipCommonStatsGlobalFail 5 }
+
+   sipStatsGlobalNotAnywhereOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Does Not
+             Exist Anywhere (604) responses sent by the SIP entity.
+             Outbound Does Not Exist Anywhere responses indicate that
+             this system has authoritative information that the called
+             party in the To field of received requests does not exist
+             anywhere."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.6.3"
+       ::= { sipCommonStatsGlobalFail 6 }
+
+   sipStatsGlobalNotAcceptableIns OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Not Acceptable
+             (606) responses received by the SIP entity.
+             Inbound Not Acceptable responses indicate that the called
+             party's end system was contacted successfully but some
+             aspect of the session description is not acceptable."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.6.4"
+       ::= { sipCommonStatsGlobalFail 7 }
+
+   sipStatsGlobalNotAcceptableOuts OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Not Acceptable
+             (606) responses sent by the SIP entity.
+             Outbound Not Acceptable responses indicate that the called
+             party wishes to communicate, but cannot adequately support
+             the session described in the request."
+       REFERENCE
+            "RFC 2543, Sections 5.1.1 & 7.6.4"
+       ::= { sipCommonStatsGlobalFail 8 }
+
+   --
+   -- Transaction Statistics
+   --
+   sipCurrentTransactions OBJECT-TYPE
+       SYNTAX     Gauge32 (0..4294967295)
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains the number of transactions awaiting
+             definitive (non-1xx) response.  In the case of a forked
+             request, all branches count as a single transaction.  The
+             value of this object will reflect the number of rows in
+             sipTransactionTable."
+   ::= { sipCommonStatsTrans 1 }
+
+   sipTransactionTable OBJECT-TYPE
+       SYNTAX     SEQUENCE OF SipTransactionEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "This table contains information on all of the transactions
+             currently being processed (the count of such transactions
+             is maintained in the sipCurrentTransactions object)."
+       ::= { sipCommonStatsTrans 2 }
+
+   sipTransactionEntry OBJECT-TYPE
+       SYNTAX     SipTransactionEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "Information on a particular current transaction."
+       INDEX { sipTransIndex }
+       ::= { sipTransactionTable 1 }
+
+   SipTransactionEntry ::=
+       SEQUENCE {
+                sipTransIndex                         Unsigned32,
+                sipTransTo                            SnmpAdminString,
+                sipTransFrom                          SnmpAdminString,
+                sipTransCallId                        SnmpAdminString,
+                sipTransCSeq                          Unsigned32,
+                sipTransState                         INTEGER,
+                sipTransOutstandingBranches           Integer32,
+                sipTransExpiry                        DateAndTime,
+                sipTransCallingPartyContentType       SnmpAdminString,
+                sipTransCalledPartyContentType        SnmpAdminString
+       }
+
+   sipTransIndex OBJECT-TYPE
+       SYNTAX     Unsigned32 (0..4294967295)
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "This object uniquely identifies a conceptual row in the
+             table."
+       ::= { sipTransactionEntry 1 }
+
+   sipTransTo OBJECT-TYPE
+       SYNTAX     SnmpAdminString
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains the value of the To header in request
+             message."
+       ::= { sipTransactionEntry 2 }
+
+   sipTransFrom OBJECT-TYPE
+       SYNTAX     SnmpAdminString
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains the value of the From header in the
+             request message."
+       ::= { sipTransactionEntry 3 }
+
+   sipTransCallId OBJECT-TYPE
+       SYNTAX     SnmpAdminString
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains the value of the CallId value in the
+             request message."
+       ::= { sipTransactionEntry 4 }
+
+   sipTransCSeq OBJECT-TYPE
+       SYNTAX     Unsigned32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains the CSeq value for the current
+             transaction."
+       ::= { sipTransactionEntry 5 }
+
+   sipTransState OBJECT-TYPE
+       SYNTAX     INTEGER {
+                          null(1),
+                          initial(2),
+                          calling(3),
+                          ringing(4),
+                          completed(5),
+                          callProceeding(6),
+                          failure(7),
+                          success(8),
+                          confirmed(9)
+                  }
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains the current state of the SIP
+             transaction.
+
+             null(1)           : The SIP entity is not active.
+             initial(2)        : Prior to sending or receiving any
+                                 request.
+             calling(3)        : After sending the request and prior to
+                                 receiving any response.
+             ringing(4)        : After receiving one or more
+                                 informational (1xx) responses.
+             completed(5)      : After ACK has been sent following
+                                 reception of definitive response.
+             callProceeding(6) : Entered on reception of an INVITE.
+             failure(7)        : Entered when call fails(send status
+                                 code>=300).
+             success(8)        : Entered when user answers(send status
+                                 code=200).
+             confirmed(9)      : Entered on reception of an ACK in
+                                 failure or success states."
+       REFERENCE
+           "RFC 2543, Figures 12 and 13"
+   ::= { sipTransactionEntry 6 }
+
+   sipTransOutstandingBranches OBJECT-TYPE
+       SYNTAX     Integer32 (0..255)
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains a count of the number of branches
+             awaiting a final response.  Only a forking proxy will have
+             a value greater than one."
+       ::= { sipTransactionEntry 7 }
+
+   sipTransExpiry OBJECT-TYPE
+       SYNTAX     DateAndTime
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains an indication of when the transaction
+             will be considered to have timed out.  This value is based
+             on the value in the Expires header, or the value of the
+             sipRequestDfltExpires object if no Expires value was
+             specified in the original request."
+       ::= { sipTransactionEntry 8 }
+
+   sipTransCallingPartyContentType OBJECT-TYPE
+       SYNTAX     SnmpAdminString
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains the content type of the transaction,
+             including parameters, as indicated by the session
+             initiator. All optional white space is removed from
+             subfields in the media-type specification.  It may
+             indicate mime multipart, in which case the multiple
+             entries are separated by spaces."
+       REFERENCE
+            "RFC 2543, Section 6.16 and RFC 2068 section 3.7"
+       ::= { sipTransactionEntry 9 }
+
+   sipTransCalledPartyContentType OBJECT-TYPE
+       SYNTAX     SnmpAdminString
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains the content type of the transaction,
+             including parameters, as indicated by the session
+             respondant.  All optional white space is removed from
+             subfields in the media-type specification.  It may
+             indicate mime multipart, in which case the multiple
+             entries are separated by spaces."
+       REFERENCE
+            "RFC 2543, Section 6.16 and RFC 2068, Section 3.7"
+       ::= { sipTransactionEntry 10 }
+
+   --
+   -- Other Common Statistics
+   --
+   sipNumUnsupportedUris OBJECT-TYPE
+       SYNTAX     Counter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "Number of RequestURIs received with unsupported scheme.
+             A server normally responds to such requests with a 400 Bad
+             Request status code."
+       ::= { sipCommonStats 10 }
+
+   --
+   -- sipUA group
+   -- This group contains MIB objects related to SIP User Agents.
+   --
+   sipUACfg                    OBJECT IDENTIFIER ::= { sipUA 1 }
+   sipUACfgTimer               OBJECT IDENTIFIER ::= { sipUACfg 1 }
+   sipUACfgRetry               OBJECT IDENTIFIER ::= { sipUACfg 2 }
+   sipUAStats                  OBJECT IDENTIFIER ::= { sipUA 2 }
+   sipUAStatsRetry             OBJECT IDENTIFIER ::= { sipUAStats 1 }
+
+   --
+   -- User Agent Configuration
+   --
+
+   --
+   -- SIP Timer Configuration
+   --
+   sipUACfgTimerTrying OBJECT-TYPE
+       SYNTAX      Integer32 (100..1000)
+       UNITS       "milliseconds"
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+            "This object specifies the time a user agent will wait to
+             receive a provisional response to an INVITE before
+             resending the INVITE."
+       ::= { sipUACfgTimer 1 }
+
+   sipUACfgTimerExpires OBJECT-TYPE
+       SYNTAX      Integer32 (60000..300000)
+       UNITS       "milliseconds"
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+            "This object specifies the time a user agent will wait to
+             receive a final response to an INVITE before canceling the
+             transaction."
+       ::= { sipUACfgTimer 2 }
+
+   sipUACfgTimerConnect OBJECT-TYPE
+       SYNTAX      Integer32 (100..1000)
+       UNITS       "milliseconds"
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+            "This object specifies the time a user agent will wait to
+             receive an ACK confirmation indicating that a session is
+             established."
+       ::= { sipUACfgTimer 3 }
+
+   sipUACfgTimerDisconnect OBJECT-TYPE
+       SYNTAX      Integer32 (100..1000)
+       UNITS       "milliseconds"
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+            "This object specifies the time a user agent will wait to
+             receive a BYE confirmation indicating that a session is
+             disconnected."
+       ::= { sipUACfgTimer 4 }
+
+   --
+   -- SIP Retry Configuration
+   --
+   sipUACfgRetryInvite OBJECT-TYPE
+       SYNTAX      Integer32 (1..10)
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+            "This object will specify the number of times a user agent
+             will retry sending an INVITE request."
+       ::= { sipUACfgRetry 1 }
+
+   sipUACfgRetryBye OBJECT-TYPE
+       SYNTAX      Integer32 (1..10)
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+            "This object will specify the number of times a user agent
+             will retry sending a BYE request."
+       ::= { sipUACfgRetry 2 }
+
+   sipUACfgRetryCancel OBJECT-TYPE
+       SYNTAX      Integer32 (1..10)
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+            "This object will specify the number of times a user agent
+             will retry sending a CANCEL request."
+       ::= { sipUACfgRetry 3 }
+
+   sipUACfgRetryRegister OBJECT-TYPE
+       SYNTAX      Integer32 (1..10)
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+            "This object will specify the number of times a user agent
+             will retry sending a REGISTER request."
+       ::= { sipUACfgRetry 4 }
+
+   sipUACfgRetryResponse OBJECT-TYPE
+       SYNTAX      Integer32 (1..10)
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+            "This object will specify the number of times a user agent
+             will retry sending a Response and expecting an ACK."
+       ::= { sipUACfgRetry 5 }
+
+   --
+   -- User Agent Statistics
+   --
+
+   --
+   -- SIP Retry Statistics
+   --
+   -- The counter objects in this group correspond directly to the
+   -- retry timers supported in sipCfgRetry group.
+   --
+   sipStatsRetryInvites OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of INVITE retries
+             that have been sent by the user agent.   If the number of
+             'first attempt' INVITES is of interest, subtract the value
+             of this object from sipStatsTrafficInviteOut."
+       ::= { sipUAStatsRetry 1 }
+
+   sipStatsRetryByes OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of BYE retries that
+             have been sent by the user agent."
+       ::= { sipUAStatsRetry 2 }
+
+   sipStatsRetryCancels OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of CANCEL retries
+             that have been sent by the user agent."
+       ::= { sipUAStatsRetry 3 }
+
+   sipStatsRetryRegisters OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of REGISTER retries
+             that have been sent by the user agent."
+       ::= { sipUAStatsRetry 4 }
+
+   sipStatsRetryResponses OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+            "This object reflects the total number of Response (while
+             expecting an ACK) retries that have been sent by the user
+             agent."
+       ::= { sipUAStatsRetry 5 }
+
+   --
+   -- sipServer group
+   -- This group contains MIB objects common to Proxy and Redirect
+   -- Servers.
+   --
+   sipServerCfg                OBJECT IDENTIFIER ::= { sipServer 1 }
+   sipServerStats              OBJECT IDENTIFIER ::= { sipServer 2 }
+
+   --
+   -- Common Server Configuration Objects
+   --
+   sipServerHost OBJECT-TYPE
+       SYNTAX     SnmpAdminString
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This is the host portion of a SIP URL that is assigned
+             to the SIP server.  It may contain a fully qualified
+             domain name, or an IP address (v4 only for now)."
+       REFERENCE
+             "RFC 2543, Section 2"
+       ::= { sipServerCfg 1 }
+
+   --
+   -- Support for 1xx Status Codes
+   --
+   sipInformationTryingInitial OBJECT-TYPE
+       SYNTAX     TruthValue
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "If this object is true, the server sends 100 Trying when a
+             request is processed."
+       ::= { sipServerCfg 2 }
+
+   sipInformationTryingInterval OBJECT-TYPE
+       SYNTAX     Integer32 (0..60000)
+       UNITS      "milliseconds"
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "Server sends a 100 Trying at intervals of this duration
+             as counted from when the request was processed.  If the
+             value is zero, no such retransmission is performed."
+       ::= { sipServerCfg 3 }
+
+   --
+   -- Security
+   --
+   sipPgpVersion OBJECT-TYPE
+       SYNTAX     SnmpAdminString
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object indicates the version of PGP (Pretty Good
+             Privacy) supported by this server.  Common values are
+             2.6.2 and 5.0."
+       ::= { sipServerCfg 4 }
+
+   --
+   -- Additional Server Configuration
+   --
+   sipServerDfltAction OBJECT-TYPE
+       SYNTAX     SipServerActions
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies whether the default action of the
+             server is to be a proxy server or a redirect server.  A
+             User Agent may indicate a preference upon registration of
+             Contact information. The value of this object is used in
+             the absence of such an indication."
+       REFERENCE
+             "RFC 2543,  Section 6.13"
+       ::= { sipServerCfg 5 }
+
+   sipServerRespectUAAction OBJECT-TYPE
+       SYNTAX     TruthValue
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies whether the server should respect
+             the wishes of a User Agent when the UA specifies a server
+             action (proxy or redirect) for certain Contact
+             information.  If the value of this object is false, then
+             the value contained in the sipServerDfltAction is used."
+       REFERENCE
+             "RFC 2543, Section 6.13"
+       ::= { sipServerCfg 6 }
+
+   sipRequestUriHostMatching OBJECT-TYPE
+       SYNTAX     TruthValue
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies whether or not the host in
+             RequestURI must match server's host name.
+
+             If the value of this object is TRUE, then the server
+             requires a match, and if the RequestURI doesn't match the
+             server's host name, a 404 Not Found status code is
+             returned by the server.
+             If the value is FALSE, then no match is required."
+       REFERENCE
+            "RFC 2543, Section 4.3"
+       ::= { sipServerCfg 7 }
+
+   --
+   -- Common Server Statistics
+   --
+
+   -- none at this time
+
+   -- sipProxy group
+   -- This group contains MIB objects related to SIP Proxy Servers.
+   --
+   sipProxyCfg                 OBJECT IDENTIFIER ::= { sipProxy 1 }
+   sipProxyStats               OBJECT IDENTIFIER ::= { sipProxy 2 }
+
+   --
+   -- Proxy Server Configration
+   --
+   sipRequestMaxExpires OBJECT-TYPE
+       SYNTAX     Unsigned32 (0..4294967295)
+       UNITS      "seconds"
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies the maximum duration that a SIP
+             proxy server will accept from a client in the Expires
+             header.
+             If a longer duration is contained in the request, the
+             server returns a 400 Bad Request response."
+       ::= { sipProxyCfg 1 }
+
+   sipProxyStateful OBJECT-TYPE
+       SYNTAX     TruthValue
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies whether or not the proxy server
+             operates in stateful mode.  When stateful, a proxy
+             remembers the incoming request which generated outgoing
+             requests, and the outgoing requests. A stateless proxy
+             forgets all information once an outgoing request is
+             generated.
+
+             If the value of this object is TRUE, the proxy is
+             stateful.  If FALSE, the proxy is stateless."
+       REFERENCE
+             "RFC 2543, Section 12.3"
+       ::= { sipProxyCfg 2 }
+
+   sipProxySendsCancel OBJECT-TYPE
+       SYNTAX     TruthValue
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies whether or not a forking proxy sends
+             CANCEL on outstanding branch requests after receiving a
+             2xx or 6xx, or after the request times-out.
+             If the value of this object is TRUE, the server sends a
+             CANCELs on branches where no definitive response has been
+             received.  If FALSE, the proxy does not send CANCELs."
+       REFERENCE
+             "RFC 2543, Section 12.4"
+       ::= { sipProxyCfg 3 }
+
+   sipProxyForwardAll1xx OBJECT-TYPE
+       SYNTAX     TruthValue
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies whether or not the proxy forwards
+             all 1xx responses upstream towards the source of the
+             request.
+
+             If the value of this object is TRUE, all 1xx response are
+             sent.  If the value is FALSE, duplicate 1xx responses are
+             not sent upstream."
+       ::= { sipProxyCfg 4 }
+
+   sipProxyRecursion OBJECT-TYPE
+       SYNTAX     TruthValue
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies whether or not the Proxy performs
+             recursive search on the Contacts provided in 3xx
+             redirects.
+
+             If the value of this object is TRUE, a recursive search is
+             performed.  If the value is FALSE, no search is performed,
+             the 3xx response is sent upstream towards the source of
+             the request."
+       ::= { sipProxyCfg 5 }
+
+   sipProxyProvideAlternatives OBJECT-TYPE
+       SYNTAX     TruthValue
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "The object specifies whether or not the Server provides
+             alternative Contacts in 3xx and 485 responses.
+
+             If the value of this object is TRUE, the server inserts a
+             list of alternative URLs into a Contact header where the
+             request Originator may possibly find the desired called
+             party.  If the value is FALSE, the server doesn't add
+             Contact information to 3xx and 485 responses.
+
+             Note that the policies of a server may limit the
+             particular alternatives that are returned when this object
+             is TRUE."
+       REFERENCE
+             "RFC 2543, Section 6.13"
+       DEFVAL { false }
+       ::= { sipProxyCfg 6 }
+
+   sipProxyRecordRoute OBJECT-TYPE
+       SYNTAX     TruthValue
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies whether or not the proxy adds itself
+             to the Record-Route header.  This header is used to list
+             the proxies that insist on being in the signalling path
+             for subsequent requests related to the call-leg.
+
+             If the value of this object is TRUE, the proxy adds itself
+             to the end of the Record-Route header, creating the header
+             if required.
+             If the value is FALSE, the proxy doesn't add itself to the
+             Record-Route header."
+       REFERENCE
+             "RFC 2543, Section 6.29"
+       ::= { sipProxyCfg 7 }
+
+   sipProxyUseCompact OBJECT-TYPE
+       SYNTAX     TruthValue
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies whether or not the proxy should use
+             the compact encoding form in the requests it sends.
+
+             If the value of this object is TRUE, the proxy encodes all
+             outgoing messages using the compact encoding form.  If the
+             value is FALSE, the encoding form used on the
+             corresponding incoming message is used, and if no incoming
+             message existed, full encoding is used."
+        REFERENCE
+             "RFC 2543, Section 9"
+        ::= { sipProxyCfg 8 }
+
+   sipProxyRetransmissionBuffer OBJECT-TYPE
+       SYNTAX     Integer32 (0..255)
+       UNITS      "seconds"
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies the duration after reception of the
+             first definitive non-200 response that a stateful proxy
+             retains state in order to handle possible retransmissions
+             of the response."
+       REFERENCE
+             "RFC 2543, Section 12.3.6"
+       ::= { sipProxyCfg 9 }
+
+   --
+   -- Security
+   --
+   sipProxyAuthMethod OBJECT-TYPE
+       SYNTAX     INTEGER {
+                          none(1),
+                          basic(2),
+                          digest(3),
+                          pgp(4)
+                  }
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies the authentication method that is
+             used to authenticate request originators.  If the value is
+             none(1), no authentication is performed."
+       ::= { sipProxyCfg 10 }
+
+   sipProxyAuthPgpAlgorithm OBJECT-TYPE
+       SYNTAX     INTEGER {
+                          other(1),
+                          md5(2),
+                          sha1(3)
+
+                  }
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies the PGP algorithm the proxy uses."
+       ::= { sipProxyCfg 11 }
+
+   sipProxyAuthRealm OBJECT-TYPE
+       SYNTAX     SnmpAdminString
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies the realm used in Proxy-Authenticate
+             headers.  Note that this may need to be stored per user."
+       ::= { sipProxyCfg 12 }
+
+   sipProxyNonceLifeTime OBJECT-TYPE
+       SYNTAX Integer32 (0..65535)
+       UNITS "milliseconds"
+       MAX-ACCESS read-write
+       STATUS current
+       DESCRIPTION
+            "This object specifies the life-time of a given nonce.  A
+             nonce is a server specified value whose contents are
+             opaque to the entity being authenticated and which is used
+             in calculating authentication data.  If this object has a
+             value of zero, then
+             nonces are not reused."
+       ::= { sipProxyCfg 13 }
+
+   --
+   -- Proxy-Authenticate received by this server
+   -- (i.e. this server is being authenticated by a peer)
+   --
+   sipPgpPrivateKey OBJECT-TYPE
+       SYNTAX     OCTET STRING(SIZE(0..255))
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "The value of this object is the server's private PGP key,
+             used for both PGP authentication of this server and for
+             PGP-based
+             encryption."
+       ::= { sipProxyCfg 14 }
+
+   sipRxProxyAuthTable OBJECT-TYPE
+       SYNTAX     SEQUENCE OF SipRxProxyAuthEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "This table contains authentication data for peers of the
+             server."
+       ::= { sipProxyCfg 15 }
+
+   sipRxProxyAuthEntry OBJECT-TYPE
+       SYNTAX     SipRxProxyAuthEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "This object contains authentication data for a single
+             peer."
+       INDEX { sipRxProxyAuthIndex }
+       ::= { sipRxProxyAuthTable 1 }
+
+   SipRxProxyAuthEntry ::=
+       SEQUENCE {
+                sipRxProxyAuthIndex              Unsigned32,
+                sipRxProxyAuthRealm              SnmpAdminString,
+                sipRxProxyAuthPassword           OCTET STRING,
+                sipRxProxyAuthStatus             RowStatus
+       }
+
+   sipRxProxyAuthIndex OBJECT-TYPE
+       SYNTAX     Unsigned32 (1..4294967295)
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "This object uniquely identifies a conceptual row in the
+             table."
+       ::= { sipRxProxyAuthEntry 1 }
+
+   sipRxProxyAuthRealm OBJECT-TYPE
+       SYNTAX     SnmpAdminString
+       MAX-ACCESS read-create
+       STATUS     current
+       DESCRIPTION
+            "This object contains the realm that is specified by
+             another server when it is authenticating this server."
+       ::= { sipRxProxyAuthEntry 2 }
+
+   sipRxProxyAuthPassword OBJECT-TYPE
+       SYNTAX     OCTET STRING(SIZE(1..4095))
+       MAX-ACCESS read-create
+       STATUS     current
+       DESCRIPTION
+            "This object contains the password that this server uses
+             when it is being authenticated by another server using the
+             realm specified by the sipRxProxyAuthRealm object in this
+             table row."
+       ::= { sipRxProxyAuthEntry 3 }
+
+   sipRxProxyAuthStatus OBJECT-TYPE
+       SYNTAX     RowStatus
+       MAX-ACCESS read-create
+       STATUS     current
+       DESCRIPTION
+            "The row status of the entry. This object is required
+             to create or delete rows remotely by a manager."
+       ::= { sipRxProxyAuthEntry 4 }
+
+   sipHideRespect OBJECT-TYPE
+       SYNTAX     TruthValue
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies whether the server encrypts Via
+             headers as requested by received Hide headers."
+       ::= { sipProxyCfg 16 }
+
+   --
+   -- Proxy Server Statistics
+   --
+   sipNumProxyRequireFailures OBJECT-TYPE
+       SYNTAX     Counter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains the number of occurrences of
+             unsupported options being specified in received Proxy-
+             Require headers.  Such occurrences result in a 420 Bad
+             Extension status code being
+             returned."
+       ::= { sipProxyStats 1 }
+
+   --
+   -- sipRedir group
+   -- This group contains MIB objects related to SIP Redirect Servers.
+   --
+   sipRedirCfg                 OBJECT IDENTIFIER ::= { sipRedir 1 }
+   sipRedirStats               OBJECT IDENTIFIER ::= { sipRedir 2 }
+
+   -- none at this time
+
+   --
+   -- sipReg group
+   -- This group contains MIB objects related to SIP Registrars.
+   --
+   sipRegCfg                   OBJECT IDENTIFIER ::= { sipReg 1 }
+   sipRegStats                 OBJECT IDENTIFIER ::= { sipReg 2 }
+
+   --
+   -- Registrar Configuration
+   --
+   sipRegAllowThirdParty OBJECT-TYPE
+       SYNTAX     TruthValue
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies whether or not the Registrar should
+             allows third party registrations. In third-party
+             registration, the entity issuing the request (in the From
+             header) is different from the entity being registered (in
+             the To header) to whom the
+             provided Contact information applies.
+             If the value of this object is TRUE, the Registrar allows
+             third party registrations.  If the value is FALSE, third
+             party registrations are rejected: a 403 Forbidden status
+             code is returned to the requestor."
+       REFERENCE
+            "RFC 2543, Section 4.2.6"
+       ::= { sipRegCfg 1 }
+
+   sipRegContactDfltExpiryDuration OBJECT-TYPE
+       SYNTAX     Unsigned32
+       UNITS      "seconds"
+       MAX-ACCESS read-write
+       STATUS     current
+   DESCRIPTION
+            "This object specifies the default expiration (time-to-
+             live) of Contact information that is provided by User
+             Agents when registering with this Registrar.  This value
+             is only used when no expiration has been specified by the
+             user in the REGISTER
+             request.
+
+             If the value is applied to a registration and is different
+             from the default (one hour), the server must return the
+             value to the registered User Agent.
+
+             The value contained in this object only applies if the
+             value of the sipContactDfltExpiryDate object is NULL.  If
+             the value of this object applies, and is zero, then no
+             default expiry is applied to registered contact
+             information."
+       REFERENCE
+             "RFC 2543, Section 4.2.6"
+       DEFVAL { 3600 }
+       ::= { sipRegCfg 2 }
+
+   sipRegContactDfltExpiryDate OBJECT-TYPE
+       SYNTAX     DateAndTime
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies the default expiration date (time-
+             to-live) of Contact information that is provided by User
+             Agents when registering with this Registrar.  This value
+             is only used when no expiration has been specified by the
+             user in the REGISTER request.
+
+             If this value is applied to a registration, the server
+             must return the value to the registered User Agent.
+
+             The value contained in this object only applies if the
+             value of the sipContactDfltExpiryDuration object is zero.
+             If the value of this object applies, and is NULL, then no
+             default expiry is applied to
+             registered contact information."
+       REFERENCE
+            "RFC 2543, Section 4.2.6"
+       ::= { sipRegCfg 3 }
+
+   sipRegMaxContactExpiryDate OBJECT-TYPE
+       SYNTAX     Unsigned32 (0..4294967295)
+       UNITS      "seconds"
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies the maximum expiry that may be
+             requested by a User Agent for a particular Contact.  User
+             Agents can specify expiry using either an Expiry header in
+             a REGISTER request, or using an Expires parameter in a
+             Contact header in a REGISTER request.  If the value
+             requested by the User Agent is greater than the value of
+             this object, then the contact information is given the
+             duration specified by this object, and that duration
+             is indicated to the User Agent in the response."
+       DEFVAL { 4294967295 }
+       ::= { sipRegCfg 4 }
+
+   sipRegRespHasContacts OBJECT-TYPE
+       SYNTAX     TruthValue
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+            "This object specifies whether or not the Registrar should
+             return all currently reachable locations for a
+             successfully registering party in the REGISTER response
+             message.
+
+             If the value of this object is TRUE, the Registrar returns
+             the locations in the REGISTER response.  If the value is
+             FALSE, no location information is provided."
+       ::= { sipRegCfg 5 }
+
+   sipRegMaxUsers OBJECT-TYPE
+       SYNTAX     Unsigned32 (1..4294967295)
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object specifies the maximum number of users that the
+             registrar supports.  The current number of users is
+             reflected by sipRegCurrentUsers."
+       ::= { sipRegCfg 6 }
+
+   sipRegCurrentUsers OBJECT-TYPE
+       SYNTAX     Gauge32 (0..4294967295)
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object specifies the number of users currently
+             configured on the registrar."
+       ::= { sipRegCfg 7 }
+
+   --
+   -- Per User Information
+   --
+   sipRegUserTable OBJECT-TYPE
+       SYNTAX     SEQUENCE OF SipRegUserEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "This table contains information on all users registered to
+             this Registrar."
+       ::= { sipRegCfg 8 }
+
+   sipRegUserEntry OBJECT-TYPE
+       SYNTAX     SipRegUserEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "This entry contains information for a single user
+             registered to this Registrar."
+       INDEX { sipUserIndex }
+       ::= { sipRegUserTable 1 }
+
+   SipRegUserEntry ::=
+       SEQUENCE {
+                sipUserIndex                            Unsigned32,
+                sipUserUri
+   SnmpAdminString,
+                sipUserPassword                         OCTET STRING,
+                sipUserAuthenticationFailures           Counter32,
+                sipUserTableRowStatus                   RowStatus
+       }
+
+   sipUserIndex OBJECT-TYPE
+       SYNTAX     Unsigned32 (1..4294967295)
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "This object uniquely identifies a conceptual row in the
+             table."
+       ::= { sipRegUserEntry 1 }
+
+   sipUserUri OBJECT-TYPE
+       SYNTAX     SnmpAdminString
+       MAX-ACCESS read-create
+       STATUS     current
+       DESCRIPTION
+            "This object contains the user's address-of-record.  It is
+             the main form by which the registrar knows the user.  The
+             format is typically 'user@domain'.  It is contained in the
+             To header for all REGISTER requests."
+       ::= { sipRegUserEntry 2 }
+
+   sipUserPassword OBJECT-TYPE
+       SYNTAX     OCTET STRING (SIZE(0..255))
+       MAX-ACCESS read-create
+       STATUS     current
+       DESCRIPTION
+            "This object specifies the password that the user must
+             enter when being authenticated."
+       ::= { sipRegUserEntry 3 }
+
+   sipUserAuthenticationFailures OBJECT-TYPE
+       SYNTAX     Counter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains a count of the number of times the
+             user has failed authentication."
+       ::= { sipRegUserEntry 4 }
+
+   sipUserTableRowStatus OBJECT-TYPE
+       SYNTAX     RowStatus
+       MAX-ACCESS read-create
+       STATUS     current
+       DESCRIPTION
+            "The row status of the entry. This object is required
+             to create or delete rows remotely by a manager."
+       ::= { sipRegUserEntry 5 }
+
+   --
+   -- Per Contact Information
+   --
+   sipContactTable OBJECT-TYPE
+       SYNTAX     SEQUENCE OF SipContactEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "This table contains information on every location where
+             every registered user wishes to be found (i.e. has
+   provided
+             Contact information)."
+       ::= { sipRegCfg 9 }
+
+   sipContactEntry OBJECT-TYPE
+       SYNTAX     SipContactEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "This entry contains information for a single Contact.
+             Multiple contacts may exist for a single user."
+       INDEX { sipUserIndex, sipContactIndex }
+       ::= { sipContactTable 1 }
+
+   SipContactEntry ::=
+       SEQUENCE {
+                sipContactIndex                Unsigned32,
+                sipContactDisplayName          SnmpAdminString,
+                sipContactURI                  SnmpAdminString,
+                sipContactLastUpdated          TimeStamp,
+                sipContactExpiry               DateAndTime,
+                sipContactAction               SipServerActions,
+                sipContactPreference           OCTET STRING,
+                sipContactRetryAfter           DateAndTime
+       }
+
+   sipContactIndex OBJECT-TYPE
+       SYNTAX     Unsigned32 (1..4294967295)
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+            "Along with the sipUserIndex, this object uniquely
+             identifies a conceptual row in the table."
+       ::= { sipContactEntry 1 }
+
+   sipContactDisplayName OBJECT-TYPE
+       SYNTAX     SnmpAdminString
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains the display name for the Contact.
+             For example, 'Santa at Home', or 'Santa on his Sled',
+             corresponding to contact URLs of
+             sip:BigGuy@sip.northpole.ca or
+             sip:sclaus817@sip.mobile.com, respectively."
+       ::= { sipContactEntry 2 }
+
+   sipContactURI OBJECT-TYPE
+       SYNTAX     SnmpAdminString
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains either a SIP URL or a URI where the
+             user can be contacted.  This URI is normally returned to a
+             client from a redirect server, or is used as the
+             RequestURI in a SIP request line for requests forwarded by
+             a proxy."
+       ::= { sipContactEntry 3 }
+
+   sipContactLastUpdated OBJECT-TYPE
+       SYNTAX     TimeStamp
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object indicates the time when this contact
+             information was accepted.  If the contact information is
+             updated via a subsequent REGISTER of the same information,
+             this object is also updated."
+       ::= { sipContactEntry 4 }
+
+   sipContactExpiry OBJECT-TYPE
+       SYNTAX     DateAndTime
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains the date and time when the contact
+             information will no longer be valid.  Such times may be
+             specified by the user at registration (Expires header or
+             expiry parameter in the Contact information), or a system
+             default can be applied."
+       ::= { sipContactEntry 5 }
+
+   sipContactPreference OBJECT-TYPE
+       SYNTAX     OCTET STRING (SIZE(0..255))
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object specifies the preference for this contact
+             relative to all other active contacts for same user.  A
+             registering user may provide this preference as a 'qvalue'
+             parameter in the Contact header.
+
+             The format of this item is a decimal number between 0
+             and 1 (for example 0.9).  Higher values indicate locations
+             preferred by the user."
+       REFERENCE
+            "RFC 2543, Section 6.13"
+       ::= { sipContactEntry 6 }
+
+   sipContactAction OBJECT-TYPE
+       SYNTAX     SipServerActions
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object indicates whether the user wanted the server
+             to act as a redirect server or as a proxy server.  It is
+             specified by the optional 'action' parameter in the
+             Contact header."
+       ::= { sipContactEntry 7 }
+
+   sipContactRetryAfter OBJECT-TYPE
+       SYNTAX     DateAndTime
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object indicates that the contact information is
+             currently inactive, and that it should only be activated
+             after the date and time specified by the object.  This
+             value is provided by a user when deleting contact
+             information using a REGISTER request containing a Retry-
+             After header."
+       REFERENCE
+            "RFC 2543, Section 6.32"
+       ::= { sipContactEntry 8 }
+
+   --
+   -- Registrar Statistics
+   --
+   sipRegAcceptedRegistrations OBJECT-TYPE
+       SYNTAX     Counter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains a count of the number of REGISTER
+             requests that have been accepted (status code 200) by the
+             Registrar.  This includes additions of new contact
+             information, refreshing contact information, as well as
+             requests for deletion of contact information."
+       ::= { sipRegStats 1 }
+
+   sipRegRejectedRegistrations OBJECT-TYPE
+       SYNTAX     Counter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+            "This object contains a count of the number REGISTER
+             requests that have been rejected by the Registrar."
+       ::= { sipRegStats 2 }
+
+   --
+   -- Notifications
+   --
+   sipMIBNotifPrefix      OBJECT IDENTIFIER ::= { sipMIB 2 }
+   sipMIBNotif            OBJECT IDENTIFIER ::= { sipMIBNotifPrefix 0 }
+   sipNotif               OBJECT IDENTIFIER ::= { sipMIBNotif 1 }
+   sipUANotif             OBJECT IDENTIFIER ::= { sipMIBNotif 2 }
+   sipProxyNotif          OBJECT IDENTIFIER ::= { sipMIBNotif 3 }
+   sipRedirNotif          OBJECT IDENTIFIER ::= { sipMIBNotif 4 }
+   sipRegNotif            OBJECT IDENTIFIER ::= { sipMIBNotif 5 }
+   -- none at this time
+
+   --
+   -- Conformance
+   --
+   sipMIBConformance      OBJECT IDENTIFIER ::= { sipMIB 3 }
+   sipMIBCompliances      OBJECT IDENTIFIER ::= { sipMIBConformance 1 }
+   sipMIBGroups           OBJECT IDENTIFIER ::= { sipMIBConformance 2 }
+
+   --
+   -- Compliance Statements
+   --
+   sipCompliance MODULE-COMPLIANCE
+       STATUS     current
+       DESCRIPTION
+            "The compliance statement for SIP entities."
+
+       MODULE -- this module
+            MANDATORY-GROUPS { sipCommonConfigGroup,
+                               sipCommonStatsGroup }
+   --                            sipCommonNotifGroup }
+
+            GROUP sipUAConfigGroup
+            DESCRIPTION
+                  "This group is mandatory for SIP User Agents."
+
+            GROUP sipUAStatsGroup
+            DESCRIPTION
+                  "This group is mandatory for SIP User Agents."
+
+   --         GROUP sipUANotifGroup
+   --         DESCRIPTION
+   --               "This group is mandatory for SIP User Agents."
+
+            GROUP sipServerConfigGroup
+            DESCRIPTION
+                  "This group is mandatory for SIP Proxy/Redirect
+                  servers."
+
+   --         GROUP sipServerStatsGroup
+   --         DESCRIPTION
+   --               "This group is mandatory for SIP Proxy/Redirect
+   --                servers."
+
+            GROUP sipProxyConfigGroup
+            DESCRIPTION
+                  "This group is mandatory for SIP Proxy servers."
+
+            GROUP sipProxyStatsGroup
+            DESCRIPTION
+                  "This group is mandatory for SIP Proxy servers."
+
+   --         GROUP sipProxyNotifGroup
+   --         DESCRIPTION
+   --               "This group is mandatory for SIP Proxy servers."
+
+   --         GROUP sipRedirectConfigGroup
+   --         DESCRIPTION
+   --               "This group is mandatory for SIP Redirect servers."
+
+   --         GROUP sipRedirectStatsGroup
+   --         DESCRIPTION
+   --               "This group is mandatory for SIP Redirect servers."
+
+   --         GROUP sipRedirectNotifGroup
+   --         DESCRIPTION
+   --               "This group is mandatory for SIP Redirect servers."
+
+            GROUP sipRegistrarConfigGroup
+            DESCRIPTION
+                  "This group is mandatory for SIP Registrars."
+
+            GROUP sipRegistrarStatsGroup
+            DESCRIPTION
+                  "This group is mandatory for SIP Registrars."
+
+   --         GROUP sipRegistrarNotifGroup
+   --         DESCRIPTION
+   --               "This group is mandatory for SIP Registrars."
+
+       ::= { sipMIBCompliances 1 }
+
+   --
+   -- Units of Conformance
+   --
+   sipCommonConfigGroup OBJECT-GROUP
+       OBJECTS {
+               sipProtocolVersion,
+               sipServiceOperStatus,
+               sipServiceAdminStatus,
+               sipServiceStartTime,
+               sipServiceLastChange,
+               sipTransport,
+               sipPortStatus,
+               sipUriSupported,
+               sipFtrSupported,
+               sipOrganization,
+               sipMaxTransactions,
+               sipRequestDfltExpires,
+               sipHideOperation,
+               sipUserLocationServerAddr
+       }
+       STATUS  current
+       DESCRIPTION
+            "A collection of objects providing configuration common
+             to all SIP enities."
+       ::= { sipMIBGroups 1 }
+
+   sipCommonStatsGroup OBJECT-GROUP
+       OBJECTS {
+               sipSummaryInRequests,
+               sipSummaryOutRequests,
+               sipSummaryInResponses,
+               sipSummaryOutResponses,
+               sipSummaryTotalTransactions,
+               sipStatsInviteIns,
+               sipStatsInviteOuts,
+               sipStatsAckIns,
+               sipStatsAckOuts,
+               sipStatsByeIns,
+               sipStatsByeOuts,
+               sipStatsCancelIns,
+               sipStatsCancelOuts,
+               sipStatsOptionsIns,
+               sipStatsOptionsOuts,
+               sipStatsRegisterIns,
+               sipStatsRegisterOuts,
+               sipStatsInfoIns,
+               sipStatsInfoOuts,
+               sipStatsInfoTryingIns,
+               sipStatsInfoTryingOuts,
+               sipStatsInfoRingingIns,
+               sipStatsInfoRingingOuts,
+               sipStatsInfoForwardedIns,
+               sipStatsInfoForwardedOuts,
+               sipStatsInfoQueuedIns,
+               sipStatsInfoQueuedOuts,
+               sipStatsInfoSessionProgIns,
+               sipStatsInfoSessionProgOuts,
+               sipStatsSuccessOkIns,
+               sipStatsSuccessOkOuts,
+               sipStatsRedirMultipleChoiceIns,
+               sipStatsRedirMultipleChoiceOuts,
+               sipStatsRedirMovedPermIns,
+               sipStatsRedirMovedPermOuts,
+               sipStatsRedirMovedTempIns,
+               sipStatsRedirMovedTempOuts,
+               sipStatsRedirSeeOtherIns,
+               sipStatsRedirSeeOtherOuts,
+               sipStatsRedirUseProxyIns,
+               sipStatsRedirUseProxyOuts,
+               sipStatsRedirAltServiceIns,
+               sipStatsRedirAltServiceOuts,
+               sipStatsClientBadRequestIns,
+               sipStatsClientBadRequestOuts,
+               sipStatsClientUnauthorizedIns,
+               sipStatsClientUnauthorizedOuts,
+               sipStatsClientPaymentReqdIns,
+               sipStatsClientPaymentReqdOuts,
+               sipStatsClientForbiddenIns,
+               sipStatsClientForbiddenOuts,
+               sipStatsClientNotFoundIns ,
+               sipStatsClientNotFoundOuts,
+               sipStatsClientMethNotAllowedIns,
+               sipStatsClientMethNotAllowedOuts,
+               sipStatsClientNotAcceptableIns,
+               sipStatsClientNotAcceptableOuts,
+               sipStatsClientProxyAuthReqdIns,
+               sipStatsClientProxyAuthReqdOuts,
+               sipStatsClientReqTimeoutIns,
+               sipStatsClientReqTimeoutOuts,
+               sipStatsClientConflictIns,
+               sipStatsClientConflictOuts,
+               sipStatsClientGoneIns,
+               sipStatsClientGoneOuts,
+               sipStatsClientLengthRequiredIns,
+               sipStatsClientLengthRequiredOuts,
+               sipStatsClientReqEntTooLargeIns,
+               sipStatsClientReqEntTooLargeOuts,
+               sipStatsClientReqURITooLargeIns,
+               sipStatsClientReqURITooLargeOuts,
+               sipStatsClientNoSupMediaTypeIns,
+               sipStatsClientNoSupMediaTypeOuts,
+               sipStatsClientBadExtensionIns,
+               sipStatsClientBadExtensionOuts,
+               sipStatsClientTempNotAvailIns,
+               sipStatsClientTempNotAvailOuts,
+               sipStatsClientCallLegNoExistIns,
+               sipStatsClientCallLegNoExistOuts,
+               sipStatsClientLoopDetectedIns,
+               sipStatsClientLoopDetectedOuts,
+               sipStatsClientTooManyHopsIns,
+               sipStatsClientTooManyHopsOuts,
+               sipStatsClientAddrIncompleteIns,
+               sipStatsClientAddrIncompleteOuts,
+               sipStatsClientAmbiguousIns,
+               sipStatsClientAmbiguousOuts,
+               sipStatsClientBusyHereIns,
+               sipStatsClientBusyHereOuts,
+               sipStatsServerIntErrorIns,
+               sipStatsServerIntErrorOuts,
+               sipStatsServerNotImplementedIns,
+               sipStatsServerNotImplementedOuts,
+               sipStatsServerBadGatewayIns,
+               sipStatsServerBadGatewayOuts,
+               sipStatsServerServiceUnavailIns,
+               sipStatsServerServiceUnavailOuts,
+               sipStatsServerGatewayTimeoutIns,
+               sipStatsServerGatewayTimeoutOuts,
+               sipStatsServerBadSipVersionIns,
+               sipStatsServerBadSipVersionOuts ,
+               sipStatsGlobalBusyEverywhereIns,
+               sipStatsGlobalBusyEverywhereOuts,
+               sipStatsGlobalDeclineIns,
+               sipStatsGlobalDeclineOuts,
+               sipStatsGlobalNotAnywhereIns,
+               sipStatsGlobalNotAnywhereOuts,
+               sipStatsGlobalNotAcceptableIns,
+               sipStatsGlobalNotAcceptableOuts,
+               sipCurrentTransactions,
+               sipTransTo,
+               sipTransFrom,
+               sipTransCallId,
+               sipTransCSeq,
+               sipTransState,
+               sipTransOutstandingBranches,
+               sipTransExpiry,
+               sipTransCallingPartyContentType,
+               sipTransCalledPartyContentType,
+               sipNumUnsupportedUris
+       }
+       STATUS  current
+       DESCRIPTION
+            "A collection of objects providing statistics common
+             toall SIP entities."
+       ::= { sipMIBGroups 2 }
+
+   --sipCommonNotifGroup NOTIFICATION-GROUP
+   --    OBJECTS {
+   -- not at this time
+   --    }
+   --    STATUS  current
+   --  DESCRIPTION
+   --         "A collection of notifications common to all SIP
+   --          entities."
+   --    ::= { sipMIBGroups 3 }
+
+   sipUAConfigGroup OBJECT-GROUP
+       OBJECTS {
+               sipUACfgTimerTrying,
+               sipUACfgTimerExpires,
+               sipUACfgTimerConnect,
+               sipUACfgTimerDisconnect,
+               sipUACfgRetryInvite,
+               sipUACfgRetryBye,
+               sipUACfgRetryCancel,
+               sipUACfgRetryRegister,
+               sipUACfgRetryResponse
+       }
+       STATUS  current
+       DESCRIPTION
+            "A collection of objects providing configuration for
+             SIP User Agents."
+       ::= { sipMIBGroups 4 }
+
+   sipUAStatsGroup OBJECT-GROUP
+       OBJECTS {
+               sipStatsRetryInvites,
+               sipStatsRetryByes,
+               sipStatsRetryCancels,
+               sipStatsRetryRegisters,
+               sipStatsRetryResponses
+       }
+       STATUS  current
+       DESCRIPTION
+            "A collection of objects providing statistics for
+             SIP User Agents."
+       ::= { sipMIBGroups 5 }
+
+   --sipUANotifGroup NOTIFICATION-GROUP
+   --    OBJECTS {
+   -- none at this time
+   --    }
+   --    STATUS  current
+   --    DESCRIPTION
+   --         "A collection of notifications defined for SIP User
+   --          Agents."
+   --    ::= { sipMIBGroups 6 }
+
+   sipServerConfigGroup OBJECT-GROUP
+       OBJECTS {
+               sipServerHost,
+               sipInformationTryingInitial,
+               sipInformationTryingInterval,
+               sipPgpVersion,
+               sipServerDfltAction,
+               sipServerRespectUAAction,
+               sipRequestUriHostMatching
+       }
+       STATUS  current
+       DESCRIPTION
+            "A collection of objects providing configuration common
+             to SIP Proxy and Redirect servers."
+       ::= { sipMIBGroups 7 }
+
+   --sipServerStatsGroup OBJECT-GROUP
+   --    OBJECTS {
+   -- none at this time
+   --    }
+   --    STATUS  current
+   --    DESCRIPTION
+   --         "A collection of objects providing common statistics for
+   --          SIP Proxy and Redirect servers."
+   --    ::= { sipMIBGroups 8 }
+
+   sipProxyConfigGroup OBJECT-GROUP
+       OBJECTS {
+               sipRequestMaxExpires,
+               sipProxyStateful,
+               sipProxySendsCancel,
+               sipProxyForwardAll1xx,
+               sipProxyRecursion,
+               sipProxyProvideAlternatives,
+               sipProxyRecordRoute,
+               sipProxyUseCompact,
+               sipProxyRetransmissionBuffer,
+               sipProxyAuthMethod,
+               sipProxyAuthPgpAlgorithm,
+               sipProxyAuthRealm,
+               sipProxyNonceLifeTime,
+               sipPgpPrivateKey,
+               sipRxProxyAuthRealm,
+               sipRxProxyAuthPassword,
+               sipRxProxyAuthStatus,
+               sipHideRespect
+       }
+       STATUS  current
+       DESCRIPTION
+            "A collection of objects providing configuration for
+             SIP Proxy servers."
+       ::= { sipMIBGroups 9 }
+
+   sipProxyStatsGroup OBJECT-GROUP
+       OBJECTS {
+               sipNumProxyRequireFailures
+       }
+       STATUS  current
+       DESCRIPTION
+            "A collection of objects providing statistics for
+             SIP Proxy servers."
+       ::= { sipMIBGroups 10 }
+
+   --sipProxyNotifGroup NOTIFICATION-GROUP
+   --    OBJECTS {
+   -- none at this time
+   --    }
+   --    STATUS  current
+   --    DESCRIPTION
+   --         "A collection of notifications defined for SIP
+   --          Proxy servers."
+   --    ::= { sipMIBGroups 11 }
+   --sipRedirectConfigGroup OBJECT-GROUP
+   --    OBJECTS {
+   -- none at this time
+   --    }
+   --    STATUS  current
+   --    DESCRIPTION
+   --         "A collection of objects providing configuration for
+   --          SIP Redirect servers."
+   --    ::= { sipMIBGroups 12 }
+
+   --sipRedirectStatsGroup OBJECT-GROUP
+   --    OBJECTS {
+   -- none at this time
+   --    }
+   --    STATUS  current
+   --    DESCRIPTION
+   --         "A collection of objects providing statistics for
+   --          SIP Redirect servers."
+   --    ::= { sipMIBGroups 13 }
+
+   --sipRedirectNotifGroup NOTIFICATION-GROUP
+   --    OBJECTS {
+   -- none at this time
+   --    }
+   --    STATUS  current
+   --    DESCRIPTION
+   --         "A collection of notifications defined for SIP
+   --          Redirect servers."
+   --    ::= { sipMIBGroups 14 }
+
+   sipRegistrarConfigGroup OBJECT-GROUP
+       OBJECTS {
+               sipRegAllowThirdParty,
+               sipRegContactDfltExpiryDuration,
+               sipRegContactDfltExpiryDate,
+               sipRegMaxContactExpiryDate,
+               sipRegRespHasContacts,
+               sipRegMaxUsers,
+               sipRegCurrentUsers,
+               sipUserUri,
+               sipUserPassword,
+               sipUserAuthenticationFailures,
+               sipUserTableRowStatus,
+               sipContactDisplayName,
+               sipContactURI,
+               sipContactLastUpdated,
+               sipContactExpiry,
+               sipContactPreference,
+               sipContactAction,
+               sipContactRetryAfter
+       }
+       STATUS  current
+       DESCRIPTION
+            "A collection of objects providing configuration for
+             SIP Registrars."
+       ::= { sipMIBGroups 15 }
+
+   sipRegistrarStatsGroup OBJECT-GROUP
+       OBJECTS {
+               sipRegAcceptedRegistrations,
+               sipRegRejectedRegistrations
+
+       }
+       STATUS  current
+       DESCRIPTION
+            "A collection of objects providing statistics for
+             SIP Registrars."
+       ::= { sipMIBGroups 16 }
+
+   --sipRegistrarNotifGroup NOTIFICATION-GROUP
+   --    OBJECTS {
+   -- none at this time
+   --    }
+   --    STATUS  current
+   --    DESCRIPTION
+   --         "A collection of notifications defined for SIP
+   --          Registrars."
+   --    ::= { sipMIBGroups 17 }
+
+END

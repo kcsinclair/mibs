@@ -1,0 +1,1012 @@
+CADANT-IPDR-MIB DEFINITIONS ::= BEGIN
+
+  IMPORTS
+
+        MODULE-IDENTITY,
+        OBJECT-TYPE,
+        Counter64,
+        Integer32,
+        Unsigned32
+                FROM SNMPv2-SMI
+
+        MODULE-COMPLIANCE,
+        OBJECT-GROUP
+                FROM SNMPv2-CONF
+
+        TEXTUAL-CONVENTION,
+        TruthValue,
+        RowStatus
+                FROM SNMPv2-TC
+
+        InetPortNumber,
+        InetAddressType,
+        InetAddress,
+        InetAddressIPv4
+                FROM INET-ADDRESS-MIB
+
+        InetAddressIPv4or6
+                FROM CADANT-TC
+
+        cadExperimental
+                FROM CADANT-PRODUCTS-MIB;
+
+cadIpdrMib MODULE-IDENTITY
+        LAST-UPDATED    "201506250000Z" -- June 25, 2015
+        ORGANIZATION    "Arris International, Inc."
+        CONTACT-INFO "Arris Technical Support
+        Postal: ARRIS
+        E-Mail: support@arris.com"
+
+        DESCRIPTION
+            "This MIB modules contains the definitions to support
+             configuration and status for C4 IPDR implementation."
+
+        REVISION "201506250000Z" -- June 25, 2015
+        DESCRIPTION "Add comments."
+        REVISION "201404230000Z" -- April 23, 2014
+        DESCRIPTION "Expanded list of service types to align with latest CM-SP-OSSIv3.0-I23-140403."
+        REVISION "200909280000Z" -- September 28, 2009
+        DESCRIPTION "Changed range of cadIpdrServicePriority from 0..10 to 0..64."
+        REVISION "200909170000Z" -- September 17, 2009
+        DESCRIPTION "Added the IPDR 3.0 Mib objects for tracking session collector status."
+        REVISION "200908170000Z" -- August 17, 2009
+        DESCRIPTION "Added the IPDR 3.0 Mib objects."
+        REVISION "200901060000Z" -- January 06, 2009
+        DESCRIPTION "Added the following new MIB object cadIpdrSessionId."
+        REVISION "200711190000Z" -- November 19, 2007
+        DESCRIPTION "Change MAX-ACCESS of the following MIB object to read-only
+                     cadIpdrCollectorIpAddrType."
+        REVISION "200605090000Z" -- May 09, 2006
+        DESCRIPTION "change MAX-ACCESS of the following MIB objects to read-create
+                     cadIpdrCollectorIpAddrType, cadIpdrCollectorPort,
+                     cadIpdrCollectorStatus, cadIpdrReportInterval, and
+                     cadIpdrReportStatus"
+        REVISION "200506010000Z" -- June 1, 2005
+        DESCRIPTION "created"
+
+        ::= { cadExperimental 30 }
+
+--=============================Begin Definitions===================--
+cadIpdrMIBObjects     OBJECT IDENTIFIER ::= { cadIpdrMib 1 }
+cadIpdrMIBConformance OBJECT IDENTIFIER ::= { cadIpdrMib 2 }
+
+--
+-- Global configuration objects
+--
+cadIpdrExportEnabled OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "IPDR streams is enabled or disabled.  When enabled the
+        cadIpdrQueryPort and cadIpdrStreamingPort will be open to listen
+        for collector connections.  When disabled, all ports will be
+        closed."
+        DEFVAL { false }
+        ::= { cadIpdrMIBObjects 1 }
+
+cadIpdrQueryPort OBJECT-TYPE
+        SYNTAX      INTEGER (1..65535)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "UDP port used to listen for collector queries."
+        DEFVAL { 4737 }
+        ::= { cadIpdrMIBObjects 2 }
+
+cadIpdrStreamingPort OBJECT-TYPE
+        SYNTAX      INTEGER (1..65535)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "TCP port used to listen for collector connections."
+        DEFVAL { 4737 }
+        ::= { cadIpdrMIBObjects 3 }
+
+cadIpdrDataAckWindow OBJECT-TYPE
+        SYNTAX      INTEGER (1..65535)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Maximum number of unacknowledged IPDR/SP messages that may
+        be outstanding to the collector. Applicable to DOCSIS 2.0 mode."
+        DEFVAL { 200 }
+        ::= { cadIpdrMIBObjects 4 }
+
+cadIpdrDataAckTimeout OBJECT-TYPE
+        SYNTAX      INTEGER (1..600)
+        UNITS       "seconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Maximum elapsed time before a DATA message must be acknowledged
+        by the collector. Applicable to DOCSIS 2.0 mode."
+        DEFVAL { 60 }
+        ::= { cadIpdrMIBObjects 5 }
+
+cadIpdrKeepAliveInterval OBJECT-TYPE
+        SYNTAX      INTEGER (1..600)
+        UNITS       "seconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Maximum duration of protocol silence before a KEEPALIVE message
+        must be sent."
+        DEFVAL { 300 }
+        ::= { cadIpdrMIBObjects 6 }
+
+cadIpdrExportAllCounts OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Export all counts if true, and supress duplicate counts
+        if false.  The default is false. Applicable to DOCSIS 2.0 mode."
+        DEFVAL { false }
+        ::= { cadIpdrMIBObjects 7 }
+
+cadIpdrExportCpeInfo OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Export information about CPEs behind CMs (CmCpeInfoList)
+        if set to true.  If false, supress information about CPEs.
+        The default is false. Applicable to DOCSIS 2.0 mode."
+        DEFVAL { false }
+        ::= { cadIpdrMIBObjects 8 }
+
+cadIpdrSessionId OBJECT-TYPE
+        SYNTAX      INTEGER (0..1)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "session-id used in the header of IPDR protocol messages.
+             The default is 1. Applicable to DOCSIS 2.0 mode."
+        DEFVAL { 1 }
+        ::= { cadIpdrMIBObjects 9 }
+
+cadIpdrExportMode OBJECT-TYPE
+        SYNTAX      INTEGER(1..2)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "DOCSIS mode exporter, either DOCSIS 2.0 or DOCSIS 3.0.
+             The default is DOCSIS 2.0 mode, or 1."
+         DEFVAL { 1 }
+        ::= { cadIpdrMIBObjects 10 }
+
+
+--
+-- Collector Priority table
+--
+cadIpdrCollectorTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadIpdrCollectorEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A priority ordered list of collectors that will be allowed
+        to connect to the exporter.  The highest priority active collector
+        is designated the primary collector.  This list is exclusive
+        and any collector not in this list will be ignored.  Applicable to
+        DOCSIS 2.0 mode."
+        ::= { cadIpdrMIBObjects 11 }
+
+cadIpdrCollectorEntry OBJECT-TYPE
+        SYNTAX      CadIpdrCollectorEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        INDEX { cadIpdrCollectorPriority, cadIpdrCollectorIpAddress }
+        ::= { cadIpdrCollectorTable 1 }
+
+CadIpdrCollectorEntry ::= SEQUENCE {
+      cadIpdrCollectorPriority    INTEGER,
+      cadIpdrCollectorIpAddrType  InetAddressType,
+      cadIpdrCollectorIpAddress   InetAddressIPv4or6,
+      cadIpdrCollectorPort        InetPortNumber,
+      cadIpdrCollectorActive      TruthValue,
+      cadIpdrCollectorPrimary     TruthValue,
+      cadIpdrCollectorOutIntRecs  Counter64,
+      cadIpdrCollectorOutStpRecs  Counter64,
+      cadIpdrCollectorSupIntRecs  Counter64,
+      cadIpdrCollectorStatus      RowStatus
+   }
+
+cadIpdrCollectorPriority OBJECT-TYPE
+        SYNTAX      INTEGER(1..255)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The collector priority.  Lower values indicate higher priority.
+        The default priority is 1. Applicable to DOCSIS 2.0 mode."
+   DEFVAL { 1 }
+        ::= { cadIpdrCollectorEntry 1 }
+
+cadIpdrCollectorIpAddrType OBJECT-TYPE
+        SYNTAX      InetAddressType
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The type of internet address (IPv4 or IPv6).
+        The only internet address type currently allowed is IPv4.
+        Applicable to DOCSIS 2.0 mode."
+   DEFVAL { ipv4 }
+        ::= { cadIpdrCollectorEntry 2 }
+
+cadIpdrCollectorIpAddress OBJECT-TYPE
+        SYNTAX      InetAddressIPv4or6
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Source IP address of a collector that will be permitted to
+        connect to the exporter. Applicable to DOCSIS 2.0 mode."
+        ::= { cadIpdrCollectorEntry 3 }
+
+cadIpdrCollectorPort OBJECT-TYPE
+        SYNTAX      InetPortNumber
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Destination port of collector if exporter trys to connect
+             to the collector.  Default is 4747. This object is currently disabled.
+             Applicable to DOCSIS 2.0 mode."
+        DEFVAL { 4737 }
+        ::= { cadIpdrCollectorEntry 4 }
+
+cadIpdrCollectorActive OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "True if this collector is connected to the exporter.
+             Applicable to DOCSIS 2.0 mode."
+        DEFVAL { false }
+        ::= { cadIpdrCollectorEntry 5 }
+
+cadIpdrCollectorPrimary OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "True if this collector is the primary collector.
+             Applicable to DOCSIS 2.0 mode."
+        DEFVAL { false }
+        ::= { cadIpdrCollectorEntry 6 }
+
+cadIpdrCollectorOutIntRecs OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Number of interim data records exported to this collector.
+             Applicable to DOCSIS 2.0 mode."
+        ::= { cadIpdrCollectorEntry 7 }
+
+cadIpdrCollectorOutStpRecs OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Number of stop data records exported to this collector.
+             Applicable to DOCSIS 2.0 mode."
+        ::= { cadIpdrCollectorEntry 8 }
+
+cadIpdrCollectorSupIntRecs OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Number of interim data records suppressed for this collector.
+             Applicable to DOCSIS 2.0 mode."
+        ::= { cadIpdrCollectorEntry 9 }
+
+cadIpdrCollectorStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Row control for this collector.  The only valid values for
+             this object are createAndGo, destroy, and active.
+             Applicable to DOCSIS 2.0 mode."
+        ::= { cadIpdrCollectorEntry 10 }
+
+
+--
+-- The IPDR report cycle table
+--
+cadIpdrReportCycleTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadIpdrReportCycleEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A list of scheduled report cycle start times and interval
+        durations.  Multiple entries indicate blocks of time with
+        variable interval durations. Applicable to DOCSIS 2.0 mode."
+        ::= { cadIpdrMIBObjects 12 }
+
+cadIpdrReportCycleEntry OBJECT-TYPE
+        SYNTAX      CadIpdrReportCycleEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        INDEX { cadIpdrReportStartHH, cadIpdrReportStartMM }
+        ::= { cadIpdrReportCycleTable 1 }
+
+CadIpdrReportCycleEntry ::= SEQUENCE {
+      cadIpdrReportStartHH     INTEGER,
+      cadIpdrReportStartMM     INTEGER,
+      cadIpdrReportInterval    INTEGER,
+      cadIpdrReportOutIntRecs  Counter64,
+      cadIpdrReportOutStpRecs  Counter64,
+      cadIpdrReportSupIntRecs  Counter64,
+      cadIpdrReportStatus      RowStatus
+   }
+
+cadIpdrReportStartHH OBJECT-TYPE
+        SYNTAX      INTEGER(0..23)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The report cycle start hour.  The default is 00.
+             Applicable to DOCSIS 2.0 mode."
+   DEFVAL { 0 }
+        ::= { cadIpdrReportCycleEntry 1 }
+
+cadIpdrReportStartMM OBJECT-TYPE
+        SYNTAX      INTEGER(0..59)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The report cycle start minutes after the hour.  Default is 00.
+             Applicable to DOCSIS 2.0 mode."
+   DEFVAL { 0 }
+        ::= { cadIpdrReportCycleEntry 2 }
+
+cadIpdrReportInterval OBJECT-TYPE
+        SYNTAX      INTEGER(15..1440)
+   UNITS       "minutes"
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The report cycle interval duration in minutes. The default
+             is 60 minutes. Applicable to DOCSIS 2.0 mode."
+   DEFVAL { 60 }
+        ::= { cadIpdrReportCycleEntry 3 }
+
+cadIpdrReportOutIntRecs OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Number of interim data records exported during this report cycle.
+             Applicable to DOCSIS 2.0 mode."
+        ::= { cadIpdrReportCycleEntry 4 }
+
+cadIpdrReportOutStpRecs OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Number of stop data records exported during this report cycle.
+             Applicable to DOCSIS 2.0 mode."
+        ::= { cadIpdrReportCycleEntry 5 }
+
+cadIpdrReportSupIntRecs OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Number of interim data records suppressed during this report cycle.
+             Applicable to DOCSIS 2.0 mode."
+        ::= { cadIpdrReportCycleEntry 6 }
+
+cadIpdrReportStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Row control for this report cycle.  The only valid values for
+             this object are createAndGo, destroy, and active.
+             Applicable to DOCSIS 2.0 mode."
+        ::= { cadIpdrReportCycleEntry 7 }
+
+--
+-- The IPDR Service table
+--
+cadIpdrServiceTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadIpdrServiceEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A session-id ordered list of services that will be allowed
+        to be requested by the Collector.  This list is exclusive and are used
+        when the exporter is in DOCSIS 3.0 mode."
+        ::= { cadIpdrMIBObjects 13 }
+
+cadIpdrServiceEntry OBJECT-TYPE
+        SYNTAX      CadIpdrServiceEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        INDEX { cadIpdrServiceSessionId }
+        ::= { cadIpdrServiceTable 1 }
+
+CadIpdrServiceEntry ::= SEQUENCE {
+      cadIpdrServiceSessionId          INTEGER,
+      cadIpdrServiceType               INTEGER,
+      cadIpdrServiceMethod             INTEGER,
+      cadIpdrServicePriority           INTEGER,
+      cadIpdrServiceDataAckWindow      INTEGER,
+      cadIpdrServiceDataAckTimeout     INTEGER,
+      cadIpdrServiceReportCycleSet     INTEGER,
+      cadIpdrServiceEvtPaceGap         INTEGER,
+      cadIpdrServiceAllCounts          TruthValue,
+      cadIpdrServiceStatus             RowStatus
+   }
+
+cadIpdrServiceSessionId OBJECT-TYPE
+        SYNTAX      INTEGER (1..255)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The session-id used in the header of IPDR protocol messages.
+             The default is 1."
+        DEFVAL { 1 }
+        ::= { cadIpdrServiceEntry 1 }
+
+cadIpdrServiceType OBJECT-TYPE
+        SYNTAX      INTEGER(0..13)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The session service types are unknown(0), samis_1(1),
+             samis_2(2), cpe(3), cm_reg(4), cm_us(5), spect(6),
+             diag(7), topo(8), us_util(9), ds_util(10), diag_evt(11),
+             diag_det(12), cm_sf(13), cpe_a2(14), mcast(15).
+             The default is 1."
+        DEFVAL { 1 }
+        ::= { cadIpdrServiceEntry 2 }
+
+cadIpdrServiceMethod OBJECT-TYPE
+        SYNTAX      INTEGER(0..3)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The session service method
+             (unknown, time, event, adhoc).
+             The default is time."
+        DEFVAL { 1 }
+        ::= { cadIpdrServiceEntry 3 }
+
+cadIpdrServicePriority OBJECT-TYPE
+        SYNTAX      INTEGER(0..64)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The session priority.  Lower values indicate higher priority.
+             This object is not used."
+        DEFVAL { 1 }
+        ::= { cadIpdrServiceEntry 4 }
+
+cadIpdrServiceDataAckWindow OBJECT-TYPE
+        SYNTAX      INTEGER (1..65535)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The session maximum number of unacknowledged IPDR/SP messages that
+             may be outstanding to the collector."
+        DEFVAL { 200 }
+        ::= { cadIpdrServiceEntry 5 }
+
+cadIpdrServiceDataAckTimeout OBJECT-TYPE
+        SYNTAX      INTEGER (1..600)
+        UNITS       "seconds"
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The session maximum elapsed time before a DATA message must be
+             acknowledged by the collector."
+        DEFVAL { 60 }
+        ::= { cadIpdrServiceEntry 6 }
+
+cadIpdrServiceReportCycleSet OBJECT-TYPE
+        SYNTAX      INTEGER (1..255)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The session report cycle set."
+        DEFVAL { 1 }
+        ::= { cadIpdrServiceEntry 7 }
+
+cadIpdrServiceEvtPaceGap OBJECT-TYPE
+        SYNTAX      INTEGER (0..30)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The session event pace gap."
+        DEFVAL { 0 }
+        ::= { cadIpdrServiceEntry 8 }
+
+cadIpdrServiceAllCounts OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Export all counts if true, and supress duplicate counts
+             if false.  The default is false."
+        DEFVAL { false }
+        ::= { cadIpdrServiceEntry 9 }
+
+cadIpdrServiceStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Row control for this service.  The only valid values for
+             this object are createAndGo, destroy, and active."
+        ::= { cadIpdrServiceEntry 10 }
+
+--
+-- The IPDR report cycle set table
+--
+cadIpdrReportCycleSetTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadIpdrReportCycleSetEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A list of sets of scheduled report cycle start times and interval
+        durations.  Multiple entries indicate blocks of time with
+        variable interval durations. Applicable to DOCSIS 3.0 mode."
+        ::= { cadIpdrMIBObjects 14 }
+
+cadIpdrReportCycleSetEntry OBJECT-TYPE
+        SYNTAX      CadIpdrReportCycleSetEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        INDEX { cadIpdrReportCycleSetSet, cadIpdrReportCycleSetStartHH, cadIpdrReportCycleSetStartMM }
+        ::= { cadIpdrReportCycleSetTable 1 }
+
+CadIpdrReportCycleSetEntry ::= SEQUENCE {
+      cadIpdrReportCycleSetSet         INTEGER,
+      cadIpdrReportCycleSetStartHH     INTEGER,
+      cadIpdrReportCycleSetStartMM     INTEGER,
+      cadIpdrReportCycleSetInterval    INTEGER,
+      cadIpdrReportCycleSetStatus      RowStatus
+   }
+
+cadIpdrReportCycleSetSet OBJECT-TYPE
+        SYNTAX      INTEGER(1..255)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The report cycle set id number.  The default is 1."
+        DEFVAL { 1 }
+        ::= { cadIpdrReportCycleSetEntry 1 }
+
+cadIpdrReportCycleSetStartHH OBJECT-TYPE
+        SYNTAX      INTEGER(0..23)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The report cycle set start hour.  The default is 00."
+        DEFVAL { 0 }
+        ::= { cadIpdrReportCycleSetEntry 2 }
+
+cadIpdrReportCycleSetStartMM OBJECT-TYPE
+        SYNTAX      INTEGER(0..59)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The report cycle set start minutes after the hour.  Default is 00."
+        DEFVAL { 0 }
+        ::= { cadIpdrReportCycleSetEntry 3 }
+
+cadIpdrReportCycleSetInterval OBJECT-TYPE
+        SYNTAX      INTEGER(15..1440)
+                UNITS       "minutes"
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The report cycle set interval duration in minutes. The default
+        is 60 minutes."
+        DEFVAL { 60 }
+        ::= { cadIpdrReportCycleSetEntry 4}
+
+cadIpdrReportCycleSetStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Row control for this report cycle set entry.  The only valid values for
+             this object are createAndGo, destroy, and active."
+        ::= { cadIpdrReportCycleSetEntry 5 }
+
+
+--
+-- The IPDR Counts table
+--
+cadIpdrCountsTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadIpdrCountsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A session-id/priority/collector ordered list of counts for all sessions.
+             Applicable to DOCSIS 2.0 and 3.0 modes."
+        ::= { cadIpdrMIBObjects 15 }
+
+cadIpdrCountsEntry OBJECT-TYPE
+        SYNTAX      CadIpdrCountsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        INDEX { cadIpdrCountsSessionId, cadIpdrCountsCollectorPriority, cadIpdrCountsCollectorIpAddress, cadIpdrCountsStartHH, cadIpdrCountsStartMM, cadIpdrCountsAdhocIndex }
+        ::= { cadIpdrCountsTable 1 }
+
+CadIpdrCountsEntry ::= SEQUENCE {
+      cadIpdrCountsSessionId            INTEGER,
+      cadIpdrCountsCollectorPriority    INTEGER,
+      cadIpdrCountsCollectorIpAddress   InetAddressIPv4or6,
+      cadIpdrCountsStartHH              INTEGER,
+      cadIpdrCountsStartMM              INTEGER,
+      cadIpdrCountsAdhocIndex           Unsigned32,
+      cadIpdrCountsStartTime            OCTET STRING,
+      cadIpdrCountsStopTime             OCTET STRING,
+      cadIpdrCountsIntRecs              Counter64,
+      cadIpdrCountsSupIntRecs           Counter64,
+      cadIpdrCountsStartRecs            Counter64,
+      cadIpdrCountsStopRecs             Counter64,
+      cadIpdrCountsEventRecs            Counter64,
+      cadIpdrCountsStatus               RowStatus
+   }
+
+cadIpdrCountsSessionId OBJECT-TYPE
+        SYNTAX      INTEGER (1..255)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The counts session-id used in the header of IPDR protocol messages.
+             The default is 1."
+        DEFVAL { 1 }
+        ::= { cadIpdrCountsEntry 1 }
+
+cadIpdrCountsCollectorPriority OBJECT-TYPE
+        SYNTAX      INTEGER(1..255)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The counts collector priority.  Lower values indicate higher priority.
+             The default priority is 1."
+        DEFVAL { 1 }
+        ::= { cadIpdrCountsEntry 2 }
+
+cadIpdrCountsCollectorIpAddress OBJECT-TYPE
+        SYNTAX      InetAddressIPv4or6
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The counts source IP address of a collector that will be permitted to
+             connect to the exporter."
+        ::= { cadIpdrCountsEntry 3 }
+
+cadIpdrCountsStartHH OBJECT-TYPE
+        SYNTAX      INTEGER(0..23)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The counts report cycle start hour.  The default is 00."
+        DEFVAL { 0 }
+        ::= { cadIpdrCountsEntry 4 }
+
+cadIpdrCountsStartMM OBJECT-TYPE
+        SYNTAX      INTEGER(0..59)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The counts report cycle start minutes after the hour.  Default is 00."
+        DEFVAL { 0 }
+        ::= { cadIpdrCountsEntry 5 }
+
+cadIpdrCountsAdhocIndex  OBJECT-TYPE
+        SYNTAX      Unsigned32 (0..4294967295) 
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The counts adhoc index."
+        DEFVAL { 0 }
+        ::= { cadIpdrCountsEntry 6 }
+
+cadIpdrCountsStartTime OBJECT-TYPE
+        SYNTAX      OCTET STRING (SIZE(0..16))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The counts report cycle start time.  Default is 0 length."
+        ::= { cadIpdrCountsEntry 7 }
+
+cadIpdrCountsStopTime OBJECT-TYPE
+        SYNTAX      OCTET STRING (SIZE(0..16))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The counts report cycle stop time.  Default is 0 length."
+        ::= { cadIpdrCountsEntry 8 }
+
+cadIpdrCountsIntRecs OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Number of interim data records exported for this session-id to this collector."
+        ::= { cadIpdrCountsEntry 9 }
+
+cadIpdrCountsSupIntRecs OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Number of interim data records suppressed for this session-id to this collector."
+        ::= { cadIpdrCountsEntry 10 }
+
+cadIpdrCountsStartRecs OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Number of start data records exported for this session-id to this collector."
+        ::= { cadIpdrCountsEntry 11 }
+
+cadIpdrCountsStopRecs OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Number of stop data records exported for this session-id to this collector."
+        ::= { cadIpdrCountsEntry 12 }
+
+cadIpdrCountsEventRecs OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Number of event data records exported for this session-id to this collector."
+        ::= { cadIpdrCountsEntry 13 }
+
+cadIpdrCountsStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Row control for this counts entry.  The only valid values for
+             this object are createAndGo, destroy, and active."
+        ::= { cadIpdrCountsEntry 14 }
+
+--
+-- Session Collector Status table
+--
+cadIpdrSessionCollectorTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadIpdrSessionCollectorEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A session and priority ordered list of collectors that is
+             used to track the Active and Primary status of the collector
+             relative to this session. Applicable to DOCSIS 3.0 mode."
+        ::= { cadIpdrMIBObjects 16 }
+
+cadIpdrSessionCollectorEntry OBJECT-TYPE
+        SYNTAX      CadIpdrSessionCollectorEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            ""
+        INDEX { cadIpdrSessionCollectorSessionId, cadIpdrSessionCollectorPriority, cadIpdrSessionCollectorIpAddress }
+        ::= { cadIpdrSessionCollectorTable 1 }
+
+CadIpdrSessionCollectorEntry ::= SEQUENCE {
+      cadIpdrSessionCollectorSessionId   INTEGER,
+      cadIpdrSessionCollectorPriority    INTEGER,
+      cadIpdrSessionCollectorIpAddrType  InetAddressType,
+      cadIpdrSessionCollectorIpAddress   InetAddressIPv4or6,
+      cadIpdrSessionCollectorPort        InetPortNumber,
+      cadIpdrSessionCollectorActive      TruthValue,
+      cadIpdrSessionCollectorPrimary     TruthValue,
+      cadIpdrSessionCollectorStatus      RowStatus
+   }
+
+cadIpdrSessionCollectorSessionId OBJECT-TYPE
+        SYNTAX      INTEGER (1..255)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The counts session-id used in the header of IPDR protocol messages.
+             The default is 1."
+        DEFVAL { 1 }
+        ::= { cadIpdrSessionCollectorEntry 1 }
+
+cadIpdrSessionCollectorPriority OBJECT-TYPE
+        SYNTAX      INTEGER(1..255)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The collector priority.  Lower values indicate higher priority.
+             The default priority is 1."
+        DEFVAL { 1 }
+        ::= { cadIpdrSessionCollectorEntry 2 }
+
+cadIpdrSessionCollectorIpAddrType OBJECT-TYPE
+        SYNTAX      InetAddressType
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The type of internet address (IPv4 or IPv6).
+             The only internet address type currently allowed is IPv4."
+        DEFVAL { ipv4 }
+        ::= { cadIpdrSessionCollectorEntry 3 }
+
+cadIpdrSessionCollectorIpAddress OBJECT-TYPE
+        SYNTAX      InetAddressIPv4or6
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Source IP address of a collector that will be permitted to
+             connect to the exporter."
+        ::= { cadIpdrSessionCollectorEntry 4 }
+
+cadIpdrSessionCollectorPort OBJECT-TYPE
+        SYNTAX      InetPortNumber
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Destination port of collector if exporter trys to connect
+             to the collector.  Default is 4747. This object is currently disabled."
+        DEFVAL { 4737 }
+        ::= { cadIpdrSessionCollectorEntry 5 }
+
+cadIpdrSessionCollectorActive OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "True if this collector is connected to the exporter for this session."
+        DEFVAL { false }
+        ::= { cadIpdrSessionCollectorEntry 6 }
+
+cadIpdrSessionCollectorPrimary OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "True if this collector is the primary collector for this session."
+        DEFVAL { false }
+        ::= { cadIpdrSessionCollectorEntry 7 }
+
+cadIpdrSessionCollectorStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Row control for this collector.  The only valid values for
+             this object are createAndGo, destroy, and active."
+        ::= { cadIpdrSessionCollectorEntry 8 }
+
+
+-- Conformance information *******************************************
+
+cadIpdrMIBCompliances  OBJECT IDENTIFIER ::= { cadIpdrMIBConformance 1 }
+cadIpdrMIBGroups       OBJECT IDENTIFIER ::= { cadIpdrMIBConformance 2 }
+
+-- Compliance statements *********************************************
+
+cadIpdrMIBCompliance MODULE-COMPLIANCE
+    STATUS       current
+    DESCRIPTION "The compliance statement for the Arris IPDR implementation."
+    MODULE -- this module
+        MANDATORY-GROUPS { cadIpdrBasicGroup }
+
+    ::= { cadIpdrMIBCompliances 1 }
+
+-- Units of conformance **********************************************
+
+cadIpdrBasicGroup OBJECT-GROUP
+    OBJECTS {
+              cadIpdrExportEnabled,
+              cadIpdrQueryPort,
+              cadIpdrStreamingPort,
+              cadIpdrDataAckWindow,
+              cadIpdrDataAckTimeout,
+              cadIpdrKeepAliveInterval,
+              cadIpdrExportAllCounts,
+              cadIpdrExportCpeInfo,
+              cadIpdrSessionId,
+              cadIpdrExportMode
+            }
+    STATUS       current
+    DESCRIPTION ""
+    ::= { cadIpdrMIBGroups 1 }
+
+cadIpdrCollectorGroup OBJECT-GROUP
+    OBJECTS {
+              cadIpdrCollectorIpAddrType,
+              cadIpdrCollectorPort,
+              cadIpdrCollectorActive,
+              cadIpdrCollectorPrimary,
+              cadIpdrCollectorOutIntRecs,
+              cadIpdrCollectorOutStpRecs,
+              cadIpdrCollectorSupIntRecs,
+              cadIpdrCollectorStatus
+            }
+    STATUS       current
+    DESCRIPTION ""
+    ::= { cadIpdrMIBGroups 2 }
+
+cadIpdrReportGroup OBJECT-GROUP
+    OBJECTS {
+              cadIpdrReportOutIntRecs,
+              cadIpdrReportOutStpRecs,
+              cadIpdrReportSupIntRecs,
+              cadIpdrReportStatus
+            }
+    STATUS       current
+    DESCRIPTION ""
+    ::= { cadIpdrMIBGroups 3 }
+
+cadIpdrServiceGroup OBJECT-GROUP
+    OBJECTS {
+                  cadIpdrServiceType,
+                  cadIpdrServiceMethod,
+                  cadIpdrServicePriority,
+                  cadIpdrServiceDataAckWindow,
+                  cadIpdrServiceDataAckTimeout,
+                  cadIpdrServiceReportCycleSet,
+                  cadIpdrServiceEvtPaceGap,
+                  cadIpdrServiceAllCounts,
+                  cadIpdrServiceStatus
+            }
+    STATUS       current
+    DESCRIPTION ""
+    ::= { cadIpdrMIBGroups 4 }
+
+cadIpdrReportCycleSetGroup OBJECT-GROUP
+        OBJECTS {
+                  cadIpdrReportCycleSetInterval,
+                  cadIpdrReportCycleSetStatus
+                }
+    STATUS       current
+    DESCRIPTION ""
+    ::= { cadIpdrMIBGroups 5 }
+
+cadIpdrCountsGroup OBJECT-GROUP
+        OBJECTS {
+                  cadIpdrCountsStartTime,
+                  cadIpdrCountsStopTime,
+                  cadIpdrCountsIntRecs,
+                  cadIpdrCountsSupIntRecs,
+                  cadIpdrCountsStartRecs,
+                  cadIpdrCountsStopRecs,
+                  cadIpdrCountsEventRecs,
+                  cadIpdrCountsStatus
+                }
+    STATUS       current
+    DESCRIPTION ""
+    ::= { cadIpdrMIBGroups 6 }
+
+cadIpdrSessionCollectorGroup OBJECT-GROUP
+    OBJECTS {
+              cadIpdrSessionCollectorIpAddrType,
+              cadIpdrSessionCollectorPort,
+              cadIpdrSessionCollectorActive,
+              cadIpdrSessionCollectorPrimary,
+              cadIpdrSessionCollectorStatus
+            }
+    STATUS       current
+    DESCRIPTION ""
+    ::= { cadIpdrMIBGroups 7 }
+
+END

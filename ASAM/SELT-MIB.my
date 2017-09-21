@@ -1,0 +1,463 @@
+
+-- orig SELT_MIB
+
+SELT-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+
+        OBJECT-TYPE
+                FROM RFC-1212
+    
+        asamIqAccessMIB
+                FROM IQ-ACCESS;
+
+SELTState ::= INTEGER {
+                idle          (1),      
+                start         (2),      
+                running       (3),      
+                success       (4),      
+                failure       (5),      
+                end           (6)       
+}
+
+SELTTxSignPsdType ::= INTEGER {
+                txSignPsdTypeDefault                    (1), 
+                txSignPsdTypeFromConfig                 (2), 
+                txSignPsdTypeFromConfigVdsl2            (3),
+                txSignPsdTypeFromConfigVdsl1            (4),
+                txSignPsdTypeFromConfigAdsl1or2         (5),
+                txSignPsdTypeFromConfigAdsl2Plus        (6),
+                txSignPsdTypePreDefVdsl2                (7),
+                txSignPsdTypePreDefVdsl1                (8),
+                txSignPsdTypePreDefAllBandsVdsl2        (9),
+                txSignPsdTypePreDefAllBandsAdsl1       (10),
+                txSignPsdTypePreDefAllBandsAdsl2Plus   (11)
+}
+
+SELTSelectedPsdType ::= INTEGER {
+                selectedPsdTypeConfigVdsl2              (1), 
+                selectedPsdTypeConfigVdsl1              (2), 
+                selectedPsdTypeConfigAdsl1or2           (3),
+                selectedPsdTypeConfigAdsl2Plus          (4),
+                selectedPsdTypeConfigReAdsl2            (5),
+                selectedPsdTypePreDefVdsl2              (6),
+                selectedPsdTypePreDefVdsl1              (7),
+                selectedPsdTypePreDefAllBandsVdsl2      (8),
+                selectedPsdTypePreDefAllBandsAdsl1      (9),
+                selectedPsdTypePreDefAllBandsAdsl2Plus (10)
+}
+
+asamSELTIfIndex                 OBJECT-TYPE
+SYNTAX                  INTEGER  
+       ACCESS                  read-write 
+       STATUS                  mandatory  
+       DESCRIPTION             "IfIndex of line to be tested."
+
+::=     {asamIqAccessMIB 3}
+
+asamSELTStatus                  OBJECT-TYPE
+       SYNTAX                  SELTState
+       ACCESS                  read-write        
+       STATUS                  mandatory  
+       DESCRIPTION             "This object reflects test state."
+       DEFVAL                  {idle}
+
+::=     {asamIqAccessMIB 4}
+
+asamSELTData OBJECT-TYPE
+       SYNTAX                   OCTET STRING
+       ACCESS                   read-only
+       STATUS                   mandatory
+       DESCRIPTION              "Test results."
+
+::=     {asamIqAccessMIB 5}
+asamSELTEchoVar OBJECT-TYPE
+        SYNTAX                   OCTET STRING
+        ACCESS                   read-only
+        STATUS                   mandatory
+        DESCRIPTION              
+        "This object provides the uncalibrated echo response variance real values
+         per carrier over the SELT measurement band for the specified line.
+         When the data is not available because the measurement is not completed,
+         not enabled or not supported, an empty string will be returned.
+         The echo response variance has a range from -150 dBm/Hz to -23 dBm/Hz in
+         steps of 0.5 dB.
+         It is represented as ECHO_VARi = -23 - vi/2, with vi an 8 bit unsigned
+         integer in the range 0 to 254.
+         The special value 255 indicates that no measurement is available for
+         the carrier or that the measurement is out of range.
+
+         The echo response variance is coded as a bitmap defined as
+         follows:
+         OCTETS 0: INTEGER , contains the vi for the first ADSL carrier.
+         OCTETS 1..255: vi for the next carrier and so on until the last ADSL 
+         carrier"
+
+::=     {asamIqAccessMIB 6}
+
+asamSELTCompEcho OBJECT-TYPE
+        SYNTAX                   OCTET STRING
+        ACCESS                   read-only
+        STATUS                   mandatory
+        DESCRIPTION              
+        "The BCM SELT echo data is coded as a bitmap defined as follows:
+         OCTETS 0,1,2,3: INTEGER(0..4294967295), contains the AGC setting.
+         OCTETS 4,5,6,7: INTEGER , contains the first ai value.
+         OCTETS 8,9,10,11: INTEGER , contains the second ai value.
+         OCTETS 12..4099: and so on till the 1024th ai value.
+         OCTETS 4100, 4101, 4102, 4103: contains the first bi value.
+         OCTETS 4104..8195: and so on till the 1024th bi value."
+
+::=     {asamIqAccessMIB 7}
+
+isamSELTIfIndex OBJECT-TYPE
+        SYNTAX                  INTEGER  
+        ACCESS                  read-write 
+        STATUS                  mandatory  
+        DESCRIPTION             "IfIndex of line to be tested."
+
+::= {asamIqAccessMIB 8}
+
+isamSELTState OBJECT-TYPE
+        SYNTAX                  SELTState
+        ACCESS                  read-write        
+        STATUS                  mandatory  
+        DESCRIPTION             "This object reflects test state.
+                                Value can be set to 'start' or 'end'.
+                                Value read can be 'idle', 'running', 
+                                'success' or 'failure'.
+                                Start state is 'idle'.
+                                If the value is set to start, the system will
+                                check depending upon the value of object
+                                isamSELTTxSignPsdType if the Selt measurements
+                                can be started. If object isamSELTTxSignPsdType
+                                is set to one of the txSignPsdTypeFromConfigxxx
+                                values and the modem line configuration data is
+                                not available, the Selt measurement cannot be
+                                started."
+
+::= {asamIqAccessMIB 9}
+
+isamSELTUncalEchoMeasurementTime  OBJECT-TYPE
+        SYNTAX                  INTEGER  
+        ACCESS                  read-write 
+        STATUS                  mandatory  
+        DESCRIPTION             
+          "Defines the maximum SELT measurement time to be used by the modems
+           to perform an Uncalibrated Echo measurement (Uncalibrated Echo
+           and Uncalibrated Echo Variance)
+           Valid range: 5 .. 240 in steps of 1, unit is seconds.  
+           Default value is 240s.  
+           The value can be set when in state 'idle'."
+
+::= {asamIqAccessMIB 10}
+
+isamSELTQLNoiseMeasurementTime  OBJECT-TYPE
+        SYNTAX                  INTEGER  
+        ACCESS                  read-write 
+        STATUS                  mandatory  
+        DESCRIPTION             
+          "Defines the maximum SELT measurement time to be used by the modems
+           to perform a Quiet Line Noise measurement 
+           Valid range: 5 .. 240 in steps of 1, unit is seconds.  
+           The special value 0 requests to skip the Quiet Line Noise 
+           Measurement.
+           Default value is 5.  
+           The value can be set when in state 'idle'."
+
+::= {asamIqAccessMIB 11}
+
+isamSELTAGC OBJECT-TYPE
+        SYNTAX                  INTEGER  
+        ACCESS                  read-write 
+        STATUS                  mandatory  
+        DESCRIPTION             
+         "Defines the AGC to be used for the SELT Echo measurement.
+          INTEGER(-100,+100), in dB
+          The special value -1000 requests to use Automatic GC.
+          This value should be set for each measurement. Default is to use 
+          Automatic GC."
+
+::= {asamIqAccessMIB 12}
+
+isamSELTUncalEcho OBJECT-TYPE
+        SYNTAX                   OCTET STRING
+        ACCESS                   read-only
+        STATUS                   mandatory
+        DESCRIPTION      
+         "This object provides the uncalibrated echo response complex values per
+         carrier over the SELT measurement band for the specified line.
+         When the data is not available because the measurement is not completed,
+         not enabled or not supported, an empty string will be returned.
+
+         The echo response is represented by a scale factor and an array of
+         normalized complex numbers ai+j*bi, where i is the subcarrier index.
+         It is represented as ECHOi = (scale/2^31)*((ai+j*bi)/2^31),
+         with ai and bi 4 bytes signed integers in the range (-2^31+1) to
+         (+2^31-1). The special value -2^31 (0xffffffff) indicates that no
+         measurement is available for the carrier or that the measurement is out
+         of range.  The scale factor is a 4 bytes unsigned integer. The scale factor
+         must be chosen such that: max(|ai|,|bi|) over all i is equal to 2^31-1.
+
+         The echo response is coded as a bitmap defined as follows:
+
+         OCTETS 0,1,2,3: INTEGER(0..4294967295), contains the scale factor to apply
+         to the echo response values.
+         OCTETS 4,5: INTEGER (0..4096), index of the start carrier of the 1st band.
+         OCTETS 6,7: INTEGER (0..4096), index of the stop carrier of the 1st band.
+         OCTETS 8,9,10,11: INTEGER , contains the ai for the first carrier
+                           of the 1st band (start carrier).
+         OCTETS 12,13,14,15: INTEGER, contains the bi for the first carrier
+                             of the 1st band (start carrier).
+         OCTETS 16..L-1: ai and bi for the next carrier and so on until the stop
+                         carrier of 1st the band.
+         Optional 2nd band:
+         OCTETS L+0, L+1: INTEGER (0..4096), index of the start carrier 
+                          of the 2nd band.    
+         OCTETS L+2, L+3: INTEGER (0..4096), index of the stop carrier 
+                          of the 2nd band.
+         OCTETS L+4,5,6,7: INTEGER, contains the ai for the first carrier of the
+                           2nd band (start carrier). 
+         OCTETS L+8,9,10,11: INTEGER, contains the bi for the first carrier
+                             of the 2nd  band.
+         OCTETS L+12..M-1: ai and bi for the next carrier and so on
+                           until the stop carrier of 2nd the band.
+         Optional 3rd band etc..."
+
+::= {asamIqAccessMIB 13}
+
+isamSELTUncalEchoVar OBJECT-TYPE
+        SYNTAX                   OCTET STRING
+        ACCESS                   read-only
+        STATUS                   mandatory
+        DESCRIPTION      
+         "This object provides the uncalibrated echo response variance real values
+         per carrier over the SELT measurement band for the specified line.
+         When the data is not available because the measurement is not completed,
+         not enabled or not supported, an empty string will be returned.
+         The echo response variance has a range from -124 dBm/Hz to +3 dBm/Hz in
+         steps of 0.5 dB.
+         It is represented as ECHO_VARi = 3 - vi/2, with vi an 8 bit unsigned
+         integer in the range 0 to 254.
+         The special value 255 indicates that no measurement is available for
+         the carrier or that the measurement is out of range.
+         
+         The echo response variance is coded as a bitmap defined as follows:
+
+         OCTETS 0,1: INTEGER (0..4096), index of the start carrier of the 1st band.
+         OCTETS 2,3: INTEGER (0..4096), index of the stop carrier of the 1st band.
+         OCTETS 4: OCTET, contains the vi for the first carrier of the
+                   1st band (start carrier).
+         OCTETS 5..L-1: OCTET, vi for the next carrier and so on until
+                        the stop carrier of the 1st band.
+         Optional 2nd band:
+         OCTETS L+0, L+1: INTEGER (0..4096), index of the start carrier 
+                          of the 2nd band.    
+         OCTETS L+2, L+3: INTEGER (0..4096), index of the stop carrier 
+                          of the 2nd band.
+         OCTETS L+4: OCTET, contains the vi for the first carrier of the
+                     2nd band. 
+         OCTETS L+5..M-1: OCTET, vi for the next carrier of the 2nd band
+                          and so on until the stop carrier of the 2nd band.
+         Optional 3rd band etc..."
+
+::= {asamIqAccessMIB 14}
+
+isamSELTQLNoise OBJECT-TYPE
+        SYNTAX                   OCTET STRING
+        ACCESS                   read-only
+        STATUS                   mandatory
+        DESCRIPTION      
+         "This object provides the Quiet Line Noise real values per carrier
+         over the SELT measurement band for the specified line.
+         When the data is not available because the measurement is not completed,
+         not enabled or not supported, an empty string will be returned. 
+         The noise has a range from -150 dBm/Hz to -23 dBm/Hz in steps of 0.5 dB.
+         It is represented as NOISEi = -23 - ni/2, with ni an 8 bit unsigned
+         integer in the range 0 to 254.
+         The special value 255 (0xff) indicates that no measurement is available
+         for the carrier or that the measurement is out of range.
+
+         The noise is coded as a bitmap defined as follows:
+
+         OCTETS 0,1: INTEGER, number of frames used for QLNoise averaging.  The 
+                      special value 0 indicates that this information is unavailable.
+         OCTETS 2,3: INTEGER (0..4096), index of the start carrier of the 1st band.
+         OCTETS 4,5: INTEGER (0..4096), index of the stop carrier of the 1st band.
+         OCTETS 6: OCTET, contains the ni for the first carrier of the 1st band
+                   (start carrier).
+         OCTETS 7..L-1: OCTET, ni for the next carrier and so on until the stop
+                        carrier of the 1st band.
+         Optional 2nd band:
+         OCTETS L+0, L+1: INTEGER (0..4096), index of the start carrier 
+                                  of the 2nd band.    
+         OCTETS L+2, L+3: INTEGER (0..4096), index of the stop carrier 
+                                  of the 2nd band.
+         OCTETS L+4: INTEGER , contains the ni for the first carrier of the
+                         2nd band (start carrier). 
+         OCTETS L+5..M: ni for the next carrier and so on until the 
+                            stop carrier of the 2nd band.
+         Optional 3rd band etc..."
+
+::= {asamIqAccessMIB 15}
+
+isamSELTUncalEchoMeasurementTimeUsed  OBJECT-TYPE
+        SYNTAX                  INTEGER  
+        ACCESS                  read-only
+        STATUS                  mandatory  
+        DESCRIPTION             
+          "Reports the actual SELT measurement time used by the modems
+           for the latest Uncalibrated Echo measurement (Uncalibrated Echo
+           and Uncalibrated Echo Variance)
+           Valid range: 0 .. 240 in steps of 1, unit is seconds.  
+           This value is only valid when the measurement is in state 'success'."
+
+::= {asamIqAccessMIB 16}
+
+isamSELTQLNoiseMeasurementTimeUsed  OBJECT-TYPE
+        SYNTAX                  INTEGER  
+        ACCESS                  read-only
+        STATUS                  mandatory  
+        DESCRIPTION             
+          "Reports the actual SELT measurement time used by the modems
+           for the latest Quiet Line Noise measurement 
+           Valid range: 0 .. 240 in steps of 1, unit is seconds.  
+           This value is only valid when the measurement is in state 'success'."
+
+::= {asamIqAccessMIB 17}
+
+isamSELTAGCUsed OBJECT-TYPE
+        SYNTAX                  INTEGER  
+        ACCESS                  read-only
+        STATUS                  mandatory  
+        DESCRIPTION             
+         "Reports the AGC that was used for the last SELT Echo measurement.
+          INTEGER(-100,+100), in dB
+          This value is only valid when the measurement is in the state
+          'success'."
+
+::= {asamIqAccessMIB 18}
+
+isamSELTUS0PsdLevelUsed OBJECT-TYPE
+        SYNTAX                  INTEGER  
+        ACCESS                  read-only  
+        STATUS                  mandatory  
+        DESCRIPTION             
+         "NOT SUPPORTED."
+
+::= {asamIqAccessMIB 19}
+
+isamSELTUncalEchoTargetMinSNR OBJECT-TYPE
+        SYNTAX                  INTEGER  
+        ACCESS                  read-write 
+        STATUS                  mandatory  
+        DESCRIPTION             
+         "Defines the uncalibrated echo response measurement SNR minimal
+          target to be used for the SELT Echo measurement. If the target
+          minimal SNR cannot be achieved, the actual achieved minimal SNR
+          can be retrieved via isamSELTUncalEchoActualMinSNR.
+          INTEGER(+0,+120), in steps of 1, unit is dB.
+          The special value -1000 indicates that no uncalibrated echo 
+          response measurement SNR target is configured. The best SNR shall 
+          be achieved within the configured echo measurement time 
+          (See isamSELTUncalEchoMeasurementTime).
+          Default value is -1000.
+          The isamSELTUncalEchoTargetMinSNR value should be set for 
+          each measurement."
+
+::= {asamIqAccessMIB 20}
+
+isamSELTUncalEchoActualMinSNR OBJECT-TYPE
+        SYNTAX                  INTEGER  
+        ACCESS                  read-only
+        STATUS                  mandatory  
+        DESCRIPTION             
+         "Reports the actual minimal SNR achieved by the last SELT Echo 
+          measurement.
+          INTEGER(+0,+120), in steps of 1, unit is dB.
+          This value is only valid when the measurement is in the 
+          state 'success'."
+
+::= {asamIqAccessMIB 21}
+
+isamSELTTxSignPsdType OBJECT-TYPE
+        SYNTAX                  SELTTxSignPsdType  
+        ACCESS                  read-write 
+        STATUS                  mandatory  
+        DESCRIPTION             
+         "Defines the Tx signal Psd type to be used as limit for the 
+          SELT echo response measurement excitation signal.
+          The possible values are:
+            - txSignPsdTypeDefault (1): Select the board dependant
+              default Tx signal Psd Type.
+                 For VDSLx-boards: Default equals 
+                                   txSignPsdTypeFromConfigVdsl2(3).
+                 For ADSLx-boards: Default equals
+                                   txSignPsdTypePreDefAllBandsAdsl1(10).
+            - txSignPsdTypeFromConfig (2): Derive PSD from the modem 
+              line configuration data. The actual used Tx Signal Psd type can
+              be retrieved via the isamSELTSelectedPsdTypeUsed object.
+            - txSignPsdTypeFromConfigVdsl2 (3): Derive PSD from the VDSL2
+              modem line configuration data.
+            - txSignPsdTypeFromConfigVdsl1 (4): Derive PSD from the VDSL1
+              modem line configuration data.
+            - txSignPsdTypeFromConfigAdsl1or2 (5): Derive PSD from the ADSL2 or
+              ADSL1 modem line configuration data. 
+            - txSignPsdTypeFromConfigAdsl2Plus (6): Derive PSD from the ADSL2+
+              modem line configuration data. 
+            - txSignPsdTypePreDefVdsl2 (7): Derive PSD from the 
+              predefined, hard-coded VDSL2 profile. 
+              (The modem line configuration data is to be ignored).
+            - txSignPsdTypePreDefVdsl1 (8): Derive PSD from the 
+              predefined, hard-coded VDSL1 profile. 
+              (The modem line configuration data is to be ignored).
+            - txSignPsdTypePreDefAllBandsVdsl2 (9): Derive PSD from the
+              predefined, hard-coded all bands VDSL2 profile. 
+              (The modem line configuration data is to be ignored).
+            - txSignPsdTypePreDefAllBandsAdsl1 (10): Derive PSD from the
+              predefined, hard-coded all bands ADSL1 profile. 
+              (The modem line configuration data is to be ignored).
+            - txSignPsdTypePreDefAllBandsAdsl2Plus (11): Derive PSD from the
+              predefined, hard-coded all bands ADSL2+ profile. 
+              (The modem line configuration data is to be ignored).
+           Default value is txSignPsdTypeDefault."
+
+::= {asamIqAccessMIB 22}
+
+isamSELTSelectedPsdTypeUsed OBJECT-TYPE
+        SYNTAX                  SELTSelectedPsdType  
+        ACCESS                  read-only
+        STATUS                  mandatory  
+        DESCRIPTION             
+         "Reports the actual Psd type that was used during the last
+          SELT Echo measurement.
+          The possible values are: 
+            - selectedPsdTypeConfigVdsl2 (1): The VDSL2 modem line configuration
+              data was used to limit the SELT excitation signal.
+            - selectedPsdTypeConfigVdsl1 (2): The VDSL1 modem line configuration
+              data was used to limit the SELT excitation signal.
+            - selectedPsdTypeConfigAdsl1or2 (3): The ADSL2 or ADSL1 modem line 
+              configuration data was used to limit the SELT excitation signal. 
+            - selectedPsdTypeConfigAdsl2Plus (4): The ADSL2+ modem line 
+              configuration data was used to limit the SELT excitation signal.
+            - selectedPsdTypeConfigReAdsl2 (5): The READSL2+ modem line 
+              configuration data was used to limit the SELT excitation signal
+            - selectedPsdTypePreDefVdsl2 (6): The predefined VDSL2 profile was
+              used to construct the SELT excitation signal.
+            - selectedPsdTypePreDefVdsl1 (7): The predefined VDSL1 profile was
+              used to construct the SELT excitation signal.
+            - selectedPsdTypePreDefAllBandsVdsl2 (8): The predefined all bands
+              VDSL2 profile was used to construct the SELT excitation signal.
+            - selectedPsdTypePreDefAllBandsAdsl1 (9): The predefined all 
+              bands ADSL1 profile was used to construct the SELT excitation
+              signal.
+            - selectedPsdTypePreDefAllBandsAdsl2Plus (10): The predefined all
+              bands ADSL2+ profile was used to construct the SELT excitation
+              signal.
+          This value is only valid when the measurement is in the
+          state 'success'."
+
+::= {asamIqAccessMIB 23}
+
+END
+

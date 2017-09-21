@@ -1,0 +1,1834 @@
+
+-- orig MST-MIB
+
+MST-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    BridgeId, Timeout
+        FROM BRIDGE-MIB
+    InterfaceIndex
+        FROM ITF-MIB
+    VlanIndex
+        FROM Q-BRIDGE-MIB
+    asam                    
+        FROM SYSTEM-MIB
+    OBJECT-TYPE
+        FROM RFC-1212
+    TRAP-TYPE
+        FROM RFC-1215
+    Counter, TimeTicks
+        FROM RFC1155-SMI
+    MacAddress, RowStatus, TruthValue
+        FROM SNMPv2-TC;
+
+mstMIB OBJECT IDENTIFIER
+    ::= { asam 90 }
+
+EnabledStatus ::=
+    INTEGER { enabled(1), disabled(2) }
+
+dot1sMst OBJECT IDENTIFIER
+    ::= { mstMIB 1 }
+
+mstModuleStatus OBJECT-TYPE
+    SYNTAX      EnabledStatus
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The administrative status requested by management for the MST  
+         feature. The value enabled(1) indicates that Mst should be enabled  
+         in the device on all ports. The value disabled(2) indicates that 
+         Mst should be disabled in the device on all ports. 
+         	ALCATEL NOTE:
+               ACCESS:      NA           USAGE:       NA
+               PERSIST:     YES          INSRVMOD:    YES
+               RANGE:       1,2          DEFVALUE:    NA
+               UNITS:       NA           SPARSE:      NA
+               DESCR:       NA"
+    DEFVAL      { enabled }
+    ::= { dot1sMst 1 }
+
+mstMaxMstInstanceNumber OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Maximun number of spanning trees to be allowed.
+         A User may limit the Number of Spanning Tree instance 
+         to be allowed in the Bridge.
+         	ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     YES          INSRVMOD:    YES
+              RANGE:       DEP          DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       mstMaxMstInstanceNumber should not be less than
+         			 mstNoOfMstiSupported."
+    DEFVAL      { 65 }
+    ::= { dot1sMst 2 }
+
+mstNoOfMstiSupported OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Indicates Maximum number of spanning tree Instances supported.
+         ALCATEL NOTE:
+            ACCESS:      NA           USAGE:       NA
+            PERSIST:     NO           INSRVMOD:    NA
+            RANGE:       0..64        DEFVALUE:    0
+            UNITS:       NA           SPARSE:      NA
+            DESCR:       NA"
+    ::= { dot1sMst 3 }
+
+mstNextFreeMSTiIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "A index to indicate the next free entry in the MSTI Bridge Table
+         ALCATEL NOTE:
+            ACCESS:      NA           								USAGE:       NA
+            PERSIST:     NO           								INSRVMOD:    NA
+            RANGE:       1..(mstMaxMstInstanceNumber-1)   DEFVALUE:    1
+            UNITS:       NA           								SPARSE:      NA
+            DESCR:       When there are no instances free the value returned 
+         							 will be mstMaxMstInstanceNumber"
+    ::= { dot1sMst 4 }
+
+mstMaxHopCount OBJECT-TYPE
+    SYNTAX      INTEGER (600..4000)
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "Indicates the Maximum Hop Count value.
+         The granularity of this timer is specified 
+         to be 1 second.  An agent may return a badValue 
+         error if a set is attempted to a value which is 
+         not a whole number of seconds.
+         	ALCATEL NOTE:
+              ACCESS:      NA           		USAGE:       NA
+              PERSIST:     YES          		INSRVMOD:    YES
+              RANGE:       NA           		DEFVALUE:    NA
+              UNITS:       1/100th of Second      SPARSE:      NA
+              DESCR:       NA"
+    DEFVAL      { 2000 }
+    ::= { dot1sMst 5 }
+
+mstBrgAddress OBJECT-TYPE
+    SYNTAX      MacAddress
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The MAC address used by this bridge when it must
+         be referred to in a unique fashion.   It is
+         recommended that this be the numerically smallest
+         MAC address of all ports that belong to this
+         bridge.  However it is only required to be unique.
+         When concatenated with mstCistBridgePriority or 
+         mstMstiBridgePriority a unique BridgeIdentifier 
+         is formed which is used in the Spanning Tree Protocol.
+         ALCATEL NOTE:
+           ACCESS:      NA           USAGE:       NA
+           PERSIST:     NO           INSRVMOD:    NA
+           RANGE:       NA           DEFVALUE:    NA
+           UNITS:       NA           SPARSE:      NA
+           DESCR:       NA"
+    ::= { dot1sMst 6 }
+
+mstCistRoot OBJECT-TYPE
+    SYNTAX      BridgeId
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The bridge identifier of the Root of the common spanning
+         tree as determined by the Spanning Tree Protocol
+         as executed by this node.  This value is used as
+         the CIST Root Identifier parameter in all Configuration
+         Bridge PDUs originated by this node.
+         ALCATEL NOTE:
+            ACCESS:      NA           USAGE:       NA
+            PERSIST:     NO           INSRVMOD:    NA
+            RANGE:       NA           DEFVALUE:    NA
+            UNITS:       NA           SPARSE:      NA
+            DESCR:       NA"
+    ::= { dot1sMst 7 }
+
+mstCistRegionalRoot OBJECT-TYPE
+    SYNTAX      BridgeId
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The bridge identifier of the Root of the Multiple
+         spanning tree region as determined by the Spanning Tree
+         Protocol as executed by this node.  This value is used as
+         the CIST Regional Root Identifier parameter in all Configuration
+         Bridge PDUs originated by this node.
+         ALCATEL NOTE:
+            ACCESS:      NA           USAGE:       NA
+            PERSIST:     NO           INSRVMOD:    NA
+            RANGE:       NA           DEFVALUE:    NA
+            UNITS:       NA           SPARSE:      NA
+            DESCR:       NA"
+    ::= { dot1sMst 8 }
+
+mstCistRootCost OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Cost of the path to the CIST Root as seen 
+         from this bridge.
+         	ALCATEL NOTE:
+             ACCESS:      NA           USAGE:       NA
+             PERSIST:     NO           INSRVMOD:    NA
+             RANGE:       NA           DEFVALUE:    NA
+             UNITS:       NA           SPARSE:      NA
+             DESCR:       NA"
+    ::= { dot1sMst 9 }
+
+mstCistRegionalRootCost OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Cost of the path to the CIST Regional Root 
+         as seen from this bridge.
+         	ALCATEL NOTE:
+             ACCESS:      NA           USAGE:       NA
+             PERSIST:     NO           INSRVMOD:    NA
+             RANGE:       NA           DEFVALUE:    NA
+             UNITS:       NA           SPARSE:      NA
+             DESCR:       NA"
+    ::= { dot1sMst 10 }
+
+mstCistRootPort OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Port Number of the Port which offers the lowest    
+         path cost from this bridge to the CIST Root Bridge.
+         	ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     NO           INSRVMOD:    NA
+              RANGE:       DEP        DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       DEP(RANGE): This object will return 0 when it  is acting as a Root Bridge.
+         		In all other cases it will return the Root Port index"
+    ::= { dot1sMst 11 }
+
+mstCistBridgePriority OBJECT-TYPE
+    SYNTAX      INTEGER (0..61440)
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Value of the writable portion of the Bridge
+         Identifier comprising of the first two octets.
+         The values that are set for Bridge Priority must be 
+         in steps of 4096.
+         	ALCATEL NOTE:
+             ACCESS:      NA           USAGE:       NA
+             PERSIST:     YES          INSRVMOD:    YES
+             RANGE:       NA           DEFVALUE:    NA
+             UNITS:       NA           SPARSE:      NA
+             DESCR:       NA"
+    DEFVAL      { 32768 }
+    ::= { dot1sMst 12 }
+
+mstCistBridgeMaxAge OBJECT-TYPE
+    SYNTAX      Timeout 
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The value that all bridges use for MaxAge when
+         this bridge is acting as the root.  Note that
+         802.1D specifies that the range for this
+         parameter is related to the value of
+         BridgeHelloTime. The granularity of this
+         timer is specified to be 1 second.
+         An agent may return a badValue error if a set is
+         attempted to a value which is not a whole number
+         of seconds.
+         ALCATEL NOTE:
+            ACCESS:      NA           		USAGE:       NA
+            PERSIST:     YES          		INSRVMOD:    YES
+            RANGE:       NA           		DEFVALUE:    NA
+            UNITS:       1/100th of Second      SPARSE:      NA
+            DESCR:       mstCistBridgeMaxAge should be less than or equal to 
+         		 (2 * ((mstCistBridgeForwardDelay/100)-1) and 
+         		 mstCistBridgeMaxAge should be greater than or equal 
+         		 to (2 * ((mstCistPortHelloTime/100) + 1))"
+    DEFVAL      { 2000 }
+    ::= { dot1sMst 13 }
+
+mstCistBridgeHelloTime OBJECT-TYPE
+    SYNTAX      Timeout 
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The value that all bridges use for HelloTime when
+         this bridge is acting as the root.  The
+         granularity of this timer is specified to be 1 second.  
+         An agent may return a badValue error if a set is attempted 
+         to a value which is not a whole number of seconds.
+         ALCATEL NOTE:
+            ACCESS:      NA           		USAGE:       NA
+            PERSIST:     YES          		INSRVMOD:    YES
+            RANGE:       NA           		DEFVALUE:    NA
+            UNITS:       1/100th of Second      SPARSE:      NA
+            DESCR:       (2 * ((mstCistBridgeHelloTime/100) + 1)) should be 
+         		 less than or equal to mstCistBridgeMaxAge. This object can be set 
+         		 only when mstForceProtocolVersion is stp(0) or rstp(2)"
+    DEFVAL      { 200 }
+    ::= { dot1sMst 14 }
+
+mstCistBridgeForwardDelay OBJECT-TYPE
+    SYNTAX      Timeout 
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The value that all bridges use for ForwardDelay
+         when this bridge is acting as the root.  Note that
+         802.1D specifies that the range for this
+         parameter is related to the value of
+         BridgeMaxAge.  The granularity of this
+         timer is specified to be 1 second.
+         An agent may return a badValue error if a set is
+         attempted to a value which is not a whole number
+         of seconds.
+         ALCATEL NOTE:
+            ACCESS:      NA           		USAGE:       NA
+            PERSIST:     YES          		INSRVMOD:    YES
+            RANGE:       NA           		DEFVALUE:    NA
+            UNITS:       1/100th of Second      SPARSE:      NA
+            DESCR:       (2 * ((mstCistBridgeForwardDelay/100) - 1) should be greater than 
+         		 or equal to mstCistBridgeMaxAge."
+    DEFVAL      { 1500 }
+    ::= { dot1sMst 15 }
+
+mstCistHoldTime OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "This time value determines the interval length
+         during which no more than two Configuration bridge
+         PDUs shall be transmitted by this node, in units
+         of hundredths of a second.
+         ALCATEL NOTE:
+           ACCESS:      NA           		USAGE:       NA
+           PERSIST:     NO           		INSRVMOD:    NA
+           RANGE:       NA           		DEFVALUE:    NA
+           UNITS:       1/100th of Second      SPARSE:      NA
+           DESCR:       NA"
+    ::= { dot1sMst 16 }
+
+mstCistMaxAge OBJECT-TYPE
+    SYNTAX      Timeout
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The maximum age of Spanning Tree Protocol
+         information learned from the network on any port
+         before it is discarded, in units of hundredths of
+         a second.  This is the actual value that this
+         bridge is currently using.
+         ALCATEL NOTE:
+           ACCESS:      NA           		USAGE:       NA
+           PERSIST:     NO           		INSRVMOD:    NA
+           RANGE:       NA           		DEFVALUE:    NA
+           UNITS:       1/100th of Second      SPARSE:      NA
+           DESCR:       NA"
+    ::= { dot1sMst 17 }
+
+mstCistHelloTime OBJECT-TYPE
+    SYNTAX      Timeout
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The amount of time between the transmission of
+         Configuration bridge PDUs by this node on any port
+         when it is the root of the spanning tree or trying
+         to become so, in units of hundredths of a second.
+         This is the actual value that this bridge is
+         currently using.
+         ALCATEL NOTE:
+         ACCESS:      NA           		USAGE:       NA
+         PERSIST:     NO           		INSRVMOD:    NA
+         RANGE:       NA           		DEFVALUE:    NA
+         UNITS:       1/100th of Second      SPARSE:      NA
+         DESCR:       NA"
+    ::= { dot1sMst 18 }
+
+mstCistForwardDelay OBJECT-TYPE
+    SYNTAX      Timeout
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "This time value, measured in units of hundredths
+         of a second, controls how fast a port changes its
+         spanning state when moving towards the Forwarding
+         state.  The value determines how long the port
+         stays in a particular state before moving to the
+         next state.
+         ALCATEL NOTE:
+         ACCESS:      NA           		USAGE:       NA
+         PERSIST:     NO           		INSRVMOD:    NA
+         RANGE:       NA           		DEFVALUE:    NA
+         UNITS:       1/100th of Second      SPARSE:      NA
+         DESCR:       NA"
+    ::= { dot1sMst 19 }
+
+mstMstpUpCount OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The number of times MSTP Module has been enabled.
+         ALCATEL NOTE:
+            ACCESS:      NA           USAGE:       NA
+            PERSIST:     NO           INSRVMOD:    NA
+            RANGE:       NA           DEFVALUE:    0
+            UNITS:       NA           SPARSE:      NA
+            DESCR:       NA"
+    ::= { dot1sMst 20 }
+
+mstMstpDownCount OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The number of times MSTP Module has been disabled.
+         ALCATEL NOTE:
+            ACCESS:      NA           USAGE:       NA
+            PERSIST:     NO           INSRVMOD:    NA
+            RANGE:       NA           DEFVALUE:    0
+            UNITS:       NA           SPARSE:      NA
+            DESCR:       NA"
+    ::= { dot1sMst 21 }
+
+mstPathCostDefaultType OBJECT-TYPE
+    SYNTAX      INTEGER { stp8021d1998(1), stp8021t2001(2) }
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The version of the Spanning Tree default Path Costs that
+         are to be used by this Bridge.  A value of 8021d1998(1)
+         uses the 16-bit default Path Costs from IEEE Std. 802.1D-1998.
+         A value of stp8021t2001(2) uses the 32-bit default Path
+         Costs from IEEE Std. 802.1t.
+         ALCATEL NOTE:
+            ACCESS:      NA           USAGE:       NA
+            PERSIST:     YES          INSRVMOD:    YES
+            RANGE:       NA           DEFVALUE:    NA
+            UNITS:       NA           SPARSE:      NA
+            DESCR:       NA"
+    DEFVAL      { stp8021t2001 }
+    ::= { dot1sMst 22 }
+
+mstForceProtocolVersion OBJECT-TYPE
+    SYNTAX      INTEGER { stpCompatible(0), rstp(2), mstp(3) }
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The version of Spanning Tree Protocol the bridge is
+         currently running.  The value 'stpCompatible(0)'
+         indicates the Spanning Tree Protocol specified in
+         IEEE 802.1D and 'rstp(2)' indicates the Rapid Spanning
+         Tree Protocol specified in IEEE 802.1w and 'mstp(3)'
+         indicates the Multiple Spanning Tree Protocol Specified
+         in IEEE 802.1s.
+         ALCATEL NOTE:
+            ACCESS:      NA           USAGE:       NA
+            PERSIST:     YES          INSRVMOD:    YES
+            RANGE:       NA           DEFVALUE:    NA
+            UNITS:       NA           SPARSE:      NA
+            DESCR:       NA"
+    DEFVAL      { mstp }
+    ::= { dot1sMst 23 }
+
+mstTxHoldCount OBJECT-TYPE
+    SYNTAX      INTEGER (1..10)
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The value used by the Port Transmit state machine to limit
+         the maximum transmission rate.
+         ALCATEL NOTE:
+            ACCESS:      NA           USAGE:       NA
+            PERSIST:     YES          INSRVMOD:    YES
+            RANGE:       NA           DEFVALUE:    NA
+            UNITS:       NA           SPARSE:      NA
+            DESCR:       NA"
+    DEFVAL      { 3 }
+    ::= { dot1sMst 24 }
+
+mstMstiConfigIdSel OBJECT-TYPE
+    SYNTAX      INTEGER (0..255)
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Configuration Identifier Format Selector used 
+         by the Bridge. This has a fixed value of 0 to indicate
+         RegionName, RegionVersion are specified as in Standard.
+         	ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     YES          INSRVMOD:    YES
+              RANGE:       NA           DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       NA"
+    DEFVAL      { 0 }
+    ::= { dot1sMst 25 }
+
+mstMstiRegionName OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(0..32))
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Name for the Region's configuration. By Default 
+         Region Name will be equal to the Bridge Mac Address.
+         	ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     YES          INSRVMOD:    YES
+              RANGE:       NA           DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       NA"
+    ::= { dot1sMst 26 }
+
+mstMstiRegionVersion OBJECT-TYPE
+    SYNTAX      INTEGER (0..65535)
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "Version of the MST Region.
+         ALCATEL NOTE:
+            ACCESS:      NA           USAGE:       NA
+            PERSIST:     YES          INSRVMOD:    YES
+            RANGE:       NA           DEFVALUE:    NA
+            UNITS:       NA           SPARSE:      NA
+            DESCR:       NA"
+    DEFVAL      { 0 }
+    ::= { dot1sMst 27 }
+
+mstMstiConfigDigest OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(0..32))
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Configuration Digest value for this Region.
+         ALCATEL NOTE:
+            ACCESS:      NA           USAGE:       NA
+            PERSIST:     NO           INSRVMOD:    NA
+            RANGE:       NA           DEFVALUE:    NA
+            UNITS:       NA           SPARSE:      NA
+            DESCR:       NA"
+    ::= { dot1sMst 28 }
+
+mstRegionConfigChangeCount OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The number of times a Region Configuration Identifier Change 
+         was detected. 
+         A Trap is generated on the occurence of this event.
+         ALCATEL NOTE:
+         ACCESS:      NA           USAGE:       NA
+         PERSIST:     NO           INSRVMOD:    NA
+         RANGE:       NA           DEFVALUE:    0
+         UNITS:       NA           SPARSE:      NA
+         DESCR:       NA"
+    ::= { dot1sMst 29 }
+
+mstCistNewRootBridgeCount OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The number of times this Bridge has detected a Root
+         Bridge change for Common Spanning Tree context.
+         A Trap is generated on the occurence of this event.
+         ALCATEL NOTE:
+           ACCESS:      NA           USAGE:       NA
+           PERSIST:     NO           INSRVMOD:    NA
+           RANGE:       NA           DEFVALUE:    0
+           UNITS:       NA           SPARSE:      NA
+           DESCR:       NA"
+    ::= { dot1sMst 30 }
+
+mstMstiBridgeTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF MstMstiBridgeEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "Table containing Bridge Information specific to Spanning 
+         Tree Instance.
+          ALCATEL NOTE:
+              TABLESIZE: 	64
+         	  	DESCR: 	NA"
+    ::= { dot1sMst 31 }
+
+mstMstiBridgeEntry OBJECT-TYPE
+    SYNTAX      MstMstiBridgeEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "Entry indicating the Bridge Information.
+         Row creation : A mstMstiBridgeEntry entry shall be created in one 
+         		        step by a set-request with mstMstiBridgeRowStatus 
+         			set to createAndGo(4) or createAndWait(5).
+         Row deletion : A mstMstiBridgeEntry entry shall be deleted by setting
+             		the mstMstiBridgeRowStatus of the specific entry
+         			to destroy(6).
+         Index usage : the index is mstMstiBridgeInstanceIndex.
+           Note that entries will be presented to the SNMP manager in full
+           lexicographical order :  sorted on mstMstiBridgeInstanceIndex."
+    INDEX       { mstMstiBridgeInstanceIndex }
+    ::= { mstMstiBridgeTable 1 }
+
+MstMstiBridgeEntry ::= SEQUENCE {
+    mstMstiBridgeInstanceIndex                  INTEGER,
+    mstMstiBridgeRegionalRoot             BridgeId,
+    mstMstiBridgePriority                 INTEGER,
+    mstMstiRootCost                       INTEGER,
+    mstMstiRootPort                       InterfaceIndex,
+    mstMstiNewRootBridgeCount             Counter,
+    mstInstanceUpCount                    Counter,
+    mstInstanceDownCount                  Counter,
+    mstMstiBridgeRowStatus                RowStatus
+}
+
+mstMstiBridgeInstanceIndex OBJECT-TYPE
+    SYNTAX      INTEGER (1..64)
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Spanning Tree Instance to which the information belongs.
+         ALCATEL NOTE:
+             ACCESS:      NA           USAGE:       NA
+             PERSIST:     YES          INSRVMOD:    NA
+             RANGE:       NA           DEFVALUE:    NA
+             UNITS:       NA           SPARSE:      NO
+             DESCR:       NA"
+    ::= { mstMstiBridgeEntry 1 }
+
+mstMstiBridgeRegionalRoot OBJECT-TYPE
+    SYNTAX      BridgeId
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "MSTI Regional Root Identifier value for the Instance. This value 
+         is used as the MSTI Regional Root Identifier parameter in all
+         Configuration Bridge PDUs originated by this node
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     NO           INSRVMOD:    NA
+              RANGE:       NA           DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NO
+              DESCR:       NA"
+    ::= { mstMstiBridgeEntry 2 }
+
+mstMstiBridgePriority OBJECT-TYPE
+    SYNTAX      INTEGER (0..61440)
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The writable portion of the MSTI Bridge Identifier.
+         comprising of the first two octets.
+         The values that are set for Bridge Priority must be 
+         in steps of 4096.
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       OPT
+              PERSIST:     YES          INSRVMOD:    YES
+              RANGE:       NA           DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NO
+              DESCR:       NA"
+    DEFVAL      { 32768 }
+    ::= { mstMstiBridgeEntry 3 }
+
+mstMstiRootCost OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Cost of the path to the MSTI Regional Root as seen 
+         by this bridge.
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     NO           INSRVMOD:    NA
+              RANGE:       NA           DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NO
+              DESCR:       NA"
+    ::= { mstMstiBridgeEntry 4 }
+
+mstMstiRootPort OBJECT-TYPE
+    SYNTAX      InterfaceIndex
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Port Number of the Port which offers the lowest    
+         path cost from this bridge to the MSTI Region Root Bridge.
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     NO           INSRVMOD:    NA
+              RANGE:      DEP        DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NO
+              DESCR:       DEP(RANGE): This object will return 0 when it  is acting as a Root Bridge.
+         		In all other cases it will return the Root Port index"
+    ::= { mstMstiBridgeEntry 5 }
+
+mstMstiNewRootBridgeCount OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The number of times this Bridge has detected a Root
+         Bridge change for this spanning tree instance.
+         A Trap is generated on the occurence of this event.
+         ALCATEL NOTE:
+           ACCESS:      NA           USAGE:       NA
+           PERSIST:     NO           INSRVMOD:    NA
+           RANGE:       NA           DEFVALUE:    0
+           UNITS:       NA           SPARSE:      NO
+           DESCR:       NA"
+    ::= { mstMstiBridgeEntry 6 }
+
+mstInstanceUpCount OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The number of times a new spanning tree instance has
+         been created.
+         A Trap is generated on the occurence of this event.
+         ALCATEL NOTE:
+            ACCESS:      NA           USAGE:       NA
+            PERSIST:     NO           INSRVMOD:    NA
+            RANGE:       NA           DEFVALUE:    0
+            UNITS:       NA           SPARSE:      NO
+            DESCR:       NA"
+    ::= { mstMstiBridgeEntry 7 }
+
+mstInstanceDownCount OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The number of times a spanning tree instance has
+         been deleted.
+         A Trap is generated on the occurence of this event.
+         ALCATEL NOTE:
+            ACCESS:      NA           USAGE:       NA
+            PERSIST:     NO           INSRVMOD:    NA
+            RANGE:       NA           DEFVALUE:    0
+            UNITS:       NA           SPARSE:      NO
+            DESCR:       NA"
+    ::= { mstMstiBridgeEntry 8 }
+
+mstMstiBridgeRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "Specifies the Row Status of the MSTI Bridge entry. 
+         To create a new entry this has to be created with the
+         CREAT-AND-WAIT or with CREATE-AND-GO. To delete the entry from this
+         table, the row status should be set to Destroy.
+         ALCATEL NOTE:
+         ACCESS:      NA           USAGE:       MAND
+         PERSIST:     YES          INSRVMOD:    YES
+         RANGE:       1,4,6      DEFVALUE:    NA
+         UNITS:       NA           SPARSE:      NO
+         DESCR:       NA"
+    ::= { mstMstiBridgeEntry 9 }
+
+mstVlanInstanceMappingTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF MstVlanInstanceMappingEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "This table contains one entry for each instance of MSTP.
+         ALCATEL NOTE:
+             TABLESIZE: 	64
+         	  	DESCR: 	NA"
+    ::= { dot1sMst 32 }
+
+mstVlanInstanceMappingEntry OBJECT-TYPE
+    SYNTAX      MstVlanInstanceMappingEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "Entry indicating the Vlan Instance Information.
+         Row creation : A mstVlanInstanceMappingEntry entry shall be created in one 
+         		        step by a set-request with mstVlanInstanceRowStatus 
+         			set to createAndGo(4).
+         Row deletion : A mstVlanInstanceMappingEntry entry shall be deleted by setting
+             		the mstVlanInstanceRowStatus of the specific entry
+         			to destroy(6).
+         Index usage : the index is mstInstanceIndex and mstVlanIndex."
+    INDEX       { mstInstanceIndex, mstVlanIndex }
+    ::= { mstVlanInstanceMappingTable 1 }
+
+MstVlanInstanceMappingEntry ::= SEQUENCE {
+    mstInstanceIndex          INTEGER,
+    mstVlanIndex              VlanIndex,
+    mstVlanInstanceRowStatus    RowStatus
+}
+
+mstInstanceIndex OBJECT-TYPE
+    SYNTAX      INTEGER (1..64)
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "An arbitrary integer within the range from 1 to the value of
+         Max Instance Number that uniquely identifies an instance.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     YES          INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstVlanInstanceMappingEntry 1 }
+    
+mstVlanIndex OBJECT-TYPE
+    SYNTAX      VlanIndex
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "This object indicates the VLAN associated to the instance.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     YES          INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstVlanInstanceMappingEntry 2 }
+    
+mstVlanInstanceRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "Specifies the Row Status of the Vlan Instance entry. 
+         To create a new entry this has to be created with the
+         CREATE-AND-GO. To delete the entry from this
+         table, the row status should be set to Destroy.
+         ALCATEL NOTE:
+         ACCESS:      NA           USAGE:       MAND
+         PERSIST:     YES          INSRVMOD:    YES
+         RANGE:       1,4,6      DEFVALUE:    NA
+         UNITS:       NA           SPARSE:      NO
+         DESCR:       NA"
+    ::= { mstVlanInstanceMappingEntry 3 }    
+
+mstCistPortTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF MstCistPortEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "This table contains Common Spanning Tree Port
+         Information.
+         ALCATEL NOTE:
+          TABLESIZE: DEP 
+         DESCR: DEP (TABLESIZE)  The range of this table is the maximum number of ports in the
+         		  system. "
+    ::= { dot1sMst 33 }
+
+mstCistPortEntry OBJECT-TYPE
+    SYNTAX      MstCistPortEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "A list of information maintained by every port for 
+         Common Spanning tree.
+         Row creation : All entries will be created when a MSTP module is
+           		enabled.
+         Row deletion : All entries will be deleted when a MSTP module is
+                 	   disabled.
+         Index usage : the index is mstCistPort.
+         Note that entries will be presented to the SNMP manager in full
+         lexicographical order :  sorted on mstCistPort."
+    INDEX       { mstCistPort }
+    ::= { mstCistPortTable 1 }
+
+MstCistPortEntry ::= SEQUENCE {
+    mstCistPort                           InterfaceIndex,
+    mstCistPortPathCost                   INTEGER,
+    mstCistPortPriority                   INTEGER,
+    mstCistPortDesignatedRoot             BridgeId,
+    mstCistPortDesignatedBridge           BridgeId,
+    mstCistPortDesignatedPort             OCTET STRING,
+    mstCistPortAdminP2P                   INTEGER,
+    mstCistPortOperP2P                    TruthValue,
+    mstCistPortAdminEdgeStatus            TruthValue,
+    mstCistPortOperEdgeStatus             TruthValue,
+    mstCistPortProtocolMigration          TruthValue,
+    mstCistPortState                      INTEGER,
+    mstCistForcePortState                 INTEGER,
+    mstCistPortForwardTransitions         Counter,
+    mstCistPortReceivedBPDUs              Counter,
+    mstCistPortTransmittedBPDUs           Counter,
+    mstCistPortInvalidBPDUsRcvd           Counter,
+    mstCistPortTransmitSemState           INTEGER,
+    mstCistPortReceiveSemState            INTEGER,
+    mstCistPortProtMigrationSemState      INTEGER,
+    mstCistProtocolMigrationCount         Counter,
+    mstCistPortDesignatedCost             INTEGER,
+    mstCistPortRegionalRoot               BridgeId,
+    mstCistPortRegionalPathCost           INTEGER,
+    mstCistSelectedPortRole               INTEGER,
+    mstCistCurrentPortRole                INTEGER,
+    mstCistPortInfoSemState               INTEGER,
+    mstCistPortRoleTransitionSemState     INTEGER,
+    mstCistPortStateTransitionSemState    INTEGER,
+    mstCistPortTopologyChangeSemState     INTEGER,
+    mstCistPortHelloTime                  Timeout
+}
+
+mstCistPort OBJECT-TYPE
+    SYNTAX      InterfaceIndex
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Port number of the port for which this entry contains   
+         spanning tree information.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     YES          INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstCistPortEntry 1 }
+
+mstCistPortPathCost OBJECT-TYPE
+    SYNTAX      INTEGER (1..200000000)
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The contribution of this port to the path cost of
+         paths towards the CIST Root which include this port.
+         ALCATEL NOTE:
+         ACCESS:      NA           USAGE:       NA
+         PERSIST:     YES          INSRVMOD:    YES
+         RANGE:       NA           DEFVALUE:    NA
+         UNITS:       NA           SPARSE:      NO
+         DESCR:       NA"
+    ::= { mstCistPortEntry 2 }
+
+mstCistPortPriority OBJECT-TYPE
+    SYNTAX      INTEGER (0..240)
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The four most significant bits of the Port Identifier 
+         of the Spanning Tree instance can be modified by setting 
+         the CistPortPriority value. The values that are set for Port 
+         Priority must be in steps of 16.
+         ALCATEL NOTE:
+           ACCESS:      NA           USAGE:       NA
+           PERSIST:     YES          INSRVMOD:    YES
+           RANGE:       NA           DEFVALUE:    NA
+           UNITS:       NA           SPARSE:      NO
+           DESCR:       NA"
+    DEFVAL      { 128 }
+    ::= { mstCistPortEntry 3 }
+
+mstCistPortDesignatedRoot OBJECT-TYPE
+    SYNTAX      BridgeId
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The unique Bridge Identifier of the bridge recorded as the  
+         CIST Root in the configuration BPDUs transmitted.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstCistPortEntry 4 }
+
+mstCistPortDesignatedBridge OBJECT-TYPE
+    SYNTAX      BridgeId
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The unique Bridge Identifier of the bridge which this port  
+         considers to be the Designated Bridge for the port's segment.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstCistPortEntry 5 }
+
+mstCistPortDesignatedPort OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(2))
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Port identifier of the port on the Designated Bridge    
+         for this port's segment.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstCistPortEntry 6 }
+
+mstCistPortAdminP2P OBJECT-TYPE
+    SYNTAX      INTEGER { forceTrue(0), forceFalse(1), auto(2) }
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The administrative point-to-point status of the LAN segment
+         attached to this port.  A value of forceTrue(0) indicates that
+         this port should always be treated as if it is connected to
+         a point-to-point link.  A value of forceFalse(1) indicates
+         that this port should be treated as having a shared media
+         connection.  A value of auto(2) indicates that this port is
+         considered to have a point-to-point link if it is an Aggregator
+         and all of its members are aggregatable, or if the MAC entity
+         is configured for full duplex operation, either through
+         auto-negotiation or by management means.
+         ALCATEL NOTE:
+           ACCESS:      NA           USAGE:       NA
+           PERSIST:     YES          INSRVMOD:    YES
+           RANGE:       NA           DEFVALUE:    NA
+           UNITS:       NA           SPARSE:      NO
+           DESCR:       NA"
+    DEFVAL      { auto }
+    ::= { mstCistPortEntry 7 }
+
+mstCistPortOperP2P OBJECT-TYPE
+    SYNTAX      TruthValue
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The operational point-to-point status of the LAN segment
+         attached to this port.  It indicates whether a port is
+         considered to have a point-to-point connection or not.
+         The value is determined by management or by auto-detection,
+         as described in the mstCistPortAdminP2P object.
+         ALCATEL NOTE:
+           ACCESS:      NA           USAGE:       NA
+           PERSIST:     NO           INSRVMOD:    NA
+           RANGE:       1,2          DEFVALUE:    NA
+           UNITS:       NA           SPARSE:      NO
+           DESCR:       NA"
+    ::= { mstCistPortEntry 8 }
+
+mstCistPortAdminEdgeStatus OBJECT-TYPE
+    SYNTAX      TruthValue
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The administrative value of the Edge Port parameter.  A
+         value of TRUE(1) indicates that this port should be
+         assumed as an edge-port and a value of FALSE(2) indicates
+         that this port should be assumed as a non-edge-port.
+         ALCATEL NOTE:
+           ACCESS:      NA           USAGE:       NA
+           PERSIST:     YES          INSRVMOD:    YES
+           RANGE:       1,2          DEFVALUE:    NA
+           UNITS:       NA           SPARSE:      NO
+           DESCR:       NA"
+    DEFVAL      { false }
+    ::= { mstCistPortEntry 9 }
+
+mstCistPortOperEdgeStatus OBJECT-TYPE
+    SYNTAX      TruthValue
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The operational value of the Edge Port parameter.  The
+         object is initialized to the value of
+         mstCistPortAdminEdgeStatus and is set FALSE on reception 
+         of a BPDU.
+         ALCATEL NOTE:
+           ACCESS:      NA           USAGE:       NA
+           PERSIST:     NO           INSRVMOD:    NA
+           RANGE:       1,2          DEFVALUE:    NA
+           UNITS:       NA           SPARSE:      NO
+           DESCR:       NA"
+    ::= { mstCistPortEntry 10 }
+
+mstCistPortProtocolMigration OBJECT-TYPE
+    SYNTAX      TruthValue
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The value of state machine variable mcheck for the port.         
+         When operating in RSTP/MSTP (version >= 2) mode, writing 
+         TRUE(1) to this object forces this port to transmit MSTP 
+         BPDUs.
+         Any other operation on this object has no effect and
+         it always returns FALSE(2) when read.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     YES          INSRVMOD:    YES
+          RANGE:       1,2          DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstCistPortEntry 11 }
+
+mstCistPortState OBJECT-TYPE
+    SYNTAX      INTEGER { disabled(1), discarding(2), learning(4), 
+                    forwarding(5) }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Current state of the Port as defined by the Common    
+         spanning tree protocol.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstCistPortEntry 12 }
+
+mstCistForcePortState OBJECT-TYPE
+    SYNTAX      INTEGER { disabled(0), enabled(1) }
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "Current state of the Port which can be changed to either 
+         Disabled or Enabled for the base spanning tree   
+         instance.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     YES          INSRVMOD:    YES
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    DEFVAL      { disabled }
+    ::= { mstCistPortEntry 13 }
+
+mstCistPortForwardTransitions OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Number of times this port has transitioned to the     
+         Forwarding State.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    0
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstCistPortEntry 14 }
+
+mstCistPortReceivedBPDUs OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Number of BPDUs received on this port.
+         ALCATEL NOTE:
+            ACCESS:      NA           USAGE:       NA
+            PERSIST:     NO           INSRVMOD:    NA
+            RANGE:       NA           DEFVALUE:    0
+            UNITS:       BPDU         SPARSE:      NO
+            DESCR:       NA"
+    ::= { mstCistPortEntry 15 }
+
+mstCistPortTransmittedBPDUs OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Number of BPDUs transmitted on this port.
+         ALCATEL NOTE:
+            ACCESS:      NA           USAGE:       NA
+            PERSIST:     NO           INSRVMOD:    NA
+            RANGE:       NA           DEFVALUE:    0
+            UNITS:       BPDU         SPARSE:      NO
+            DESCR:       NA"
+    ::= { mstCistPortEntry 16 }
+
+mstCistPortInvalidBPDUsRcvd OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Number of Invalid BPDUs received on this port.
+         ALCATEL NOTE:
+            ACCESS:      NA           USAGE:       NA
+            PERSIST:     NO           INSRVMOD:    NA
+            RANGE:       NA           DEFVALUE:    0
+            UNITS:       BPDU         SPARSE:      NO
+            DESCR:       NA"
+    ::= { mstCistPortEntry 17 }
+
+mstCistPortTransmitSemState OBJECT-TYPE
+    SYNTAX      INTEGER { transmitinit(0), transmitperiodic(1), 
+                    transmitconfig(2), transmittcn(3), transmitrstp(4), 
+                    idle(5) }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Indicates current State of the Port Transmit state machine.
+         ALCATEL NOTE:
+            ACCESS:      NA           USAGE:       NA
+            PERSIST:     NO           INSRVMOD:    NA
+            RANGE:       NA           DEFVALUE:    NA
+            UNITS:       NA           SPARSE:      NO
+            DESCR:       NA"
+    ::= { mstCistPortEntry 18 }
+
+mstCistPortReceiveSemState OBJECT-TYPE
+    SYNTAX      INTEGER { discard(0), receive(1) }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Indicates current State of the Port Receive state machine.
+         ALCATEL NOTE:
+            ACCESS:      NA           USAGE:       NA
+            PERSIST:     NO           INSRVMOD:    NA
+            RANGE:       NA           DEFVALUE:    NA
+            UNITS:       NA           SPARSE:      NO
+            DESCR:       NA"
+    ::= { mstCistPortEntry 19 }
+
+mstCistPortProtMigrationSemState OBJECT-TYPE
+    SYNTAX      INTEGER { init(0), sendrstp(1), sendingrstp(2), 
+                    sendstp(3), sendingstp(4) }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Indicates current State of the Port Protocol Migration
+         State machine.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstCistPortEntry 20 }
+
+mstCistProtocolMigrationCount OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The number of times this Port has migrated from one STP protocol 
+         version to another. The relevant protocols are STP-COMPATIBLE and 
+         RSTP/MSTP.
+         A Trap is generated on the occurence of this event.
+         	ALCATEL NOTE:
+             ACCESS:      NA           USAGE:       NA
+             PERSIST:     NO           INSRVMOD:    NA
+             RANGE:       NA           DEFVALUE:    0
+             UNITS:       NA           SPARSE:      NO
+             DESCR:       NA"
+    ::= { mstCistPortEntry 21 }
+
+mstCistPortDesignatedCost OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The path cost of the Designated Port of the
+         segment connected to this port.
+         ALCATEL NOTE:
+         ACCESS:      NA           USAGE:       NA
+         PERSIST:     NO           INSRVMOD:    NA
+         RANGE:       NA           DEFVALUE:    NA
+         UNITS:       NA           SPARSE:      NO
+         DESCR:       NA"
+    ::= { mstCistPortEntry 22 }
+
+mstCistPortRegionalRoot OBJECT-TYPE
+    SYNTAX      BridgeId
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The unique Bridge Identifier of the bridge recorded as the  
+         CIST Regional Root Identifier in the configuration BPDUs 
+         transmitted.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstCistPortEntry 23 }
+
+mstCistPortRegionalPathCost OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The contribution of this port to the path cost of paths     
+         towards the CIST Regional Root which include this port.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstCistPortEntry 24 }
+
+mstCistSelectedPortRole OBJECT-TYPE
+    SYNTAX      INTEGER { disabled(0), alternate(1), backup(2), root(3), 
+                    designated(4) }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Selected Port Role of the port for this spanning 
+         tree instance.
+         ALCATEL NOTE:
+           ACCESS:      NA           USAGE:       NA
+           PERSIST:     NO           INSRVMOD:    NA
+           RANGE:       NA           DEFVALUE:    NA
+           UNITS:       NA           SPARSE:      NO
+           DESCR:       NA"
+    ::= { mstCistPortEntry 25 }
+
+mstCistCurrentPortRole OBJECT-TYPE
+    SYNTAX      INTEGER { disabled(0), alternate(1), backup(2), root(3), 
+                    designated(4) }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Current Port Role of the port for this spanning 
+         tree instance.
+         ALCATEL NOTE:
+           ACCESS:      NA           USAGE:       NA
+           PERSIST:     NO           INSRVMOD:    NA
+           RANGE:       NA           DEFVALUE:    NA
+           UNITS:       NA           SPARSE:      NO
+           DESCR:       NA"
+    ::= { mstCistPortEntry 26 }
+
+mstCistPortInfoSemState OBJECT-TYPE
+    SYNTAX      INTEGER { disabled(0), enabled(1), aged(2), update(3), 
+                    superiordesg(4), repeatdesg(5), root(6), other(7), 
+                    present(8), receive(9) }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Current state of the Port Information State Machine          
+         for this port in this spanning tree context.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstCistPortEntry 27 }
+
+mstCistPortRoleTransitionSemState OBJECT-TYPE
+    SYNTAX      INTEGER { init(0), blockport(1), blockedport(2), 
+                    activeport(3) }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Current state of the Port Role Transition State Machine          
+         for this port in this spanning tree context.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstCistPortEntry 28 }
+
+mstCistPortStateTransitionSemState OBJECT-TYPE
+    SYNTAX      INTEGER { discarding(0), learning(1), forwarding(2) }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Current state of the Port State Transition State Machine          
+         for this port in this spanning tree context.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstCistPortEntry 29 }
+
+mstCistPortTopologyChangeSemState OBJECT-TYPE
+    SYNTAX      INTEGER { init(0), inactive(1), active(2), detected(3), 
+                    notifiedtcn(4), notifiedtc(5), propagating(6), 
+                    acknowledged(7) }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Current state of the Topology Change State Machine          
+         for this port in this spanning tree context.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstCistPortEntry 30 }
+
+mstCistPortHelloTime OBJECT-TYPE
+    SYNTAX      Timeout 
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The amount of time between the transmission of
+         Configuration bridge PDUs by this node on this port
+         in units of hundredths of a second.
+         ALCATEL NOTE:
+         ACCESS:      NA           		USAGE:       NA
+         PERSIST:     YES          		INSRVMOD:    YES
+         RANGE:       NA           		DEFVALUE:    NA
+         UNITS:       1/100th of Second      SPARSE:      NO
+         DESCR:       (2 * ((mstCistPortHelloTime/100) + 1)) should be 
+         		 less than or equal to mstCistBridgeMaxAge. This object can be set 
+         		 only when mstForceProtocolVersion is mstp(3)"
+    DEFVAL      { 200 }
+    ::= { mstCistPortEntry 31 }
+
+mstMstiPortTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF MstMstiPortEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "This table contains Spanning Tree Instance Specific Port
+         Information.
+         ALCATEL NOTE:
+          TABLESIZE: DEP
+         DESCR: DEP(TABLESIZE)	The range of this table is the number of msti instances
+         			multiplied by the number of ports. "
+    ::= { dot1sMst 34 }
+
+mstMstiPortEntry OBJECT-TYPE
+    SYNTAX      MstMstiPortEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "A list of information maintained by every port for each 
+         and every spanning tree instance.
+         Row creation : An mstMstiPortEntry will be created for all the Member 
+         		Ports associated with the VLAN of an MST Instance.
+         Row deletion : An mstMstiPortEntry will be deleted if the Member 
+         		port is disassociated from the VLAN of an MST Instance or 
+         		when the MST Instance is deleted.
+         Index usage : the index is mstMstiPort and mstInstanceIndex.
+         Note that entries will be presented to the SNMP manager in full
+         lexicographical order :  sorted on mstMstiPort, then on mstInstanceIndex."
+    INDEX       { mstMstiPort, mstInstanceIndex }
+    ::= { mstMstiPortTable 1 }
+
+MstMstiPortEntry ::= SEQUENCE {
+    mstMstiPort                           InterfaceIndex,
+    mstMstiPortInstanceIndex              INTEGER,
+    mstMstiPortPathCost                   INTEGER,
+    mstMstiPortPriority                   INTEGER,
+    mstMstiPortDesignatedRoot             BridgeId,
+    mstMstiPortDesignatedBridge           BridgeId,
+    mstMstiPortDesignatedPort             OCTET STRING,
+    mstMstiPortState                      INTEGER,
+    mstMstiForcePortState                 INTEGER,
+    mstMstiPortForwardTransitions         Counter,
+    mstMstiPortReceivedBPDUs              Counter,
+    mstMstiPortTransmittedBPDUs           Counter,
+    mstMstiPortInvalidBPDUsRcvd           Counter,
+    mstMstiPortDesignatedCost             INTEGER,
+    mstMstiSelectedPortRole               INTEGER,
+    mstMstiCurrentPortRole                INTEGER,
+    mstMstiPortInfoSemState               INTEGER,
+    mstMstiPortRoleTransitionSemState     INTEGER,
+    mstMstiPortStateTransitionSemState    INTEGER,
+    mstMstiPortTopologyChangeSemState     INTEGER
+}
+
+mstMstiPort OBJECT-TYPE
+    SYNTAX      InterfaceIndex
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Port number of the port for which this entry contains   
+         spanning tree information.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     YES          INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstMstiPortEntry 1 }
+
+mstMstiPortInstanceIndex OBJECT-TYPE
+    SYNTAX      INTEGER (1..64)
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION 
+        "An arbitrary integer within the range from 1 to the value of
+         Max Instance Number that uniquely identifies an instance.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     YES          INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstMstiPortEntry 2 }
+    
+mstMstiPortPathCost OBJECT-TYPE
+    SYNTAX      INTEGER (1..200000000)
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The contribution of this port to the path cost of
+         paths towards the MSTI Root which include this port.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     YES          INSRVMOD:    YES
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstMstiPortEntry 3 }
+
+mstMstiPortPriority OBJECT-TYPE
+    SYNTAX      INTEGER (0..240)
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "The four most significant bits of the Port Identifier 
+         for a given Spanning Tree instance can be modified 
+         independently for each Spanning Tree instance 
+         supported by the Bridge. The values that are set for Port 
+         Priority must be in steps of 16.
+         ALCATEL NOTE:
+           ACCESS:      NA           USAGE:       NA
+           PERSIST:     YES          INSRVMOD:    YES
+           RANGE:       NA           DEFVALUE:    NA
+           UNITS:       NA           SPARSE:      NO
+           DESCR:       NA"
+    DEFVAL      { 128 }
+    ::= { mstMstiPortEntry 4 }
+
+mstMstiPortDesignatedRoot OBJECT-TYPE
+    SYNTAX      BridgeId
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The unique Bridge Identifier of the bridge recorded as the  
+         MSTI Regional Root in the configuration BPDUs transmitted.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstMstiPortEntry 5 }
+
+mstMstiPortDesignatedBridge OBJECT-TYPE
+    SYNTAX      BridgeId
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The unique Bridge Identifier of the bridge which this port  
+         considers to be the Designated Bridge for the port's segment.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstMstiPortEntry 6 }
+
+mstMstiPortDesignatedPort OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(2))
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The Port identifier of the port on the Designated Bridge    
+         for this port's segment.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstMstiPortEntry 7 }
+
+mstMstiPortState OBJECT-TYPE
+    SYNTAX      INTEGER { disabled(1), discarding(2), learning(4), 
+                    forwarding(5) }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Current state of the Port as defined by the Multiple  
+         spanning tree protocol. Port which is Forwarding state
+         in one instance can be in Discarding (Blocking) state 
+         in another instance.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstMstiPortEntry 8 }
+
+mstMstiForcePortState OBJECT-TYPE
+    SYNTAX      INTEGER { disabled(0), enabled(1) }
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION 
+        "Current state of the Port which can be changed to either 
+         Disabled or Enabled for the specific spanning tree   
+         instance.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     YES          INSRVMOD:    YES
+          RANGE:       NA           DEFVALUE:    DEP
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       Default value shall be of mstCistForcePortState during Msti port entry creation"
+    DEFVAL      { disabled }
+    ::= { mstMstiPortEntry 9 }
+
+mstMstiPortForwardTransitions OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Number of times this port has transitioned to the     
+         Forwarding State for specific instance.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    0
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstMstiPortEntry 10 }
+
+mstMstiPortReceivedBPDUs OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Number of BPDUs received by this port for this 
+         spanning tree instance.
+         ALCATEL NOTE:
+           ACCESS:      NA           USAGE:       NA
+           PERSIST:     NO           INSRVMOD:    NA
+           RANGE:       NA           DEFVALUE:    0
+           UNITS:       BPDU         SPARSE:      NO
+           DESCR:       NA"
+    ::= { mstMstiPortEntry 11 }
+
+mstMstiPortTransmittedBPDUs OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Number of BPDUs transmitted on this port for 
+         this spanning tree instance.
+         ALCATEL NOTE:
+           ACCESS:      NA           USAGE:       NA
+           PERSIST:     NO           INSRVMOD:    NA
+           RANGE:       NA           DEFVALUE:    0
+           UNITS:       BPDU         SPARSE:      NO
+           DESCR:       NA"
+    ::= { mstMstiPortEntry 12 }
+
+mstMstiPortInvalidBPDUsRcvd OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Number of Invalid BPDUs received on this Port
+         for this spanning tree instance.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    0
+          UNITS:       BPDU         SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstMstiPortEntry 13 }
+
+mstMstiPortDesignatedCost OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The path cost of the Designated Port of the
+         segment connected to this port.
+         ALCATEL NOTE:
+         ACCESS:      NA           USAGE:       NA
+         PERSIST:     NO           INSRVMOD:    NA
+         RANGE:       NA           DEFVALUE:    NA
+         UNITS:       NA           SPARSE:      NO
+         DESCR:       NA"
+    ::= { mstMstiPortEntry 14 }
+
+mstMstiSelectedPortRole OBJECT-TYPE
+    SYNTAX      INTEGER { disabled(0), alternate(1), backup(2), root(3), 
+                    designated(4), master(5) }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Selected Port Role of the port for this spanning 
+         tree instance.
+         ALCATEL NOTE:
+           ACCESS:      NA           USAGE:       NA
+           PERSIST:     NO           INSRVMOD:    NA
+           RANGE:       NA           DEFVALUE:    NA
+           UNITS:       NA           SPARSE:      NO
+           DESCR:       NA"
+    ::= { mstMstiPortEntry 15 }
+
+mstMstiCurrentPortRole OBJECT-TYPE
+    SYNTAX      INTEGER { disabled(0), alternate(1), backup(2), root(3), 
+                    designated(4), master(5) }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Current Port Role of the port for this spanning 
+         tree instance.
+         ALCATEL NOTE:
+           ACCESS:      NA           USAGE:       NA
+           PERSIST:     NO           INSRVMOD:    NA
+           RANGE:       NA           DEFVALUE:    NA
+           UNITS:       NA           SPARSE:      NO
+           DESCR:       NA"
+    ::= { mstMstiPortEntry 16 }
+
+mstMstiPortInfoSemState OBJECT-TYPE
+    SYNTAX      INTEGER { disabled(0), enabled(1), aged(2), update(3), 
+                    superiordesg(4), repeatdesg(5), root(6), other(7), 
+                    present(8), receive(9) }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Current state of the Port Information State Machine          
+         for this port in this spanning tree context.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstMstiPortEntry 17 }
+
+mstMstiPortRoleTransitionSemState OBJECT-TYPE
+    SYNTAX      INTEGER { init(0), blockport(1), blockedport(2), 
+                    activeport(3) }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Current state of the Port Role Transition State Machine          
+         for this port in this spanning tree context.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstMstiPortEntry 18 }
+
+mstMstiPortStateTransitionSemState OBJECT-TYPE
+    SYNTAX      INTEGER { discarding(0), learning(1), forwarding(2) }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Current state of the Port State Transition State Machine          
+         for this port in this spanning tree context.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstMstiPortEntry 19 }
+
+mstMstiPortTopologyChangeSemState OBJECT-TYPE
+    SYNTAX      INTEGER { init(0), inactive(1), active(2), detected(3), 
+                    notifiedtcn(4), notifiedtc(5), propagating(6), 
+                    acknowledged(7) }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Current state of the Topology Change State Machine          
+         for this port in this spanning tree context.
+         ALCATEL NOTE:
+          ACCESS:      NA           USAGE:       NA
+          PERSIST:     NO           INSRVMOD:    NA
+          RANGE:       NA           DEFVALUE:    NA
+          UNITS:       NA           SPARSE:      NO
+          DESCR:       NA"
+    ::= { mstMstiPortEntry 20 }
+
+dot1sMstTrapsControl OBJECT IDENTIFIER
+    ::= { mstMIB 2 }
+
+mstGenTrapType OBJECT-TYPE
+    SYNTAX      INTEGER 
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The general events like 
+         0:none - none of the below values
+         1:up - protocol UP,
+         2:down - protocol DOWN.
+	 others:undefined"
+    ::= { dot1sMstTrapsControl 1 }
+
+mstErrTrapType OBJECT-TYPE
+    SYNTAX      INTEGER 
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "The error event like
+         0:none - none of the below values
+         1:memfail - memory allocation failure
+         2:bufffail - buffer allocation failure.
+	 others:undefined"
+    ::= { dot1sMstTrapsControl 2 }
+
+mstPortTrapIndex OBJECT-TYPE
+    SYNTAX      InterfaceIndex
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "A unique value, greater than zero, indicating the Port number."
+    ::= { dot1sMstTrapsControl 3 }
+
+mstPortMigrationType OBJECT-TYPE
+    SYNTAX      INTEGER 
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Port Protocol migration type occured in the port
+	0:sendstp
+	1:sendrstp
+	others:undefined"
+    ::= { dot1sMstTrapsControl 4 }
+
+mstPktErrType OBJECT-TYPE
+    SYNTAX      INTEGER 
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION
+        "Type of invalid packet received in each of the port
+         0:protocolIdErr
+	 1:invalidBpdu
+	 2:configLengthErr
+	 3:tcnLengthErr
+	 4:rstpLengthErr
+	 5:maxAgeErr
+	 6:fwdDelayErr
+	 7:helloTimeErr
+	 8:mstpLengthErr
+	 others:undefined"
+    ::= { dot1sMstTrapsControl 5 }
+
+mstPktErrVal OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION 
+        "Packet error value corresponding to the above type"	 
+    ::= { dot1sMstTrapsControl 6 }
+
+END

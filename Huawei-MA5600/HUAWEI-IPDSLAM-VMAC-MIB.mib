@@ -1,0 +1,536 @@
+-- ===========================================================================================================
+-- Copyright (C) 2012 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description: The mib module is used for defining VMAC feature, which is a solution to following problems: BRAS MAC address spoofing, 
+--              MAC address spoofing among subscribers and two subscribers with the same MAC address cannot access the Internet 
+--              if certain network adapters have the same MAC address.
+-- Reference:
+-- Version: V1.21
+-- ============================================================================================================
+    HUAWEI-IPDSLAM-VMAC-MIB DEFINITIONS ::= BEGIN
+        IMPORTS
+            ifIndex
+                FROM IF-MIB
+            OBJECT-TYPE, MODULE-IDENTITY, Integer32, Unsigned32, IpAddress
+                FROM SNMPv2-SMI
+            PhysAddress ,RowStatus, TEXTUAL-CONVENTION
+                FROM SNMPv2-TC
+            huaweiUtility
+                FROM HUAWEI-MIB;
+
+        hwIpDslamVmac MODULE-IDENTITY
+            LAST-UPDATED "201208250000Z"
+            ORGANIZATION "Huawei Technologies Co.,Ltd."
+            CONTACT-INFO                                       
+                "Huawei Industrial Base
+                 Bantian, Longgang
+                 Shenzhen 518129
+                 People's Republic of China
+                 Website: http://www.huawei.com
+                 Email: support@huawei.com
+                "                                     
+            DESCRIPTION
+                "The mib module is used for defining VMAC feature, which is a solution to following problems: BRAS MAC address spoofing, 
+                 MAC address spoofing among subscribers and two subscribers with the same MAC address cannot access the Internet 
+                 if certain network adapters have the same MAC address.
+                " 
+                           
+            --  Revision history
+            REVISION     "201210100000Z"
+            DESCRIPTION  "V1.21, Add variable type: IpAddress
+	                 "
+            
+            REVISION     "201208250000Z"
+            DESCRIPTION  "V1.20, modified the value range of hwIpDslamVmacSlotNumbering and hwIpDslamVmacPortBegin."
+
+            REVISION     "201205220000Z"
+            DESCRIPTION  "V1.19, added hwIPoESmacCurrentUserTable, hwIPoESmacCurrentUserEntry, hwIPoESmacUserIndex, hwIPoESmacUserFlowId, 
+                         hwIPoESmacUserIPAdress, hwIPoESmacSessionUserMac, hwIPoESmacVlanID."
+
+            REVISION     "201203120000Z"
+            DESCRIPTION  "V1.18, added hwIpDslamVmacSlotNumbering, hwIpDslamVmacPortBegin."
+
+            REVISION     "201108110000Z"
+            DESCRIPTION  "V1.17, modified the default value of hwIpDslamVmacDslamId."
+                        
+            REVISION     "201107290000Z"
+            DESCRIPTION  "V1.16, modified the description."
+                        
+            REVISION     "201106090000Z"
+            DESCRIPTION  "V1.15, added hwIpDslamVmacControlprotocolIpv6oeStatus."
+            
+            REVISION     "201105040000Z"
+            DESCRIPTION  "V1.14, added hwOltVmacUmacMappingTable, hwIpDslamVmacOntVmacNum and 
+                          hwIpDslamVmacOltId to support GPON board."
+            
+            REVISION     "201011090000Z"
+            DESCRIPTION  "V1.13, modified description of leaves."
+                 
+            REVISION     "201004260000Z"
+            DESCRIPTION  "V1.12, modified description of leaves."
+            
+            REVISION     "201004040000Z"
+            DESCRIPTION  "V1.11, modified description of leaves."
+            
+            REVISION     "201003040000Z"
+            DESCRIPTION  "V1.10, modified multi-mac to multiMac, modified single-mac to singleMac."
+            
+            REVISION     "201002020000Z"
+            DESCRIPTION  "V1.09, modified the hwIpDslamVmacStatus to solve a problem that enum value cannot display correctly."
+
+            REVISION     "201001120000Z"
+            DESCRIPTION  "V1.08, formated the mib file.NTEGER to Integer32, DisplayString to OCTET STRING,D EFVAL move into description."
+                      
+            REVISION     "200911200000Z"
+            DESCRIPTION  "V1.07, added hwIpDslamIPoEMacMode,It is used for dynamic IPoE access."
+            
+            REVISION     "200906250000Z"
+            DESCRIPTION  "V1.06, modified hwIpDslamVmacDslamId value range,between 0x0 and 0xFFFFFFFF."
+
+            REVISION     "200607310000Z"
+            DESCRIPTION  "V1.00, initial version."
+                    
+            ::= { huaweiUtility 110}
+
+        hwIpDslamVmacStatus OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                macpoolMode(1),
+                disabled(2),
+                dslamIdMode(3)
+                }
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Identifies the global status of the VMAC function. 
+                 Options:
+                 1. macpoolMode(1)      -indicates the global status of the VMAC function is macpoolMode
+                 2. disabled(2)         -indicates the global status of the VMAC function is disabled
+                 3. dslamIdMode(3)      -indicates the global status of the VMAC function is dslamIdMode
+                 Default: disabled(2)
+                 It is used to query and set the VMAC status.
+                "
+            ::= { hwIpDslamVmac 1 }
+
+        hwIpDslamVmacPortVmacNum OBJECT-TYPE
+            SYNTAX Integer32(1..32)
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Identifies the number of VMAC addresses of each port, which is used for 
+                 setting or querying the number of VMAC addresses of a port. 
+                 Range: 1-32
+                 Default: 32
+                "
+            ::= { hwIpDslamVmac 2 }
+
+
+        hwIpDslamVmacAllocationTable OBJECT-TYPE
+            SYNTAX      SEQUENCE OF HwIpDslamVmacAllocationEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "VMAC allocation mapping table.
+                The indexes of this table are hwIpDslamVmacAllocationIfIndex, hwIpDslamVmacAllocationStartmac
+                and hwIpDslamVmacAllocationScope.
+                "
+            ::= { hwIpDslamVmac 3 }
+
+        hwIpDslamVmacAllocationEntry OBJECT-TYPE
+            SYNTAX HwIpDslamVmacAllocationEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "VMAC allocation mapping table.
+                The indexes of this entry are hwIpDslamVmacAllocationIfIndex, hwIpDslamVmacAllocationStartmac
+                and hwIpDslamVmacAllocationScope.
+                "
+            INDEX { hwIpDslamVmacAllocationIfIndex }
+            ::= { hwIpDslamVmacAllocationTable 1 }
+
+
+        HwIpDslamVmacAllocationEntry ::=
+            SEQUENCE 
+                {
+                hwIpDslamVmacAllocationIfIndex
+                    Integer32,
+                hwIpDslamVmacAllocationStartmac
+                    PhysAddress,
+                hwIpDslamVmacAllocationScope
+                    Integer32
+                }
+
+        hwIpDslamVmacAllocationIfIndex OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The value of this object uniquely identifies this VMAC allocation mapping table entry.
+                "
+            ::= { hwIpDslamVmacAllocationEntry 1 }
+
+        hwIpDslamVmacAllocationStartmac OBJECT-TYPE
+            SYNTAX PhysAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The start MAC of VMAC allocation mapping table.
+                "
+            ::= { hwIpDslamVmacAllocationEntry 2 }
+
+        hwIpDslamVmacAllocationScope OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The scope of VMAC allocation mapping table.
+                "
+            ::= { hwIpDslamVmacAllocationEntry 3 }
+
+
+        hwIpDslamVmacUmacMappingTable OBJECT-TYPE
+            SYNTAX      SEQUENCE OF HwIpDslamVmacUmacMappingEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "Indicates the mapping relation between the VMAC address and the UMAC address, 
+                 which is used to query the mapping relation between the VMAC address and the 
+                 UMAC address. The index of this table is hwIpDslamVmacUmacMappingIfIndex.
+                "
+            ::= { hwIpDslamVmac 4 }
+
+        hwIpDslamVmacUmacMappingEntry OBJECT-TYPE
+            SYNTAX HwIpDslamVmacUmacMappingEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Indicates the mapping relation between the VMAC address and the UMAC address, 
+                 which is used to query the mapping relation between the VMAC address and the 
+                 UMAC address. The index of this entry is hwIpDslamVmacUmacMappingIfIndex.
+                "
+            INDEX { hwIpDslamVmacUmacMappingIfIndex }
+            ::= { hwIpDslamVmacUmacMappingTable 1 }
+
+
+        HwIpDslamVmacUmacMappingEntry ::=
+            SEQUENCE 
+                {
+                hwIpDslamVmacUmacMappingIfIndex
+                    Integer32,
+                hwIpDslamVmacUmacMappingVmacAddress
+                    OCTET STRING,
+                hwIpDslamVmacUmacMappingUmacAddress
+                    OCTET STRING
+                }
+
+        hwIpDslamVmacUmacMappingIfIndex OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Indicates the index of hwIpDslamVmacUmacMappingTable, which is used for specifying 
+                 the VMAC address and the UMAC address of a port. It is determined by the shelf ID, 
+                 slot ID, and port ID.
+                "
+            ::= { hwIpDslamVmacUmacMappingEntry 1 }
+
+        hwIpDslamVmacUmacMappingVmacAddress OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..192))
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Indicates the VMAC address in hwIpDslamVmacUmacMappingTable. It is a character 
+                 string consisting of 1-32 VMAC addresses of a port. 
+                "
+            ::= { hwIpDslamVmacUmacMappingEntry 2 }
+
+        hwIpDslamVmacUmacMappingUmacAddress OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..192))
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Indicates the UMAC address in hwIpDslamVmacUmacMappingTable. It is a character 
+                 string consisting of 1-32 VMAC addresses of a port. 
+                "
+            ::= { hwIpDslamVmacUmacMappingEntry 3 }
+
+        hwIpDslamVmacDslamId OBJECT-TYPE
+            SYNTAX Unsigned32(0..4294967295)
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Identifies the DSLAM ID, which is used for setting or querying the DSLAM ID.
+                 Range: 0x0-0xFFFFFFFF
+                 Default: 0x7FFFF
+                 When the VMAC function is enabled based on DSLAM ID, the DSLAM ID and the 
+                 reserved bits must be configured, and the DSLAM ID must be smaller than or 
+                 equal to 0x7FFFF. 
+                "
+            ::= { hwIpDslamVmac 5 }
+            
+        hwIpDslamVmacReserveBits OBJECT-TYPE
+            SYNTAX Unsigned32(0..255)
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Identifies the reserved bits in a VMAC address, which occupies 6 bits.
+                "
+            ::= { hwIpDslamVmac 6}
+
+        hwIpDslamIPoEMacMode OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                multiMac(1),
+                singleMac(2)
+                }
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Used for setting and querying the MAC address mode of a dynamic IPoE user.
+                 Options:
+                 1. multiMac(1)  -indicates the MAC address mode is multiMac
+                 2. singleMac(2) -indicates the MAC address mode is singleMac
+                 Default: multiMac(1)
+                "
+           ::= { hwIpDslamVmac 7 }
+           
+        hwIpDslamVmacOltId OBJECT-TYPE
+            SYNTAX Unsigned32(0..65535)
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Identifies the OLT ID, which is used for setting or querying the OLT ID.
+                 Range: 0x0-0xFFFF
+                 Default: 0xFFFF
+                 When the VMAC function is enabled based on OLT ID, the OLT ID and the 
+                 reserved bits must be configured. 
+                "
+            ::= { hwIpDslamVmac 8 }    
+
+        hwIpDslamVmacOntVmacNum OBJECT-TYPE
+            SYNTAX Integer32(1..8)
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Identifies the number of VMAC addresses of each ONT, which is used for 
+                 setting or querying the number of VMAC addresses of an ONT. 
+                 Range: 1-8
+                 Default: 8
+                "
+            ::= { hwIpDslamVmac 9 }
+
+        hwOltVmacUmacMappingTable OBJECT-TYPE
+            SYNTAX      SEQUENCE OF HwOltVmacUmacMappingEntry
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "Indicates the mapping relation between the VMAC address and the UMAC address,
+                 which is used to query the mapping relation between the VMAC address and the
+                 UMAC address. The indexes of this table are hwOltVmacUmacMappingIfIndex and
+                 hwOltVmacUmacMappingOntID.
+                "
+            ::= { hwIpDslamVmac 10 }
+
+        hwOltVmacUmacMappingEntry OBJECT-TYPE
+            SYNTAX HwOltVmacUmacMappingEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Indicates the mapping relation between the VMAC address and the UMAC address,
+                 which is used to query the mapping relation between the VMAC address and the
+                 UMAC address. The indexes of this entry are hwOltVmacUmacMappingIfIndex and
+                 hwOltVmacUmacMappingOntID.
+                "
+            INDEX { hwOltVmacUmacMappingIfIndex, hwOltVmacUmacMappingOntID }
+            ::= { hwOltVmacUmacMappingTable 1 }
+
+        HwOltVmacUmacMappingEntry ::=
+            SEQUENCE
+                {
+                hwOltVmacUmacMappingIfIndex
+                    Integer32,
+                hwOltVmacUmacMappingOntID
+                    Integer32,
+                hwOltVmacUmacMappingVmacAddress
+                    OCTET STRING,
+                hwOltVmacUmacMappingUmacAddress
+                    OCTET STRING
+                }
+
+        hwOltVmacUmacMappingIfIndex OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Indicates one index of hwOltVmacUmacMappingTable, which is used for specifying 
+                 the VMAC address and the UMAC address of an ONT. It is determined by the shelf ID,
+                 slot ID, and port ID.
+                "
+            ::= { hwOltVmacUmacMappingEntry 1 }
+        
+        hwOltVmacUmacMappingOntID OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Indicates one index of hwOltVmacUmacMappingTable, which is used for specifying
+                 the VMAC address and the UMAC address of an ONT.
+                "
+            ::= { hwOltVmacUmacMappingEntry 2 }
+
+        hwOltVmacUmacMappingVmacAddress OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..48))
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Indicates the VMAC address in hwOltVmacUmacMappingTable. It is a character
+                 string consisting of 1-8 VMAC addresses of an ONT.
+                "
+            ::= { hwOltVmacUmacMappingEntry 3 }
+
+        hwOltVmacUmacMappingUmacAddress OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..48))
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Indicates the UMAC address in hwOltVmacUmacMappingTable. It is a character
+                 string consisting of 1-8 VMAC addresses of an ONT.
+                "
+            ::= { hwOltVmacUmacMappingEntry 4 }
+        
+        hwIpDslamVmacControlprotocolIpv6oeStatus OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                disable(1),
+                enable(2)
+                }
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "It is used to query and set the VMAC control protocol of IPv6oE status.
+                 Options:
+                 1. disable(1)       -indicates the VMAC control protocol of IPv6oE status disable
+                 2. enable(2)        -indicates the VMAC control protocol of IPv6oE status enable
+                 Default: disable(1) 
+                "
+           ::= { hwIpDslamVmac 11 }
+        
+        hwIpDslamVmacSlotNumbering OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                logical(1),
+                physical(2),
+                default(3)
+                }
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "It is used to query and set the VMAC slot number format.
+                 Options:
+                 1. logical(1)         -indicates the VMAC slot number format is logical
+                 2. physical(2)        -indicates the VMAC slot number format is physical
+                 3. default(3)         -Indicates that the slot number for the port-based VMAC 
+                                        address is a physical slot number. However, the slot number 
+                                        for the ONT-based VMAC address is equal to the physical 
+                                        slot number + 1. That is, for the ONT-based VMAC address, 
+                                        this parameter does not indicate the physical slot number or 
+                                        the logical slot number.
+                 Default: default(3) 
+                "
+           ::= { hwIpDslamVmac 12 }
+
+        hwIpDslamVmacPortBegin OBJECT-TYPE
+            SYNTAX Unsigned32(0..1 | 4294967295) 
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "It is used to query and set the starting portid of VMAC.
+                 Range: 0-1, 4294967295
+                 Default: 4294967295
+                 The value 4294967295 indicates that the port-based VMAC starting portid is 0, but 
+                 the ONT-based VMAC starting portid is 1 
+                "
+           ::= { hwIpDslamVmac 13 }
+           
+        hwIPoESmacCurrentUserTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwIPoESmacCurrentUserEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                "Used for querying the information about a IPoE single-MAC user. 
+                 The indexes of this table are ifIndex and hwIPoESmacUserIndex.
+                "
+            ::= { hwIpDslamVmac 14 }
+                
+        hwIPoESmacCurrentUserEntry OBJECT-TYPE
+            SYNTAX     HwIPoESmacCurrentUserEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                "Used for querying the information about a IPoE single-MAC user. 
+                 The indexes of this entry are ifIndex and hwIPoESmacUserIndex.
+                "
+            INDEX { 
+                  ifIndex,
+                  hwIPoESmacUserIndex
+                  }
+            ::= { hwIPoESmacCurrentUserTable 1 }
+        HwIPoESmacCurrentUserEntry ::= 
+            SEQUENCE {
+                hwIPoESmacUserIndex
+                    Integer32,                     
+                hwIPoESmacUserFlowId
+                    Integer32,
+                hwIPoESmacUserIPAdress
+                    IpAddress,
+                hwIPoESmacSessionUserMac
+                    OCTET STRING,
+                hwIPoESmacVlanID
+                    Integer32                
+                    }
+                    
+        hwIPoESmacUserIndex OBJECT-TYPE
+            SYNTAX Integer32 (1..65534)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "IPoE SMAC user index.
+                "
+            ::= { hwIPoESmacCurrentUserEntry 1 }             
+         
+        hwIPoESmacUserFlowId OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "IPoE user flow ID.
+                "
+            ::= { hwIPoESmacCurrentUserEntry 2 }     
+                        
+        hwIPoESmacUserIPAdress OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current        
+            DESCRIPTION
+                "IPoE SMAC user IpAddress.
+                "
+            ::= { hwIPoESmacCurrentUserEntry 3 }                    
+        
+        hwIPoESmacSessionUserMac OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (6))
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "IPoE SMAC user MAC address.
+                "
+            ::= { hwIPoESmacCurrentUserEntry 4 }
+            
+        hwIPoESmacVlanID OBJECT-TYPE
+            SYNTAX Integer32 (1..4093)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "IPoE SMAC user VLAN.
+                "
+            ::= { hwIPoESmacCurrentUserEntry 5 }              
+           
+    END

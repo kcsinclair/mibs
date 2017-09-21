@@ -1,0 +1,880 @@
+-- extracted from draft-ietf-ipcdn-tri-mib-01.txt
+-- at Mon Nov 15 17:10:36 1999
+
+       TelcoReturnCABLE-DEVICE-MIB DEFINITIONS ::= BEGIN
+
+              IMPORTS
+              MODULE-IDENTITY, OBJECT-TYPE,
+              Integer32, IpAddress, Unsigned32
+                  FROM SNMPv2-SMI
+              DisplayString, DateAndTime, TruthValue, RowStatus
+                  FROM SNMPv2-TC
+              OBJECT-GROUP, MODULE-COMPLIANCE
+                  FROM SNMPv2-CONF
+              InterfaceIndexOrZero
+                  FROM DOCS-IF-MIB
+              transmission
+                  FROM RFC1213-MIB
+              ;
+
+              docsTrCmMIB MODULE-IDENTITY
+                 LAST-UPDATED "9904020720Z"
+                 ORGANIZATION "3Com - Cable Access"
+                 CONTACT-INFO "  Jack Fijolek/Srinivyasa Murthy
+   Adiraju
+              Postal: 3Com
+              3800 Golf Road
+              Rolling Meadows, IL 60008
+              Tel:    +1 847 2622201 +1 847 2622205
+              Fax:    +1 847 2620258
+              E-mail: Srinivyasa_Adiraju@3Com.com"
+                 DESCRIPTION
+                  "TELCO Return MIB for Data Over Cable  Access
+   modems and termination systems"
+              ::= { transmission 128 }
+
+
+              docsTrCmMIBObjects    OBJECT    IDENTIFIER    ::=
+   {docsTrCmMIB 1}
+              docsTrCmBase    OBJECT    IDENTIFIER    ::=     {
+   docsTrCmMIBObjects 1}
+
+              docsTrCmCapability OBJECT-TYPE
+              SYNTAX     INTEGER {
+                         other(1),
+                         telcoReturn(2),
+                         twoWay(3),
+                         threeWay(4)
+                }
+              MAX-ACCESS read-only
+              STATUS     current
+              DESCRIPTION
+              "This object represents the CM Capability.  A  CM
+   may  be'TelcoReturn(2)',  or  'TwoWay(3)',  or  Other  e.g.,
+   undefined"
+              ::= { docsTrCmBase 1 }
+
+              docsTrCmMode OBJECT-TYPE
+              SYNTAX     INTEGER {
+                         other(1),
+                         telcoReturn(2),
+                         twoWay(3)
+
+                 }
+              MAX-ACCESS read-write
+              STATUS     current
+              DESCRIPTION
+              "This object represents the CM Operating Mode.  A
+   CM  may be  operating as'TelcoReturn(2)', or 'TwoWay(3)', or
+   Other e.g, undefined"
+              ::= { docsTrCmBase 2 }
+
+
+              docsTrMsgBase    OBJECT    IDENTIFIER    ::=    {
+   docsTrCmMIBObjects 2}
+
+
+
+
+              docsTrMsgBaseTable OBJECT-TYPE
+                      SYNTAX SEQUENCE OF DocsTrMsgBaseEntry
+                      MAX-ACCESS  not-accessible
+                      STATUS      current
+                      DESCRIPTION
+                          "Telco Return Message Base Table"
+                      ::= { docsTrMsgBase 1 }
+
+              docsTrMsgBaseEntry OBJECT-TYPE
+                      SYNTAX DocsTrMsgBaseEntry
+                      MAX-ACCESS  not-accessible
+                      STATUS      current
+                      DESCRIPTION
+                          "This table contains the  information
+   about TCD/TSI and USRbackOff for each interface"
+                      INDEX { docsTrMsgIfIndex }
+                      ::= { docsTrMsgBaseTable 1 }
+
+              DocsTrMsgBaseEntry ::= SEQUENCE {
+                      docsTrMsgIfIndex InterfaceIndexOrZero,
+                      docsTrMsgTCDInterval INTEGER,
+                      docsTrMsgTSIInterval INTEGER,
+                      docsTrMsgUSRBackOff Unsigned32,
+                      docsTrMsgRowValue    RowStatus
+              }
+
+              docsTrMsgIfIndex OBJECT-TYPE
+                      SYNTAX      InterfaceIndexOrZero
+                      MAX-ACCESS  not-accessible
+                      STATUS      current
+                      DESCRIPTION
+                          "The value corresponds to ifIndex for
+   either  a  CATV  MAC  or  other  network interface. In Cable
+   Modems, the default value is the customer side interface. In
+   Cable  Modem  Termination  Systems,  this  object  has to be
+   specified to create a row in this table."
+                      ::= { docsTrMsgBaseEntry 1 }
+
+
+              docsTrMsgTCDInterval OBJECT-TYPE
+              SYNTAX      INTEGER (500..2000)
+              UNITS       "Milliseconds"
+              MAX-ACCESS  read-write
+              STATUS      current
+              DESCRIPTION
+              "The  interval  between  CMTS   transmission   of
+   successive  Telephony  Channel  Descriptor (TCD) messages at
+   this interface."
+              REFERENCE
+              "Data  Over  Cable  Telephony  Return   Interface
+   Specification,[1], TCD Interval."
+              DEFVAL  { 2000 }
+              ::= { docsTrMsgBaseEntry 2 }
+
+              docsTrMsgTSIInterval OBJECT-TYPE
+              SYNTAX      INTEGER (1000..4000)
+              UNITS       "Milliseconds"
+              MAX-ACCESS  read-write
+              STATUS      current
+              DESCRIPTION
+              "The  interval  between  CMTS   transmission   of
+   successive Termination System Interface (TSI) messages for a
+   downstream channel at this interface.This is also  the  time
+   interval  a  CM  should scan on a specific channel for a TSI
+   message and  sets the frequency the  CM  monitors  the  CMTS
+   epoch counter. "
+              REFERENCE
+              "Data  Over  Cable  Telephony  Return   Interface
+   Specification,[6], TSI Interval."
+                DEFVAL        { 4000 }
+              ::= { docsTrMsgBaseEntry 3 }
+
+              docsTrMsgUSRBackOff OBJECT-TYPE
+              SYNTAX Unsigned32
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              " This object represents  the  number  of   times
+   CMTS   will   resend   User   Station   Reset  messages   if
+   unacknowledged by CM; Number of duplicate reset requests  CM
+   may receive"
+              DEFVAL{4}
+              REFERENCE
+              "Data  Over  Cable  Telephony  Return   Interface
+   Specification, [6], USR Backoff ."
+              ::= { docsTrMsgBaseEntry 4 }
+
+              docsTrMsgRowValue OBJECT-TYPE
+              SYNTAX RowStatus
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              " Controls and reflects the  status  of  rows  in
+   this table "
+              ::= { docsTrMsgBaseEntry 5 }
+
+
+         docsTrTsSPD OBJECT IDENTIFIER ::= { docsTrCmMIBObjects
+   3}
+
+             docsTrTsSPDTable  OBJECT-TYPE
+             SYNTAX      SEQUENCE OF DocsTrTsSPDEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+             " A table of all the SPD messages  that  get  sent
+   out"
+              ::= { docsTrTsSPD 1 }
+
+             docsTrTsSPDEntry OBJECT-TYPE
+             SYNTAX DocsTrTsSPDEntry
+             MAX-ACCESS not-accessible
+             STATUS current
+             DESCRIPTION
+             "This an entry in the SPD table which  is  one  of
+   the SPD that get sent outto the cable modems"
+             INDEX {docsTrTsSPDindex}
+             ::= {docsTrTsSPDTable 1}
+
+             DocsTrTsSPDEntry ::= SEQUENCE {
+              docsTrTsSPDindex    INTEGER,
+              docsTrTsSPDname     DisplayString,
+              docsTrTsSPDphoneNum1    DisplayString,
+              docsTrTsSPDphoneNum2    DisplayString,
+              docsTrTsSPDphoneNum3    DisplayString,
+              docsTrTsSPDConnThreshold    Integer32,
+              docsTrTsSPDuserName     DisplayString,
+              docsTrTsSPDuserPassword OCTET STRING,
+              docsTrTsSPDpppAuth      INTEGER,
+              docsTrTsSPDdhcpAuth     INTEGER,
+              docsTrTsSPDradiusRealm  DisplayString,
+              docsTrTsDemandDialTimer Unsigned32,
+              docsTrTsSPDdhcpAddress  IpAddress,
+              docsTrTsSPDfactoryDef   INTEGER,
+              docsTrTsSPDstatus       INTEGER
+
+
+            }
+
+            docsTrTsSPDindex    OBJECT-TYPE
+             SYNTAX  INTEGER(1..16383)
+             MAX-ACCESS  not-accessible
+             STATUS current
+             DESCRIPTION
+             "The unique number which  identifies  the  Service
+   Provider Descriptor in the SPDTable"
+             ::= { docsTrTsSPDEntry 1}
+
+            docsTrTsSPDname OBJECT-TYPE
+             SYNTAX  DisplayString (SIZE(1..128))
+             MAX-ACCESS  read-create
+             STATUS  current
+             DESCRIPTION
+              "The name of the Service  Provider.  A  value  of
+   null string means no name"
+             DEFVAL { "" }
+             ::= { docsTrTsSPDEntry 2 }
+
+            docsTrTsSPDphoneNum1 OBJECT-TYPE
+             SYNTAX  DisplayString (SIZE (1..128))
+             MAX-ACCESS  read-create
+             STATUS  current
+             DESCRIPTION
+              "The first phone number to  try  when  trying  to
+   reach  the service provider. A value of null string means no
+   phone number"
+             DEFVAL { "" }
+             ::= { docsTrTsSPDEntry 3 }
+
+            docsTrTsSPDphoneNum2 OBJECT-TYPE
+             SYNTAX  DisplayString (SIZE (1..128))
+             MAX-ACCESS  read-create
+             STATUS  current
+             DESCRIPTION
+              "The second phone number  to  try  to  reach  the
+   service  provider  when  the  first number fails. A value of
+   null string means no phone number"
+             DEFVAL { "" }
+             ::= { docsTrTsSPDEntry 4 }
+
+            docsTrTsSPDphoneNum3 OBJECT-TYPE
+             SYNTAX  DisplayString (SIZE (1..128))
+             MAX-ACCESS  read-create
+             STATUS  current
+             DESCRIPTION
+              "The third phone number to try in  case  the  1st
+   and  2nd numbers fail. A value of null string means no phone
+   number"
+             DEFVAL { "" }
+             ::= { docsTrTsSPDEntry 5 }
+
+            docsTrTsSPDConnThreshold OBJECT-TYPE
+             SYNTAX  Integer32 (1..10)
+             MAX-ACCESS  read-create
+             STATUS  current
+             DESCRIPTION
+              "The number of sequential connection try failures
+   before indicating connection failure. "
+             DEFVAL  { 1 }
+             ::= { docsTrTsSPDEntry 6 }
+
+            docsTrTsSPDuserName OBJECT-TYPE
+             SYNTAX  DisplayString (SIZE (1..32))
+             MAX-ACCESS  read-create
+             STATUS  current
+             DESCRIPTION
+              "The username the CM will use during PAP or  CHAP
+   authentication  over  telco  link  during the initialization
+   procedure."
+             DEFVAL { "guest" }
+             ::= { docsTrTsSPDEntry 7 }
+
+            docsTrTsSPDuserPassword OBJECT-TYPE
+             SYNTAX  OCTET STRING (SIZE (1..15))
+             MAX-ACCESS  read-create
+             STATUS  current
+             DESCRIPTION
+              "The password that the CM will use during the PAP
+   or  CHAP  authentication  over  the  telco  link  during the
+   initialization procedure."
+             DEFVAL { "" }
+             ::= { docsTrTsSPDEntry 8 }
+
+            docsTrTsSPDpppAuth OBJECT-TYPE
+             SYNTAX  INTEGER {
+                                 other(1),
+                                 uNegotiate(2),
+                                 uPAP(3),
+                                 uCHAP(4)
+                             }
+             MAX-ACCESS  read-create
+             STATUS  current
+             DESCRIPTION
+              "This instructs the telco  return  modem  of  the
+   authentication procedure to perform over the telco link."
+             DEFVAL { uNegotiate }
+             ::= { docsTrTsSPDEntry 9 }
+
+            docsTrTsSPDdhcpAuth OBJECT-TYPE
+             SYNTAX  TruthValue
+             MAX-ACCESS  read-create
+             STATUS  current
+             DESCRIPTION
+              "Boolean  value  reserved  to  indicate  CM  MUST
+   authenticate DHCP messages when enable."
+             DEFVAL { False }
+             ::= { docsTrTsSPDEntry 10 }
+
+            docsTrTsSPDradiusRealm OBJECT-TYPE
+             SYNTAX  DisplayString (SIZE(0..128))
+             MAX-ACCESS  read-create
+             STATUS  current
+             DESCRIPTION
+              "The realm name contains the ASCII  string  which
+   defines  a  RADIUS  server  domain.  TRAC  RADIUS MUST proxy
+   requests to a server realm.  RADIUS  syntax  is  to  address
+   login  name as Username- String@Realm-String - RADIUS Realm-
+   String MUST be correlated by  the  TRAC  RADIUS  to  the  IP
+   address  of  a  RADIUS  server  to  be  proxied  to  for the
+   designated RADIUS user profile. If the TRAC  RADIUS  is  the
+   server  for designated user profile,the default value is the
+   null string."
+             DEFVAL { "" }
+             ::= { docsTrTsSPDEntry 11 }
+
+             docsTrTsDemandDialTimer OBJECT-TYPE
+              SYNTAX Unsigned32
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              " This object represents the number of seconds of
+   networking  inactivity  allowed  before hang-up, the default
+   zero indicates demand dial is not enabled.  Demand  dial  is
+   desirable to allow the traffic engineering of dial-in ports.
+   Networking  activity  monitoring  is   a   vendor   specific
+   implementation"
+              DEFVAL{ 0 }
+              ::= { docsTrTsSPDEntry 12 }
+
+            docsTrTsSPDdhcpAddress OBJECT-TYPE
+             SYNTAX  IpAddress
+             MAX-ACCESS  read-create
+             STATUS  current
+             DESCRIPTION
+              " The ip address of the DHCP server."
+             ::= { docsTrTsSPDEntry 13 }
+
+            docsTrTsSPDfactoryDef OBJECT-TYPE
+             SYNTAX TruthValue
+             MAX-ACCESS  read-create
+             STATUS  current
+             DESCRIPTION
+              "boolean value, if true, indicates the SPD  which
+   SHOULD be used by the CM during factory default procedure."
+             ::= { docsTrTsSPDEntry 14 }
+
+            docsTrTsSPDstatus OBJECT-TYPE
+             SYNTAX INTEGER {
+                                 disabled(1),
+                                 enabled(2),
+                                 deleted(3)
+                             }
+             MAX-ACCESS  read-create
+             STATUS  current
+             DESCRIPTION
+               "When  the  status  is  set  to  disabled,  that
+   corresponding SPD entry will be disabled from the CMTS. When
+   the status is set to enabled, that corresponding  SPD  entry
+   will  be  enabled  in  the  CMTS.  When the status is set to
+   deleted, that corresponding SPD entry will be  deleted  from
+   the CMTS. At least one SPD entry must be present and enabled
+   in a CMTS"
+
+             ::= { docsTrTsSPDEntry 15 }
+
+         docsTrCmSPDBase    OBJECT     IDENTIFIER     ::=     {
+
+   docsTrCmMIBObjects 4}
+
+             docsTrCmSPDpersistEnable OBJECT-TYPE
+             SYNTAX TruthValue
+             MAX-ACCESS  read-write
+             STATUS  current
+             DESCRIPTION
+              "truth value contains interpretation of  the  SPD
+   MIB  objects  for  the  CM  local  ISP  selection method. If
+   docsTrCmSPDpersistEnable is false (2), no  SPD  MIB  objects
+   persist  in an active SPD if ANY SPD parameters are set in a
+   TFTP configuration file. In such a case the CM MUST use only
+   configuration  file  SPD  settings and defaults to construct
+   the active SPD. When  docsTrCmSPDpersistEnable  is  true(1),
+   SPD  MIB  objects  persist  in  an  active  SPD except where
+   specific  SPD  parameters  in  a  TFTP  configuration   file
+   override  their  corresponding  specific SPD MIB objects. In
+   such a case the CM MUST first use the configuration file SPD
+   settings,  then  use ANY SPD MIB object previously set where
+   TFTP configuration file parameters are not present,  lastly,
+   appropriate  defaults  defined  in  [18,20] to construct the
+   active SPD. The initial setting is false(2)."
+              ::= { docsTrCmSPDBase 1 }
+
+              docsTrCmSPDname OBJECT-TYPE
+              SYNTAX DisplayString
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              " This object contains the service provider Name"
+              ::= { docsTrCmSPDBase 2 }
+
+              docsTrCmISPphoneNum1 OBJECT-TYPE
+              SYNTAX DisplayString
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              " This object  contains  the  Primary  ISP  Phone
+   number 1"
+              ::= { docsTrCmSPDBase 3 }
+
+              docsTrCmISPphoneNum2 OBJECT-TYPE
+              SYNTAX DisplayString
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              " This object contains the Backup Phone number  2
+   "
+              ::= { docsTrCmSPDBase 4 }
+
+              docsTrCmISPphoneNum3 OBJECT-TYPE
+              SYNTAX DisplayString
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              " This object contains the Backup   Phone  number
+   3"
+              ::= { docsTrCmSPDBase 5 }
+
+             docsTrCmconnThreshold OBJECT-TYPE
+             SYNTAX  Integer32 (1..10)
+             MAX-ACCESS  read-write
+             STATUS  current
+             DESCRIPTION
+              "The number of sequential connection try failures
+   before indicating connection failure."
+             ::= { docsTrCmSPDBase 6 }
+
+              docsTrCmPPPloginName OBJECT-TYPE
+              SYNTAX DisplayString
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              " This object contains the PPP Login Name"
+              ::= { docsTrCmSPDBase 7 }
+
+              docsTrCmPPPpassword OBJECT-TYPE
+              SYNTAX DisplayString
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              " This object contains the PPP Password"
+              ::= { docsTrCmSPDBase 8 }
+
+
+              docsTrCmPPPauth OBJECT-TYPE
+              SYNTAX INTEGER{
+              none(1),
+              pap(2),
+              chap(3)
+              }
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              "  This  object   contains   the   secure   login
+   verification method"
+              ::= { docsTrCmSPDBase 9 }
+
+              docsTrCmDHCPauth OBJECT-TYPE
+              SYNTAX IpAddress
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              "This object contains the DHCP Server IP Address"
+              ::= { docsTrCmSPDBase 10 }
+
+              docsTrCmradiusRealm OBJECT-TYPE
+              SYNTAX DisplayString
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              " This object contains the  RADIUS  Cable  Access
+   Realm Name"
+              ::= { docsTrCmSPDBase 11 }
+
+              docsTrCmdemandDialTimer OBJECT-TYPE
+              SYNTAX Unsigned32
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              " This object represents the number of seconds of
+   networking  inactivity  allowed  before hang-up, the default
+   zero indicates demand dial is not enabled.  Demand  dial  is
+   desirable to allow the traffic engineering of dial-in ports.
+   Networking  activity  monitoring  is   a   vendor   specific
+   implementation"
+              ::= { docsTrCmSPDBase 12 }
+
+              docsTrCmDHCPserver OBJECT-TYPE
+              SYNTAX IpAddress
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              "This object contains the DHCP Server IP Address"
+              ::= { docsTrCmSPDBase 13 }
+
+         docsTrCmSessionBase   OBJECT    IDENTIFIER    ::=    {
+   docsTrCmMIBObjects 5}
+
+              docsTrCmPingAuth OBJECT-TYPE
+              SYNTAX TruthValue
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              "This object has a value of 'true(1)' if  CPE  is
+   allowed  to generate ping (ICMP request) across the network,
+   CPE."
+              ::= { docsTrCmSessionBase 1 }
+
+              docsTrCmTerminateOnOffHook OBJECT-TYPE
+              SYNTAX TruthValue
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              "This object has a value of 'true(1)' if CM  must
+   terminate  data  session  on  off  hook/voice  call  events,
+              ::= { docsTrCmSessionBase 2 }
+
+              docsTrCmCMType OBJECT-TYPE
+              SYNTAX     INTEGER {
+                         extGeneric(1),
+                         extRouted(2),
+                         internalOther(3),
+                         internalISA(4),
+                         internalPCI(5),
+                         internalMAC(6),
+                         internalSBUS(7),
+                         internalUSB(8)
+
+                 }
+              MAX-ACCESS read-only
+              STATUS     current
+              DESCRIPTION
+              "This object represents the CM configured type. A
+   CM  may be configured as a DOCSIS bridge 'ExtGeneric(1)', as
+   a telephony return IP  forwarder  'ExtRouted(2)',  or  as  a
+   single host 'InternalXXX(3-8). "
+              ::= { docsTrCmSessionBase 3 }
+
+              docsTrCmRingNoAns OBJECT-TYPE
+              SYNTAX INTEGER
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              "This object defines the number of  rings  before
+   answer a CM should allow (ring threshold) before failing the
+   connection as NO ANSWER"
+              ::= { docsTrCmSessionBase 4 }
+
+              docsTrCmWaitInterval OBJECT-TYPE
+              SYNTAX Unsigned32
+              MAX-ACCESS read-only
+              STATUS current
+              DESCRIPTION
+              "This object defines the  number  of  seconds  of
+   time CM should wait for a call to ring after dialing"
+              ::= { docsTrCmSessionBase 5 }
+
+
+   -- The telephony return modem  Command  group  addresses
+   -- scripting  for  dial-modem where a command and result
+   -- are processed to allow a management station  to
+   --  communicate without  apriori  mapping of a given AT
+   -- command set. This process is provided to allow some
+   -- degree of control  over non-integrated  dial  modems
+   -- by external telephony return cable modems. Internal
+   -- (to host)  cable  modems  have  OS specific vehicles
+   -- available to handle dial-up. Integrated telephone
+   -- and cable solutions should have specific source to
+   -- deal with dial initialization and modem commands of
+   -- bundled hardware.
+
+              docsTrCmCommand   OBJECT   IDENTIFIER    ::=    {
+   docsTrCmMIBObjects 6 }
+
+              docsTrCmCdCode OBJECT-TYPE
+              SYNTAX INTEGER{
+                noError(1),
+                unable(2),
+                unrecognizedCommand(3),
+                noResponse(4),
+                notConnected(5),
+                connected(6),
+                onLine(7),
+                unsupportedCommand(8),
+                deviceDisabled(9),
+                deviceInTestMode(10),
+                testFailed(11),
+                deviceInSecurityMode(12),
+                noRTS(13),
+                noDTR(14),
+                wrongLoopbackSpeed(15),
+                noLoopbackInARQ(16),
+                pendingSoftwareDownload(17),
+                invalidFrequency(18),
+                noLoopCurrent(19),
+                noDialTone(20),
+                noLineDetected(21)
+              }
+              MAX-ACCESS read-only
+              STATUS current
+              DESCRIPTION
+              "The value of this object   indicates  a  further
+   description of what went wrong when a command fails."
+              ::= { docsTrCmCommand 1 }
+
+              docsTrCmCdMgtStationId OBJECT-TYPE
+              SYNTAX OCTET STRING (SIZE(0..8))
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              "This object is  a  generic  read-write  variable
+   that a Management Station (MS) can use to guarantee that the
+   results from a given command are the results  of  a  command
+   issued by that specific MS.  Each MS must SET a unique value
+   to this object when doing commands and GET the value of this
+   object  together  with docsTrCmCdResult  and docsTrCmCdReqId
+   to detect interference from other MSs."
+              ::= { docsTrCmCommand 2 }
+
+              docsTrCmCdReqId OBJECT-TYPE
+              SYNTAX INTEGER
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              "This object contains the request ID field of the
+   SNMP  PDU  which  invoked  the  most  recent  command on the
+   telephony return modem, if  the  request-id  is  unknown  or
+   undefined, the object contains the value zero "
+              ::= { docsTrCmCommand 3}
+
+              docsTrCmCdResult OBJECT-TYPE
+              SYNTAX OCTET STRING (SIZE(0..64000))
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              "This object can contain parameters that are  raw
+   results to the particular command being issued. "
+              ::= { docsTrCmCommand 4 }
+
+              docsTrCmCdForce OBJECT-TYPE
+              SYNTAX TruthValue
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              "In certain cases the telephony return modem  may
+   be  in a state where certain commands could adversely affect
+   connections. In such cases,  a  command  request  with  this
+   object  not  present  or  set to 'false(2)' will result in a
+   warning.  If the operator elects to  ignore  such  warnings,
+   this  object  can  be set to force 'true(1)' in a subsequent
+   request to cause the command to be carried out regardless of
+   the potentially hazardous effect."
+              ::= { docsTrCmCommand 5 }
+
+              docsTrCmCdScript OBJECT-TYPE
+              SYNTAX OCTET STRING (SIZE(0..64000))
+              MAX-ACCESS read-write
+              STATUS current
+              DESCRIPTION
+              "This  object   can   contain   parameters   that
+   specifically  define  a  particular  command  or  series  of
+   commands being issued directly to  the  dial  modem.  Script
+   execution  depends  upon  the  inclusion in this string of a
+   suitable escape sequence (usually +++) to enter a dial modem
+   into a command mode."
+              ::= { docsTrCmCommand 6 }
+
+              docsTrCmCdStatus OBJECT-TYPE
+              SYNTAX INTEGER{
+                none(1),
+                success(2),
+                inProgress(3),
+                notSupported(4),
+                unAbleToRun(5),
+                aborted(6),
+                failed(7)
+              }
+              MAX-ACCESS read-only
+              STATUS current
+              DESCRIPTION
+              "This object contains  the  result  of  the  most
+   recently requested command or test, or the value none(1)  if
+   no commands have been requested since last reset."
+              ::= { docsTrCmCommand 7 }
+                 --
+                 -- Conformance Statements
+                 --
+
+              docsTrCmConformance  OBJECT  IDENTIFIER   ::=   {
+   docsTrCmMIB 2 }
+              docsTrCmGroups      OBJECT   IDENTIFIER   ::=   {
+   docsTrCmConformance 1
+         }
+              docsTrCmCompliances  OBJECT  IDENTIFIER   ::=   {
+
+   docsTrCmConformance
+         2 }
+
+               docsCmBasicCompliance MODULE-COMPLIANCE
+                    STATUS current
+                    DESCRIPTION
+                 "The compliance statement for DOCSIS Telephony
+   Return Cable Modems and Cable Modem Termination Systems"
+
+
+               MODULE -- This module
+               MANDATORY-GROUPS { docsTrCmBaseGroup }
+
+              -- conditionally mandatory groups
+
+
+              GROUP docsTrCmBaseGroup
+                       DESCRIPTION
+                              "Must be implemented on CMs,  not
+   implemented on
+         CMTSs."
+
+              GROUP docsTrMsgBaseGroup
+                       DESCRIPTION
+                              "Must be implemented on CMTSs and
+   Optional on CMs."
+
+              GROUP docsTrTsSPDBaseGroup
+                       DESCRIPTION
+                              "Must be  implemented  on  CMTSs,
+   not implemented on Cable Modems."
+
+              GROUP docsTrCmSessionSPDBaseGroup
+                       DESCRIPTION
+                              "Must  be  implemented  on  Cable
+   Modems, not implemented on CMTSs."
+
+              GROUP docsTrCmSessionBaseGroup
+                       DESCRIPTION
+                              "Must  be  implemented  on  Cable
+   Modems, not implemented on CMTSs."
+
+              GROUP docsTrCmCommandGroup
+                       DESCRIPTION
+                              "Optional on  Cable  Modems,  not
+   implemented on CMTSs."
+               ::= { docsTrCmCompliances 1 }
+
+              docsTrCmBaseGroup  OBJECT-GROUP
+               OBJECTS  {
+              docsTrCmCapability ,
+              docsTrCmMode
+                 }
+              STATUS    current
+              DESCRIPTION
+                  "A collection of objects  providing  CM  base
+   parameters"
+              ::= { docsTrCmGroups 1}
+
+             docsTrMsgBaseGroup  OBJECT-GROUP
+               OBJECTS  {
+              docsTrMsgTCDInterval ,
+              docsTrMsgTSIInterval ,
+              docsTrMsgUSRBackOff  ,
+              docsTrMsgRowValue
+                 }
+              STATUS    current
+              DESCRIPTION
+                  "A collection of  objects  providing  CM  and
+   CMTS message configured parameters"
+              ::= { docsTrCmGroups 2}
+
+             docsTrTsSPDGroup  OBJECT-GROUP
+               OBJECTS  {
+              docsTrTsSPDname    ,
+              docsTrTsSPDphoneNum1   ,
+              docsTrTsSPDphoneNum2    ,
+              docsTrTsSPDphoneNum3    ,
+              docsTrTsSPDConnThreshold ,
+              docsTrTsSPDuserName     ,
+              docsTrTsSPDuserPassword ,
+              docsTrTsSPDpppAuth     ,
+              docsTrTsSPDdhcpAuth    ,
+              docsTrTsSPDradiusRealm ,
+              docsTrTsDemandDialTimer,
+              docsTrTsSPDdhcpAddress ,
+              docsTrTsSPDstatus     ,
+              docsTrTsSPDfactoryDef
+                 }
+              STATUS    current
+              DESCRIPTION
+                  "A   collection   of   objects   global   SPD
+   configured parameters for CMTS"
+              ::= { docsTrCmGroups 3}
+
+              docsTrCmSPDBaseGroup  OBJECT-GROUP
+               OBJECTS  {
+              docsTrCmSPDname    ,
+              docsTrCmISPphoneNum1   ,
+              docsTrCmISPphoneNum2    ,
+              docsTrCmISPphoneNum3    ,
+              docsTrCmconnThreshold ,
+              docsTrCmPPPloginName     ,
+              docsTrCmPPPpassword ,
+              docsTrCmPPPauth     ,
+              docsTrCmDHCPauth    ,
+              docsTrCmradiusRealm ,
+              docsTrCmdemandDialTimer,
+              docsTrCmDHCPserver
+                 }
+              STATUS    current
+              DESCRIPTION
+                  "A collection of objects providing local  SPD
+   parameters for a CM"
+              ::= { docsTrCmGroups  4}
+
+              docsTrCmSessionBaseGroup  OBJECT-GROUP
+               OBJECTS  {
+              docsTrCmPingAuth ,
+              docsTrCmTerminateOnOffHook,
+              docsTrCmCMType,
+              docsTrCmRingNoAns,
+              docsTrCmWaitInterval
+                }
+               STATUS    current
+              DESCRIPTION
+                  "A collection of  objects  providing  session
+   based parameters for dial modem"
+              ::= { docsTrCmGroups  5}
+
+              docsTrCmCommandGroup  OBJECT-GROUP
+              OBJECTS  {
+              docsTrCmCdCode,
+              docsTrCmCdMgtStationId,
+              docsTrCmCdReqId,
+              docsTrCmCdForce,
+              docsTrCmCdResult ,
+              docsTrCmCdScript,
+              docsTrCmCdStatus
+              }
+              STATUS    current
+
+              DESCRIPTION
+                  "A collection of objects providing a  command
+
+   script interface to the serial dial modem device"
+              ::= { docsTrCmGroups 6 }
+
+              END

@@ -1,0 +1,143 @@
+-- ============================================================================
+-- Copyright (C) 2011 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description:MIB interface of VRGW configuration.
+-- Reference:
+-- Version: 1.00
+-- ============================================================================
+
+    HUAWEI-IPDSLAM-VRGW-MIB DEFINITIONS ::= BEGIN
+
+        IMPORTS
+            OBJECT-TYPE, MODULE-IDENTITY,Integer32,OBJECT-IDENTITY
+                FROM SNMPv2-SMI        
+            huaweiUtility 
+                FROM HUAWEI-MIB
+            RowStatus
+                FROM SNMPv2-TC; 
+            
+            hwDslamVrgw MODULE-IDENTITY
+            LAST-UPDATED "201105011000Z"
+            ORGANIZATION "Huawei Technologies Co.,Ltd."
+            CONTACT-INFO 
+		"Administration Building
+                 Huawei Technologies Co., Ltd.
+                 Bantian, Longgang District 
+                 Shenzhen, P. R. China
+                 Postal Code: 518129
+                 http://www.huawei.com
+		"
+            DESCRIPTION
+                "The MIB is used for configuring the VLAN of vRGW,
+                 including connect VLAN, service VLAN, 
+                 and transparent transmission VLAN.
+		"
+                
+            --  Revision history
+            REVISION     "201105011000Z"        
+            DESCRIPTION  "V1.00, Initial version" 
+            
+            ::= { huaweiUtility 170 }
+
+        hwDslamVrgwObject OBJECT-IDENTITY
+            STATUS current
+            DESCRIPTION 
+            "
+            vRGW object
+            "
+            ::= { hwDslamVrgw 1}
+                            
+        hwVrgwTransparentVlanStart OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Start VLAN ID of the vRGW transparent transmission VLAN range.
+                 It must be a multiple of 16. 
+                 Range of the vRGW transparent transmission VLAN £ºStart VLAN ID ~ (Start VLAN ID + 15).
+                 Range: 16-4064
+                 Default: -1"
+            ::= { hwDslamVrgwObject 1 }   
+            
+        hwVrgwVlanTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwVrgwVlanEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Configuration table of the vRGW VLAN.
+                 It is used for configuring the service VLAN, management VLAN,
+                 and inter-board transparent transmission VLAN of vRGW."
+            ::= { hwDslamVrgwObject 2 }
+
+        hwVrgwVlanEntry OBJECT-TYPE
+            SYNTAX HwVrgwVlanEntry         
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "The indexes of this entry are hwVrgwFrameIndex, 
+                 hwVrgwSlotIndex, and hwVrgwVlanIndex."  
+            INDEX { hwVrgwFrameIndex, hwVrgwSlotIndex, hwVrgwVlanIndex }
+            ::= { hwVrgwVlanTable 1 }           
+
+	HwVrgwVlanEntry ::=
+		SEQUENCE { 
+                            hwVrgwFrameIndex         
+                                Integer32,
+                            hwVrgwSlotIndex
+                                Integer32,
+                            hwVrgwVlanIndex
+                                Integer32,
+                            hwVrgwVlanType
+                                INTEGER,
+                            hwVrgwVlanRowStatus
+                                RowStatus
+		         }
+        hwVrgwFrameIndex OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Frame ID of the vRGW board."
+            ::= { hwVrgwVlanEntry 1 }
+
+        hwVrgwSlotIndex OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Slot ID of the vRGW board."
+            ::= { hwVrgwVlanEntry 2 }
+
+        hwVrgwVlanIndex OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "ID of the VLAN bound to the vRGW board.
+                 Range: 2-4093
+                "
+            ::= { hwVrgwVlanEntry 3 }
+
+        hwVrgwVlanType OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                    connectVlan(1),
+                    serviceVlan(2),
+                    transparentVlan(3)
+                }   
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "VLAN binding type: service, management, inter-board transparent transmission"
+            ::= { hwVrgwVlanEntry 4 }
+                    
+        hwVrgwVlanRowStatus OBJECT-TYPE
+	    SYNTAX RowStatus
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+            RowStatus
+			"
+            ::= { hwVrgwVlanEntry 5 }
+    END
+

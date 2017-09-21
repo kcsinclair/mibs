@@ -1,0 +1,549 @@
+-- ========================================================================================================== 
+-- Copyright (C) 2013 by  HUAWEI TECHNOLOGIES. All rights reserved.  
+-- Description:   This MIB module defines the COPS objects. 
+--                COPS refers to a simple query and response protocol that can be used to exchange 
+--		  policy information between a policy server (Policy Decision Point or PDP) and 
+--		  its clients (Policy Enforcement Points or PEPs).  
+-- Reference:                                                        
+-- Version: V1.00
+-- ===========================================================================================================       
+
+    HUAWEI-IPDSLAM-COPS-MIB DEFINITIONS ::= BEGIN
+        IMPORTS    
+            huaweiUtility            
+                FROM HUAWEI-MIB            
+            OBJECT-TYPE, Unsigned32, Integer32, Counter32, MODULE-IDENTITY    
+                FROM SNMPv2-SMI
+            RowStatus
+                FROM SNMPv2-TC              
+            InetAddress, InetAddressType, InetPortNumber
+                FROM INET-ADDRESS-MIB;
+                  
+        hwCops MODULE-IDENTITY
+            LAST-UPDATED "201301110000Z"
+            ORGANIZATION "Huawei Technologies co.,Ltd."
+            CONTACT-INFO                                 
+                         "Huawei Industrial  
+                          Xi'an        
+                          Shaanxi                          
+                          People's Republic of China     
+                          Website: http://www.huawei.com 
+                          Email: support@huawei.com      
+                         "                               
+            DESCRIPTION
+                "This MIB module defines the COPS objects. 
+                 COPS refers to a simple query and response protocol that can be used to exchange 
+		 policy information between a policy server (Policy Decision Point or PDP) and 
+		 its clients (Policy Enforcement Points or PEPs)."       
+               
+            -- Revision history   
+            REVISION     "201301110000Z"  
+            DESCRIPTION  "V1.00, initial version."      
+                       
+            ::= { huaweiUtility 181 }        
+                 
+        hwCopsConfig  OBJECT IDENTIFIER::= { hwCops 1 }
+        
+        -- 1.1
+        hwCopsPepId  OBJECT-TYPE
+            SYNTAX       OCTET STRING (SIZE (0..64))
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "Indicates the PEP identification object.
+                 In the set operation, if is set to a NULL ASCII string, it indicates an undo operation.
+ 	         In the query operation, if it is not set, the string obtained is a NULL ASCII string.
+ 	         Besides, the main input rules of the string are as the follows.
+ 	         1. The ASCII vlaue of characters must be between 0x20 and 0x7E.
+ 	         2. The double quotation marks are not supported. 
+ 	         3. The special characters such as ',', ''', '?', ':', ';', and '~', are not supported.
+                "
+            ::= { hwCopsConfig 1 }
+        
+        -- 1.2
+        hwCopsTcpWindow  OBJECT-TYPE
+            SYNTAX      Unsigned32 (0..32)
+            UNITS       "KBytes"
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "Indicates the size of the COPS TCP socket buffer. 
+                 In the set operation, if is set to 0, it indicates an undo operation.
+                 In the query operation, if it is not set, the value obtained is 0.
+                 Range: 0-32, 
+                 Default: 0
+                 Unit: KBytes
+                "
+            ::= { hwCopsConfig 2 }
+        
+        -- 1.3
+        hwCopsDscp OBJECT-TYPE
+            SYNTAX      Integer32 (0..63)
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "Indicates the specified DSCP priority.
+                 In the query operation, if it is not set, the value obtained is 56.
+                 Range: 0-63. 
+                 The names and meanings of the DSCP names are as follows: 
+                 af1: service of Assured Forwarding 1 (10) 
+                 af2: service of Assured Forwarding 2 (18) 
+                 af3: service of Assured Forwarding 3 (26) 
+                 af4: service of Assured Forwarding 4 (34) 
+                 be: Best Effort service (0) 
+                 cs1: service of Class Selector 1 (8) 
+                 cs2: service of Class Selector 2 (16) 
+                 cs3: service of Class Selector 3 (24) 
+                 cs4: service of Class Selector 4 (32) 
+                 cs5: service of Class Selector 5 (40) 
+                 cs6: service of Class Selector 6 (48) 
+                 cs7: service of Class Selector 7 (56) 
+                 ef: Expedited Forwarding service (46)
+                 Default: cs7(56)
+                "
+            ::= { hwCopsConfig 3 }
+
+
+        -- 1.31
+         hwCopsAccessListTable OBJECT-TYPE
+            SYNTAX     SEQUENCE OF HwCopsAccessListEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                "
+                 Indicates the accessible ACL list of COPS TCP.
+                 The index of this table is hwCopsAccessListGroupID.
+                "
+            ::= { hwCopsConfig 31 }
+
+            hwCopsAccessListEntry OBJECT-TYPE
+            SYNTAX     HwCopsAccessListEntry
+            MAX-ACCESS not-accessible
+            STATUS     current
+            DESCRIPTION
+                "
+                 Indicates the accessible ACL list of COPS TCP.
+                 The index of this entry is hwCopsAccessListGroupID.
+                "
+            INDEX       { hwCopsAccessListGroupID }
+            ::= { hwCopsAccessListTable 1 }
+
+        HwCopsAccessListEntry ::=
+            SEQUENCE {
+                hwCopsAccessListGroupID                   Unsigned32,
+                hwCopsAccessListRowStatus                 RowStatus
+            }
+
+        hwCopsAccessListGroupID  OBJECT-TYPE
+            SYNTAX     Unsigned32(2000..3999)
+            MAX-ACCESS   not-accessible
+            STATUS      current
+            DESCRIPTION
+                "
+                 This object uniquely identifies an ACL rule group.
+                 Range: 2000..3999, 
+                "
+            ::= { hwCopsAccessListEntry 1}        
+
+        hwCopsAccessListRowStatus OBJECT-TYPE
+            SYNTAX     RowStatus
+            MAX-ACCESS    read-create
+            STATUS current
+            DESCRIPTION
+                "
+                 This object is used to create a new row or to modify or delete an existing row in this table.
+                 Options:
+                 1. active(1)          -the status of the row is active
+                 2. notInService(2)    -the status of the row is notInService
+                 3. notReady(3)        -the status of the row is notReady
+                 4. createAndGo(4)     -the status of the row is createAndGo
+                 5. createAndWait(5)   -the status of the row is createAndWait
+                 6. destroy(6)         -the status of the row is destroy
+                 Active(1) and notInService(2) are states, these values may be read or written.
+                 NotReady(3) is a state, this value may be read, but not written.
+                 CreateAndGo(4), createAndWait(5) and destroy(6) are actions, these values may
+                 be written, but are never read.
+                "
+            ::= { hwCopsAccessListEntry 255 }
+        
+        -- 2	
+	hwCopsSessionTable  OBJECT-TYPE
+            SYNTAX          SEQUENCE OF HwCopsSessionEntry
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION
+                "Indicates the COPS session table.
+                 The index of this table is hwCopsClientSessionIdx.
+                "
+            ::= { hwCops 2 }
+        
+        hwCopsSessionEntry  OBJECT-TYPE
+            SYNTAX          HwCopsSessionEntry
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION
+                "Indicates the COPS session table.
+                 The index of this entry is hwCopsClientSessionIdx.
+                "
+            INDEX   
+                { 
+                hwCopsClientSessionIdx
+                }
+            ::= { hwCopsSessionTable  1 }
+        
+        HwCopsSessionEntry ::=
+            SEQUENCE 
+                { 
+                hwCopsClientSessionIdx
+                    Unsigned32,
+                hwCopsClientHandle
+                    Unsigned32,
+                hwCopsClientType
+                    INTEGER,
+                hwCopsAddrType
+                    InetAddressType,
+                hwCopsLocalAddress
+                    InetAddress,
+                hwCopsLocalPort
+                    InetPortNumber,
+                hwCopsRemoteAddress
+                    InetAddress,
+                hwCopsRemotePort     
+                    InetPortNumber
+                }
+             
+        hwCopsClientSessionIdx  OBJECT-TYPE
+            SYNTAX      Unsigned32  
+            MAX-ACCESS  not-accessible
+            STATUS      current
+            DESCRIPTION
+                "Indicates the index of COPS session table. 
+                "
+            ::= { hwCopsSessionEntry 1}
+            
+        hwCopsClientHandle  OBJECT-TYPE 
+            SYNTAX      Unsigned32  
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the handle of COPS session table. 
+                 It is invalid (the value is 0xFFFFFFFF) when the client session is establishing.
+                "
+            ::= { hwCopsSessionEntry 2}
+            
+        hwCopsClientType  OBJECT-TYPE 
+            SYNTAX      INTEGER  
+                 { 
+                 packetcable1x(1),
+                 packetcableMultimedia(2) 
+                 }
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the type of COPS client. 
+		 Options: 
+                 1. packetcable1x(1)         -indicates the PacketCable 1.x 
+                 2. packetcableMultimedia(2) -indicates the PacketCable Multimedia
+                "
+            ::= { hwCopsSessionEntry 3}
+            
+        hwCopsAddrType  OBJECT-TYPE 
+            SYNTAX      InetAddressType
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the address type, but only support ipv4(1) currently.
+                 Options:
+                 1. IPv4(1) -indicates the address type is IPv4 
+                 2. IPv6(2) -indicates the address type is IPv6
+                "
+            ::= { hwCopsSessionEntry 4}
+        
+        hwCopsLocalAddress  OBJECT-TYPE 
+            SYNTAX      InetAddress
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the local IP address of COPS session. 
+                
+                 An InetAddress value is always interpreted within the context
+		 of an InetAddressType value.  Every usage of the InetAddress
+		 extual convention is required to specify the InetAddressType
+		 object that provides the context.  It is suggested that the
+		 InetAddressType object be logically registered before the
+		 object(s) that use the InetAddress textual convention, if
+		 they appear in the same logical row.
+		 
+		 The value of an InetAddress object must always be
+		 consistent with the value of the associated InetAddressType
+		 object.  Attempts to set an InetAddress object to a value
+		 inconsistent with the associated InetAddressType
+		 must fail with an inconsistentValue error.
+		 
+		 When this textual convention is used as the syntax of an
+		 index object, there may be issues with the limit of 128
+		 sub-identifiers specified in SMIv2, STD 58.  In this case,
+		 the object definition MUST include a 'SIZE' clause to
+		 limit the number of potential instance sub-identifiers;
+		 otherwise the applicable constraints MUST be stated in
+		 the appropriate conceptual row description clauses, or
+		 in the surrounding documentation if there is no single
+		 description clause that is appropriate.
+                "
+            ::= { hwCopsSessionEntry 5}
+
+        hwCopsLocalPort  OBJECT-TYPE 
+            SYNTAX      InetPortNumber
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the local port of COPS session. 
+                "
+            ::= { hwCopsSessionEntry 6}
+            
+        hwCopsRemoteAddress  OBJECT-TYPE 
+            SYNTAX      InetAddress
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the remote IP address of COPS session. 
+                
+                 An InetAddress value is always interpreted within the context
+		 of an InetAddressType value.  Every usage of the InetAddress
+		 extual convention is required to specify the InetAddressType
+		 object that provides the context.  It is suggested that the
+		 InetAddressType object be logically registered before the
+		 object(s) that use the InetAddress textual convention, if
+		 they appear in the same logical row.
+		 
+		 The value of an InetAddress object must always be
+		 consistent with the value of the associated InetAddressType
+		 object.  Attempts to set an InetAddress object to a value
+		 inconsistent with the associated InetAddressType
+		 must fail with an inconsistentValue error.
+		 
+		 When this textual convention is used as the syntax of an
+		 index object, there may be issues with the limit of 128
+		 sub-identifiers specified in SMIv2, STD 58.  In this case,
+		 the object definition MUST include a 'SIZE' clause to
+		 limit the number of potential instance sub-identifiers;
+		 otherwise the applicable constraints MUST be stated in
+		 the appropriate conceptual row description clauses, or
+		 in the surrounding documentation if there is no single
+		 description clause that is appropriate.
+		"
+            ::= { hwCopsSessionEntry 7}
+
+        hwCopsRemotePort  OBJECT-TYPE 
+            SYNTAX      InetPortNumber
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the remote port of COPS session. 
+                "
+            ::= { hwCopsSessionEntry 8}
+                     
+        -- 3   
+        hwCopsStatistics  OBJECT IDENTIFIER ::= { hwCops 3 }
+        
+        -- 3.1
+        hwCopsReqReceived  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the received number of request (REQ) packets.
+                "
+            ::= { hwCopsStatistics 1 }
+        
+        -- 3.2
+        hwCopsDecReceived  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the received number of decision (DEC) packets.
+                "
+            ::= { hwCopsStatistics 2 }
+                    
+        -- 3.3
+        hwCopsRptReceived  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the received number of report type (RPT) packets.
+                "
+            ::= { hwCopsStatistics 3 }
+        
+        -- 3.4
+        hwCopsDrqReceived  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the received number of delete request state (DRQ) packets.
+                "
+            ::= { hwCopsStatistics 4 }
+	
+        -- 3.5
+        hwCopsSsqReceived  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the received number of synchronize state request (SSQ) packets.
+                "
+            ::= { hwCopsStatistics 5 }        
+                
+        -- 3.6
+        hwCopsOpnReceived  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the received number of Client-Open (OPN) packets.
+                "
+            ::= { hwCopsStatistics 6 }        
+           
+        -- 3.7
+        hwCopsCatReceived  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the received number of Client-Accept (CAT) packets.
+                "
+            ::= { hwCopsStatistics 7 }     
+                 
+        -- 3.8
+        hwCopsCcReceived  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the received number of Client-Close (CC) packets.
+                "
+            ::= { hwCopsStatistics 8 }      
+                
+        -- 3.9
+        hwCopsKaReceived  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the received number of Keep-Alive (KA) packets.
+                "
+            ::= { hwCopsStatistics 9 }    
+                  
+        -- 3.10
+        hwCopsSscReceived  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the received number of synchronize complete (SSC) packets.
+                "
+            ::= { hwCopsStatistics 10 }  
+                    
+        -- 3.11
+        hwCopsReqSent  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the sent number of request (REQ) packets.
+                "
+            ::= { hwCopsStatistics 11 }
+        
+        -- 3.12
+        hwCopsDecSent  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the sent number of decision (DEC) packets.
+                "
+            ::= { hwCopsStatistics 12 }
+                    
+        -- 3.13
+        hwCopsRptSent  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the sent number of report type (RPT) packets.
+                "
+            ::= { hwCopsStatistics 13 }
+        
+        -- 3.14
+        hwCopsDrqSent  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the sent number of delete request state (DRQ) packets.
+                "
+            ::= { hwCopsStatistics 14 }
+	
+        -- 3.15
+        hwCopsSsqSent  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the sent number of synchronize state request (SSQ) packets.
+                "
+            ::= { hwCopsStatistics 15 }        
+                
+        -- 3.16
+        hwCopsOpnSent  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the sent number of Client-Open (OPN) packets.
+                "
+            ::= { hwCopsStatistics 16 }        
+           
+        -- 3.17
+        hwCopsCatSent  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the sent number of Client-Accept (CAT) packets.
+                "
+            ::= { hwCopsStatistics 17 }     
+                 
+        -- 3.18
+        hwCopsCcSent  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the sent number of Client-Close (CC) packets.
+                "
+            ::= { hwCopsStatistics 18 }      
+                
+        -- 3.19
+        hwCopsKaSent  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the sent number of Keep-Alive (KA) packets.
+                "
+            ::= { hwCopsStatistics 19 }    
+                  
+        -- 3.20
+        hwCopsSscSent  OBJECT-TYPE
+            SYNTAX      Counter32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Indicates the sent number of synchronize complete (SSC) packets.
+                "
+            ::= { hwCopsStatistics 20 }     
+                                  
+    END

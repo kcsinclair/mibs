@@ -1,0 +1,1659 @@
+MPLS-VPN-MIB DEFINITIONS ::= BEGIN
+
+-- DC Change.  Removed unused imports.
+
+IMPORTS
+   MODULE-IDENTITY,
+   OBJECT-TYPE,
+   NOTIFICATION-TYPE,
+   experimental,
+   Counter32,
+   Unsigned32,
+   Gauge32
+      FROM SNMPv2-SMI                                     -- [RFC2578]
+
+   MODULE-COMPLIANCE,
+   OBJECT-GROUP,
+   NOTIFICATION-GROUP
+      FROM SNMPv2-CONF                                    -- [RFC2580]
+
+   TEXTUAL-CONVENTION,
+   TruthValue,
+   RowStatus,
+   StorageType,
+   TimeStamp,
+   DisplayString
+      FROM SNMPv2-TC                                      -- [RFC2579]
+
+   InetAddressType,
+   InetAddress
+      FROM INET-ADDRESS-MIB                               -- [RFC4001]
+
+   SnmpAdminString
+      FROM SNMP-FRAMEWORK-MIB                             -- [RFC3411]
+    ;
+
+mplsVpnMIB MODULE-IDENTITY
+   LAST-UPDATED "201308231200Z"  -- 23 Aug 2013 12:00:00 GMT
+   ORGANIZATION "IETF Layer-3 Virtual Private
+                 Networks Working Group."
+   CONTACT-INFO
+          "        Thomas D. Nadeau
+                   tnadeau@cisco.com
+
+                   Harmen van der Linde
+                   havander@cisco.com
+
+                   Comments and discussion to l3vpn@ietf.org"
+   DESCRIPTION
+        "This MIB contains managed object definitions for the
+         Layer-3 Multiprotocol Label Switching Virtual
+         Private Networks.
+
+        Copyright (C) The Internet Society (2006).  This
+        version of this MIB module is part of RFC4382; see
+        the RFC itself for full legal notices."
+
+   -- Revision history.
+
+   REVISION
+      "201308231200Z"  -- 23 Aug 2013 12:00:00 GMT
+   DESCRIPTION
+      "Arris - Modify the oid to be dataConnectionLtd from experimental 
+      MIB set fails if oid is set to experimental."
+   REVISION
+      "200805201200Z"  -- 20 May 2008 12:00:00 GMT
+   DESCRIPTION
+      "DC changes and additions."
+   REVISION
+      "200601230000Z"  -- 23 January 2006
+   DESCRIPTION
+      "Initial version.  Published as RFC 4382."
+
+   ::= { iso member-body(2) gb(826) national (0) eng-ltd(1)
+        dataConnectionLtd (1578918) adg (5) bvm (118) 1 }
+   
+
+-- Textual Conventions.
+
+-- The VPNId is defined in RFC 2685, and has an SNMP definition in
+-- draft-ietf-l3vpn-tc-mib-00.txt.  This draft does not have a valid OID, so
+-- won't compile as it stands.  Once this draft has been accepted as an RFC,
+-- this textual convention will be removed, and the MIB will be included
+-- instead.
+
+VPNId ::= TEXTUAL-CONVENTION
+    STATUS current
+    DESCRIPTION
+        "The purpose of a VPN-ID is to identify a VPN.
+         The global VPN Identifier format is:
+         3 octet VPN Authority, Organizationally Unique Identifier
+         followed by
+         4 octet VPN index identifying VPN according to OUI"
+    REFERENCE
+        "RFC 2685, Fox & Gleeson, 'Virtual Private
+         Networks Identifier', September 1999."
+    SYNTAX    OCTET STRING (SIZE (0..7))
+
+MplsVpnName ::= TEXTUAL-CONVENTION
+   DISPLAY-HINT "31a"
+   STATUS        current
+   DESCRIPTION
+       "An identifier that is assigned to each MPLS/BGP VPN and
+        is used to uniquely identify it. This is assigned by the
+        system operator or NMS and SHOULD be unique throughout
+        the MPLS domain. If this is the case, then this identifier
+        can then be used at any LSR within a specific MPLS domain
+        to identify this MPLS/BGP VPN. It may also be possible to
+        preserve the uniqueness of this identifier across MPLS
+        domain boundaries, in which case this identifier can then
+        be used to uniquely identify MPLS/BGP VPNs on a more global
+        basis.  This object MAY be set to the VPN ID as defined in
+        RFC 2685."
+   REFERENCE
+        "RFC 2685 [VPN-RFC2685] Fox B., et al, 'Virtual Private
+         Networks Identifier', September 1999."
+   SYNTAX OCTET STRING (SIZE (0..31))
+
+MplsVpnRouteDistinguisher ::= TEXTUAL-CONVENTION
+   STATUS        current
+   DESCRIPTION
+       "Syntax for a route distinguisher and route target."
+   SYNTAX  OCTET STRING (SIZE (0..256))
+
+-- DC additions.  The below textual conventions have been added.
+
+MplsVpnLabelAllocType ::= TEXTUAL-CONVENTION
+   STATUS      current
+   DESCRIPTION "How VPN manager requests a label for routes learnt from a VRF."
+   SYNTAX      INTEGER {
+                 perIf(1),
+                 perVrf(2),
+                 perRoute(3)
+               }
+
+MplsVpnRtType ::= TEXTUAL-CONVENTION
+   STATUS      current
+   DESCRIPTION "The possible options for a route target."
+   SYNTAX      INTEGER {
+                 import(1),
+                 export(2),
+                 both(3)
+               }
+
+MplsVpnAdminStatus ::= TEXTUAL-CONVENTION
+   STATUS      current
+   DESCRIPTION "The desired administrative state of an entry."
+   SYNTAX      INTEGER {
+                 adminStatusUp(1),
+                 adminStatusDown(2)
+               }
+
+MplsVpnOperStatus ::= TEXTUAL-CONVENTION
+   STATUS      current
+   DESCRIPTION "The current operational state of an entity."
+   SYNTAX      INTEGER {
+                 operStatusUp(1),        -- active
+                 operStatusDown(2),      -- inactive
+                 operStatusGoingUp(3),   -- activating
+                 operStatusGoingDown(4), -- deactivating
+                 operStatusActFailed(5)  -- activation failed
+               }
+
+MplsVpnMjStatus ::= TEXTUAL-CONVENTION
+   STATUS      current
+   DESCRIPTION "The status of a master join."
+   SYNTAX      INTEGER {
+                 mjNotJoined(1),        -- initial state of join
+                 mjSentAddJoin(2),      -- sent ATG_FT_ADD_JOIN to slave
+                 mjSentRegister(3),     -- sent registration signal to slave
+                 mjJoinActive(4),       -- join is active
+                 mjSentDelJoin(5),      -- sent ATG_FT_DELETE_JOIN to slave
+                 mjSentUnregister(6),   -- sent unregistration to slave
+                 mjJoinGone(7),         -- join has been deleted
+                 mjFailedToRegister(8), -- slave rejected reg message
+                 mjFailingOver(9),      -- slave is failing over
+                 mjFailed(10),          -- join has permanently failed
+                 mjNotConfigured(11)    -- join has not been configured
+               }
+
+MplsVpnSjStatus ::= TEXTUAL-CONVENTION
+   STATUS      current
+   DESCRIPTION "The status of a slave join."
+   SYNTAX      INTEGER {
+                 sjNotJoined(1),      -- initial state of join
+                 sjJoined(2),         -- master has sent an ATG_FT_ADD_JOIN
+                 sjJoinActive(3),     -- master has registered the join
+                 sjJoinUnreg(4),      -- master has unregistered the join
+                 sjJoinGone(5),       -- master has deleted the join
+                 sjFailingOver(6),    -- master is failing over
+                 sjFailed(7),         -- join has permanently failed
+                 sjNotConfigured(8)   -- join has not been configured
+               }
+
+MplsVpnPtRtMode  ::= TEXTUAL-CONVENTION
+   STATUS       current
+   DESCRIPTION  "The behavior for dealing with attached RTs."
+   SYNTAX       INTEGER {
+                 ptRtRemove(0),       -- remove passthrough RTs
+                 ptRtMerge(1),        -- merge passthrough RTs with exports
+                 ptRtReplace(2)       -- replace exports with passthrough RTs
+               }
+
+MplsVpnAddrType ::= TEXTUAL-CONVENTION
+   STATUS       current
+   DESCRIPTION  "Supported address type(s)."
+   SYNTAX       INTEGER {
+                 addrTypeIpv4(1),     -- IPv4 address type
+                 addrTypeIpv6(2),     -- IPv6 address type
+                 addrTypeIpv4Ipv6(3)  -- IPv4 and IPv6 address types
+               }
+
+-- Top level components of this MIB.
+mplsVpnNotifications OBJECT IDENTIFIER ::= { mplsVpnMIB 0 }
+mplsVpnObjects       OBJECT IDENTIFIER ::= { mplsVpnMIB 1 }
+-- DC Change.  Put scalars in entity table.
+mplsVpnEntity        OBJECT IDENTIFIER ::= { mplsVpnObjects 1 }
+mplsVpnConf          OBJECT IDENTIFIER ::= { mplsVpnObjects 2 }
+mplsVpnPerf          OBJECT IDENTIFIER ::= { mplsVpnObjects 3 }
+mplsVpnRoute         OBJECT IDENTIFIER ::= { mplsVpnObjects 4 }
+mplsVpnConformance   OBJECT IDENTIFIER ::= { mplsVpnMIB 2 }
+
+
+-- DC change.  All tables indexed on mplsVpnEntIndex first.
+
+--
+-- VPN Manager Entity Table
+--
+-- This is the top level MIB for the DC-VPN Manager.  It controls creation and
+-- global configuration of the instance of VPN Manager.  It also contains the
+-- scalar objects from the MPLS-L3VPN-STD MIB.
+--
+
+mplsVpnEntTable OBJECT-TYPE
+   SYNTAX      SEQUENCE OF MplsVpnEntEntry
+   MAX-ACCESS  not-accessible
+   STATUS      current
+   DESCRIPTION "Each entry in this table represents a VPN Manager
+                entity.  Only some fields in an entry can be changed while the
+                admin status is up."
+   ::= { mplsVpnEntity 1 }
+
+mplsVpnEntEntry OBJECT-TYPE
+   SYNTAX      MplsVpnEntEntry
+   MAX-ACCESS  not-accessible
+   STATUS      current
+   DESCRIPTION "Each entry represents a VPN Manager entity."
+   INDEX { mplsVpnEntIndex }
+   ::= { mplsVpnEntTable 1 }
+
+MplsVpnEntEntry ::= SEQUENCE {
+     mplsVpnEntIndex                   Unsigned32,
+     mplsVpnEntRowStatus               RowStatus,
+     mplsVpnEntAdminStatus             MplsVpnAdminStatus,
+     mplsVpnEntOperStatus              MplsVpnOperStatus,
+     mplsVpnConfiguredVrfs             Unsigned32,
+     mplsVpnActiveVrfs                 Unsigned32,
+     mplsVpnConnectedInterfaces        Unsigned32,
+     mplsVpnNotificationEnable         TruthValue,
+     mplsVpnVrfConfMaxPossibleRoutes   Unsigned32,
+     mplsVpnVrfConfRouteMaxThreshTime  Unsigned32,
+     mplsVpnUseBgpRouting              TruthValue,
+     mplsVpnGenerateTunnelInfo         TruthValue,
+     mplsVpnLocalRouterAddress         InetAddress,
+     mplsVpnLmgrEntityIndex            Unsigned32,
+     mplsVpnLmgrJoinStatus             MplsVpnMjStatus,
+     mplsVpnI3EntityIndex              Unsigned32,
+     mplsVpnI3JoinStatus               MplsVpnMjStatus,
+     mplsVpnDefaultRtmEntityIndex      Unsigned32,
+     mplsVpnDefaultRtmJoinStatus       MplsVpnMjStatus,
+     mplsVpnBgpIpv4EntityIndex         Unsigned32,
+     mplsVpnBgpIpv4JoinStatus          MplsVpnSjStatus,
+     mplsVpnBgpIpv4RestartDuration     Unsigned32,
+     mplsVpnBgpIpv4RestartCount        Unsigned32,
+     mplsVpnBgpIpv4RestartThreshold    Unsigned32,
+     mplsVpnRecoveryDuration           Unsigned32,
+     mplsVpnVpnRouteAddrType           MplsVpnAddrType,
+     mplsVpnBackboneAddrType           MplsVpnAddrType,
+     mplsVpnLocalRouterAddressType     InetAddressType,
+     mplsVpnBgpIpv6EntityIndex         Unsigned32,
+     mplsVpnBgpIpv6JoinStatus          MplsVpnSjStatus,
+     mplsVpnBgpIpv6RestartDuration     Unsigned32,
+     mplsVpnBgpIpv6RestartCount        Unsigned32,
+     mplsVpnBgpIpv6RestartThreshold    Unsigned32,
+     mplsVpnIllLblRcvThrsh             Unsigned32,
+     mplsVpnVrfCurrTotalRoutes         Unsigned32
+     }
+
+mplsVpnEntIndex OBJECT-TYPE
+   SYNTAX      Unsigned32
+   MAX-ACCESS  not-accessible
+   STATUS      current
+   DESCRIPTION "Identifies a VPN Manager entity."
+   ::= { mplsVpnEntEntry 1 }
+
+mplsVpnEntRowStatus OBJECT-TYPE
+   SYNTAX      RowStatus
+   MAX-ACCESS  read-create
+   STATUS      current
+   DESCRIPTION "The row status for this VPN Manager Entity Table entry,
+                used to create and destroy table entries."
+   ::= { mplsVpnEntEntry 2 }
+
+mplsVpnEntAdminStatus OBJECT-TYPE
+   SYNTAX      MplsVpnAdminStatus
+   MAX-ACCESS  read-create
+   STATUS      current
+   DESCRIPTION "The administrative status of this VPN Manager entity,
+                used to activate and deactivate RM."
+   DEFVAL      { adminStatusDown }
+   ::= { mplsVpnEntEntry 3 }
+
+mplsVpnEntOperStatus OBJECT-TYPE
+   SYNTAX      MplsVpnOperStatus
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION "The current operational status of this VPN Manager
+                entity."
+   ::= { mplsVpnEntEntry 4 }
+
+mplsVpnConfiguredVrfs OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "The number of VRFs which are configured on this node."
+   ::= { mplsVpnEntEntry 5 }
+
+mplsVpnActiveVrfs OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "The number of VRFs which are active on this node.
+        That is, those VRFs whose corresponding mplsVpnVrfOperStatus
+        object value is equal to operational (1)."
+   ::= { mplsVpnEntEntry 6 }
+
+mplsVpnConnectedInterfaces OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "Total number of interfaces connected to a VRF.  This field is not
+        supported by DC-VPN Manager, which will always return a value of 0."
+   ::= { mplsVpnEntEntry 7 }
+
+mplsVpnNotificationEnable OBJECT-TYPE
+   SYNTAX        TruthValue
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "If this object is true, then it enables the generation of all
+         notifications defined in this MIB.  This object's value should be
+         preserved across agent reboots."
+   DEFVAL { false }
+   ::= { mplsVpnEntEntry 8 }
+
+mplsVpnVrfConfMaxPossibleRoutes  OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "Denotes maximum number of routes which the device will allow all VRFs
+         jointly to hold.  If this value is set to 0, this indicates that there
+         is no upper bound.  This field can only be changed when the Admin
+         Status is down."
+   DEFVAL { 0 }
+   ::= { mplsVpnEntEntry 9 }
+
+mplsVpnVrfConfRouteMaxThreshTime  OBJECT-TYPE
+   SYNTAX        Unsigned32
+   UNITS         "seconds"
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+     "Denotes the interval in seconds, at which the route max threshold
+      notification will be re-issued after the maximum value has been exceeded
+      (or has been reached if mplsVpnVrfConfMaxRoutes and
+      mplsVpnVrfConfHighRouteThreshold are equal) and the initial
+      notification has been issued.  This value is intended to prevent
+      continuous generation of notifications by an agent in the event that
+      routes are continually added to a VRF after it has reached its maximum
+      value. The default value is 0 seconds.
+
+      If this value is set to 0, the agent should only issue a single
+      notification at the time that the maxium threshold has been reached, and
+      should not issue any more notifications until the value of routes has
+      fallen below the configured threshold value.  This is the recommended
+      default behavior."
+   DEFVAL { 0 }
+   ::= { mplsVpnEntEntry 10 }
+
+mplsVpnUseBgpRouting OBJECT-TYPE
+   SYNTAX        TruthValue
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "When true VPN Manager will use BGP to redistribute labelled VPN routes
+         across the internet.  This requires an active join to BGP, I3 and
+         label manager.  Therefore when true a join to I3 and label manager
+         must be configured in the fields below before changing the admin
+         status to up.  When false VPN Manager will not redistribute routes to
+         BGP and so will not attempt to join to I3 and the Label manager (even
+         if configured), and will not accept joins from BGP.
+         Routing between configured VRFs can still take place."
+   DEFVAL { true }
+   ::= { mplsVpnEntEntry 11 }
+
+mplsVpnGenerateTunnelInfo OBJECT-TYPE
+   SYNTAX        TruthValue
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "If this object is true, VPN Manager will include tunnel information
+         on the remote route indications that it sends to VRFs.  Moreover,
+         when this object is true, whenever there is a change to the set of
+         tunnels that reach the remote PE for a route, VPN manager will send
+         updates to all VRFs which that route has been advertised to.
+         Note that this means that a change to the tunnels reaching a
+         particular remote PE device might result in VPN manager sending a
+         large number of route updates to the VRFs.  This field can only
+         be changed when the Admin Status is down."
+   DEFVAL { false }
+   ::= { mplsVpnEntEntry 12 }
+
+mplsVpnLocalRouterAddressType OBJECT-TYPE
+   SYNTAX        InetAddressType
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "The address type of the mplsVpnLocalRouterAddress.
+
+         If mplsVpnBackboneAddrType is AMB_BVM_ADDR_TYPE_IPV4 or
+         AMB_BVM_ADDR_TYPE_IPV4_IPV6, this must be an IPv4 address.
+         Otherwise (mplsVpnBackboneAddrType is
+         AMB_BVM_ADDR_TYPE_IPV6), this must be an IPv6 address.
+
+         This field can only be changed when the Admin Status is
+         down."
+   DEFVAL        { ipv4 }
+   ::= { mplsVpnEntEntry 28 }
+
+mplsVpnLocalRouterAddress OBJECT-TYPE
+   SYNTAX        InetAddress
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "The Local Router Address that is used for MPLS LSP setup.
+         This address must be either of type IPv4 or IPv6, as
+         specified by the mplsVpnLocalRouterAddressType.  It is
+         used as the BGP next hop address for routes, and must
+         therefore be an address which is reachable in the provider
+         network.  This field can only be changed when the Admin
+         Status is down."
+   ::= { mplsVpnEntEntry 13 }
+
+mplsVpnLmgrEntityIndex OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "The entity index of the Label Manager this VPN Manager will join to.
+         If this index is undefined user exit code will be used instead of the
+         LDBI interface.  This field can only be changed when the Admin Status
+         is down."
+   ::= { mplsVpnEntEntry 14 }
+
+mplsVpnLmgrJoinStatus OBJECT-TYPE
+   SYNTAX        MplsVpnMjStatus
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+        "The state of the join to the Label Manager defined by
+         mplsVpnLmgrEntityIndex.  This field is only valid if
+         mplsVpnLmgrEntityIndex is defined."
+   ::= { mplsVpnEntEntry 15 }
+
+mplsVpnI3EntityIndex OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "The entity index of the I3 Stub this VPN Manager will join to.  VPN
+         manager cannot redistribute routes until this join is active as shown
+         in mplsVpnI3JoinStatus.  This field can only be changed when the Admin
+         Status is down."
+   ::= { mplsVpnEntEntry 16 }
+
+mplsVpnI3JoinStatus OBJECT-TYPE
+   SYNTAX        MplsVpnMjStatus
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+        "The state of the join to the I3 Stub defined by mplsVpnI3EntityIndex."
+   ::= { mplsVpnEntEntry 17 }
+
+mplsVpnDefaultRtmEntityIndex OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "The entity index of the Default routes RTM entity this VPN Manager
+         will join to.  VPN manager will run without an entity being defined
+         but will be unable to leak routes from a VPN into the global internet
+         without it.  This field can only be changed when the Admin Status is
+         down.  DC-VPN Manager does not support the Default RTM entity, so
+         setting this field has no effect."
+   ::= { mplsVpnEntEntry 18 }
+
+mplsVpnDefaultRtmJoinStatus OBJECT-TYPE
+   SYNTAX        MplsVpnMjStatus
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+        "The state of the join to the Default routes RTM as defined by
+         mplsVpnDefaultRtmEntityIndex.  DC-VPN Manager does not support the
+         Defatul RTM entity, so always returns the value mjNotJoined."
+   ::= { mplsVpnEntEntry 19 }
+
+mplsVpnBgpIpv4EntityIndex OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+        "The entity index of the IPv4 DC-BGP RM entity that has
+         joined to this instance of VPN Manager.  VPN manager
+         cannot redistribute routes until this join is active as
+         described in mplsVpnBgpIpv4JoinStatus.  The DC-BGP RM
+         entity is configured to join to VPN manager, so this field
+         is read-only."
+   ::= { mplsVpnEntEntry 20 }
+
+mplsVpnBgpIpv4JoinStatus OBJECT-TYPE
+   SYNTAX        MplsVpnSjStatus
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+        "The state of the join to the IPv4 BGP as defined by
+         mplsVpnBgpIpv4EntityIndex."
+   ::= { mplsVpnEntEntry 21 }
+
+mplsVpnBgpIpv4RestartDuration OBJECT-TYPE
+   SYNTAX        Unsigned32(1..65535)
+   UNITS         "seconds"
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "The duration, in seconds, of the timer which is started
+         following unexpected failure of the joined IPv4 BGP
+         instance.  VPN Manager will wait this period of time for a
+         new instance of BGP to re-establish the join before
+         withdrawing the routes learnt from BGP."
+   DEFVAL        { 90 }
+   ::= { mplsVpnEntEntry 22 }
+
+mplsVpnBgpIpv4RestartCount OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "The number of times which the IPv4 BGP has attempted to
+         restart.  Writing any value to this field will reset this
+         count."
+   ::= { mplsVpnEntEntry 23 }
+
+mplsVpnBgpIpv4RestartThreshold OBJECT-TYPE
+   SYNTAX        Unsigned32(0..65535)
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "The number of times that restart procedures with BGP will
+         be attempted before giving up.  Giving up will lead to
+         VPN Manager moving to oper status Failed.  This is only
+         valid if the mplsVpnUseBgpRouting field is set to true.  A
+         threshold value of 0 indicates that restart procedures
+         with BGP will be attempted indefinitely."
+   DEFVAL        { 0 }
+   ::= { mplsVpnEntEntry 24 }
+
+mplsVpnRecoveryDuration OBJECT-TYPE
+   SYNTAX        Unsigned32(1..65535)
+   UNITS         "seconds"
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "The duration, in seconds, of the timer which is started when VPN
+         Manager itself starts.  Expiration of this timer triggers VPN Manager
+         to send ATG_QCRP_TABLE_END and ATG_QCRP_EXT_END signals to its RPI
+         join partners, if these are still pending following a restart of VPN
+         Manager.  This timer duration must be greater than the durations of
+         the restart timers for BGP and all VRFs."
+   DEFVAL        { 180 }
+   ::= { mplsVpnEntEntry 25 }
+
+mplsVpnVpnRouteAddrType OBJECT-TYPE
+   SYNTAX        MplsVpnAddrType
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "Whether this instance of DC-BVM supports VPN routes of
+         type VPN-IPv4, VPN-IPv6 or both.  This information is used
+         to police against bad configuration.  In particular,
+         DC-BVM does not support VPN-IPv4 routes being advertised
+         over a pure IPv6 backbone.  Consequently, if
+         mplsVpnBackboneAddrType is AMB_BVM_ADDR_TYPE_IPV6, then
+         mplsVpnVpnRouteAddrType may not be set to
+         AMB_BVM_ADDR_TYPE_IPV4 or AMB_BVM_ADDR_TYPE_IPV4_IPV6.
+         This field can only be changed when the Admin Status is
+         down.  Do not set this value to AMB_BVM_ADDR_TYPE_IPV6 or
+         AMB_BVM_ADDR_TYPE_IPV4_IPV6 unless your product license
+         entitles you to IPv6 support."
+   DEFVAL        { addrTypeIpv4 }
+   ::= { mplsVpnEntEntry 26 }
+
+mplsVpnBackboneAddrType OBJECT-TYPE
+   SYNTAX        MplsVpnAddrType
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "Whether VPN routes are distributed over an IPv4 backbone,
+         an IPv6 backbone, or a mixed IPv4/IPv6 backbone.  This
+         information is used to police against bad configuration.
+         In particular, the mplsVpnLocalRouterAddressType and
+         mplsVpnVpnRouteAddrType must be consistent with this
+         field.  This field can only be changed when the Admin
+         Status is down.  Do not set this value to
+         AMB_BVM_ADDR_TYPE_IPV6 or AMB_BVM_ADDR_TYPE_IPV4_IPV6
+         unless your product license entitles you to IPv6 support."
+   DEFVAL        { addrTypeIpv4 }
+   ::= { mplsVpnEntEntry 27 }
+
+mplsVpnBgpIpv6EntityIndex OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+        "The entity index of the IPv6 DC-BGP RM entity that has
+         joined to this instance of VPN Manager.  VPN manager
+         cannot redistribute routes until this join is active as
+         described in mplsVpnBgpIpv6JoinStatus.  The DC-BGP RM
+         entity is configured to join to VPN manager, so this field
+         is read-only."
+   ::= { mplsVpnEntEntry 29 }
+
+mplsVpnBgpIpv6JoinStatus OBJECT-TYPE
+   SYNTAX        MplsVpnSjStatus
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+        "The state of the join to the IPv6 BGP as defined by
+         mplsVpnBgpIpv6EntityIndex."
+   ::= { mplsVpnEntEntry 30 }
+
+mplsVpnBgpIpv6RestartDuration OBJECT-TYPE
+   SYNTAX        Unsigned32(1..65535)
+   UNITS         "seconds"
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "The duration, in seconds, of the timer which is started
+         following unexpected failure of the joined IPv6 BGP
+         instance.  VPN Manager will wait this period of time for a
+         new instance of BGP to re-establish the join before
+         withdrawing the routes learnt from BGP."
+   DEFVAL        { 90 }
+   ::= { mplsVpnEntEntry 31 }
+
+mplsVpnBgpIpv6RestartCount OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "The number of times which the IPv6 BGP has attempted to
+         restart.  Writing any value to this field will reset this
+         count."
+   ::= { mplsVpnEntEntry 32 }
+
+mplsVpnBgpIpv6RestartThreshold OBJECT-TYPE
+   SYNTAX        Unsigned32(0..65535)
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "The number of times that restart procedures with the IPv6
+         BGP will be attempted before giving up.  Giving up will
+         lead to VPN Manager moving to oper status Failed.  This is
+         only valid if the mplsVpnUseBgpRouting field is set to
+         true.  A threshold value of 0 indicates that restart
+         procedures with BGP will be attempted indefinitely."
+   DEFVAL        { 0 }
+   ::= { mplsVpnEntEntry 33 }
+
+mplsVpnIllLblRcvThrsh OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+       "The number of illegally received labels above which
+        the mplsVpnVrfSecIllglLblThrshExcd notification
+        is issued.  The persistence of this value mimics
+        that of the device's configuration.
+
+        A value of zero indicates that there is no threshold."
+   DEFVAL        { 0 }
+   ::= { mplsVpnEntEntry 34 }
+
+mplsVpnVrfCurrTotalRoutes OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "The total number of routes stored across all VRFs."
+   ::= { mplsVpnEntEntry 35 }
+
+
+-- DC Change.  The mplsVpnIfConfTable is not needed for VPN Manager and so is
+-- not implemented here.
+
+--
+-- VRF Configuration Table
+--
+-- Each entry in this table corresponds to a logical VRF instance.  One VRF is
+-- required for each unique set of VPN sites attached to this VPN Manager
+-- instance.
+-- For example, 3 entries would be required if one site was in VPN-1, one in
+-- VPN-2 and one was in both VPN-1 and VPN-2.
+--
+-- Each VRF requires a separate instance of RTM, and an independant routing
+-- protocol instance (e.g. BGP or OSPF) to distribute routes to the CE router
+-- associated with the site.  VPN Manager joins to this instance of RTM and
+-- this join is also configured in this table.
+--
+
+mplsVpnVrfTable  OBJECT-TYPE
+   SYNTAX        SEQUENCE OF MplsVpnVrfEntry
+   MAX-ACCESS    not-accessible
+   STATUS        current
+   DESCRIPTION
+       "This table specifies per-interface MPLS/BGP VPN
+        VRF Table capability and associated information.
+        Entries in this table define VRF routing instances
+        associated with MPLS/VPN interfaces. Note that
+        multiple interfaces can belong to the same VRF
+        instance. The collection of all VRF instances
+        comprises an actual VPN."
+   ::= { mplsVpnConf 1 }
+
+mplsVpnVrfEntry OBJECT-TYPE
+   SYNTAX        MplsVpnVrfEntry
+   MAX-ACCESS    not-accessible
+   STATUS        current
+   DESCRIPTION
+       "An entry in this table is created by an LSR for
+        every VRF capable of supporting MPLS/BGP VPN. The
+        indexing provides an ordering of VRFs per-VPN
+        interface."
+   INDEX       { mplsVpnEntIndex,
+                 mplsVpnVrfName }
+   ::= { mplsVpnVrfTable 1 }
+
+MplsVpnVrfEntry ::= SEQUENCE {
+  mplsVpnVrfName                      MplsVpnName,
+  mplsVpnVrfVpnId                     VPNId,
+  mplsVpnVrfDescription               SnmpAdminString,
+  mplsVpnVrfRouteDistinguisher        MplsVpnRouteDistinguisher,
+  mplsVpnVrfCreationTime              TimeStamp,
+  mplsVpnVrfOperStatus                MplsVpnOperStatus,
+  mplsVpnVrfActiveInterfaces          Unsigned32,
+  mplsVpnVrfAssociatedInterfaces      Unsigned32,
+  mplsVpnVrfConfMidRouteThreshold     Unsigned32,
+  mplsVpnVrfConfHighRouteThreshold    Unsigned32,
+  mplsVpnVrfConfMaxRoutes             Unsigned32,
+  mplsVpnVrfConfLastChanged           TimeStamp,
+  mplsVpnVrfConfRowStatus             RowStatus,
+  mplsVpnVrfConfStorageType           StorageType,
+-- DC Change.  The following field is a copy of the one in mplsVpnVrfPerfTable.
+  mplsVpnVrfPerfCurrNumRoutes         Unsigned32,
+-- DC addition.  Fields below added.
+  mplsVpnVrfConfAdminStatus           MplsVpnAdminStatus,
+  mplsVpnVrfConfLabelAlloc            MplsVpnLabelAllocType,
+  mplsVpnVrfConfPassthroughRtsMode    MplsVpnPtRtMode,
+  mplsVpnVrfConfIpv4RtmEntIndex       Unsigned32,
+  mplsVpnVrfConfIpv4RtmJoinStat       MplsVpnMjStatus,
+  mplsVpnVrfRestartDuration           Unsigned32,
+  mplsVpnVrfIpv4RestartCount          Unsigned32,
+  mplsVpnVrfRestartThreshold          Unsigned32,
+  mplsVpnVrfConfIpv6RtmEntIndex       Unsigned32,
+  mplsVpnVrfConfIpv6RtmJoinStat       MplsVpnMjStatus,
+  mplsVpnVrfIpv6RestartCount          Unsigned32
+}
+
+mplsVpnVrfName OBJECT-TYPE
+   SYNTAX        MplsVpnName
+   MAX-ACCESS    not-accessible
+   STATUS        current
+   DESCRIPTION
+       "The human-readable name of this VPN. This MAY
+        be equivalent to the RFC2685 VPN-ID, but may
+        also vary. If it is set to the VPN ID, it MUST
+        be equivalent to the value of mplsVpnVrfVpnId.
+        It is strongly recommended that all sites supporting
+        VRFs that are part of the same VPN use the same
+        naming convention for VRFs as well as the same VPN
+        ID."
+
+   REFERENCE
+       "RFC 2685 [VPN-RFC2685] Fox B., et al, `Virtual
+        Private Networks Identifier`, September 1999."
+   ::= { mplsVpnVrfEntry 1 }
+
+mplsVpnVrfVpnId OBJECT-TYPE
+   SYNTAX        VPNId
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+       "The VPN ID as specified in RFC 2685.  If a VPN ID
+        has not been specified for this VRF, then this variable
+        SHOULD be set to an empty string."
+   ::= { mplsVpnVrfEntry 2 }
+
+mplsVpnVrfDescription OBJECT-TYPE
+   SYNTAX        SnmpAdminString
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+       "The human-readable description of this VRF."
+   ::= { mplsVpnVrfEntry 3 }
+
+mplsVpnVrfRouteDistinguisher OBJECT-TYPE
+   SYNTAX        MplsVpnRouteDistinguisher
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+       "The route distinguisher for this VRF.  This field can only
+        be changed when the Admin Status is down."
+   ::= { mplsVpnVrfEntry 4 }
+
+mplsVpnVrfCreationTime OBJECT-TYPE
+   SYNTAX        TimeStamp
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "The time at which this VRF entry was created."
+   ::= { mplsVpnVrfEntry 5 }
+
+mplsVpnVrfOperStatus OBJECT-TYPE
+   SYNTAX        MplsVpnOperStatus
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "Denotes whether a VRF is operational or not.  A VRF is
+        up(1) when there is at least one interface associated with the
+        VRF whose ifOperStatus is up(1), and the join to the
+        associated instance of RTM is active.
+        A VRF is down(2) when:
+
+        a.  There does not exist at least one interface whose
+        ifOperStatus is up(1).
+
+        b.  There are no interfaces associated with the VRF.
+
+        c.  The join to the associated RTM is not active."
+   ::= { mplsVpnVrfEntry 6 }
+
+mplsVpnVrfActiveInterfaces OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "Total number of interfaces connected to this VRF with
+        ifOperStatus = up(1).
+
+        This counter should be incremented when:
+
+        a. When the ifOperStatus of one of the connected interfaces
+           changes from down(2) to up(1).
+
+        b. When an interface with ifOperStatus = up(1) is connected
+           to this VRF.
+
+        This counter should be decremented when:
+
+        a. When the ifOperStatus of one of the connected interfaces
+           changes from up(1) to down(2).
+
+        b. When one of the connected interfaces with
+           ifOperStatus = up(1) gets disconnected from this VRF.
+
+        DC-VPN Manager does not support this field, so always
+        returns a value of 0."
+   ::= { mplsVpnVrfEntry 7 }
+
+mplsVpnVrfAssociatedInterfaces OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "Total number of interfaces connected to this VRF (independent of
+        ifOperStatus type).  DC-VPN Manager does not support this field, so
+        always returns a value of 0."
+   ::= { mplsVpnVrfEntry 8 }
+
+mplsVpnVrfConfMidRouteThreshold     OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+     "Denotes mid-level water marker for the number of routes which  this VRF
+      may hold.  A single mplsVpnVrfRouteMidThreshExceeded notification is
+      generated when the number of routes contained by the VRF exceeds this
+      value.
+
+      A value of zero indicates that there is no threshold."
+   DEFVAL { 0 }
+  ::= { mplsVpnVrfEntry 9 }
+
+mplsVpnVrfConfHighRouteThreshold  OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+     "Denotes high-level water marker for the number of routes which  this VRF
+      may hold.  An mplsVpnVrfRouteMaxThreshExceeded notification is generated
+      when the number of routes contained by the VRF exceeds this value.
+
+      A value of zero indicates that there is no threshold."
+   DEFVAL { 0 }
+  ::= { mplsVpnVrfEntry 10 }
+
+mplsVpnVrfConfMaxRoutes  OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+     "Denotes maximum number of routes which this VRF is configured to hold.
+      If this value is set to 0, this indicates that there is no upper bound.
+      This value MUST be less than or equal to mplsVpnVrfConfMaxPossibleRoutes
+      unless that field is set to 0.  This field can only be changed when the
+      Admin Status is down."
+   DEFVAL { 0 }
+  ::= { mplsVpnVrfEntry 11 }
+
+mplsVpnVrfConfLastChanged  OBJECT-TYPE
+   SYNTAX        TimeStamp
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+     "The value of sysUpTime at the time of the last
+      change of this table entry, which includes changes of
+      VRF parameters defined in this table or addition or
+      deletion of interfaces associated with this VRF."
+  ::= { mplsVpnVrfEntry 12 }
+
+mplsVpnVrfConfRowStatus OBJECT-TYPE
+   SYNTAX        RowStatus
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+       "This variable is used to create, modify, and/or
+        delete a row in this table."
+  ::= { mplsVpnVrfEntry 13 }
+
+-- DC addition.  Added DEFVAL below.
+
+mplsVpnVrfConfStorageType  OBJECT-TYPE
+   SYNTAX      StorageType
+   MAX-ACCESS  read-create
+   STATUS      current
+   DESCRIPTION
+       "The storage type for this entry.  DC-VPN Manager will only accept a
+        value of volatile."
+   DEFVAL { volatile }
+   ::= { mplsVpnVrfEntry 14 }
+
+-- DC addition.  Copy of the corresponding field in mplsVpnVrfPerfTable.
+
+mplsVpnVrfPerfCurrNumRoutes OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "Indicates the number of routes currently used by this VRF."
+   ::= { mplsVpnVrfEntry 15 }
+
+-- DC addition.  The below fields are added.
+
+mplsVpnVrfConfAdminStatus OBJECT-TYPE
+   SYNTAX        MplsVpnAdminStatus
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+       "This Admin status of this VRF."
+   DEFVAL { adminStatusDown }
+   ::= { mplsVpnVrfEntry 16 }
+
+mplsVpnVrfConfLabelAlloc OBJECT-TYPE
+   SYNTAX        MplsVpnLabelAllocType
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+       "This describes how often VPN Manager asks for a new label
+        for routes learnt from this VRF.  If it is per interface
+        then routing incoming data could be quicker as a VRF
+        lookup will not be necessary.  If it is per VRF less
+        labels may be required.  Per Route allocation is not
+        recommended unless the number of LSPs is small.  This
+        field can only be changed when the Admin Status is down."
+   DEFVAL { perIf }
+   ::= { mplsVpnVrfEntry 17 }
+
+mplsVpnVrfConfPassthroughRtsMode OBJECT-TYPE
+   SYNTAX        MplsVpnPtRtMode
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+       "This field indicates the desired behavior if local routes are
+        received from this VRF with RTs already attached to them.  Options
+        are to remove the attached RTs, to merge the attached RTs with the
+        export RTs defined for the VRF or to replace the defined export RTs
+        with the attached RTs.
+
+        This field can only be modified when the MIB row is in admin
+        status down."
+   DEFVAL { ptRtRemove }
+   ::= { mplsVpnVrfEntry 18 }
+
+mplsVpnVrfConfIpv4RtmEntIndex OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+       "The Entity Index of the RTM instance that handles
+        programming the VRF's VPN-IPv4 routes.  If the VRF does
+        not support IPv4 routes, there is no RTM instance, and
+        this field must be set to zero.  The status of this join
+        is mplsVpnVrfConfIpv4RtmJoinStat.  This field can only be
+        changed when the Admin Status is down.  The MIB row cannot
+        be activated if mplsVpnVrfConfIpv4RtmEntIndex is zero and
+        mplsVpnVpnRouteAddrType is AMB_BVM_ADDR_TYPE_IPV4.  The
+        MIB row cannot be activated if both
+        mplsVpnVrfConfIpv4RtmEntIndex and mplsVpnVrfConfIpv6RtmEntIndex
+        are zero if mplsVpnVpnRouteAddrType is
+        AMB_BVM_ADDR_TYPE_IPV4_IPV6."
+   ::= { mplsVpnVrfEntry 19 }
+
+mplsVpnVrfConfIpv4RtmJoinStat OBJECT-TYPE
+   SYNTAX        MplsVpnMjStatus
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "The join status of the join to the IPv4 RTM instance
+        specified by mplsVpnVrfConfIpv4RtmEntIndex.  If
+        mplsVpnVrfConfIpv4RtmEntIndex is zero, there is no join,
+        and this field is set to AMB_BVM_MJ_NOT_CONFIGURED."
+   ::= { mplsVpnVrfEntry 20 }
+
+mplsVpnVrfRestartDuration OBJECT-TYPE
+   SYNTAX        Unsigned32(1..65535)
+   UNITS         "seconds"
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "The duration, in seconds, of the timer which is started following
+         unexpected failure of this joined VRF instance.  VPN Manager will
+         wait this period of time for a new instance of the VRF to
+         re-establish the join before withdrawing the routes learnt from
+         this VRF."
+   DEFVAL        { 90 }
+   ::= { mplsVpnVrfEntry 21 }
+
+mplsVpnVrfIpv4RestartCount OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "The number of times which the VRF's IPv4 RTM has attempted
+         to restart.  Writing any value to this field will reset
+         this count."
+   ::= { mplsVpnVrfEntry 22 }
+
+mplsVpnVrfRestartThreshold OBJECT-TYPE
+   SYNTAX        Unsigned32(0..65535)
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "The number of times that restart procedures with this VRF will be
+         attempted before giving up.  Giving up will lead to this VRF's
+         MIB row moving to oper status Failed. A threshold value of 0
+         indicates that restart procedures with this VRF will be attempted
+         indefinitely."
+   DEFVAL        { 0 }
+   ::= { mplsVpnVrfEntry 23 }
+
+mplsVpnVrfConfIpv6RtmEntIndex OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+       "The Entity Index of the RTM instance that handles
+        programming the VRF's IPv6 routes.  If the VRF does
+        not support IPv6 routes, there is no RTM instance, and
+        this field must be set to zero.  The status of this join
+        is mplsVpnVrfConfIpv6RtmJoinStat.  This field can only be
+        changed when the Admin Status is down.  The MIB row cannot
+        be activated if mplsVpnVrfConfIpv4RtmEntIndex is zero and
+        mplsVpnVpnRouteAddrType is AMB_BVM_ADDR_TYPE_IPV6.  The
+        MIB row cannot be activated if both
+        mplsVpnVrfConfIpv4RtmEntIndex and mplsVpnVrfConfIpv6RtmEntIndex
+        are zero if mplsVpnVpnRouteAddrType is
+        AMB_BVM_ADDR_TYPE_IPV4_IPV6."
+   ::= { mplsVpnVrfEntry 24 }
+
+mplsVpnVrfConfIpv6RtmJoinStat OBJECT-TYPE
+   SYNTAX        MplsVpnMjStatus
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "The join status of the join to the IPv6 RTM instance
+        specified by mplsVpnVrfConfIpv6RtmEntIndex.  If
+        mplsVpnVrfConfIpv6RtmEntIndex is zero, there is no join,
+        and this field is set to AMB_BVM_MJ_NOT_CONFIGURED."
+   ::= { mplsVpnVrfEntry 25 }
+
+mplsVpnVrfIpv6RestartCount OBJECT-TYPE
+   SYNTAX        Unsigned32
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+        "The number of times which the VRF's IPv6 RTM has attempted
+         to restart.  Writing any value to this field will reset
+         this count."
+   ::= { mplsVpnVrfEntry 26 }
+
+-- DC Change.  Changed MplsVpnVrfRouteTargetTable to MplsVpnVrfRtTable to
+-- reduce autogenerated name lengths.
+--
+-- MplsVpnVrfRtTable
+--
+-- This table specifies which route targets are used for the VRF used in
+-- the table index.  Each VRF can have several RTs associated with it.  All
+-- configured export route targets are attached to a route as it is sent to
+-- BGP.  Routes received from BGP are redistributed to this VRF if they feature
+-- one of the configured import RTs.
+--
+
+mplsVpnVrfRtTable OBJECT-TYPE
+      SYNTAX        SEQUENCE OF MplsVpnVrfRtEntry
+      MAX-ACCESS    not-accessible
+      STATUS        current
+      DESCRIPTION
+          "This table specifies per-VRF route target association.
+           Each entry identifies a connectivity policy supported
+           as part of a VPN."
+   ::= { mplsVpnConf 2 }
+
+mplsVpnVrfRtEntry OBJECT-TYPE
+      SYNTAX        MplsVpnVrfRtEntry
+      MAX-ACCESS    not-accessible
+      STATUS        current
+      DESCRIPTION
+          " An entry in this table is created by an LSR for
+           each route target configured for a VRF supporting
+           a MPLS/BGP VPN instance. The indexing provides an
+           ordering per-VRF instance."
+      INDEX  { mplsVpnEntIndex,
+               mplsVpnVrfName,
+               mplsVpnVrfRtIndex,
+               mplsVpnVrfRtType }
+   ::= { mplsVpnVrfRtTable 1 }
+
+MplsVpnVrfRtEntry ::= SEQUENCE {
+     mplsVpnVrfRtIndex      Unsigned32,
+     mplsVpnVrfRtType       MplsVpnRtType,
+     mplsVpnVrfRtValue      MplsVpnRouteDistinguisher,
+     mplsVpnVrfRtDescr      DisplayString,
+     mplsVpnVrfRtRowStatus  RowStatus
+   }
+
+mplsVpnVrfRtIndex OBJECT-TYPE
+      SYNTAX        Unsigned32
+      MAX-ACCESS    not-accessible
+      STATUS        current
+      DESCRIPTION
+          "Auxiliary index for route-targets configured for a
+           particular VRF."
+   ::= { mplsVpnVrfRtEntry 2 }
+
+-- DC Change.  Defined MplsVpnRtType and added DEFVAL.
+
+mplsVpnVrfRtType OBJECT-TYPE
+   SYNTAX        MplsVpnRtType
+   MAX-ACCESS    not-accessible
+   STATUS        current
+   DESCRIPTION
+       "The route target export distribution type."
+   ::= { mplsVpnVrfRtEntry 3 }
+
+-- DC Change.  Changed mplsVpnVrfRt to mplsVpnVrfRtValue so autogenerated code
+-- works.  (Since the name of the table is mplsVpnVrfRtTable, the auto-genned
+-- c-structure field names are derived from the ASN.1 name without the
+-- mplsVpnVrfRt.  Therefore this was generating a blank field.)
+
+mplsVpnVrfRtValue OBJECT-TYPE
+   SYNTAX        MplsVpnRouteDistinguisher
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+       "The route target distribution policy."
+   ::= { mplsVpnVrfRtEntry 4 }
+
+mplsVpnVrfRtDescr OBJECT-TYPE
+   SYNTAX        DisplayString
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+       "Description of the route target."
+   ::= { mplsVpnVrfRtEntry 5 }
+
+mplsVpnVrfRtRowStatus OBJECT-TYPE
+   SYNTAX        RowStatus
+   MAX-ACCESS    read-create
+   STATUS        current
+   DESCRIPTION
+       "Row status for this entry."
+   ::= { mplsVpnVrfRtEntry 6 }
+
+--
+-- DC Change.  The MplsVpnVrfBgpNbrAddrTable is not needed for VPN Manager and
+-- so is not implemented here.
+--
+
+--
+-- MplsVpnVrfBgpNbrPrefixTable
+--
+-- Ed note: this table will be removed as soon as the BGP4 MIB
+--          is updated.
+--
+-- DC Change.  This table has been removed as all information is available via
+-- DC-BGP.
+--
+
+
+-- VRF Security Table
+
+mplsVpnVrfSecTable  OBJECT-TYPE
+   SYNTAX        SEQUENCE OF MplsVpnVrfSecEntry
+   MAX-ACCESS    not-accessible
+   STATUS        current
+   DESCRIPTION
+       "This table specifies per-VRF security-related counters."
+   ::= { mplsVpnConf 6 }
+
+mplsVpnVrfSecEntry OBJECT-TYPE
+   SYNTAX        MplsVpnVrfSecEntry
+   MAX-ACCESS    not-accessible
+   STATUS        current
+   DESCRIPTION
+       "An entry in this table is created by an LSR for
+        every VRF capable of supporting MPLS L3VPN.  Each
+        entry in this table is used to indicate security-related
+        information for each VRF entry."
+   AUGMENTS      { mplsVpnVrfEntry }
+      ::= { mplsVpnVrfSecTable 1 }
+
+MplsVpnVrfSecEntry ::= SEQUENCE {
+       mplsVpnVrfSecIllegalLblVltns     Counter32,
+       mplsVpnVrfSecDiscontinuityTime   TimeStamp
+}
+
+mplsVpnVrfSecIllegalLblVltns OBJECT-TYPE
+   SYNTAX        Counter32
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "Indicates the number of illegally received
+        labels on this VPN/VRF.
+
+        Discontinuities in the value of this counter can occur
+        at re-initialization of the management system, and at
+        other times as indicated by the value of
+        mplsVpnVrfSecDiscontinuityTime."
+   ::= { mplsVpnVrfSecEntry 1 }
+
+mplsVpnVrfSecDiscontinuityTime  OBJECT-TYPE
+   SYNTAX              TimeStamp
+   MAX-ACCESS          read-only
+   STATUS              current
+   DESCRIPTION
+       "The value of sysUpTime on the most recent occasion at
+        which any one or more of this entry's counters suffered
+        a discontinuity.  If no such discontinuities have
+        occurred since the last re-initialization of the local
+        management subsystem, then this object contains a zero
+        value."
+   ::= { mplsVpnVrfSecEntry 2 }
+
+
+-- VRF Performance Table
+
+mplsVpnVrfPerfTable  OBJECT-TYPE
+   SYNTAX        SEQUENCE OF MplsVpnVrfPerfEntry
+   MAX-ACCESS    not-accessible
+   STATUS        current
+   DESCRIPTION
+       "This table specifies per-VRF performance information."
+   ::= { mplsVpnPerf 1 }
+
+mplsVpnVrfPerfEntry OBJECT-TYPE
+   SYNTAX        MplsVpnVrfPerfEntry
+   MAX-ACCESS    not-accessible
+   STATUS        current
+   DESCRIPTION
+       "An entry in this table is created by an LSR for
+        every VRF capable of supporting MPLS L3VPN."
+   AUGMENTS      { mplsVpnVrfEntry }
+      ::= { mplsVpnVrfPerfTable 1 }
+
+MplsVpnVrfPerfEntry ::= SEQUENCE {
+   mplsVpnVrfPerfRoutesAdded       Counter32,
+   mplsVpnVrfPerfRoutesDeleted     Counter32,
+   mplsVpnVrfPerfCurrNumRtes       Gauge32,
+   mplsVpnVrfPerfRoutesDropped     Counter32,
+   mplsVpnVrfPerfDiscTime          TimeStamp
+}
+
+mplsVpnVrfPerfRoutesAdded OBJECT-TYPE
+   SYNTAX        Counter32
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "Indicates the number of routes added to this VPN/VRF
+        since the last discontinuity.  Discontinuities in
+        the value of this counter can occur
+        at re-initialization of the management system, and at
+        other times as indicated by the value of
+        mplsVpnVrfPerfDiscTime."
+   ::= { mplsVpnVrfPerfEntry 1 }
+
+mplsVpnVrfPerfRoutesDeleted OBJECT-TYPE
+   SYNTAX        Counter32
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "Indicates the number of routes removed from this VPN/VRF.
+
+        Discontinuities in the value of this counter can occur
+        at re-initialization of the management system, and at
+        other times as indicated by the value of
+        mplsVpnVrfPerfDiscTime."
+   ::= { mplsVpnVrfPerfEntry 2 }
+
+mplsVpnVrfPerfCurrNumRtes    OBJECT-TYPE
+   SYNTAX        Gauge32
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "Indicates the number of routes currently used by this
+        VRF."
+   ::= { mplsVpnVrfPerfEntry 3 }
+
+
+mplsVpnVrfPerfRoutesDropped OBJECT-TYPE
+   SYNTAX        Counter32
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "This counter should be incremented when the number of routes
+        contained by the specified VRF exceeds or attempts to exceed
+        the maximum allowed value as indicated by
+        mplsVpnVrfConfMaxPossibleRoutes and mplsVpnVrfConfMaxRoutes.
+
+        Discontinuities in the value of this counter can occur
+        at re-initialization of the management system, and at
+        other times as indicated by the value of
+        mplsVpnVrfPerfDiscTime."
+  ::= { mplsVpnVrfPerfEntry 4 }
+
+mplsVpnVrfPerfDiscTime  OBJECT-TYPE
+   SYNTAX              TimeStamp
+   MAX-ACCESS          read-only
+   STATUS              current
+   DESCRIPTION
+       "The value of sysUpTime on the most recent occasion at
+        which any one or more of this entry's counters suffered
+        a discontinuity.  If no such discontinuities have
+        occurred since the last re-initialization of the local
+        management subsystem, then this object contains a zero
+        value."
+  ::= { mplsVpnVrfPerfEntry 5 }
+
+
+-- MPLS/BGP VPN Notifications
+
+-- DC Change.  The Notifications mplsVrfIfUp and mplsVrfIfDown are not
+-- supported.
+
+mplsVpnVrfRouteMidThreshExceeded NOTIFICATION-TYPE
+   OBJECTS     { mplsVpnVrfPerfCurrNumRtes,
+                 mplsVpnVrfConfMidRouteThreshold
+               }
+   STATUS      current
+   DESCRIPTION
+       "This notification is generated when the number of routes
+        contained by the specified VRF exceeds the value indicated by
+        mplsVpnVrfConfMidRouteThreshold.  A single notification MUST be
+        generated when this threshold is exceeded, and no other
+        notifications of this type should be issued until the value
+        of mplsVpnVrfPerfCurrNumRtes has fallen below that of
+        mplsVpnVrfConfMidRouteThreshold."
+   ::= { mplsVpnNotifications 3 }
+
+mplsVpnVrfRouteMaxThreshExceeded NOTIFICATION-TYPE
+   OBJECTS     { mplsVpnVrfPerfCurrNumRtes,
+                 mplsVpnVrfConfHighRouteThreshold
+               }
+   STATUS      current
+   DESCRIPTION
+       "This notification is generated when the number of routes
+        contained by the specified VRF exceeds or attempts to exceed
+        the maximum allowed value as indicated by
+        mplsVpnVrfConfHighRouteThreshold.  In cases where
+        mplsVpnVrfConfHighRouteThreshold is set to the same value
+        as mplsVpnVrfConfMaxRoutes, mplsVpnVrfConfHighRouteThreshold
+        need not be exceeded; rather, just reached for this notification
+        to be issued.
+
+        Note that mplsVpnVrfConfRouteMaxThreshTime denotes the interval
+        at which the this notification will be reissued after the
+        maximum value has been exceeded (or reached if
+        mplsVpnVrfConfMaxRoutes and mplsVpnVrfConfHighRouteThreshold are
+        equal) and the initial notification has been issued.  This value
+        is intended to prevent continuous generation of notifications by
+        an agent in the event that routes are continually added to a VRF
+        after it has reached its maximum value.  The default value is 0
+        minutes.  If this value is set to 0, the agent should only issue
+        a single notification at the time that the maximum threshold has
+        been reached, and should not issue any more notifications until
+        the value of routes has fallen below the configured threshold
+        value."
+   ::= { mplsVpnNotifications 4 }
+
+mplsVpnVrfSecIllglLblThrshExcd NOTIFICATION-TYPE
+   OBJECTS     { mplsVpnVrfSecIllegalLblVltns }
+   STATUS      current
+   DESCRIPTION
+       "This notification is generated when the number of illegal
+        label violations on a VRF as indicated by
+        mplsVpnVrfSecIllegalLblVltns has exceeded
+        mplsVpnIllLblRcvThrsh."
+   ::= { mplsVpnNotifications 5 }
+
+
+mplsVpnVrfRouteMaxThreshCleared NOTIFICATION-TYPE
+   OBJECTS     { mplsVpnVrfPerfCurrNumRtes,
+                 mplsVpnVrfConfHighRouteThreshold
+               }
+   STATUS      current
+   DESCRIPTION
+       "This notification is generated only after the number of routes
+        contained by the specified VRF exceeds or attempts to exceed
+        the maximum allowed value as indicated by
+        mplsVpnVrfConfHighRouteThreshold, and then falls below this value.
+        The emission of this notification informs the operator that the
+        error condition has been cleared without the operator having to
+        query the device.
+
+        Note that mplsVpnVrfConfRouteMaxThreshTime denotes the interval at
+        which the mplsNumVrfRouteMaxThreshExceeded notification will
+        be reissued after the maximum value has been exceeded (or
+        reached if mplsVpnVrfConfMaxRoutes and
+        mplsVpnVrfConfHighRouteThreshold are equal) and the initial
+        notification has been issued.  Therefore, the generation of
+        this notification should also be emitted with this same
+        frequency (assuming that the error condition is cleared).
+        Specifically, if the error condition is reached and cleared
+        several times during the period of time specified in
+        mplsVpnVrfConfRouteMaxThreshTime, only a single notification will
+        be issued to indicate the first instance of the error condition
+        as well as the first time the error condition is cleared.
+        This behavior is intended to prevent continuous generation of
+        notifications by an agent in the event that routes are
+        continually added and removed to/from a VRF after it has
+        reached its maximum value.  The default value is 0.  If this
+        value is set to 0, the agent should issue a notification
+        whenever the maximum threshold has been cleared."
+   ::= { mplsVpnNotifications 6 }
+
+
+-- Conformance Statement
+mplsVpnGroups
+      OBJECT IDENTIFIER ::= { mplsVpnConformance 1 }
+
+mplsVpnCompliances
+      OBJECT IDENTIFIER ::= { mplsVpnConformance 2 }
+
+-- Module Compliance
+
+mplsVpnModuleCompliance MODULE-COMPLIANCE
+      STATUS current
+      DESCRIPTION
+          "Compliance statement for agents that support the
+           MPLS VPN MIB."
+      MODULE -- this module
+
+         -- The mandatory groups have to be implemented
+         -- by all LSRs supporting MPLS BGP/VPNs. However,
+         -- they may all be supported
+         -- as read-only objects in the case where manual
+         -- configuration is unsupported.
+
+-- DC change.  Removed unsupported groups.
+
+         MANDATORY-GROUPS    { mplsVpnEntityGroup,
+                               mplsVpnVrfGroup,
+                               mplsVpnPerfGroup,
+                               mplsVpnSecGroup,
+                               mplsVpnVrfRtGroup,
+                               mplsVpnNotificationGroup
+                             }
+
+   GROUP       mplsVpnPerfRouteGroup
+   DESCRIPTION "This group is only mandatory for LSRs that
+                support tracking the number of routes attempted
+                to be added to VRFs."
+
+   ::= { mplsVpnCompliances 1 }
+
+   -- Units of conformance.
+
+   mplsVpnEntityGroup OBJECT-GROUP
+      OBJECTS { mplsVpnEntRowStatus,
+                mplsVpnEntAdminStatus,
+                mplsVpnEntOperStatus,
+                mplsVpnConfiguredVrfs,
+                mplsVpnActiveVrfs,
+                mplsVpnConnectedInterfaces,
+                mplsVpnNotificationEnable,
+                mplsVpnVrfConfMaxPossibleRoutes,
+                mplsVpnVrfConfRouteMaxThreshTime,
+                mplsVpnUseBgpRouting,
+                mplsVpnGenerateTunnelInfo,
+                mplsVpnLocalRouterAddress,
+                mplsVpnLmgrEntityIndex,
+                mplsVpnLmgrJoinStatus,
+                mplsVpnI3EntityIndex,
+                mplsVpnI3JoinStatus,
+                mplsVpnDefaultRtmEntityIndex,
+                mplsVpnDefaultRtmJoinStatus,
+                mplsVpnBgpIpv4EntityIndex,
+                mplsVpnBgpIpv4JoinStatus,
+                mplsVpnBgpIpv4RestartDuration,
+                mplsVpnBgpIpv4RestartCount,
+                mplsVpnBgpIpv4RestartThreshold,
+                mplsVpnRecoveryDuration,
+                mplsVpnVpnRouteAddrType,
+                mplsVpnBackboneAddrType,
+                mplsVpnLocalRouterAddressType,
+                mplsVpnBgpIpv6EntityIndex,
+                mplsVpnBgpIpv6JoinStatus,
+                mplsVpnBgpIpv6RestartDuration,
+                mplsVpnBgpIpv6RestartCount,
+                mplsVpnBgpIpv6RestartThreshold,
+                mplsVpnIllLblRcvThrsh,
+                mplsVpnVrfCurrTotalRoutes
+             }
+      STATUS  current
+      DESCRIPTION
+             "Collection of objects required for MPLS VPN
+              management."
+      ::= { mplsVpnGroups 1 }
+
+   mplsVpnVrfGroup OBJECT-GROUP
+      OBJECTS { mplsVpnVrfVpnId,
+                mplsVpnVrfDescription,
+                mplsVpnVrfRouteDistinguisher,
+                mplsVpnVrfCreationTime,
+                mplsVpnVrfOperStatus,
+                mplsVpnVrfActiveInterfaces,
+                mplsVpnVrfAssociatedInterfaces,
+                mplsVpnVrfConfMidRouteThreshold,
+                mplsVpnVrfConfHighRouteThreshold,
+                mplsVpnVrfConfMaxRoutes,
+                mplsVpnVrfConfLastChanged,
+                mplsVpnVrfConfRowStatus,
+                mplsVpnVrfConfStorageType,
+                mplsVpnVrfPerfCurrNumRoutes,
+                mplsVpnVrfConfAdminStatus,
+                mplsVpnVrfConfLabelAlloc,
+                mplsVpnVrfConfIpv4RtmEntIndex,
+                mplsVpnVrfConfIpv4RtmJoinStat,
+                mplsVpnVrfConfPassthroughRtsMode,
+                mplsVpnVrfRestartDuration,
+                mplsVpnVrfIpv4RestartCount,
+                mplsVpnVrfRestartThreshold,
+                mplsVpnVrfConfIpv6RtmEntIndex,
+                mplsVpnVrfConfIpv6RtmJoinStat,
+                mplsVpnVrfIpv6RestartCount
+       }
+
+      STATUS  current
+      DESCRIPTION
+             "Collection of objects needed for MPLS VPN VRF
+              management."
+      ::= { mplsVpnGroups 2 }
+
+   mplsVpnPerfGroup OBJECT-GROUP
+      OBJECTS { mplsVpnVrfPerfRoutesAdded,
+                mplsVpnVrfPerfRoutesDeleted,
+                mplsVpnVrfPerfCurrNumRtes
+             }
+      STATUS  current
+      DESCRIPTION
+             "Collection of objects needed for MPLS VPN
+              performance information."
+      ::= { mplsVpnGroups 4 }
+
+   mplsVpnPerfRouteGroup OBJECT-GROUP
+      OBJECTS { mplsVpnVrfPerfRoutesDropped,
+                mplsVpnVrfPerfDiscTime
+             }
+      STATUS  current
+      DESCRIPTION
+             "Collection of objects needed to track MPLS VPN
+              routing table dropped routes."
+      ::= { mplsVpnGroups 5 }
+
+   mplsVpnSecGroup OBJECT-GROUP
+      OBJECTS { mplsVpnVrfSecIllegalLblVltns,
+                mplsVpnVrfSecDiscontinuityTime }
+      STATUS  current
+      DESCRIPTION
+             "Collection of objects needed for MPLS VPN
+              security-related information."
+      ::= { mplsVpnGroups 7 }
+
+   mplsVpnVrfRtGroup OBJECT-GROUP
+      OBJECTS { mplsVpnVrfRtDescr,
+                mplsVpnVrfRtValue,
+                mplsVpnVrfRtRowStatus
+              }
+      STATUS  current
+      DESCRIPTION
+             "Objects required for VRF route target management."
+   ::= { mplsVpnGroups 9 }
+
+   mplsVpnNotificationGroup NOTIFICATION-GROUP
+       NOTIFICATIONS { mplsVpnVrfRouteMidThreshExceeded,
+                       mplsVpnVrfRouteMaxThreshExceeded,
+                       mplsVpnVrfSecIllglLblThrshExcd,
+                       mplsVpnVrfRouteMaxThreshCleared
+                     }
+      STATUS  current
+      DESCRIPTION
+             "Objects required for MPLS VPN notifications."
+   ::= { mplsVpnGroups 10 }
+
+END
+
+-- End of MPLS-VPN-MIB
+

@@ -1,0 +1,1018 @@
+CADANT-CMTS-DHCPRA-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, IpAddress, Unsigned32, Integer32
+        FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION,RowStatus, TruthValue, MacAddress, DateAndTime
+        FROM SNMPv2-TC
+    CadBridgePortType, InetAddressIPv4or6, CadCpeDeviceTypes
+        FROM CADANT-TC
+    InetAddressType, InetAddressIPv6
+        FROM INET-ADDRESS-MIB
+    cadVrInterfaceIfIndex 
+        FROM CADANT-VIRTUAL-ROUTER-MIB
+    ifIndex, InterfaceIndex, InterfaceIndexOrZero
+        FROM IF-MIB
+    cadLayer3
+        FROM CADANT-PRODUCTS-MIB
+    cadIfUpChannelCardNumber, cadIfUpChannelId
+        FROM CADANT-CMTS-UPCHANNEL-MIB;
+
+cadDhcpRaMib MODULE-IDENTITY
+    LAST-UPDATED "201504220000Z" -- Apr 22, 2015
+    ORGANIZATION "ARRIS Group, Inc."
+    CONTACT-INFO "Email: support@arris.com"
+
+    DESCRIPTION
+      "This MIB module defines objects to help support the
+       Dynamic Host Configuration Protocol Relay Agent (DHCPRA)
+       in the Cadant CMTS."
+
+    REVISION "201504220000Z" -- Apr 22, 2015
+    DESCRIPTION 
+        "Add support for cadVrDhcpRaOptionFanoutDisabled."
+
+    REVISION "201409160000Z" -- Sep 16, 2014
+    DESCRIPTION 
+        "Add support for cadDhcpRaOptionMSOText"
+
+    REVISION "201310170000Z" -- Oct 17, 2013
+    DESCRIPTION 
+        "Change default value of cadDhcpThrottleEnable, cadArpThrottleEnable,
+         cadDhcpV6Throttle, and cadNdThrottleEnable from false(2) to true(1)"
+
+    REVISION "201111160000Z" -- Nov 16, 2011
+    DESCRIPTION 
+        "Add cadDhcpPdPrefixStabilityEnabled"
+
+    REVISION "201110270000Z" -- Oct 27, 2011
+    DESCRIPTION 
+        "Add cadVrDhcpRaOptionScnEnable"
+
+    REVISION "201107050000Z" -- July 05, 2011
+    DESCRIPTION 
+        "Increase range to full range of Unsigned32 for cadVrDhcpPdClientIaid and cadVrDhcpPdPreClientIaid "
+
+    REVISION "201011010000Z" -- Nov 1st, 2010
+    DESCRIPTION 
+        "Add cadVrDhcpPdPreExpirytime"
+
+    REVISION "201010190000Z" -- Oct 19, 2010
+    DESCRIPTION 
+        "Add cadDhcpPdBLQFailedTCPSIP, cadDhcpPdBLQFailedTCPDIP
+             cadDhcpPdBLQFailedTCPTime and cadDhcpPdBLQFailedTCPNum"
+
+
+    REVISION "201004220000Z" -- Apr 22, 2010
+    DESCRIPTION 
+        "Add cadVrDhcpPdCmMacAddress.
+         Rename cadVrDhcpPdClientIpAddr to cadVrDhcpPdClientIpv6Addr,
+                cadVrDhcpPdPreClientIpAddr to cadVrDhcpPdPreClientIpv6Addr."
+    REVISION "201004150000Z" -- Apr 15, 2010
+    DESCRIPTION 
+        "Add cadDhcpPdPrefixAction group." 
+    REVISION "201003090000Z" -- Mar 9, 2010
+    DESCRIPTION 
+        "Add cadDhcpV6ThrottleEnable and cadNdThrottleEnable." 
+    REVISION "201003050000Z" -- Mar 5, 2010
+    DESCRIPTION 
+        "Change description of cadDhcpRaLeasequeryVersion and cadDhcpRaLeasequeryMessageType to indicate
+         both do not apply to IPv6."
+
+    REVISION "200911040000Z" -- Nov 4, 2009
+    DESCRIPTION 
+        "Rename cadVrDhcpRelaySrcIntefaceIndex to cadVrDhcpRelaySrcInterfaceIndex,
+                cadVrDhcpRelaySrcIntefaceLinkAddrEnabled to cadVrDhcpRelaySrcInterfaceLinkAddrEnabled"
+    REVISION "200910010000Z" -- Oct 1, 2009
+    DESCRIPTION 
+        "Add cadVrDhcpRelaySrcIntefaceIndex, 
+             cadVrDhcpRelaySrcIntefaceLinkAddrEnabled, and
+             cadVrDhcpRelayEgressIfTable. "
+    REVISION "200909210000Z" -- Sep 21, 2009
+    DESCRIPTION 
+        "Remove cadVrDhcpPdPreRowStatus"
+    REVISION "200909170000Z" -- Sep 17, 2009
+    DESCRIPTION 
+        "Add cadDhcpPdRiEnabled, cadVrDhcpPdTable and cadVrDhcpPdPrefixEntry."
+    REVISION "200908270000Z" -- Aug 27, 2009
+    DESCRIPTION 
+        "Remove cadVrDhcpServerType."
+    REVISION "200612060000Z" -- December 06, 2006
+    DESCRIPTION 
+        "Modify the index for cadDhcpRaOptionUpstreamChannelTable."
+    REVISION "200611220000Z"  -- November 22, 2006
+    DESCRIPTION 
+        "Added capability for DHCP Lease Query configuration. "
+    REVISION "200610180000Z" -- October 18, 2006
+    DESCRIPTION 
+        "Add support for DHCPv6 link-level addresses."
+    REVISION "200608220000Z" -- August 22, 2006
+    DESCRIPTION 
+        "Add support for IPv6. "
+    REVISION "200601270000Z" 
+    DESCRIPTION 
+        "Added capability for DHCP Relay Agent Option 82."
+    REVISION "200401180000Z" 
+    DESCRIPTION 
+        "Remove support for layer 2 forwarding."
+    REVISION "200308180000Z" 
+    DESCRIPTION 
+        "Add support for ARP throttling."
+    REVISION "200307300000Z" 
+    DESCRIPTION 
+        "Add support for DHCP throttling."
+
+    ::= { cadLayer3 6 }
+
+
+CadDhcpRelayAgentOptionType ::= TEXTUAL-CONVENTION
+    STATUS          current
+    DESCRIPTION
+        "DHCP Relay Agent Circuit-ID sub-option type. The value `mac-ifindex'
+        indicates that the 4 byte MAC ifIndex is used for the circuit ID relay
+        sub-option. The value `us-ifindex' indicates that the 4 byte upstream
+        channel ifIndex is used for the circuit ID relay sub-option. The values
+        `octet-string-text' and `octet-string-hex' indicate that a user specified
+        octet string is used for the sub-option (with the -text and -hex
+        indicating how the string is to be represented in the running-config)."
+    SYNTAX          INTEGER {
+        mac-ifindex (1),
+        us-ifindex (2),
+        octet-string-text (3),
+        octet-string-hex (4)
+    }
+
+CadDhcpPDPreActionType ::= TEXTUAL-CONVENTION
+    STATUS          current
+    DESCRIPTION
+        "Read, remove or restore Prefix/route."
+    SYNTAX          INTEGER {
+        none(0),
+        clear (1),
+        restore (2)
+    }
+
+CadDhcpPDPreActionDataType ::= TEXTUAL-CONVENTION
+    STATUS          current
+    DESCRIPTION
+        "type of data based on action. 
+         all   - all prefixes and associated routes of C4
+         prefixOrIp - a prefix or an IP address
+         cableMacInterface - All prefixes and routes of a cable mac interface"
+    SYNTAX          INTEGER {
+        all (0),
+        prefixOrIp (1), 
+        cableMacInterface (2)
+    }
+
+CadDhcpRaOptionMSOTextType ::= TEXTUAL-CONVENTION
+        STATUS          current
+        DESCRIPTION
+            "DHCP Relay Agent MSO Defined Text sub-option type. The value
+            `octet-string-text` indicates that a user specified octet string is used for the
+            sub-option. The value `hostname` indicates that up to the first 64 bytes
+            of the sysName MIB variable is used for the sub-option."
+        SYNTAX          INTEGER {
+            octet-string-text (1),
+            hostname (2)
+        }
+
+
+
+--===========Virtual Router DHCP Server Table================
+--=                                                         =
+--===========================================================
+
+cadVrDhcpServerTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadVrDhcpServerEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This Table describes the assignment of DHCP servers
+         to virtual router interfaces."
+	::= { cadDhcpRaMib 4 }
+
+cadVrDhcpServerEntry OBJECT-TYPE
+    SYNTAX      CadVrDhcpServerEntry
+    MAX-ACCESS  not-accessible
+    STATUS	    current
+    DESCRIPTION
+        "A conceptual row containing information related
+        to the internet service provider. "
+    INDEX { cadVrInterfaceIfIndex, cadVrDhcpServerIPAddress }
+    ::= { cadVrDhcpServerTable 1 }
+
+CadVrDhcpServerEntry ::=
+    SEQUENCE {
+        cadVrDhcpServerIPAddress InetAddressIPv4or6,
+        cadVrDhcpServerRowStatus RowStatus,
+	    cadVrDhcpServerIPAddressType InetAddressType,
+        cadVrDhcpServerTypes     CadCpeDeviceTypes
+    }
+
+cadVrDhcpServerIPAddress OBJECT-TYPE
+    SYNTAX      InetAddressIPv4or6
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Secondary Index into the DHCP server table.  This 
+         identifies the DHCP server for this vrInterface/portType
+         combination."
+    ::= { cadVrDhcpServerEntry 1 }
+
+cadVrDhcpServerRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Controls row creation and deletion."
+    ::= { cadVrDhcpServerEntry 3 }
+
+cadVrDhcpServerIPAddressType OBJECT-TYPE
+    SYNTAX      InetAddressType
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This identifies the IP address type for DHCP server for this vrInterface/portType
+         combination."
+    DEFVAL { ipv4 }
+    ::= { cadVrDhcpServerEntry 4 }
+
+cadVrDhcpServerTypes OBJECT-TYPE
+    SYNTAX      CadCpeDeviceTypes
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Indicates what type of traffic is
+        served by this DHCP server."
+    DEFVAL { {} }
+    ::= { cadVrDhcpServerEntry 5 }
+
+
+--==============DHCP Throttle Group==========================
+--=                                                         =
+--===========================================================
+
+cadDhcpThrottle OBJECT IDENTIFIER ::= { cadDhcpRaMib 5 }
+
+cadDhcpThrottleEnable OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Enable DHCP throttle feature."
+    DEFVAL { true }
+    ::= { cadDhcpThrottle 1 }
+
+cadDhcpThrottleBurstSize OBJECT-TYPE
+    SYNTAX      Unsigned32  (1..15)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+	"Maximum  size of DHCP throttle bucket."
+    DEFVAL { 10 }
+    ::= { cadDhcpThrottle 2 }
+
+cadDhcpThrottleRate OBJECT-TYPE
+    SYNTAX      Unsigned32  (1..10)
+    UNITS       "seconds"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+	"Rate in seconds between sending DHCP messages."
+    DEFVAL { 5 }
+    ::= { cadDhcpThrottle 3 }
+
+cadArpThrottleEnable OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Enable ARP throttle feature."
+    DEFVAL { true }
+    ::= { cadDhcpThrottle 4 }
+
+cadDhcpV6ThrottleEnable OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Enable IPv6 DHCPv6 throttle feature."
+    DEFVAL { true }
+   ::= { cadDhcpThrottle 5 }
+    
+cadNdThrottleEnable OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Enable IPv6 ND throttle feature."
+    DEFVAL { true }
+    ::= { cadDhcpThrottle 6 }
+
+--============== DHCP Relay Agent Option Group ===============
+--=                                                         =
+--===========================================================
+
+cadDhcpRaOption OBJECT IDENTIFIER  ::= { cadDhcpRaMib 6 }
+
+cadDhcpRaOptionType OBJECT-TYPE
+    SYNTAX CadDhcpRelayAgentOptionType
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The default DHCP Relay Agent Circuit-ID sub-option type if not
+        specified for an interface."
+    DEFVAL { mac-ifindex }
+    ::= { cadDhcpRaOption 1 }
+
+cadDhcpRaOptionString OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE (0..32))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The default DHCP Relay Agent Circuit-ID sub-option value to
+        use if the cadSysDhcpRaGlobalOptionType is octet-string-text
+        or octet-string-hex."
+    DEFVAL { "" }
+    ::= { cadDhcpRaOption 2 }
+
+
+
+
+--
+--
+--
+cadDhcpRaOptionUpstreamChannelTable OBJECT-TYPE
+    SYNTAX	SEQUENCE OF CadDhcpRaOptionUpstreamChannelEntry
+    MAX-ACCESS	not-accessible
+    STATUS	current
+    DESCRIPTION ""
+    ::= { cadDhcpRaOption 3 }
+
+cadDhcpRaOptionUpstreamChannelEntry OBJECT-TYPE
+    SYNTAX	CadDhcpRaOptionUpstreamChannelEntry
+    MAX-ACCESS	not-accessible
+    STATUS	current
+    DESCRIPTION
+        "A conceptual row containing information about upstream channels for the
+        DHCP Relay Agent TLV."
+    INDEX { ifIndex }
+    ::= { cadDhcpRaOptionUpstreamChannelTable 1 }
+
+CadDhcpRaOptionUpstreamChannelEntry ::=
+    SEQUENCE {
+        cadDhcpRaOptUpChannelOptionType   CadDhcpRelayAgentOptionType,
+        cadDhcpRaOptUpChannelOptionString OCTET STRING,
+        cadDhcpRaOptUpChannelStatus       RowStatus
+    }
+
+cadDhcpRaOptUpChannelOptionType OBJECT-TYPE
+    SYNTAX CadDhcpRelayAgentOptionType
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "DHCP Relay Agent Circuit-ID sub-option type."
+    DEFVAL { us-ifindex }
+    ::= { cadDhcpRaOptionUpstreamChannelEntry 1 }
+
+cadDhcpRaOptUpChannelOptionString OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE (0..32))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "DHCP Relay Agent Circuit-ID sub-option user specified string."
+    DEFVAL { "" }
+    ::= { cadDhcpRaOptionUpstreamChannelEntry 2 }
+
+cadDhcpRaOptUpChannelStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The status variable controlling row creation and deletion.
+        CreateAndGo(4) and delete(6) are the currently supported
+        values."
+    ::= { cadDhcpRaOptionUpstreamChannelEntry 3 }
+
+
+cadVrDhcpRelaySrcInterfaceIndex OBJECT-TYPE
+    SYNTAX      InterfaceIndexOrZero
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                 "This object specifies the selection of the layer 3 interface ifIndex 
+                  of the SIP field in the DHCPv6 relay forward message. 
+                  The default value is 0, which means that the routing stack will pick 
+                  the appropriate RCM IP address. The options are cable MAC virtual interface ifIndex 
+                  or a loopback virtual router interface ifIndex"
+    DEFVAL { 0 }
+    ::= { cadDhcpRaOption 4 }
+
+cadVrDhcpRelaySrcInterfaceLinkAddrEnabled OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                 "This object specifies whether the link address of the source interface 
+                  of the CM/CPE DHCPv6 message is used as a SIP in the DHCPv6 relay forward message."
+    DEFVAL { true }
+    ::= { cadDhcpRaOption 5 }
+
+cadVrDhcpRaOptionScnEnable OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                 "This object specifies whether enterprise 4491 (CableLabs) vendor specific
+                  information suboption (suboption 9) of the DHCP relay agent option
+                  (option 82) is to be populated with the CMTS CM service class suboption
+                  (sub-suboption 5) information for CPE DHCP requests."
+    DEFVAL { false }
+    ::= { cadDhcpRaOption 6 }
+
+cadDhcpRaOptionMSOTextType OBJECT-TYPE
+    SYNTAX CadDhcpRaOptionMSOTextType
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The DHCP Relay Agent MSO Defined Text sub-option
+        type."
+    DEFVAL { octet-string-text }
+    ::= { cadDhcpRaOption 7 }
+
+cadDhcpRaOptionMSOTextString OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE (0..64))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The DHCP Relay Agent MSO Defined Text sub-option
+        value to use if the cadDhcpRaOptionMSOTextType is
+	octet-string-text."
+    DEFVAL { "" }
+        ::= { cadDhcpRaOption 8 }
+
+cadDhcpRaOptionChannelMSOTextTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadDhcpRaOptionChannelMSOTextEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    ::= { cadDhcpRaOption 9 }
+
+cadDhcpRaOptionChannelMSOTextEntry OBJECT-TYPE
+    SYNTAX      CadDhcpRaOptionChannelMSOTextEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row containing information about channels for the DHCP
+        Relay Agent MSO Defined Text sub-option TLV. The ifIndex must be
+        an upstream channel ifIndex."
+    INDEX { ifIndex }
+    ::= { cadDhcpRaOptionChannelMSOTextTable 1 }
+
+CadDhcpRaOptionChannelMSOTextEntry ::=
+    SEQUENCE {
+        cadDhcpRaOptionChannelMSOTextType   CadDhcpRaOptionMSOTextType,
+        cadDhcpRaOptionChannelMSOTextString OCTET STRING,
+        cadDhcpRaOptionChannelMSOTextStatus RowStatus
+    }
+
+cadDhcpRaOptionChannelMSOTextType OBJECT-TYPE
+    SYNTAX CadDhcpRaOptionMSOTextType
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "DHCP Relay Agent MSO Defined Text sub-option type."
+    DEFVAL { octet-string-text }
+    ::= { cadDhcpRaOptionChannelMSOTextEntry 1 }
+
+cadDhcpRaOptionChannelMSOTextString OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE (0..64))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "DHCP Relay Agent MSO Defined Text sub-option user specified string."
+    DEFVAL { "" }
+    ::= { cadDhcpRaOptionChannelMSOTextEntry 2 }
+
+cadDhcpRaOptionChannelMSOTextStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The status variable controlling row creation and deletion.
+        CreateAndGo(4) and delete(6) are the currently supported
+        values."
+    ::= { cadDhcpRaOptionChannelMSOTextEntry 3 }
+
+cadVrDhcpRaOptionFanoutDisabled OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This object is used to disable fanning out of CPE DHCP
+         requests across DHCP servers on multiple subinterfaces 
+         by the DHCP relay agent."
+    DEFVAL { false }
+    ::= { cadDhcpRaOption 10 }
+
+
+cadDhcpRaLeaseQuery OBJECT IDENTIFIER  ::= { cadDhcpRaMib 7 }
+
+cadDhcpRaLeasequeryVersion OBJECT-TYPE
+    SYNTAX      INTEGER {
+        draft-0 (1),
+        draft-2 (3),
+        draft-4 (5),
+        rfc-4388 (11)
+    }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Indicates which version of DHCP Lease Query is supported.
+         This object does not apply to IPv6."
+    DEFVAL { draft-0 }
+    ::= { cadDhcpRaLeaseQuery 1 }
+
+cadDhcpRaLeasequeryMessageType OBJECT-TYPE
+    SYNTAX      INTEGER (9..13)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Indicates the message type value of the DHCPLEASEQUERY
+        message if operating in one of the draft modes. If the
+        mode is rfc-4388, then the value for the DHCPLEASEQUERY
+        message will be 10 and this parameter is ignored. The
+        message type for the DHCPLEASEKNOWN, DHCPLEASEUNKNOWN and
+        DHCPACTIVE messages will be the value of DHCPLEASEQUERY
+        plus 1, 2, and 3 respectively. This object does not apply to IPv6."
+    DEFVAL { 13 }
+    ::= { cadDhcpRaLeaseQuery 2 }
+
+
+--===========Virtual Router DHCP Server Table================
+--=                                                         =
+--===========================================================
+
+cadVrDhcpLinkAddressTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadVrDhcpLinkAddressEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This Table describes the assignment of link addresses 
+         used by the DHCP relay agent."
+    ::= { cadDhcpRaMib 8 }
+
+cadVrDhcpLinkAddressEntry OBJECT-TYPE
+    SYNTAX      CadVrDhcpLinkAddressEntry
+    MAX-ACCESS  not-accessible
+    STATUS	    current
+    DESCRIPTION
+        "A conceptual row containing information related
+        to the DHCP relay agent link."
+    INDEX { cadVrInterfaceIfIndex, cadVrDhcpLinkAddressType, 
+            cadVrDhcpLinkAddress, cadVrDhcpLinkType }
+    ::= { cadVrDhcpLinkAddressTable 1 }
+
+CadVrDhcpLinkAddressEntry ::=
+    SEQUENCE {
+	cadVrDhcpLinkAddressType InetAddressType,
+        cadVrDhcpLinkAddress     InetAddressIPv4or6,
+        cadVrDhcpLinkType        CadBridgePortType,
+        cadVrDhcpLinkRowStatus   RowStatus
+    }
+
+cadVrDhcpLinkAddressType OBJECT-TYPE
+    SYNTAX      InetAddressType
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This identifies the IP address type for the link."
+    ::= { cadVrDhcpLinkAddressEntry 1 }
+
+cadVrDhcpLinkAddress OBJECT-TYPE
+    SYNTAX      InetAddressIPv4or6
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Secondary Index into the DHCP server table.  This 
+         identifies the DHCP server for this vrInterface/portType
+         combination."
+    ::= { cadVrDhcpLinkAddressEntry 2 }
+
+cadVrDhcpLinkType OBJECT-TYPE
+    SYNTAX      CadBridgePortType
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Tertiary index indicating what type of traffic is served
+         by this DHCP server."
+    ::= { cadVrDhcpLinkAddressEntry 3 }
+
+cadVrDhcpLinkRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Controls row creation and deletion. Valid values are 
+         createAndGo(4) and delete(6)."
+    ::= { cadVrDhcpLinkAddressEntry 4 }
+
+--===========DHCP Prefix Delegation Group=======================
+--=                                                                                                                              =
+--===========================================================
+
+cadDhcpPd OBJECT IDENTIFIER  ::= { cadDhcpRaMib 9}
+
+cadDhcpPdRiEnabled OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+     "Global enable or disable route injection for DHCP 
+      Relay IPv6 prefix delegation. If set to true, then 
+      enabled. If set to false, then disabled"
+    DEFVAL { true }
+    ::= { cadDhcpPd 1 }
+
+cadDhcpPdPrefixStabilityEnabled  OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+     "This object specifies whether the IPV6 Prefix
+      Stability is enabled or not. If set to true, then 
+      enabled. If set to false, then disabled"
+    DEFVAL { true }
+    ::= { cadDhcpPd 2 }
+
+
+--=====DHCP Virtual Router Prefix Delegation Table===========
+--=                                                         =
+--===========================================================
+cadVrDhcpPdTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadVrDhcpPdEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+      "This table describes the DHCP client information associated
+       with IPv6 prefix delegation."
+    ::= { cadDhcpRaMib 10 }
+
+cadVrDhcpPdEntry OBJECT-TYPE
+    SYNTAX      CadVrDhcpPdEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row containing information related
+        to the DHCP relay prefix delegation."
+    INDEX {
+      cadVrDhcpPdClientIpv6Addr, cadVrDhcpPdClientIaid
+    }
+    ::= { cadVrDhcpPdTable 1 }
+
+CadVrDhcpPdEntry ::=
+    SEQUENCE {
+        cadVrDhcpPdClientIpv6Addr     InetAddressIPv6,
+        cadVrDhcpPdClientIaid         Unsigned32,
+        cadVrDhcpPdIfIndex            Integer32,
+        cadVrDhcpPdClientDuid         OCTET STRING,
+        cadVrDhcpPdCmMacAddress       MacAddress,
+        cadVrDhcpPdT1                 Unsigned32,
+        cadVrDhcpPdT2                 Unsigned32
+    }
+
+cadVrDhcpPdClientIpv6Addr OBJECT-TYPE
+    SYNTAX      InetAddressIPv6
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+      "This identifies the requesting DHCP client IPv6 
+       Link-local address."
+    ::= { cadVrDhcpPdEntry 1 }
+
+cadVrDhcpPdClientIaid OBJECT-TYPE
+    SYNTAX      Unsigned32 
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+      "The requesting DHCP client identity association 
+       identification number. One of the keys for
+       cadVrDhcpPdPrefixEntry "
+    ::= { cadVrDhcpPdEntry 2 }
+
+cadVrDhcpPdIfIndex OBJECT-TYPE
+    SYNTAX      Integer32 (0..2147483647)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+      "This identifies the CMTS interface index 
+       associated with the requesting DHCP client."
+    ::= { cadVrDhcpPdEntry 3 }
+
+cadVrDhcpPdClientDuid OBJECT-TYPE
+    SYNTAX       OCTET STRING
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+      "The client DHCP unique identifier."
+    ::= { cadVrDhcpPdEntry 4 }
+
+cadVrDhcpPdCmMacAddress OBJECT-TYPE
+    SYNTAX      MacAddress 
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+      "This identifies the Mac address associated 
+       with the requesting DHCP client."
+    ::= { cadVrDhcpPdEntry 5 }
+
+cadVrDhcpPdT1 OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..4294967295)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+      "The time duration relative to the current time,
+       expressed in units of seconds, at which the requesting 
+       client should contact the delegating router from which the
+       prefixes in the IA_PD were obtained to extend the
+       lifetimes of the prefixes delegated to the IA_PD"
+    ::= { cadVrDhcpPdEntry 6 }
+
+cadVrDhcpPdT2 OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..4294967295)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+      "The time duration relative to the current time
+       expressed in units of seconds at which the requesting 
+       client should contact any available delegating router 
+       to extend the lifetimes of the prefixes assigned to the IA_PD"
+    ::= { cadVrDhcpPdEntry 7 }
+
+
+
+--==DHCP Virtual Router Prefix Delegation Prefix Table=======
+--=                                                         =
+--===========================================================
+
+cadVrDhcpPdPrefixTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadVrDhcpPdPrefixEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table describes the IPv6 prefixes that have
+         been delegated by the DHCP server and learned by the 
+         DHCP relay agent."
+    ::= { cadDhcpRaMib 11 }
+
+cadVrDhcpPdPrefixEntry OBJECT-TYPE
+    SYNTAX      CadVrDhcpPdPrefixEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row containing information related
+         to the DHCP relay prefix delegation."
+    INDEX {
+        cadVrDhcpPdPreClientIpv6Addr,
+        cadVrDhcpPdPreClientIaid,
+        cadVrDhcpPdPrePrefix,
+        cadVrDhcpPdPrePrefixLength
+      }
+    ::= { cadVrDhcpPdPrefixTable 1 }
+
+CadVrDhcpPdPrefixEntry ::=
+    SEQUENCE {
+        cadVrDhcpPdPreClientIpv6Addr     InetAddressIPv6,
+        cadVrDhcpPdPreClientIaid         Unsigned32,
+        cadVrDhcpPdPrePrefix             InetAddressIPv6,
+        cadVrDhcpPdPrePrefixLength       Integer32,
+        cadVrDhcpPdPrePreferredLifetime  Unsigned32,
+        cadVrDhcpPdPreValidLifetime      Unsigned32,
+        cadVrDhcpPdPreRouteInject        TruthValue,
+        cadVrDhcpPdPreExpirytime         Unsigned32
+    }
+
+cadVrDhcpPdPreClientIpv6Addr OBJECT-TYPE
+    SYNTAX      InetAddressIPv6
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+      "This identifies the requesting DHCP client IPv6 
+       Link-local address."
+    ::= { cadVrDhcpPdPrefixEntry 1 }
+
+cadVrDhcpPdPreClientIaid OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The requesting DHCP client identity association 
+         identification number."
+    ::= { cadVrDhcpPdPrefixEntry 2 }
+
+cadVrDhcpPdPrePrefix OBJECT-TYPE
+    SYNTAX      InetAddressIPv6
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This identifies the delegated IPv6 prefix."
+    ::= { cadVrDhcpPdPrefixEntry 3 }
+
+cadVrDhcpPdPrePrefixLength OBJECT-TYPE
+    SYNTAX      Integer32  (0..128)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This identifies the delegated IPv6 prefix length."
+    ::= { cadVrDhcpPdPrefixEntry 4 }
+
+cadVrDhcpPdPrePreferredLifetime OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..4294967295)
+    UNITS       "seconds"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+      "The prefix preferred time, in seconds, as received from
+       the DHCPv6 server.
+       A value of 4,294,967,295 (0xFFFFFFFF) represents infinity."
+    ::= { cadVrDhcpPdPrefixEntry 5 }
+
+cadVrDhcpPdPreValidLifetime OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..4294967295)
+    UNITS       "seconds"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+      "The prefix valid time, in seconds, as received from
+       the DHCPv6 server. 
+       A value of 4,294,967,295 (0xFFFFFFFF) represents infinity."
+    ::= { cadVrDhcpPdPrefixEntry 6 }
+
+cadVrDhcpPdPreRouteInject OBJECT-TYPE
+    SYNTAX       TruthValue
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "If true, then a route for this prefix and length has been injected 
+         into the routing table. If false, then a route for this prefix and 
+         length has not been injected into the routing table"
+
+    ::=  { cadVrDhcpPdPrefixEntry 7 }
+
+
+cadVrDhcpPdPreExpirytime OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..4294967295)
+    UNITS       "seconds"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+      "The time, in seconds, when this prefix expires. A value 
+       of 4,294,967,295 (0xFFFFFFFF) represents infinity."
+    ::= { cadVrDhcpPdPrefixEntry 8 }
+
+--==DHCP Virtual Router Prefix Delegation Prefix Table=======
+--=                                                         =
+--===========================================================
+
+cadVrDhcpRelayEgressIfTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadVrDhcpRelayEgressIfEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+            "Cadant Virtual Router DHCP Relay Egress Interface Table"
+    ::= { cadDhcpRaMib 12 }
+
+cadVrDhcpRelayEgressIfEntry OBJECT-TYPE
+    SYNTAX      CadVrDhcpRelayEgressIfEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+            "each interface must be a unique network interface of RCM"
+    INDEX { cadVrDhcpRelayEgressIfIndex    }
+    ::= { cadVrDhcpRelayEgressIfTable 1 }
+
+CadVrDhcpRelayEgressIfEntry ::= SEQUENCE
+    {
+        cadVrDhcpRelayEgressIfIndex    InterfaceIndex,
+        cadVrDhcpRelayEgressIfRowStatus  RowStatus
+    }
+
+cadVrDhcpRelayEgressIfIndex OBJECT-TYPE
+    SYNTAX      InterfaceIndex
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+         " This object specifies an Egress interface over which multicast DHCP relay forward messages are sent."
+    ::= { cadVrDhcpRelayEgressIfEntry 1 }
+
+cadVrDhcpRelayEgressIfRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION 
+            "Row Status for this table."
+    ::= { cadVrDhcpRelayEgressIfEntry 2 }
+
+
+--============== DHCP  PD Prefix Action Group ===================================
+--=   Usage:                                                                    =
+--=     1. Set CadDhcpPDPrefixActionDataType first                              =
+--=     2. Set cadDhcpPdPrefixActionDataIfIndex if type is cableMacInterface    =
+--=        Set cadDhcpPdPrefixActionDataPrefixOrIp &                            =
+--=                cadDhcpPdPrefixActionDataPrefixOrIpLen if type is prefixOrIp =
+--=        nothing needs to be set if type is all                               =
+--=     3. Set cadDhcpPdPrefixActionType to make action happen                  =
+--===============================================================================
+
+cadDhcpPdPrefixAction OBJECT IDENTIFIER  ::= { cadDhcpRaMib 13 }
+
+cadDhcpPdPrefixActionType OBJECT-TYPE
+    SYNTAX CadDhcpPDPreActionType
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Action to be performed."
+    DEFVAL { none }
+    ::= { cadDhcpPdPrefixAction 1 }
+
+cadDhcpPdPrefixActionDataType OBJECT-TYPE
+    SYNTAX CadDhcpPDPreActionDataType
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "type of data"
+    DEFVAL { all }
+    ::= { cadDhcpPdPrefixAction 2 }
+
+cadDhcpPdPrefixActionDataIfIndex OBJECT-TYPE
+    SYNTAX      InterfaceIndexOrZero
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "cable mac VrInterface ifIndex - only valid when cadDhcpPdPrefixActionType
+          is set to cableMacInterface"
+    DEFVAL { 0 }
+    ::= { cadDhcpPdPrefixAction 3 }
+
+cadDhcpPdPrefixActionDataPrefixOrIp OBJECT-TYPE
+    SYNTAX      InetAddressIPv6
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "ipv6 prefix or IP address - only valid when cadDhcpPdPrefixActionType
+          is set to prefixOrIp"
+    DEFVAL { "" }
+    ::= { cadDhcpPdPrefixAction 4 }
+
+cadDhcpPdPrefixActionDataPrefixOrIpLen OBJECT-TYPE
+    SYNTAX      Integer32  (0..128)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "ipv6 prefix or IP address length - only valid when cadDhcpPdPrefixActionType
+          is set to prefixOrIp"
+    DEFVAL { 0 }
+    ::= { cadDhcpPdPrefixAction 5 }
+
+cadDhcpPdBLQFailedGrp OBJECT IDENTIFIER  ::= { cadDhcpRaMib 14 }
+
+cadDhcpPdBLQFailedTCPSIP    OBJECT-TYPE
+    SYNTAX      InetAddressIPv6
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The SIP of the last failed TCP connection between the CMTS and the DHCPv6 server during the
+         bulk lease query process"
+    ::= { cadDhcpPdBLQFailedGrp 1 }
+
+cadDhcpPdBLQFailedTCPDIP    OBJECT-TYPE
+    SYNTAX      InetAddressIPv6
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The DIP of the last failed TCP connection between the CMTS and the DHCPv6 server during the
+         bulk lease query process"
+    ::= { cadDhcpPdBLQFailedGrp 2 }
+
+cadDhcpPdBLQFailedTCPTime   OBJECT-TYPE
+    SYNTAX      DateAndTime
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The time of the last failed TCP connection between the CMTS and the DHCPv6 server during the 
+         bulk lease query process"
+    ::= { cadDhcpPdBLQFailedGrp 3 }
+
+cadDhcpPdBLQFailedTCPNum    OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The total number of failed TCP connections between the CMTS and the DHCPv6 server during the 
+         bulk lease query process"
+    ::= { cadDhcpPdBLQFailedGrp 4 }
+
+END
+
+

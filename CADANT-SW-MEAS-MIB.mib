@@ -1,0 +1,556 @@
+CADANT-SW-MEAS-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    OBJECT-TYPE, 
+    MODULE-IDENTITY, 
+    Integer32, 
+    Unsigned32,
+    Counter32, 
+    Counter64
+	FROM SNMPv2-SMI
+    DisplayString, 
+    MacAddress,
+    TEXTUAL-CONVENTION
+	FROM SNMPv2-TC
+    InterfaceIndex, 
+    ifIndex
+	FROM IF-MIB
+    CardId
+	FROM CADANT-TC
+    cadExperimental
+        FROM CADANT-PRODUCTS-MIB;
+        
+cadSoftwareMeasMib MODULE-IDENTITY
+    LAST-UPDATED "201409040000Z"  -- Sep 4, 2014
+    ORGANIZATION 
+	"Arris International, Inc."
+    CONTACT-INFO 
+	"Arris Technical Support
+	 Postal: ARRIS
+	 E-Mail: support@arrisi.com"
+	DESCRIPTION	"This Mib Module contains all of the soft counts associated with software in the Arris C4 CMTS."
+
+
+    REVISION "201409040000Z"  -- Sep 4, 2014
+    DESCRIPTION "Add global scaling counts and cadCamScaleTable."
+
+    REVISION "201207070000Z"  -- July 7, 2012
+    DESCRIPTION "Remove cadUpChannelULBOverride."
+
+    REVISION "200612140000Z"
+    DESCRIPTION "Modify the index of cadSWUChannelMeasEntry."
+
+
+    REVISION "200604140000Z"
+    DESCRIPTION "Removed cadUpChannelAvgContSlots. (moved to CADANT-HW-MEAS-MIB)"
+
+    REVISION "200602080000Z"
+    DESCRIPTION "Added additional UGS measurements."
+
+    REVISION "200601300000Z"
+    DESCRIPTION "Added implementation per utilization interval for cadUpChannelAvgContSlots, cadUpChannelAvgUtil."
+
+    REVISION "200601240000Z"
+    DESCRIPTION "Add delta count implementation ."
+
+    REVISION "200601100000Z"
+    DESCRIPTION "Added UGS count / measurements for Time Warner."
+
+    REVISION "200510110000Z"
+    DESCRIPTION "Added support for intelligent channel optimization."
+
+    REVISION "200508180000Z"
+    DESCRIPTION "Added cadUpChannelIngressCancellationBandwidth."
+
+    REVISION "200312220000Z" 
+    DESCRIPTION "added cadUpChannelRequestSizeMslots and cadUpChannelInitialMaintSizeMslots"
+
+    REVISION "200110230000Z"
+    DESCRIPTION "created"
+
+        ::= { cadExperimental 9 }
+
+
+--==================SW Scale Group ==================--
+--
+cadChassisScaleGroup         OBJECT IDENTIFIER  ::= { cadSoftwareMeasMib 1 }
+
+cadantTotalDevices OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+            "The current total number of devices in the E6000 CER."
+        ::= { cadChassisScaleGroup 1 }
+
+cadantDsBondedDevices OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+                "The current total number of DS bonded devices in the E6000 CER."
+        ::= { cadChassisScaleGroup 2 }
+
+cadantUsBondedDevices OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+            "The current total number of US bonded devices in the E6000 CER."
+        ::= { cadChassisScaleGroup 3 }
+
+cadantTotalServiceFlows OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+            "The current total number of SFs in the E6000 CER."
+        ::= { cadChassisScaleGroup 4 }
+
+cadantTotalClassifiers OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+       DESCRIPTION 
+            "The current total number of classifiers in the E6000 CER."
+        ::= { cadChassisScaleGroup 5 }
+
+cadantTotalArpEntries OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+            "The current total number of ARP table entries for IPv4
+             addresses in the E6000 CER."
+        ::= { cadChassisScaleGroup 6 }
+
+cadantTotalIpv4Routes OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+            "The current total number of IPv4 routes in the E6000 CER."
+        ::= { cadChassisScaleGroup 7 }
+
+cadantTotalNdEntries OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+            "The current total number of Neighbor Discovery entries for
+             IPv6 addresses in the E6000 CER."
+        ::= { cadChassisScaleGroup 8 }
+
+cadantTotalIpv6Routes OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+            "The current total number of IPv6 routes in the E6000 CER."
+        ::= { cadChassisScaleGroup 9 }
+
+cadantDocsisMulticastStreams OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+            "The current total number of DOCSIS multicast streams that
+             are currently joined."
+        ::= { cadChassisScaleGroup 10 }
+
+cadantVideoMulticastStreams OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+            "The current total number of IEQ video multicast streams that
+             are currently joined."
+        ::= { cadChassisScaleGroup 11 }
+
+cadantTotalCpe OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+            "The current total number of cpe devices in the E6000 CER."
+        ::= { cadChassisScaleGroup 12 }
+
+
+
+--======= U Port SW Meas Table ===============
+--
+cadSWUChannelMeasTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadSWUChannelMeasEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+	" This table contains software counts in the upstream channels."
+    ::= { cadSoftwareMeasMib 2 }
+
+cadSWUChannelMeasEntry OBJECT-TYPE
+    SYNTAX  CadSWUChannelMeasEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+    "List of counts or measurements for a single upstream channel. 
+	 For Docsis 2.0 CMTSs, an entry in this table exists for 
+     each ifEntry with an ifType of docsCableUpstreamChannel (205).
+     For Docsis 1.x CM/CMTSs and Docsis 2.0 CMs, an entry in this table exists 
+     for each ifEntry with an ifType of docsCableUpstreamInterface (129)."
+    INDEX { ifIndex }
+        ::= { cadSWUChannelMeasTable  1 }
+
+CadSWUChannelMeasEntry ::= SEQUENCE {
+    cadUpChannelRequestSizeMslots      Counter64,
+    cadUpChannelInitialMaintSizeMslots Counter64,
+    cadUpChannelIngressCancellationBandwidth Integer32,
+    cadUpChannelAttenuation            Integer32,
+    cadUpChannelRFCalibration          OCTET STRING,
+    cadUpChannelTScale                 Integer32,
+    cadUpChannelSScale                 Integer32
+}
+
+cadUpChannelRequestSizeMslots OBJECT-TYPE
+    SYNTAX                  Counter64
+    MAX-ACCESS              read-only
+    STATUS                  current
+    DESCRIPTION "" 
+    ::= { cadSWUChannelMeasEntry  2 }
+
+cadUpChannelInitialMaintSizeMslots OBJECT-TYPE
+    SYNTAX                  Counter64
+    MAX-ACCESS              read-only
+    STATUS                  current
+    DESCRIPTION "" 
+    ::= { cadSWUChannelMeasEntry  3 }
+
+cadUpChannelIngressCancellationBandwidth OBJECT-TYPE
+    SYNTAX       Integer32 (0..100)
+    UNITS        "percent"
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION 
+	"The utilization index is a percentage expressing the ratio between 
+	 minislots reserved for ingress cancellation analysis versus the total 
+	 number of minislots for upstream transmission.
+	 Formula:
+	   ingress cancellation bandwidth = 
+	    (cancellation_minislots_per_second / total_minislots_per_second) * 100% "
+    ::= { cadSWUChannelMeasEntry 4 }
+
+cadUpChannelAttenuation OBJECT-TYPE
+    SYNTAX                  Integer32
+    MAX-ACCESS              read-only
+    STATUS                  current
+    DESCRIPTION 
+        "RF input amplifier attenuation" 
+    ::= { cadSWUChannelMeasEntry  5 }
+
+cadUpChannelRFCalibration OBJECT-TYPE
+    SYNTAX                  OCTET STRING (SIZE(3))
+    MAX-ACCESS              read-only
+    STATUS                  current
+    DESCRIPTION 
+        "Factory RF calibration settings."
+    ::= { cadSWUChannelMeasEntry  6 }
+
+cadUpChannelTScale OBJECT-TYPE
+    SYNTAX                  Integer32
+    MAX-ACCESS              read-only
+    STATUS                  current
+    DESCRIPTION 
+        "TDMA nominal burst gain adjusting factor" 
+    ::= { cadSWUChannelMeasEntry  7 }
+
+cadUpChannelSScale OBJECT-TYPE
+    SYNTAX                  Integer32
+    MAX-ACCESS              read-only
+    STATUS                  current
+    DESCRIPTION 
+        "SCDMA nominal burst gain adjusting factor" 
+    ::= { cadSWUChannelMeasEntry  8 }
+
+
+--
+-- counts / measurements for logical upstream channel
+--
+cadUpChannelStatsTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CadUpChannelStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table of counts and measurements for a logical upstream
+		 channel."
+    ::= { cadSoftwareMeasMib 3 }
+
+cadUpChannelStatsEntry OBJECT-TYPE
+    SYNTAX      CadUpChannelStatsEntry 
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The measurements for a logical upstream channel."
+    INDEX { ifIndex } -- ifType of 205    
+	::= { cadUpChannelStatsTable 1 } 
+
+CadUpChannelStatsEntry ::= SEQUENCE {
+    cadUpChannelMaxUGSLastOneHour   Unsigned32,
+    cadUpChannelAvgUGSLastOneHour   Unsigned32,
+    cadUpChannelMinUGSLastOneHour   Unsigned32,
+    cadUpChannelMaxUGSLastFiveMins  Unsigned32,
+    cadUpChannelAvgUGSLastFiveMins  Unsigned32,
+    cadUpChannelMinUGSLastFiveMins  Unsigned32,
+    cadUpChannelNormalUGSDeniedLastOneHour       Unsigned32,
+    cadUpChannelNormalUGSDeniedLastFiveMins      Unsigned32,
+    cadUpChannelEmergencyUGSDeniedLastOneHour    Unsigned32,
+    cadUpChannelEmergencyUGSDeniedLastFiveMins   Unsigned32,
+    cadUpChannelTotalNormalUGSLastOneHour        Unsigned32,
+    cadUpChannelTotalNormalUGSLastFiveMins       Unsigned32,
+    cadUpChannelTotalEmergencyUGSLastOneHour     Unsigned32,
+    cadUpChannelTotalEmergencyUGSLastFiveMins    Unsigned32
+}
+
+cadUpChannelMaxUGSLastOneHour OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+            "This object indicates the maximum number of 
+             Unsolicited Grant Service (UGS) allocated on a
+             given upstream in the last one hour. This would be
+             used for the user to evaluate traffic load at any
+             given time of the day."
+    ::= { cadUpChannelStatsEntry 1 }
+
+cadUpChannelAvgUGSLastOneHour OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+            "This object indicates the average number of 
+             Unsolicited Grant Service (UGS) allocated on a
+             given upstream in the last one hour. This would be
+             used for the user to evaluate traffic load at any
+             given time of the day."
+    ::= { cadUpChannelStatsEntry 2 }
+
+cadUpChannelMinUGSLastOneHour OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+            "This object indicates the minimum number of 
+             Unsolicited Grant Service (UGS) allocated on a
+             given upstream in the last one hour. This would be
+             used for the user to evaluate traffic load at any
+             given time of the day."
+    ::= { cadUpChannelStatsEntry 3 }
+
+cadUpChannelMaxUGSLastFiveMins OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+            "This object indicates the maximum number of 
+             Unsolicited Grant Service (UGS) allocated on a
+             given upstream in the last five minutes. This would 
+             be used for the user to evaluate traffic load at
+             any given time of the day."
+    ::= { cadUpChannelStatsEntry 4 }
+
+cadUpChannelAvgUGSLastFiveMins OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+            "This object indicates the average number of 
+             Unsolicited Grant Service (UGS) allocated on a
+             given upstream in the last five minutes. This would 
+             be used for the user to evaluate traffic load at
+             any given time of the day."
+    ::= { cadUpChannelStatsEntry 5 }
+
+cadUpChannelMinUGSLastFiveMins OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+            "This object indicates the minimum number of 
+             Unsolicited Grant Service (UGS) allocated on a
+             given upstream in the last five minutes. This would 
+             be used for the user to evaluate traffic load at
+             any given time of the day."
+    ::= { cadUpChannelStatsEntry 6 }
+
+cadUpChannelNormalUGSDeniedLastOneHour OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+       "This object indicates the total normal calls that were denied in the last one hour."
+    ::= { cadUpChannelStatsEntry 7 }
+
+cadUpChannelNormalUGSDeniedLastFiveMins OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+       "This object indicates the total normal calls that were denied in the last 5 minutes."
+    ::= { cadUpChannelStatsEntry 8 }
+
+cadUpChannelEmergencyUGSDeniedLastOneHour OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+       "This object indicates the total emergency calls that were denied in the last one hour."
+    ::= { cadUpChannelStatsEntry 9 }
+
+cadUpChannelEmergencyUGSDeniedLastFiveMins OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+       "This object indicates the total emergency calls that were denied in the last 5 minutes."
+    ::= { cadUpChannelStatsEntry 10 }
+
+cadUpChannelTotalNormalUGSLastOneHour OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+       "This object indicates the total normal calls in the last one hour."
+    ::= { cadUpChannelStatsEntry 11 }
+
+cadUpChannelTotalNormalUGSLastFiveMins OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+       "This object indicates the total normal calls in the last 5 minutes."
+    ::= { cadUpChannelStatsEntry 12 }
+
+cadUpChannelTotalEmergencyUGSLastOneHour OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+       "This object indicates the total emergency calls in the last one hour."
+    ::= { cadUpChannelStatsEntry 13 }
+
+cadUpChannelTotalEmergencyUGSLastFiveMins OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+       "This object indicates the total emergency calls in the last 5 minutes."
+    ::= { cadUpChannelStatsEntry 14 }
+
+
+--======= CAM Scale Table ===============
+--
+
+cadCamScaleTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF CadCamScaleEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+       "This table contains scale counts per non-spare CAM."
+    ::= { cadSoftwareMeasMib 4 }
+
+cadCamScaleEntry OBJECT-TYPE
+    SYNTAX  CadCamScaleEntry
+    MAX-ACCESS      not-accessible
+    STATUS  current
+    DESCRIPTION
+    "The current scale counts for this non-spare CAM."
+    INDEX { cadCamScaleCardId }
+        ::= { cadCamScaleTable  1 }
+
+CadCamScaleEntry ::= SEQUENCE {
+    cadCamScaleCardId          CardId,
+    cadCamScaleDevices         Unsigned32,
+    cadCamScaleBondedDevices   Unsigned32,
+    cadCamScaleServiceFlows    Unsigned32,
+    cadCamScaleClassifiers     Unsigned32,
+    cadCamScaleIpv4Addresses   Unsigned32,
+    cadCamScaleIpv6Addresses   Unsigned32,
+    cadCamScaleUsRangeCount    Unsigned32,
+    cadCamScaleTotalCpe        Unsigned32
+}
+
+cadCamScaleCardId OBJECT-TYPE
+    SYNTAX   CardId (1..6 | 9..14)
+    MAX-ACCESS              not-accessible
+    STATUS                  current
+    DESCRIPTION "Card Id of the Cam. There is no row for spare CAM slots." 
+    ::= { cadCamScaleEntry  1 }
+
+cadCamScaleDevices OBJECT-TYPE
+    SYNTAX                  Unsigned32
+    MAX-ACCESS              read-only
+    STATUS                  current
+    DESCRIPTION 
+        "Current number of devices on the CAM." 
+    ::= { cadCamScaleEntry  2 }
+
+cadCamScaleBondedDevices OBJECT-TYPE
+    SYNTAX                  Unsigned32
+    MAX-ACCESS              read-only
+    STATUS                  current
+    DESCRIPTION 
+        "Current number of bonded devices on the CAM." 
+    ::= { cadCamScaleEntry  3 }
+
+cadCamScaleServiceFlows OBJECT-TYPE
+    SYNTAX                  Unsigned32
+    MAX-ACCESS              read-only
+    STATUS                  current
+    DESCRIPTION 
+        "Current number of DS SFs on a DCAM. 
+         Current number US SFs on a UCAM." 
+    ::= { cadCamScaleEntry  4 } 
+
+cadCamScaleClassifiers OBJECT-TYPE
+    SYNTAX                  Unsigned32
+    MAX-ACCESS              read-only
+    STATUS                  current
+    DESCRIPTION 
+        "Current number of Classifiers in use on the CAM." 
+    ::= { cadCamScaleEntry  5 } 
+
+cadCamScaleIpv4Addresses OBJECT-TYPE
+    SYNTAX                  Unsigned32
+    MAX-ACCESS              read-only
+    STATUS                  current
+    DESCRIPTION 
+        "Current number of IPv4 addresses on the CAM." 
+    ::= { cadCamScaleEntry  6 } 
+
+cadCamScaleIpv6Addresses OBJECT-TYPE
+    SYNTAX                  Unsigned32
+    MAX-ACCESS              read-only
+    STATUS                  current
+    DESCRIPTION 
+        "Current number of IPv6 Addresses on the CAM." 
+    ::= { cadCamScaleEntry  7 }
+
+cadCamScaleUsRangeCount OBJECT-TYPE
+    SYNTAX                  Unsigned32
+    MAX-ACCESS              read-only
+    STATUS                  current
+    DESCRIPTION 
+        "Total US channels requiring ranging. Each CM with N channels 
+         in-service to this UCAM adds N to the count (e.g., a 4 US bonded
+         CM adds 4 to this count). Unbonded modems add one to the count.
+         For DCAMs, this count is always zero." 
+    ::= { cadCamScaleEntry  8 }
+
+cadCamScaleTotalCpe OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+            "The current total number of cpe devices on this CAM."
+        ::= { cadCamScaleEntry  9 }
+
+END

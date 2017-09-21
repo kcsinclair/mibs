@@ -1,0 +1,1602 @@
+--  =================================================================
+-- Copyright (C) 2011 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description: HUAWEI VPLS management MIB for access network device.
+-- Reference:
+-- Version: V1.01
+-- =================================================================
+    HUAWEI-DSLAM-VPLS-MIB DEFINITIONS ::= BEGIN
+
+        IMPORTS
+            hwMpls
+                FROM HUAWEI-MIB
+            ifIndex, InterfaceIndex
+                FROM IF-MIB
+            InetAddressType
+                FROM INET-ADDRESS-MIB
+            IpAddress, Integer32, Unsigned32, Counter32, Counter64,
+            OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE
+                FROM SNMPv2-SMI
+            TruthValue, TimeStamp, RowStatus, TEXTUAL-CONVENTION
+                FROM SNMPv2-TC
+            OBJECT-GROUP, NOTIFICATION-GROUP
+                FROM SNMPv2-CONF
+            huaweiMgmt          
+                FROM HUAWEI-MIB                    
+            PwVcType
+                FROM HUAWEI-PW-TC-MIB
+            pwIndex, pwType, pwID, pwPeerAddrType, pwPeerAddr     -- [RFC5601]
+                        FROM PW-STD-MIB;
+
+        hwDslamVplsMib MODULE-IDENTITY
+
+            LAST-UPDATED "201111300900Z"
+            ORGANIZATION "Huawei Technologies Co.,Ltd."
+            CONTACT-INFO
+                "Huawei Industrial Base
+                 Bantian, Longgang
+                 Shenzhen 518129
+                 People's Republic of China
+                 Website: http://www.huawei.com
+                 Email: support@huawei.com
+                "
+            DESCRIPTION
+                "HUAWEI VPLS management MIB for access network device.
+                "
+
+                --  Revision history
+
+                REVISION    "201111300900Z"
+                DESCRIPTION "V1.01, initial revision."
+            ::= { huaweiMgmt 115 }
+
+--           
+-- The VPLS Attribute Group
+-- 
+        hwVplsObjects OBJECT IDENTIFIER ::= { hwDslamVplsMib 1 }
+
+--
+-- The VPLS Table
+--
+        hwVplsTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwVplsEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table specifies the information for VSI.
+                 The index of this table is hwVplsVsiName.
+                "
+            ::= { hwVplsObjects 1 }
+
+
+        hwVplsEntry OBJECT-TYPE
+            SYNTAX HwVplsEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table specifies the information for VSI.
+                 The index of this entry is hwVplsVsiName.
+                "
+            INDEX { hwVplsVsiName }
+            ::= { hwVplsTable 1 }
+
+
+        HwVplsEntry ::=
+            SEQUENCE {
+                hwVplsVsiName
+                    OCTET STRING,
+                hwVplsPwSignal
+                    INTEGER,
+                hwVplsVsiID
+                    Unsigned32,
+                hwVplsVsiEncapType
+                    INTEGER,
+                hwVplsAdminStatus
+                    INTEGER,
+                hwVplsVsiState
+                    INTEGER,
+                hwVplsDescription
+                    OCTET STRING,
+                hwVplsMtu
+                    Unsigned32,
+                hwVplsAcIsolateFlag
+                    INTEGER,
+                hwVplsIgnoreAcState
+                    INTEGER,
+                hwVplsFlowLabel
+                    BITS,
+                hwVplsFlowLabelCapabilities
+                    BITS,
+                hwVplsControlWord
+                    TruthValue,
+                hwVplsMacLimitAction
+                    INTEGER,
+                hwVplsMacLimitAlarm
+                    INTEGER,
+                hwVplsMaxMacCount
+                    Unsigned32,
+                hwVplsTrafficSuppressUnicastUp
+                    Unsigned32,
+                hwVplsTrafficSuppressUnicastDown
+                    Unsigned32,
+                hwVplsTrafficSuppressMulticastUp
+                    Unsigned32,
+                hwVplsTrafficSuppressMulticastDown
+                    Unsigned32,
+                hwVplsTrafficSuppressBroadcastUp
+                    Unsigned32,
+                hwVplsTrafficSuppressBroadcastDown
+                    Unsigned32,
+                hwVplsPriMappingProfileName
+                    OCTET STRING,
+                hwVplsStatisticReset
+                    INTEGER,
+                hwVplsRowStatus
+                    RowStatus,
+                hwVplsTnlPolicy
+                    OCTET STRING
+             }
+
+        hwVplsVsiName OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (1..15))
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This object indicates the VSI's name.
+                 VSI name is a string of 1-15 characters.                       
+ 	         There are all together 63 valid characters for the name.
+ 	         These characters include the following:
+ 	         uppercase and lowercase English letters (52 characters), numerals (0-9), and underline symbol.
+         	 "
+            ::= { hwVplsEntry 1 }
+
+
+        hwVplsPwSignal OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                    unknown(0),
+                    ldp(1)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the signal type.
+                If the signal type is LDP, VSI-ID must be designated.
+                After the signal type is configured, the configuration cannot be modified.
+		Options: 
+		1. unknown(0) -indicates signal type is not configured
+		2. ldp(1)     -indicates signal type is LDP
+		Default: unknown(0)                
+                "
+            ::= { hwVplsEntry 2 }
+
+
+        hwVplsVsiID OBJECT-TYPE
+            SYNTAX Unsigned32 (0..4294967294)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the VSI ID.
+                The default value is 0, it means VSI ID is not configured.
+                After the VSI ID is configured, the configuration cannot be modified.
+                "
+            ::= { hwVplsEntry 3 }
+
+
+        hwVplsVsiEncapType OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                    tagged(4),
+                    raw(5)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the VSI's encapsulation type.     
+		Options: 		
+		1. tagged(4) -indicates VSI's encapsulation type is tagged
+		2. raw(5)    -indicates VSI's encapsulation type is raw		                     
+                "
+            DEFVAL { tagged }
+            ::= { hwVplsEntry 4 }
+
+        hwVplsAdminStatus OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                    up(1),
+                    down(2)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "VSI's admin status.
+                 Options: 
+                 1. up(1)   -indicates VSI's status up
+                 2. down(2) -indicates VSI's status down
+                "
+            DEFVAL { up }
+            ::= { hwVplsEntry 5 }
+
+        hwVplsVsiState OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                    up(1),
+                    down(2),
+                    admindown(3)
+                }
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This object indicates the VSI's run state.
+		 Options: 		
+		 1. up(1)        -indicates VSI's state is up
+		 2. down(2)      -indicates VSI's state is down
+		 3. admindown(3) -indicates VSI is shut down		
+                "
+            ::= { hwVplsEntry 6 }
+
+        hwVplsDescription OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..64))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the description information.                
+                "            
+            ::= { hwVplsEntry 7 }
+
+        hwVplsMtu OBJECT-TYPE
+            SYNTAX Unsigned32 (328..65535)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the VPLS's MTU."
+            DEFVAL { 1500 }
+            ::= { hwVplsEntry 8 }
+
+        hwVplsAcIsolateFlag OBJECT-TYPE
+            SYNTAX INTEGER
+            	{
+                	enable(1),
+                	disable(2)
+            	}
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates whether the AC and Spoke-PW in the VSI is isolated
+                 Options: 
+                 1. enable(1)  -indicates the AC and Spoke-PW in the VSI is isolated 
+                 2. disable(2) -indicates the AC and Spoke-PW in the VSI is not isolated
+                "
+            DEFVAL { disable }
+            ::= { hwVplsEntry 9 }
+
+        hwVplsIgnoreAcState OBJECT-TYPE
+            SYNTAX INTEGER
+            	{
+                	enable(1),
+                	disable(2)
+            	}
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the enable sign of the ignorer of AC state.
+                 Options: 
+                 1. enable(1)  -indicates that the ignore AC state function is enabled
+                 2. disable(2) -indicates that the ignore AC state function is disabled
+                "
+            DEFVAL { disable }
+            ::= { hwVplsEntry 10 }
+
+        hwVplsFlowLabel OBJECT-TYPE
+            SYNTAX BITS
+                {
+                    sip(0),
+                    dip(1),
+                    smac(2),
+                    dmac(3)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the stream label classification rule in the transmit direction.
+                 Options: 
+                 1. sip(0)  -Sets the stream label classification rule based on the source IP address
+                 2. dip(1)  -Sets the stream label classification rule based on the destination IP address
+                 3. smac(2) -Sets the stream label classification rule based on the source MAC address
+                 4. dmac(3) -Sets the stream label classification rule based on the destination MAC address"
+            ::= { hwVplsEntry 11 }
+
+
+        hwVplsFlowLabelCapabilities OBJECT-TYPE
+            SYNTAX BITS
+                {
+                    receive(0),
+                    transmit(1)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the VSI's flow label capability.
+                 Options: 
+                 1. receive(0)  -indicates the flow label capability in the receive direction is enabled
+                 2. transmit(1) -indicates the flow label capability in the transmit direction is enabled"
+            ::= { hwVplsEntry 12 }
+
+
+        hwVplsControlWord OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Defines if the control word will be sent with each packet
+                by the local node.  Some PW types mandate the use of a
+                control word, and in such cases, the value configured for
+                this object has no effect on the existence of the control
+                word."
+            DEFVAL { false }
+            ::= { hwVplsEntry 13 }
+
+
+        hwVplsMacLimitAction OBJECT-TYPE
+            SYNTAX INTEGER
+            	{
+                	discard(1),
+                	forward(2)
+            	}
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the processing mode when the MAC learning table is full.
+                 Options:                  
+                 1. discard(1) -indicates that the MAC limit action is discard
+                 2. forward(2) -indicates that the MAC limit action is forward
+                "
+            DEFVAL { discard }
+            ::= { hwVplsEntry 14 }
+
+
+        hwVplsMacLimitAlarm OBJECT-TYPE
+            SYNTAX INTEGER
+            	{
+                	enable(1),
+                	disable(2)
+            	}
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates whether send trap when the MAC learning table is full.
+                 Options:                  
+                 1. enable(1)  -indicates that the mac limit alarm function is enabled
+                 2. disable(2) -indicates that the mac limit alarm function is disabled
+                "
+             DEFVAL { disable }
+            ::= { hwVplsEntry 15 }
+
+
+        hwVplsMaxMacCount OBJECT-TYPE
+            SYNTAX Unsigned32 (0..32768)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates how many MAC address can be learned in the VSI.
+                0 indicates disable MAC learning."
+            DEFVAL { 1024 }
+            ::= { hwVplsEntry 16 }
+
+
+        hwVplsTrafficSuppressUnicastUp OBJECT-TYPE
+            SYNTAX Unsigned32 (0..13)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the upstream unknown unicast traffic suppression of VSI.
+                 13 indicates full-suppression of traffic, and 0 indicates no traffic suppression.
+                 The suppression levels and corresponding bandwidth ranges are listed as follows:
+                 ---------------------------------------------------------------
+                 NO. Min bandwidth(kbps) Max bandwidth(kbps) Package number(pps)
+                 ---------------------------------------------------------------
+                   0      Not suppressed      Not suppressed      Not suppressed
+                   1                   6                 145                  12
+                   2                  12                 291                  24
+                   3                  24                 582                  48
+                   4                  48                1153                  95
+                   5                  97                2319                 191
+                   6                 195                4639                 382
+                   7                 390                9265                 763
+                   8                 781               18531                1526
+                   9                1562               37063                3052
+                  10                3125               74126                6104
+                  11                6249              148241               12207
+                  12               12499              296483               24414
+                  13                   0                   0                   0
+                 ---------------------------------------------------------------
+                "
+            DEFVAL { 0 }
+            ::= { hwVplsEntry 17 }
+
+
+        hwVplsTrafficSuppressUnicastDown OBJECT-TYPE
+            SYNTAX Unsigned32 (0..13)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the downstream unknown unicast traffic suppression of VSI.
+                 13 indicates full-suppression of traffic, and 0 indicates no traffic suppression.
+                 The suppression levels and corresponding bandwidth ranges are listed as follows:
+                 ---------------------------------------------------------------
+                 NO. Min bandwidth(kbps) Max bandwidth(kbps) Package number(pps)
+                 ---------------------------------------------------------------
+                   0      Not suppressed      Not suppressed      Not suppressed
+                   1                   6                 145                  12
+                   2                  12                 291                  24
+                   3                  24                 582                  48
+                   4                  48                1153                  95
+                   5                  97                2319                 191
+                   6                 195                4639                 382
+                   7                 390                9265                 763
+                   8                 781               18531                1526
+                   9                1562               37063                3052
+                  10                3125               74126                6104
+                  11                6249              148241               12207
+                  12               12499              296483               24414
+                  13                   0                   0                   0
+                 ---------------------------------------------------------------
+                "
+            DEFVAL { 0 }
+            ::= { hwVplsEntry 18 }
+
+
+        hwVplsTrafficSuppressMulticastUp OBJECT-TYPE
+            SYNTAX Unsigned32 (0..13)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the upstream unknown multicast traffic suppression of VSI.
+                 13 indicates full-suppression of traffic, and 0 indicates no traffic suppression.
+                 The suppression levels and corresponding bandwidth ranges are listed as follows:
+                 ---------------------------------------------------------------
+                 NO. Min bandwidth(kbps) Max bandwidth(kbps) Package number(pps)
+                 ---------------------------------------------------------------
+                   0      Not suppressed      Not suppressed      Not suppressed
+                   1                   6                 145                  12
+                   2                  12                 291                  24
+                   3                  24                 582                  48
+                   4                  48                1153                  95
+                   5                  97                2319                 191
+                   6                 195                4639                 382
+                   7                 390                9265                 763
+                   8                 781               18531                1526
+                   9                1562               37063                3052
+                  10                3125               74126                6104
+                  11                6249              148241               12207
+                  12               12499              296483               24414
+                  13                   0                   0                   0
+                 ---------------------------------------------------------------
+                "
+            DEFVAL { 0 }
+            ::= { hwVplsEntry 19 }
+
+
+        hwVplsTrafficSuppressMulticastDown OBJECT-TYPE
+            SYNTAX Unsigned32 (0..13)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the downstream unknown multicast traffic suppression of VSI.
+                 13 indicates full-suppression of traffic, and 0 indicates no traffic suppression.
+                 The suppression levels and corresponding bandwidth ranges are listed as follows:
+                 ---------------------------------------------------------------
+                 NO. Min bandwidth(kbps) Max bandwidth(kbps) Package number(pps)
+                 ---------------------------------------------------------------
+                   0      Not suppressed      Not suppressed      Not suppressed
+                   1                   6                 145                  12
+                   2                  12                 291                  24
+                   3                  24                 582                  48
+                   4                  48                1153                  95
+                   5                  97                2319                 191
+                   6                 195                4639                 382
+                   7                 390                9265                 763
+                   8                 781               18531                1526
+                   9                1562               37063                3052
+                  10                3125               74126                6104
+                  11                6249              148241               12207
+                  12               12499              296483               24414
+                  13                   0                   0                   0
+                 ---------------------------------------------------------------
+                "
+            DEFVAL { 0 }
+            ::= { hwVplsEntry 20 }
+
+
+        hwVplsTrafficSuppressBroadcastUp OBJECT-TYPE
+            SYNTAX Unsigned32 (0..13)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the upstream broadcast traffic suppression of VSI.
+                 13 indicates full-suppression of traffic, and 0 indicates no traffic suppression.
+                 The suppression levels and corresponding bandwidth ranges are listed as follows:
+                 ---------------------------------------------------------------
+                 NO. Min bandwidth(kbps) Max bandwidth(kbps) Package number(pps)
+                 ---------------------------------------------------------------
+                   0      Not suppressed      Not suppressed      Not suppressed
+                   1                   6                 145                  12
+                   2                  12                 291                  24
+                   3                  24                 582                  48
+                   4                  48                1153                  95
+                   5                  97                2319                 191
+                   6                 195                4639                 382
+                   7                 390                9265                 763
+                   8                 781               18531                1526
+                   9                1562               37063                3052
+                  10                3125               74126                6104
+                  11                6249              148241               12207
+                  12               12499              296483               24414
+                  13                   0                   0                   0
+                 ---------------------------------------------------------------
+                "
+            DEFVAL { 0 }
+            ::= { hwVplsEntry 21 }
+
+
+        hwVplsTrafficSuppressBroadcastDown OBJECT-TYPE
+            SYNTAX Unsigned32 (0..13)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the downstream broadcast traffic suppression of VSI.
+                 13 indicates full-suppression of traffic, and 0 indicates no traffic suppression.
+                 The suppression levels and corresponding bandwidth ranges are listed as follows:
+                 ---------------------------------------------------------------
+                 NO. Min bandwidth(kbps) Max bandwidth(kbps) Package number(pps)
+                 ---------------------------------------------------------------
+                   0      Not suppressed      Not suppressed      Not suppressed
+                   1                   6                 145                  12
+                   2                  12                 291                  24
+                   3                  24                 582                  48
+                   4                  48                1153                  95
+                   5                  97                2319                 191
+                   6                 195                4639                 382
+                   7                 390                9265                 763
+                   8                 781               18531                1526
+                   9                1562               37063                3052
+                  10                3125               74126                6104
+                  11                6249              148241               12207
+                  12               12499              296483               24414
+                  13                   0                   0                   0
+                 ---------------------------------------------------------------
+                "
+            DEFVAL { 0 }
+            ::= { hwVplsEntry 22 }
+
+
+        hwVplsPriMappingProfileName OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (1..32))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "QoS priority mapping profile name for VSI, a string of 1-32 characters.
+ 	             There are all together 92 valid characters for the name.
+ 	             These characters include the following:
+ 	             uppercase and lowercase English letters (52 characters), numerals (0-9),
+ 	             and 30 symbols: ! # $ % & ' ( ) * + , - . / : ; < = > @ [ \ ] ^ _ `  |  ~~.
+         	    "
+            DEFVAL { default-profile-0 }
+            ::= { hwVplsEntry 23 }
+
+        hwVplsStatisticReset OBJECT-TYPE
+            SYNTAX INTEGER
+            {
+                reset(1)
+            }
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Clear the traffic statistics of all PW and AC for this VSI.
+              	 Options:
+              	 1. reset(1) -clear the traffic statistics of all PW and AC for this VSI
+             	"
+            ::= { hwVplsEntry 24 }
+
+
+        hwVplsRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "For creating and modifying this row. None of the 
+                 read-create objects in the conceptual rows may be changed  
+                 when this object is in the active(1) state.
+                 Options:
+                 1. active(1)      -indicates query operation
+                 2. createAndGo(4) -indicates creating a VSI
+                 3. destroy(6)     -indicates deleting a VSI
+                "
+            ::= { hwVplsEntry 25 }
+
+        hwVplsTnlPolicy OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..39))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "
+                Used to configure the tunnel policy used by the VSI.
+         	      "
+            ::= { hwVplsEntry 26 }
+
+--
+-- The VPLS PW Table
+--
+        hwVplsPwTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwVplsPwEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table specifies the information for VPLS PW.
+                 The index of this table is pwIndex.
+                "
+            ::= { hwVplsObjects 2 }
+
+
+        hwVplsPwEntry OBJECT-TYPE
+            SYNTAX HwVplsPwEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table specifies the information for VPLS PW.
+                 The index of this entry is pwIndex.
+                "
+            INDEX { pwIndex }
+            ::= { hwVplsPwTable 1 }
+
+
+        HwVplsPwEntry ::=
+            SEQUENCE {
+                hwVplsPwMaxMacCount
+                    Unsigned32,
+                hwVplsPwBindType
+                    INTEGER,
+                hwVplsPwProtectGroupName
+                    OCTET STRING,
+                hwVplsPwProtectPreference
+                    INTEGER,
+                hwVplsPwProtectActiveState
+                    INTEGER
+            }
+
+        hwVplsPwMaxMacCount OBJECT-TYPE
+            SYNTAX Unsigned32 (0..32768)
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "This object indicates how many MAC address can be learned in the PW.
+                0 indicates disable MAC learning."
+            DEFVAL { 1024 }
+            ::= { hwVplsPwEntry 1 }
+
+        hwVplsPwBindType OBJECT-TYPE
+            SYNTAX INTEGER
+            	{
+                    mesh(1),
+                    spoken(2)
+            	}
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "This object indicates the type of PW.
+                 Options:
+                 1. mesh(1)   -indicates the bind type of the PW is mesh
+                 2. spoken(2) -indicates the bind type of the PW is spoken                
+                "
+            DEFVAL { mesh }
+            ::= { hwVplsPwEntry 2 }
+
+        hwVplsPwProtectGroupName OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..15))
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This object indicates the VPLS protect group name.
+                 VPLS protect group name is a string of 1-15 characters.
+ 	             There are all together 63 valid characters for the name.
+ 	             These characters include the following:
+ 	             uppercase and lowercase English letters (52 characters), numerals (0-9), and underline symbol.
+ 	            "
+ 	            ::= { hwVplsPwEntry 3 }
+
+        hwVplsPwProtectPreference OBJECT-TYPE
+            SYNTAX INTEGER
+            	{
+                    primary(1),
+               	    secondary(2)
+            	}
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This object indicates the preference of PW in a VPLS PW protect group.
+                 Options:
+                 1. primary(1)   -indicates the primary member of the PW protect group
+                 2. secondary(2) -indicates the secondary member of the PW protect group
+                "
+            ::= { hwVplsPwEntry 4 }
+
+        hwVplsPwProtectActiveState OBJECT-TYPE
+            SYNTAX INTEGER
+            	{
+            	    down(1),
+                    active(2),
+                    standby(3)
+            	}
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This object indicates the active state of PW in a VPLS PW protect group.
+                 Options:
+                 1. down(1)    -indicates that the member of the PW protect group is down
+                 2. active(2)  -indicates that the member of the PW protect group is up and active
+                 3. standby(3) -indicates that the member of the PW protect group is up and standby
+                "
+            ::= { hwVplsPwEntry 5 }
+
+
+--
+-- The VPLS PW binding Table
+--
+        hwVplsPwBindTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwVplsPwBindEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table specifies the information for VPLS PW binding.
+                 The indexes of this table are hwVplsVsiName and pwIndex.
+                "
+            ::= { hwVplsObjects 3 }
+
+
+        hwVplsPwBindEntry OBJECT-TYPE
+            SYNTAX HwVplsPwBindEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table specifies the information for VPLS PW binding.
+                 The indexes of this entry are hwVplsVsiName and pwIndex.
+                "
+            INDEX { hwVplsVsiName, pwIndex }
+            ::= { hwVplsPwBindTable 1 }
+
+
+        HwVplsPwBindEntry ::=
+            SEQUENCE {
+                hwVplsPwBindRowStatus
+                    RowStatus
+            }
+
+
+        hwVplsPwBindRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "For creating and modifying this row. None of the 
+                 read-create objects in the conceptual rows may be changed  
+                 when this object is in the active(1) state.
+                 Options:
+                 1. active(1)      -indicates query operation
+                 2. createAndGo(4) -indicates creating a PW binding to VSI
+                 3. destroy(6)     -indicates deleting a PW binding from VSI
+                "
+            ::= { hwVplsPwBindEntry 1 }
+
+
+--
+-- The VPLS AC Table
+--
+        hwVplsAcTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwVplsAcEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table specifies the information for VPLS AC.
+                 The indexes of this table are hwVplsVsiName and hwVplsAcIndex.
+                "
+            ::= { hwVplsObjects 4 }
+
+
+        hwVplsAcEntry OBJECT-TYPE
+            SYNTAX HwVplsAcEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table specifies the information for VPLS AC.
+                 The indexes of this entry are hwVplsVsiName and hwVplsAcIndex.
+                "
+            INDEX { hwVplsVsiName, hwVplsAcIndex }
+            ::= { hwVplsAcTable 1 }
+
+
+        HwVplsAcEntry ::=
+            SEQUENCE {
+                hwVplsAcIndex
+                    Unsigned32,
+                hwVplsAcState
+                    INTEGER,
+                hwVplsAcMaxMacCount
+                    Unsigned32,
+                hwVplsAcStatisticSwitch
+                    INTEGER,
+                hwVplsAcRowStatus
+                    RowStatus
+            }
+
+        hwVplsAcIndex OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "AC index of VPLS AC.
+                For VLAN type AC, VLAN ID range is 2-4093.
+                "
+            ::= { hwVplsAcEntry 1 }
+
+        hwVplsAcState OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                    up(1),
+                    down(2)
+                }
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This object indicates state of the AC.
+		Options: 		
+		1. up(1)    -indicates switch AC's state is up
+		2. down(2)  -indicates switch AC's state is down		
+                "
+            ::= { hwVplsAcEntry 2 }
+
+        hwVplsAcMaxMacCount OBJECT-TYPE
+            SYNTAX Unsigned32 (0..32768)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates how many MAC address can be learned in the AC.
+                0 indicates disable MAC learning."
+            DEFVAL { 1024 }
+            ::= { hwVplsAcEntry 3 }
+
+        hwVplsAcStatisticSwitch OBJECT-TYPE
+            SYNTAX INTEGER
+            	{
+                	enable(1),
+                	disable(2)
+            	}
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Used to enable or disable the traffic statistic function of AC.
+			 	 Options:
+			 	 1. enable(1)  -indicates that the traffic statistic function is enabled
+			 	 2. disable(2) -indicates that the traffic statistic function is disabled
+                "
+            DEFVAL { disable }
+            ::= { hwVplsAcEntry 4 }
+
+        hwVplsAcRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "For creating and modifying this row. None of the 
+                 read-create objects in the conceptual rows may be changed  
+                 when this object is in the active(1) state.
+                 Options:
+                 1. active(1)      -indicates query operation
+                 2. createAndGo(4) -indicates creating an AC binding to VSI
+                 3. destroy(6)     -indicates deleting an AC binding from VSI
+                "
+            ::= { hwVplsAcEntry 5 }
+
+
+--
+-- The VPLS protect group Table
+--
+        hwVplsProtectGroupTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwVplsProtectGroupEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table specifies the information for VPLS protect group.
+                 The indexes of this table are hwVplsVsiName and hwVplsProtectGroupName.
+                "
+            ::= { hwVplsObjects 5 }
+
+
+        hwVplsProtectGroupEntry OBJECT-TYPE
+            SYNTAX HwVplsProtectGroupEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table specifies the information for VPLS protect group.
+                 The indexes of this entry are hwVplsVsiName and hwVplsProtectGroupName.
+                "
+            INDEX { hwVplsVsiName, hwVplsProtectGroupName }
+            ::= { hwVplsProtectGroupTable 1 }
+
+
+        HwVplsProtectGroupEntry ::=
+            SEQUENCE {
+                hwVplsProtectGroupName
+                    OCTET STRING,
+                hwVplsProtectGroupProtectMode
+                    INTEGER,
+                hwVplsProtectGroupReroutePolicy
+                    INTEGER,
+                hwVplsProtectGroupRerouteDelay
+                    Unsigned32,
+                hwVplsProtectGroupStreamDualReceiving
+                    INTEGER,
+                hwVplsProtectGroupSwitch
+                    INTEGER,
+                hwVplsProtectGroupPrimaryPwIndex
+                    Unsigned32,                    
+                hwVplsProtectGroupSecondaryPwIndex
+                    Unsigned32,                    
+                hwVplsProtectGroupRowStatus
+                    RowStatus
+            }
+
+        hwVplsProtectGroupName OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (1..15))
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This object indicates the VPLS protect group name.
+                 VPLS protect group name is a string of 1-15 characters.
+                 There are all together 63 valid characters for the name.
+                 These characters include the following:
+                 uppercase and lowercase English letters (52 characters), numerals (0-9), and underline symbol.
+ 	            "   
+            ::= { hwVplsProtectGroupEntry 1 }
+
+        hwVplsProtectGroupProtectMode OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                     master(1),
+                     independent(2) 
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the mode of the VPLS redundancy.
+                 Options:
+                 1. master(1)       -indicates that the VPLS redundancy mode is master
+                 2. independent(2)  -indicates that the VPLS redundancy mode is independent
+                "  
+            DEFVAL { master }
+              ::= { hwVplsProtectGroupEntry 2 }
+
+
+        hwVplsProtectGroupReroutePolicy OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                    revertive(1),
+                    nonRevertive(2)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates reroute delay policy of VPLS.
+                 Options: 		
+                 1. revertive(1)     -indicates that automatic recovery is allowed
+                 2. nonRevertive(2)  -indicates that the traffic will not be switched back to the working PW automatically 
+	            "          
+            DEFVAL { revertive }
+            ::= { hwVplsProtectGroupEntry 3 }
+
+        hwVplsProtectGroupRerouteDelay OBJECT-TYPE
+            SYNTAX Unsigned32  (0 | 10..600)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the recover time.
+                 Range: 0,10-600
+                 Unit: second
+ 				"  
+            DEFVAL { 30 }
+             ::= { hwVplsProtectGroupEntry 4 }
+
+        hwVplsProtectGroupStreamDualReceiving OBJECT-TYPE
+            SYNTAX INTEGER
+            	{
+                	enable(1),
+                	disable(2)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the receive mode of VPLS.
+                 Options:
+                 1. enable(1)  -indicates that the stream receiving mode of the VPLS redundancy is dual
+                 2. disable(2) -indicates that the stream receiving mode of the VPLS redundancy is single
+                "  
+            DEFVAL { disable }
+            ::= { hwVplsProtectGroupEntry 5 }
+
+
+        hwVplsProtectGroupSwitch OBJECT-TYPE
+            SYNTAX INTEGER
+            	{
+                	toPrimaryPW(1),
+                	toSecondaryPW(2)
+            	}
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Used to switch VPLS to primary PW or secondary PW.
+		Options: 		
+		1. toPrimaryPW(1)   -indicates switch from secondary PW to primary PW 
+		2. toSecondaryPW(2) -indicates switch from primary PW to secondary PW		          
+                "
+            ::= { hwVplsProtectGroupEntry 6 } 
+            
+	  hwVplsProtectGroupPrimaryPwIndex OBJECT-TYPE
+	     SYNTAX        Unsigned32
+	     MAX-ACCESS    read-write
+	     STATUS        current
+	     DESCRIPTION
+	         "The value that represents the corresponding primary PW in the pwTable."
+	     ::= { hwVplsProtectGroupEntry 7 } 
+	     
+	  hwVplsProtectGroupSecondaryPwIndex OBJECT-TYPE
+	     SYNTAX        Unsigned32
+	     MAX-ACCESS    read-write
+	     STATUS        current
+	     DESCRIPTION
+	         "The value that represents the corresponding secondary PW in the pwTable."
+	     ::= { hwVplsProtectGroupEntry 8 }
+
+        hwVplsProtectGroupRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "For creating and modifying this row. None of the 
+                 read-create objects in the conceptual rows may be changed  
+                 when this object is in the active(1) state.
+                 Options:
+                 1. active(1)      -indicates query operation
+                 2. createAndGo(4) -indicates creating a VPLS protect group
+                 3. destroy(6)     -indicates deleting a VPLS protect group
+                "
+            ::= { hwVplsProtectGroupEntry 9 }
+
+
+--
+-- VPLS AC traffic statistic table
+--
+        hwVplsExtAcStatisticTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwVplsExtAcStatisticEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table is used to query or reset the traffic statistics of VPLS AC.
+                 The indexes of this table are hwVplsVsiName and hwVplsAcIndex.
+                "
+            ::= { hwVplsObjects 6 }
+
+        hwVplsExtAcStatisticEntry OBJECT-TYPE
+            SYNTAX HwVplsExtAcStatisticEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table is used to query or reset the traffic statistics of VPLS AC.
+                 The indexes of this entry are hwVplsVsiName and hwVplsAcIndex.
+                "
+            INDEX { hwVplsVsiName, hwVplsAcIndex }
+            ::= { hwVplsExtAcStatisticTable 1 }
+
+        HwVplsExtAcStatisticEntry ::= SEQUENCE
+        {
+           	hwVplsExtAcStatisticUpstreamOctectsP0		Counter64,
+           	hwVplsExtAcStatisticUpstreamPacketsP0		Counter32,
+           	hwVplsExtAcStatisticUpstreamOctectsP1		Counter64,
+           	hwVplsExtAcStatisticUpstreamPacketsP1		Counter32,
+           	hwVplsExtAcStatisticUpstreamOctectsP2		Counter64,
+           	hwVplsExtAcStatisticUpstreamPacketsP2		Counter32,
+           	hwVplsExtAcStatisticUpstreamOctectsP3		Counter64,
+           	hwVplsExtAcStatisticUpstreamPacketsP3		Counter32,
+           	hwVplsExtAcStatisticUpstreamOctectsP4		Counter64,
+           	hwVplsExtAcStatisticUpstreamPacketsP4		Counter32,
+           	hwVplsExtAcStatisticUpstreamOctectsP5		Counter64,
+           	hwVplsExtAcStatisticUpstreamPacketsP5		Counter32,
+           	hwVplsExtAcStatisticUpstreamOctectsP6		Counter64,
+           	hwVplsExtAcStatisticUpstreamPacketsP6		Counter32,
+           	hwVplsExtAcStatisticUpstreamOctectsP7		Counter64,
+           	hwVplsExtAcStatisticUpstreamPacketsP7		Counter32,
+           	hwVplsExtAcStatisticDownstreamOctectsP0		Counter64,
+           	hwVplsExtAcStatisticDownstreamPacketsP0		Counter32,
+           	hwVplsExtAcStatisticDownstreamOctectsP1		Counter64,
+           	hwVplsExtAcStatisticDownstreamPacketsP1		Counter32,
+           	hwVplsExtAcStatisticDownstreamOctectsP2		Counter64,
+           	hwVplsExtAcStatisticDownstreamPacketsP2		Counter32,
+           	hwVplsExtAcStatisticDownstreamOctectsP3		Counter64,
+           	hwVplsExtAcStatisticDownstreamPacketsP3		Counter32,
+           	hwVplsExtAcStatisticDownstreamOctectsP4		Counter64,
+           	hwVplsExtAcStatisticDownstreamPacketsP4		Counter32,
+           	hwVplsExtAcStatisticDownstreamOctectsP5		Counter64,
+           	hwVplsExtAcStatisticDownstreamPacketsP5		Counter32,
+           	hwVplsExtAcStatisticDownstreamOctectsP6		Counter64,
+           	hwVplsExtAcStatisticDownstreamPacketsP6		Counter32,
+           	hwVplsExtAcStatisticDownstreamOctectsP7		Counter64,
+           	hwVplsExtAcStatisticDownstreamPacketsP7		Counter32,
+           	hwVplsExtAcStatisticReset				    INTEGER
+        }
+
+
+        hwVplsExtAcStatisticUpstreamOctectsP0 OBJECT-TYPE
+            SYNTAX          Counter64
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of upstream octets with priority equal to 0.
+                "
+            ::= { hwVplsExtAcStatisticEntry 1 }
+
+        hwVplsExtAcStatisticUpstreamPacketsP0 OBJECT-TYPE
+            SYNTAX          Counter32
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of upstream packets with priority equal to 0.
+                "
+            ::= { hwVplsExtAcStatisticEntry 2 }
+
+        hwVplsExtAcStatisticUpstreamOctectsP1 OBJECT-TYPE
+            SYNTAX          Counter64
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of upstream octets with priority equal to 1.
+                "
+            ::= { hwVplsExtAcStatisticEntry 3 }
+
+        hwVplsExtAcStatisticUpstreamPacketsP1 OBJECT-TYPE
+            SYNTAX          Counter32
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of upstream packets with priority equal to 1.
+                "
+            ::= { hwVplsExtAcStatisticEntry 4 }
+
+        hwVplsExtAcStatisticUpstreamOctectsP2 OBJECT-TYPE
+            SYNTAX          Counter64
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of upstream octets with priority equal to 2.
+                "
+            ::= { hwVplsExtAcStatisticEntry 5 }
+
+        hwVplsExtAcStatisticUpstreamPacketsP2 OBJECT-TYPE
+            SYNTAX          Counter32
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of upstream packets with priority equal to 2.
+                "
+            ::= { hwVplsExtAcStatisticEntry 6 }
+
+        hwVplsExtAcStatisticUpstreamOctectsP3 OBJECT-TYPE
+            SYNTAX          Counter64
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of upstream octets with priority equal to 3.
+                "
+            ::= { hwVplsExtAcStatisticEntry 7 }
+
+        hwVplsExtAcStatisticUpstreamPacketsP3 OBJECT-TYPE
+            SYNTAX          Counter32
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of upstream packets with priority equal to 3.
+                "
+            ::= { hwVplsExtAcStatisticEntry 8 }
+
+        hwVplsExtAcStatisticUpstreamOctectsP4 OBJECT-TYPE
+            SYNTAX          Counter64
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of upstream octets with priority equal to 4.
+                "
+            ::= { hwVplsExtAcStatisticEntry 9 }
+
+        hwVplsExtAcStatisticUpstreamPacketsP4 OBJECT-TYPE
+            SYNTAX          Counter32
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of upstream packets with priority equal to 4.
+                "
+            ::= { hwVplsExtAcStatisticEntry 10 }
+
+        hwVplsExtAcStatisticUpstreamOctectsP5 OBJECT-TYPE
+            SYNTAX          Counter64
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of upstream octets with priority equal to 5.
+                "
+            ::= { hwVplsExtAcStatisticEntry 11 }
+
+        hwVplsExtAcStatisticUpstreamPacketsP5 OBJECT-TYPE
+            SYNTAX          Counter32
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of upstream packets with priority equal to 5.
+                "
+            ::= { hwVplsExtAcStatisticEntry 12 }
+
+        hwVplsExtAcStatisticUpstreamOctectsP6 OBJECT-TYPE
+            SYNTAX          Counter64
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of upstream octets with priority equal to 6.
+                "
+            ::= { hwVplsExtAcStatisticEntry 13 }
+
+        hwVplsExtAcStatisticUpstreamPacketsP6 OBJECT-TYPE
+            SYNTAX          Counter32
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of upstream packets with priority equal to 6.
+                "
+            ::= { hwVplsExtAcStatisticEntry 14 }
+
+        hwVplsExtAcStatisticUpstreamOctectsP7 OBJECT-TYPE
+            SYNTAX          Counter64
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of upstream octets with priority equal to 7.
+                "
+            ::= { hwVplsExtAcStatisticEntry 15 }
+
+        hwVplsExtAcStatisticUpstreamPacketsP7 OBJECT-TYPE
+            SYNTAX          Counter32
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of upstream packets with priority equal to 7.
+                "
+            ::= { hwVplsExtAcStatisticEntry 16 }
+
+        hwVplsExtAcStatisticDownstreamOctectsP0 OBJECT-TYPE
+            SYNTAX          Counter64
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of downstream octets with priority equal to 0.
+                "
+            ::= { hwVplsExtAcStatisticEntry 17 }
+
+        hwVplsExtAcStatisticDownstreamPacketsP0 OBJECT-TYPE
+            SYNTAX          Counter32
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of downstream packets with priority equal to 0.
+                "
+            ::= { hwVplsExtAcStatisticEntry 18 }
+
+        hwVplsExtAcStatisticDownstreamOctectsP1 OBJECT-TYPE
+            SYNTAX          Counter64
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of downstream octets with priority equal to 1.
+                "
+            ::= { hwVplsExtAcStatisticEntry 19 }
+
+        hwVplsExtAcStatisticDownstreamPacketsP1 OBJECT-TYPE
+            SYNTAX          Counter32
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of downstream packets with priority equal to 1.
+                "
+            ::= { hwVplsExtAcStatisticEntry 20 }
+
+        hwVplsExtAcStatisticDownstreamOctectsP2 OBJECT-TYPE
+            SYNTAX          Counter64
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of downstream octets with priority equal to 2.
+                "
+            ::= { hwVplsExtAcStatisticEntry 21 }
+
+        hwVplsExtAcStatisticDownstreamPacketsP2 OBJECT-TYPE
+            SYNTAX          Counter32
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of downstream packets with priority equal to 2.
+                "
+            ::= { hwVplsExtAcStatisticEntry 22 }
+
+        hwVplsExtAcStatisticDownstreamOctectsP3 OBJECT-TYPE
+            SYNTAX          Counter64
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of downstream octets with priority equal to 3.
+                "
+            ::= { hwVplsExtAcStatisticEntry 23 }
+
+        hwVplsExtAcStatisticDownstreamPacketsP3 OBJECT-TYPE
+            SYNTAX          Counter32
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of downstream packets with priority equal to 3.
+                "
+            ::= { hwVplsExtAcStatisticEntry 24 }
+
+        hwVplsExtAcStatisticDownstreamOctectsP4 OBJECT-TYPE
+            SYNTAX          Counter64
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of downstream octets with priority equal to 4.
+                "
+            ::= { hwVplsExtAcStatisticEntry 25 }
+
+        hwVplsExtAcStatisticDownstreamPacketsP4 OBJECT-TYPE
+            SYNTAX          Counter32
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of downstream packets with priority equal to 4.
+                "
+            ::= { hwVplsExtAcStatisticEntry 26 }
+
+        hwVplsExtAcStatisticDownstreamOctectsP5 OBJECT-TYPE
+            SYNTAX          Counter64
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of downstream octets with priority equal to 5.
+                "
+            ::= { hwVplsExtAcStatisticEntry 27 }
+
+        hwVplsExtAcStatisticDownstreamPacketsP5 OBJECT-TYPE
+            SYNTAX          Counter32
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of downstream packets with priority equal to 5.
+                "
+            ::= { hwVplsExtAcStatisticEntry 28 }
+
+        hwVplsExtAcStatisticDownstreamOctectsP6 OBJECT-TYPE
+            SYNTAX          Counter64
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of downstream octets with priority equal to 6.
+                "
+            ::= { hwVplsExtAcStatisticEntry 29 }
+
+        hwVplsExtAcStatisticDownstreamPacketsP6 OBJECT-TYPE
+            SYNTAX          Counter32
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of downstream packets with priority equal to 6.
+                "
+            ::= { hwVplsExtAcStatisticEntry 30 }
+
+        hwVplsExtAcStatisticDownstreamOctectsP7 OBJECT-TYPE
+            SYNTAX          Counter64
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of downstream octets with priority equal to 7.
+                "
+            ::= { hwVplsExtAcStatisticEntry 31 }
+
+        hwVplsExtAcStatisticDownstreamPacketsP7 OBJECT-TYPE
+            SYNTAX          Counter32
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "The total number of downstream packets with priority equal to 7.
+                "
+            ::= { hwVplsExtAcStatisticEntry 32 }
+
+        hwVplsExtAcStatisticReset OBJECT-TYPE
+       		SYNTAX INTEGER
+       		    {
+       		        reset(1)
+       		    }
+       		MAX-ACCESS read-write
+       		STATUS     current
+       		DESCRIPTION
+             	"Reset the traffic statistics of this VPLS AC.
+              	 Options:
+              	 1. reset(1) -reset the traffic statistics of this VPLS AC
+             	"
+            ::= { hwVplsExtAcStatisticEntry 33 }
+
+
+
+--
+-- The switch PW Table
+--
+        hwSwitchPwBindTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwSwitchPwBindEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table specifies the information for switch PW.
+                 The index of this table is pwIndex.
+                "
+            ::= { hwVplsObjects 7 }
+
+
+        hwSwitchPwBindEntry OBJECT-TYPE
+            SYNTAX HwSwitchPwBindEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table specifies the information for switch PW.
+                 The index of this entry is pwIndex.
+                "
+            INDEX { pwIndex }
+            ::= { hwSwitchPwBindTable 1 }
+
+
+        HwSwitchPwBindEntry ::=
+            SEQUENCE {
+                hwSwitchPwAttachedPwindex
+                    Unsigned32,
+                hwSwitchPwState
+                    INTEGER,                    
+                hwSwitchPwBindRowStatus
+                    RowStatus
+            }
+
+        hwSwitchPwAttachedPwindex OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This object indicates the pwindex of attached PW"
+            ::= { hwSwitchPwBindEntry 1 }
+
+
+        hwSwitchPwState OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                    up(1),
+                    down(2),
+                    admindown(3)
+                }
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This object indicates state of switch PW.
+		Options: 		
+		1. up(1)        -indicates switch PW's state is up
+		2. down(2)      -indicates switch PW's state is down
+		3. admindown(3) -indicates switch PW's state is shut down
+                "
+            ::= { hwSwitchPwBindEntry 2 }
+
+        hwSwitchPwBindRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "For creating and modifying this row. None of the 
+                 read-create objects in the conceptual rows may be changed  
+                 when this object is in the active(1) state.
+                 Options:
+                 1. active(1)      -indicates query operation
+                 2. createAndGo(4) -indicates creating a switch PW
+                 3. destroy(6)     -indicates deleting a switch PW
+                "
+            ::= { hwSwitchPwBindEntry 3 }
+
+
+              
+
+--           
+-- VPLS MIB Trap Definitions
+-- 
+
+        hwVplsTraps OBJECT IDENTIFIER ::= { hwDslamVplsMib 2 }
+
+        hwVplsTrapVbOids  OBJECT IDENTIFIER ::= { hwVplsTraps 1 }      
+        hwVplsCommonTraps OBJECT IDENTIFIER ::= { hwVplsTraps 2 }        
+        hwVplsAlarmTraps  OBJECT IDENTIFIER ::= { hwVplsTraps 3 }                          
+
+        hwVplsVsiTraps  OBJECT IDENTIFIER ::= { hwVplsAlarmTraps 1 }   
+        hwVplsVsiTrapsPrefix  OBJECT IDENTIFIER ::= { hwVplsVsiTraps 1 }  
+                
+        hwVplsVsiUpTrap NOTIFICATION-TYPE
+            OBJECTS { hwVplsVsiName}
+            STATUS current
+            DESCRIPTION       
+                "This notification is generated in these following cases: 
+                (1) The case that at least two ACs or spoke PWs are up 
+                    occurs when the AC status is not ignored and the hub
+                    PW is down
+                (2) The case that at least one AC or spoke PW is up 
+                    occurs when the AC status is not ignored and the hub 
+                    PW is up
+                (3) The case that at least one AC, spoke PW, hub PW is up
+                    when the AC status is ignored "
+            ::= { hwVplsVsiTrapsPrefix 1 }
+
+                
+        hwVplsVsiDownTrap NOTIFICATION-TYPE
+            OBJECTS { hwVplsVsiName }
+            STATUS current
+            DESCRIPTION 
+                "This notification is generated in these following cases: 
+                (1) The case that at least two ACs or spoke PWs are up 
+                    does not occur when the AC status is not ignored and 
+                    the hub PW is down
+                (2) The case that at least one AC or spoke PW is up does 
+                    not occur when the AC status is not ignored and the 
+                    hub PW is up
+                (3) The case that at least one AC, spoke PW, hub PW is up
+                    does not occur when the AC status is ignored"
+            ::= { hwVplsVsiTrapsPrefix 2 }
+
+        
+        hwVplsMacFullAppearTrap NOTIFICATION-TYPE
+            OBJECTS { hwVplsVsiName }
+            STATUS current
+            DESCRIPTION 
+                "This notification is generated in these following cases: 
+                (1) The number of learnable MAC addresses of this VSI 
+                    reaches the limit
+                (2) The number of learnable MAC addresses for the PW 
+                    that is configured in this VSI reaches the limit
+                (3) The number of learnable MAC addresses for the AC 
+                    that is configured in this VSI reaches the limit 
+                "
+            ::= { hwVplsVsiTrapsPrefix 3 }
+
+        
+        hwVplsMacFullDisappearTrap NOTIFICATION-TYPE
+            OBJECTS { hwVplsVsiName }
+            STATUS current
+            DESCRIPTION 
+                "This notification is generated in these following cases: 
+                (1) The number of learnable MAC addresses of this VSI 
+                    does not reach the limit
+                (2) The number of learnable MAC addresses for the PW 
+                    that is configured in this VSI does not reach the limit
+                (3) The number of learnable MAC addresses for the AC 
+                    that is configured in this VSI does not reach the limit 
+                "
+            ::= { hwVplsVsiTrapsPrefix 4 }
+
+        
+--    Conformance information
+-- 
+        hwVplsConformance OBJECT IDENTIFIER ::= { hwDslamVplsMib 4 }
+
+
+    END
+
+

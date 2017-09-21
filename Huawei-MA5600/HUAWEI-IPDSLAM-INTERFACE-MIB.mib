@@ -1,0 +1,458 @@
+-- ============================================================================
+-- Copyright (C) 2012 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description:  The MIB used for configuring the information of the interface
+--               including the IP address on it.
+-- Reference:
+-- Version: V1.06
+-- ============================================================================
+    HUAWEI-IPDSLAM-INTERFACE-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+        huaweiUtility
+            FROM HUAWEI-MIB
+        IpAddress, Integer32, Unsigned32, OBJECT-TYPE,
+        MODULE-IDENTITY, OBJECT-IDENTITY, NOTIFICATION-TYPE
+            FROM SNMPv2-SMI
+        RowStatus,MacAddress,DisplayString
+            FROM SNMPv2-TC
+        InetAddressType, InetAddress, InetAddressPrefixLength
+            FROM INET-ADDRESS-MIB;
+
+        hwIpDslamInterface MODULE-IDENTITY
+            LAST-UPDATED "201109210000Z"
+            ORGANIZATION "Huawei Technologies co.,Ltd."
+            CONTACT-INFO
+                "Huawei Industrial Base
+                 Bantian, Longgang
+                 Shenzhen 518129
+                 People's Republic of China 
+                 Website: http://www.huawei.com
+                 Email: support@huawei.com
+                "
+            DESCRIPTION
+                "The MIB used for configuring the information of the interface
+                 including the IP address on it.
+                "
+
+--  Revision history
+        REVISION     "201206300000Z"
+        DESCRIPTION  "V1.06, added hwIpDslamInterfacePriorityDefaultTos, hwIpDslamInterfacePriorityTosForDhcp and hwIpDslamInterfacePriorityTosForRoutingPkt in hwIpDslamInterfacePriorityTable." 
+
+        REVISION     "201109210000Z"
+        DESCRIPTION  "V1.05, modify the year in Copyright description and the format of revision history." 
+
+        REVISION     "201105180000Z"
+        DESCRIPTION  "V1.04, modify the string length range of hwIpDslamInterfaceIfDescr." 
+        
+        REVISION     "201012180000Z"
+        DESCRIPTION  "V1.03, add the hwIpDslamInterfacePriorityTable."  
+        
+        REVISION     "201012180000Z"        
+        DESCRIPTION  "V1.02, modified the description of hwIpDslamInterfaceIpAddressType and hwIpDslamInterfaceIpAddress."
+        
+        REVISION     "201007090900Z"
+        DESCRIPTION  "V1.01, initial version."
+
+            ::= { huaweiUtility 161 }
+
+
+        hwIpDslamInterfaceObject OBJECT-IDENTITY
+            STATUS          current
+            DESCRIPTION
+                "Interface Object.
+                "
+            ::= { hwIpDslamInterface 1}
+
+
+        hwIpDslamInterfaceTable OBJECT-TYPE
+            SYNTAX          SEQUENCE OF HwIpDslamInterfaceEntry
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION
+                "This table is used to manage the interface object, such as
+                 create, modify and delete. The indexes of this table are
+                 hwIpDslamInterfaceType and hwIpDslamInterfaceUnitNum.
+                "
+            ::= { hwIpDslamInterfaceObject 1 }
+
+        hwIpDslamInterfaceEntry OBJECT-TYPE
+            SYNTAX          HwIpDslamInterfaceEntry
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION
+                "This table is used to manage the interface object, such as
+                 create, modify and delete. The indexes of this entry are
+                 hwIpDslamInterfaceType and hwIpDslamInterfaceUnitNum.
+                "
+            INDEX             { hwIpDslamInterfaceType, hwIpDslamInterfaceUnitNum }
+            ::= { hwIpDslamInterfaceTable 1 }
+
+        HwIpDslamInterfaceEntry ::= SEQUENCE
+        {
+            hwIpDslamInterfaceType          INTEGER,
+            hwIpDslamInterfaceUnitNum       Integer32,
+            hwIpDslamInterfaceIfIndex       Integer32,
+            hwIpDslamInterfaceIfName        DisplayString,
+            hwIpDslamInterfaceIfDescr       DisplayString,
+            hwIpDslamInterfaceAdminStatus   INTEGER,
+            hwIpDslamInterfaceRowStatus     RowStatus
+        }
+
+        hwIpDslamInterfaceType OBJECT-TYPE
+            SYNTAX INTEGER
+            {
+                inloopback(1),
+                null(2),
+                meth(3),
+                vlanif(4),
+                loopback(5),
+                tunnel(6)
+            }
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Indicates the interface type.
+                 Options:
+                 1. inloopback(1) -the system inner loopback interface
+                 2. null(2)       -the NULL interface
+                 3. meth(3)       -the ethernet interface for management
+                 4. vlanif(4)     -the VLAN interface
+                 5. loopback(5)   -the loopback interface
+                 6. tunnel(6)     -the tunnel interface
+                "
+            ::= { hwIpDslamInterfaceEntry 1 }
+
+        hwIpDslamInterfaceUnitNum OBJECT-TYPE
+            SYNTAX          Integer32
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION
+                "Indicates the interface unit number. The valid range of its
+                 value lies on the interface type.
+                "
+            ::= { hwIpDslamInterfaceEntry 2 }
+
+        hwIpDslamInterfaceIfIndex OBJECT-TYPE
+            SYNTAX          Integer32
+            MAX-ACCESS      read-create
+            STATUS          current
+            DESCRIPTION
+                "A unique value for each interface. The interface identified by
+                 a particular value of this index is the same interface as
+                 identified by the same value of the IF-MIB's ifIndex.
+                "
+            ::= { hwIpDslamInterfaceEntry 3 }
+
+        hwIpDslamInterfaceIfName OBJECT-TYPE
+            SYNTAX          DisplayString (SIZE(1..64))
+            MAX-ACCESS      read-only
+            STATUS          current
+            DESCRIPTION
+                "Indicates the interface name.
+                "
+            ::= { hwIpDslamInterfaceEntry 4 }
+
+        hwIpDslamInterfaceIfDescr OBJECT-TYPE
+            SYNTAX          DisplayString (SIZE(0..80))
+            MAX-ACCESS      read-write
+            STATUS          current
+            DESCRIPTION
+                "Indicates the description of this interface.
+                "
+            ::= { hwIpDslamInterfaceEntry 5 }
+
+        hwIpDslamInterfaceAdminStatus OBJECT-TYPE
+            SYNTAX INTEGER
+            {
+                up(1),
+                down(2)
+            }
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Interface admin status
+                 Options:
+                 1. up(1)   -indicates that the interface is up
+                 2. down(2) -indicates that the interface is down
+                "
+            ::= { hwIpDslamInterfaceEntry 6 }
+
+        hwIpDslamInterfaceRowStatus OBJECT-TYPE
+            SYNTAX          RowStatus
+            MAX-ACCESS      read-create
+            STATUS          current
+            DESCRIPTION
+                "Indicates the row status.
+                 Options:
+                 1. active(1)      -indicates query operation
+                 2. createAndGo(4) -indicates creating an interface
+                 3. destroy(6)     -indicates deleting an interface
+                "
+            ::= { hwIpDslamInterfaceEntry 7 }
+
+--
+-- hwIpDslamInterfaceIpTable
+--
+
+        hwIpDslamInterfaceIpTable OBJECT-TYPE
+            SYNTAX          SEQUENCE OF HwIpDslamInterfaceIpEntry
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION
+                "This table is used to manage the interface object, such as
+                 create, modify and delete. The indexes of this table are
+                 hwIpDslamInterfaceIpIfIndex, hwIpDslamInterfaceIpAddressType,
+                 hwIpDslamInterfaceIpAddress and hwIpDslamInterfaceIpPfxLen.
+                 Make sure that the interface identified by the
+                 hwIpDslamInterfaceIpAddress is already created in
+                 hwIpDslamInterfaceTable.
+                "
+            ::= { hwIpDslamInterfaceObject 2 }
+
+        hwIpDslamInterfaceIpEntry OBJECT-TYPE
+            SYNTAX          HwIpDslamInterfaceIpEntry
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION
+                "This table is used to manage the interface object, such as
+                 create, modify and delete. The indexes of this entry are
+                 hwIpDslamInterfaceIpIfIndex, hwIpDslamInterfaceIpAddressType,
+                 hwIpDslamInterfaceIpAddress and hwIpDslamInterfaceIpPfxLen.
+                 Make sure that the interface identified by the
+                 hwIpDslamInterfaceIpAddress is already created in
+                 hwIpDslamInterfaceTable.
+                "
+            INDEX             { hwIpDslamInterfaceIpIfIndex, hwIpDslamInterfaceIpAddressType, hwIpDslamInterfaceIpAddress, hwIpDslamInterfaceIpPfxLen }
+            ::= { hwIpDslamInterfaceIpTable 1 }
+
+        HwIpDslamInterfaceIpEntry ::= SEQUENCE
+        {
+            hwIpDslamInterfaceIpIfIndex       Integer32,
+            hwIpDslamInterfaceIpAddressType   InetAddressType,
+            hwIpDslamInterfaceIpAddress       InetAddress,
+            hwIpDslamInterfaceIpPfxLen        InetAddressPrefixLength,
+            hwIpDslamInterfaceIpFlag          INTEGER,
+            hwIpDslamInterfaceIpMethod        INTEGER,
+            hwIpDslamInterfaceIpRowStatus     RowStatus
+        }
+
+        hwIpDslamInterfaceIpIfIndex OBJECT-TYPE
+            SYNTAX          Integer32
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION
+                "Indicates which interface the IP address is to be configured.
+                 The value of it is same with the hwIpDslamInterfaceIfIndex
+                 in hwIpDslamInterfaceTable.
+                "
+            ::= { hwIpDslamInterfaceIpEntry 1 }
+
+
+        hwIpDslamInterfaceIpAddressType OBJECT-TYPE
+            SYNTAX          InetAddressType
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION
+                "The type of the hwIpDslamInterfaceIpAddress address, as defined
+                 in the InetAddress MIB.
+                 
+                 Now only support ipv4(1).
+                "
+            REFERENCE "RFC 4001"
+            ::= { hwIpDslamInterfaceIpEntry 2 }
+
+        hwIpDslamInterfaceIpAddress OBJECT-TYPE
+            SYNTAX          InetAddress
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION
+                "The IP address of the interface.
+                 The type of this address is determined by the value of
+                 the hwIpDslamInterfaceIpAddressType object.
+                "
+            ::= { hwIpDslamInterfaceIpEntry 3 }
+
+        hwIpDslamInterfaceIpPfxLen OBJECT-TYPE
+            SYNTAX InetAddressPrefixLength
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "If hwIpDslamInterfaceIpAddressType is set to ipv4(1)
+                 or ipv6(2), then this value will contain an appropriate
+                 prefix length for the IP address in object
+                 hwIpDslamInterfaceIpAddress. Otherwise this value is
+                 irrelevant and should be ignored.
+                "
+            ::= { hwIpDslamInterfaceIpEntry 4 }
+
+
+        hwIpDslamInterfaceIpFlag OBJECT-TYPE
+            SYNTAX INTEGER
+            {
+                primary(1),
+                secondary(2)
+            }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the flag of the IP address.
+                 Options:
+                 1. primary(1)   -indicates that this IP address is the primary
+                                  IP address of the interface
+                 2. secondary(2) -indicates that this IP address is the primary
+                                  IP address of the interface.
+                                  One interface may have one primary IP address,
+                                  and several secondary IP addresses.
+                "
+            ::= { hwIpDslamInterfaceIpEntry 5 }
+
+        hwIpDslamInterfaceIpMethod OBJECT-TYPE
+            SYNTAX INTEGER
+            {
+                static(1),
+                dhcp(2)
+            }
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Interface IP address acquiring method.
+                 Options:
+                 1. static(1) -indicates the address was manually configured
+                 2. dhcp(2)   -indicates the address was assigned by a DHCP server
+                "
+            ::= { hwIpDslamInterfaceIpEntry 6 }
+
+        hwIpDslamInterfaceIpRowStatus OBJECT-TYPE
+            SYNTAX          RowStatus
+            MAX-ACCESS      read-create
+            STATUS          current
+            DESCRIPTION
+                "Indicates the row status.
+                 Options:
+                 1. active(1)      -indicates query operation
+                 2. createAndGo(4) -indicates creating an IP address
+                 3. destroy(6)     -indicates deleting an IP address
+                "
+            ::= { hwIpDslamInterfaceIpEntry 7 }
+
+
+--
+-- hwIpDslamInterfacePriorityTable
+--
+
+        hwIpDslamInterfacePriorityTable OBJECT-TYPE
+            SYNTAX          SEQUENCE OF HwIpDslamInterfacePriorityEntry
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION
+                "This table is used to config the priority marked for the packet 
+                 send from the VLAN interface. The index of this table is
+                 hwIpDslamInterfacePriorityIfIndex.
+                "
+            ::= { hwIpDslamInterfaceObject 3 }
+
+        hwIpDslamInterfacePriorityEntry OBJECT-TYPE
+            SYNTAX          HwIpDslamInterfacePriorityEntry
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION
+                "This table is used to config the priority marked for the packet 
+                 send from the VLAN interface. The index of this entry is
+                 hwIpDslamInterfacePriorityIfIndex.
+                "
+            INDEX             { hwIpDslamInterfacePriorityIfIndex }
+            ::= { hwIpDslamInterfacePriorityTable 1 }
+
+        HwIpDslamInterfacePriorityEntry ::= SEQUENCE
+        {
+            hwIpDslamInterfacePriorityIfIndex  			Integer32,
+            hwIpDslamInterfacePriorityDefaultDscp   	Integer32,
+            hwIpDslamInterfacePriorityDscpForDhcp       Integer32,
+            hwIpDslamInterfacePriorityDscpForRoutingPkt Integer32,
+            hwIpDslamInterfacePriorityDefaultTos   	Integer32,
+            hwIpDslamInterfacePriorityTosForDhcp        Integer32,
+            hwIpDslamInterfacePriorityTosForRoutingPkt  Integer32
+        }
+
+        hwIpDslamInterfacePriorityIfIndex OBJECT-TYPE
+            SYNTAX          Integer32
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION
+                "Indicates which interface the priority is to be configured on.
+                 The value of it is same with the hwIpDslamInterfaceIfIndex
+                 in hwIpDslamInterfaceTable.
+                "
+            ::= { hwIpDslamInterfacePriorityEntry 1 }
+
+        hwIpDslamInterfacePriorityDefaultDscp OBJECT-TYPE
+            SYNTAX          Integer32 (-1|0..63)
+            MAX-ACCESS      read-write
+            STATUS          current
+            DESCRIPTION
+                "The DSCP value for all packet. A value of -1 indicates that 
+                 it has not been configured. In that case, the DSCP in packet
+                 will use the value of 0.
+                "
+            ::= { hwIpDslamInterfacePriorityEntry 2 }
+
+        hwIpDslamInterfacePriorityDscpForDhcp OBJECT-TYPE
+            SYNTAX          Integer32 (-1|0..63)
+            MAX-ACCESS      read-write
+            STATUS          current
+            DESCRIPTION
+                "The DSCP value for DHCP packet. A value of -1 indicates that 
+                 it has not been configured. In that case, the DSCP for 
+                 DHCP packet will use the value of 
+                 hwIpDslamInterfacePriorityDefaultDscp. 
+                "
+            ::= { hwIpDslamInterfacePriorityEntry 3 }
+
+        hwIpDslamInterfacePriorityDscpForRoutingPkt OBJECT-TYPE
+            SYNTAX          Integer32 (-1|0..63)
+            MAX-ACCESS      read-write
+            STATUS          current
+            DESCRIPTION
+                "The DSCP value for routing-protocol packet. A value of -1 
+                 indicates that it has not been configured. In that case,
+                 the DSCP for routing-protocol packet will use the value of 
+                 hwIpDslamInterfacePriorityDefaultDscp. 
+                "
+            ::= { hwIpDslamInterfacePriorityEntry 4 }
+
+        hwIpDslamInterfacePriorityDefaultTos OBJECT-TYPE
+            SYNTAX          Integer32 (-1|0..7)
+            MAX-ACCESS      read-write
+            STATUS          current
+            DESCRIPTION
+                "The TOS value for all packet. A value of -1 indicates that 
+                 it has not been configured. In that case, the TOS in packet
+                 will use the value of 0.
+                "
+            ::= { hwIpDslamInterfacePriorityEntry 5 }
+
+        hwIpDslamInterfacePriorityTosForDhcp OBJECT-TYPE
+            SYNTAX          Integer32 (-1|0..7)
+            MAX-ACCESS      read-write
+            STATUS          current
+            DESCRIPTION
+                "The TOS value for DHCP packet. A value of -1 indicates that 
+                 it has not been configured. In that case, the TOS for 
+                 DHCP packet will use the value of 
+                 hwIpDslamInterfacePriorityDefaultTos. 
+                "
+            ::= { hwIpDslamInterfacePriorityEntry 6 }
+
+        hwIpDslamInterfacePriorityTosForRoutingPkt OBJECT-TYPE
+            SYNTAX          Integer32 (-1|0..7)
+            MAX-ACCESS      read-write
+            STATUS          current
+            DESCRIPTION
+                "The TOS value for routing-protocol packet. A value of -1 
+                 indicates that it has not been configured. In that case,
+                 the TOS for routing-protocol packet will use the value of 
+                 hwIpDslamInterfacePriorityDefaultTos. 
+                "
+            ::= { hwIpDslamInterfacePriorityEntry 7 }
+
+    END

@@ -1,0 +1,2068 @@
+CADANT-HW-MEAS-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+        OBJECT-TYPE, MODULE-IDENTITY, Integer32, Counter32, Counter64, Unsigned32, Gauge32
+                FROM SNMPv2-SMI
+        DisplayString, MacAddress, TEXTUAL-CONVENTION, TimeStamp, TruthValue
+                FROM SNMPv2-TC
+        InterfaceIndex, ifIndex
+                FROM IF-MIB
+        IfDirection
+                FROM DOCS-QOS3-MIB
+        docsSubmgt3FilterGrpEntry
+                FROM DOCS-SUBMGT3-MIB
+        TenthdB
+                FROM DOCS-IF-MIB
+        cadEquipment
+                FROM CADANT-PRODUCTS-MIB
+        cadIfMacDomainIfIndex
+                FROM CADANT-CMTS-LAYER2CMTS-MIB
+        cadIfCmtsCmStatusMacAddress
+                FROM CADANT-CMTS-MAC-MIB
+        cadIf3CmtsCmUsStatusChIfIndex
+                FROM CADANT-CMTS-IF3-MIB
+        pktcEScTapMediationContentId, pktcEScTapStreamIndex
+                FROM PKTC-ES-TAP-MIB
+        CadIfDirection, CardId, PortId
+                FROM CADANT-TC;
+        
+cadHardwareMeasMib MODULE-IDENTITY
+      LAST-UPDATED "201508270000Z" -- August 27, 2015
+      ORGANIZATION 
+          "Arris International, Inc."
+      CONTACT-INFO 
+          "Arris Technical Support
+           E-Mail: support@arrisi.com"
+      DESCRIPTION 
+          "This Mib Module contains all of the counts that are associated
+           with hardware in the ARRIS C4 CMTS. Many of these MIB variables
+           contain the same counts as found in the standard MIBs. However, the
+           grouping of these variables is done for the convenience of the Cadant
+           engineering team. These tables can be used to build value-added interfaces
+           to the Cadant ARRIS C4 CMTS. "
+
+
+
+    REVISION "201508270000Z" -- August 27, 2015
+    DESCRIPTION
+        "Add cadantDPortMeasOfdmChanUtilization"
+
+    REVISION "201507130000Z" -- July 13, 2015
+    DESCRIPTION
+        "Add cadInterfaceHighResUtilizationPercentage and cadInterfaceIntervalOctetsForwarded"
+
+    REVISION "201506030000Z" -- Jun 3, 2015
+    DESCRIPTION
+        "Add cadantDPortMeasDfdmIfSpeed, cadantDPortMeasOfdmHighestAvgBitsPerSubc, and
+         cadantDPortMeasOfdmNumDataSubc"
+
+    REVISION "201410140000Z" -- Oct 14, 2014
+    DESCRIPTION
+        "Support 384 downstream channels per DCAM-B"
+
+      REVISION "201406130000Z" -- Jun 13, 2014
+      DESCRIPTION "Add back in cadFftUpstreamChannelTable"
+
+      REVISION "201406040000Z" -- Jun 4, 2014
+      DESCRIPTION "Add cadDCardIgmpThrottleDropPkts."
+
+      REVISION "201311220000Z" -- Nov 22, 2013
+      DESCRIPTION "Remove cadFftUpstreamChannelTable"
+
+      REVISION "201210300000Z" -- Oct 30, 2012
+      DESCRIPTION "Add cadLaesCountTable"
+      
+      REVISION "201205090000Z" -- May 9, 2012
+      DESCRIPTION "Remove cadHWCmUsMeasTable"
+
+      REVISION "201108310000Z" -- Aug 31, 2011
+      DESCRIPTION "Remove cadantUPortMeasMapFrms"
+
+      REVISION "201106290000Z" -- Jun 29, 2011
+      DESCRIPTION "Remove cadSFIDMeasEntry"
+
+      REVISION "201102280000Z" -- Feb 28, 2011
+      DESCRIPTION "Deprecate cadSFIDMeasEntry and add the following MIB objects to cadantUFIDMeasEntry
+                   cadantUFIDMeasCcfStatsSgmtValids, cadantUFIDMeasCcfStatsSgmtLost and
+                   cadantUFIDMeasCcfStatsSgmtDrop."
+
+      REVISION "201102240000Z" -- Feb 24, 2011
+      DESCRIPTION "Remove cadSFIDToSIDEntry"
+
+      REVISION "201102180000Z" -- Feb 18, 2011
+      DESCRIPTION "Add cadantUFIDMeasSIDMacIfIndex and cadantUFIDMeasSIDBonded 
+                   to cadantUFIDMeasEntry"
+
+      REVISION "201011220000Z" -- Nov 22, 2010
+      DESCRIPTION "Change indices of cadDFIDMeasEntry as ifIndex and SFID. 
+                   Change indices of cadantUFIDMeasEntry as ifIndex and SID"
+
+      REVISION "201003090000Z" -- March 9, 2010
+      DESCRIPTION "Add cadDCardDhcpV6ThrottleDropPkts and cadDCardNdThrottleDropPkts."
+
+      REVISION "200811240000Z" -- Nov 24, 2008
+      DESCRIPTION "Add cadHWCmUsMeasEntry"
+
+      REVISION "200811210000Z" -- Nov 21, 2008
+      DESCRIPTION "Restructure cadantHWUFIDMeasEntry, rename cadantUFIDMeasUFID to cadantUFIDMeasSID, and
+                   Add cadantHWMeasUFIDIndex"
+      
+      REVISION "200811050000Z" -- Nov 5, 2008
+      DESCRIPTION "Restructure cadSFIDMeasEntry to support docsQosServiceFlowCcfStatsEntry"
+
+      REVISION "200804240000Z" -- April 24, 2008
+      DESCRIPTION "Use ifindex as key for sfid to sid lookup."
+
+      REVISION "200609140000Z" -- September 14, 2006
+      DESCRIPTION "Remove fabric tables and add CPWRED tables to match implementation."
+
+      REVISION "200604140000Z"
+      DESCRIPTION "Added implementation per utilization interval for cadInterfaceUtilizationAvgContSlots."
+
+      REVISION "200507130000Z"
+      DESCRIPTION "Added cadDFIDMeasPolicedDelayPkts for Traffic Shaping feature."
+
+      REVISION "200412100000Z"
+      DESCRIPTION "Extended cadSubMgtPktFilterExtTable to allow for packet capturing."
+
+      REVISION "200408310000Z"
+      DESCRIPTION "Added cadSubMgtPktFilterExtTable to reset docsSubMgtPktFilterMatches."
+
+      REVISION "200404090000Z"
+      DESCRIPTION "Added cadFftUpstreamChannelTable for FFT counts."
+
+      REVISION "200403090000Z"
+      DESCRIPTION "Added cadInterfaceUtilizationTable"
+
+      REVISION "200402230000Z"
+      DESCRIPTION "Added support for per-SID HCS and CRC errors."
+
+      REVISION "200402180000Z"
+      DESCRIPTION "Added cadantDPortMeasIfOutTotalOctets"
+
+      REVISION "200402150000Z"
+      DESCRIPTION "Added support for per UFID microreflection/signalnoise."
+
+      REVISION "200401240000Z"
+      DESCRIPTION "Added cadantDPortMeasAppMcastPkts"
+
+      REVISION "200312180000Z"
+      DESCRIPTION "Added 10 BCM3214 counts to the cadantUPortMeasTable"
+
+      REVISION "200312100000Z"
+      DESCRIPTION " add more arp throttle counts. "
+
+      REVISION "200309190000Z"
+      DESCRIPTION " add more receive error counts to cadantEtherPhyMeasTable"
+
+      REVISION "200308260000Z"
+      DESCRIPTION " add error drop and filter drop counts to UPortMeas table"
+ 
+      REVISION "200307300000Z"
+      DESCRIPTION " Add support for DHCP packets dropped due to throttling. "
+
+      REVISION "200205060000Z"
+      DESCRIPTION " change cadantUFIDMeasBytsSGreedyDrop to cadantUFIDMeasPktsSGreedyDrop."
+
+        ::= { cadEquipment 2 }
+
+--========== Some General Definitions =============
+--
+DFIDIndex               ::= TEXTUAL-CONVENTION
+        STATUS current
+        DESCRIPTION
+            "The 1's-based SFID"
+        SYNTAX Unsigned32 (1.. 4294967295)
+
+PktClassId              ::= TEXTUAL-CONVENTION
+        STATUS current
+        DESCRIPTION
+            "Index assigned to packet classifier entry by the CMTS which is
+             unique per service flow."
+        SYNTAX Integer32 (1..65535)
+
+SFIDIndex               ::= TEXTUAL-CONVENTION
+        STATUS current
+        DESCRIPTION
+            "The 1's-based SFID"
+        SYNTAX Integer32 (1..2147483647) -- (1..2^31)
+
+UFIDIndex               ::= TEXTUAL-CONVENTION
+        STATUS current
+        DESCRIPTION
+            "The 1's-based UFID"
+        SYNTAX Integer32 (1..32768) -- (1..2^15)
+
+SIDValue               ::= TEXTUAL-CONVENTION
+        STATUS current
+        DESCRIPTION
+            "The 1's-based SID. 0 is used when there is
+             no SID, such as for downstream flows."
+        SYNTAX Integer32 (0..16384) -- (0..2^14)
+
+TMSide                 ::= TEXTUAL-CONVENTION
+        STATUS current
+        DESCRIPTION
+            "The Traffic Manager side 
+             no SID, such as for downstream flows."
+        SYNTAX INTEGER { tma(1), tmb(2) }
+
+--
+--==================HW Meas Group ==================--
+--
+cadantHWMeasGeneral OBJECT IDENTIFIER  ::= { cadHardwareMeasMib 1 }
+
+cadantFabActualDepth    OBJECT-TYPE
+        SYNTAX          Integer32
+        MAX-ACCESS            read-only
+        STATUS          current
+        DESCRIPTION 
+                " The current depth of the fabric."
+        ::= { cadantHWMeasGeneral 1 }
+
+cadantFabAvgDepth       OBJECT-TYPE
+        SYNTAX          Integer32
+        MAX-ACCESS            read-only
+        STATUS          current
+        DESCRIPTION 
+                " The average depth of the fabric."
+        ::= { cadantHWMeasGeneral 2 }
+
+--======= U Port Meas Table ===============
+--
+cadantUPortMeasTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF CadantUPortMeasEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION
+                " This table contains information relevant 
+                  to D Card upstream channels."
+        ::= { cadHardwareMeasMib 3 }
+
+
+cadantUPortMeasEntry OBJECT-TYPE
+        SYNTAX  CadantUPortMeasEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION " "
+        INDEX { cadantUPortMeasCardId, cadantUPortMeasPortId  }
+        ::= { cadantUPortMeasTable  1 }
+
+CadantUPortMeasEntry ::= SEQUENCE {
+        cadantUPortMeasCardId              CardId,
+        cadantUPortMeasPortId              PortId,
+        cadantUPortMeasUcastFrms           Counter64,
+        cadantUPortMeasMcastFrms           Counter64,
+        cadantUPortMeasBcastFrms           Counter64,
+        cadantUPortMeasUcastDataFrms       Counter64,
+        cadantUPortMeasMcastDataFrms       Counter64,
+        cadantUPortMeasBcastDataFrms       Counter64,
+        cadantUPortMeasDiscardFrms         Counter64,
+        cadantUPortMeasIfInOctets          Counter64,
+        cadantUPortMeasIfInDataOctets      Counter64,
+        cadantUPortMeasIfInUnknownProtos   Counter64,
+        cadantUPortMeasAppMinusBWReqFrms   Counter64,
+        cadantUPortMeasErroredFrms         Counter64,
+        cadantUPortMeasFilteredFrms        Counter64,
+        cadantUPortMeasBcastReqOpps        Counter64,
+        cadantUPortMeasBcastReqColls       Counter64,
+        cadantUPortMeasBcastReqNoEnergies  Counter64,
+        cadantUPortMeasBcastReqRxPwr1s     Counter64,
+        cadantUPortMeasBcastReqRxPwr2s     Counter64,
+        cadantUPortMeasInitMaintOpps       Counter64,
+        cadantUPortMeasInitMaintColls      Counter64,
+        cadantUPortMeasInitMaintNoEnergies Counter64,
+        cadantUPortMeasInitMaintRxPwr1s    Counter64,
+        cadantUPortMeasInitMaintRxPwr2s    Counter64
+}
+
+cadantUPortMeasCardId OBJECT-TYPE
+SYNTAX  CardId
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION 
+                ""
+        ::= { cadantUPortMeasEntry  1 }
+
+cadantUPortMeasPortId OBJECT-TYPE
+        SYNTAX  PortId
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION 
+                ""
+        ::= { cadantUPortMeasEntry  2 }
+
+cadantUPortMeasUcastFrms OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of unicast frames received on this U channel,
+              whether dropped or passed. This includes MAC packets."
+        ::= { cadantUPortMeasEntry  3 }
+
+cadantUPortMeasMcastFrms OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of multicast frames received on this U channel,
+              whether dropped or passed. This includes MAC packets."
+        ::= { cadantUPortMeasEntry  4 }
+
+cadantUPortMeasBcastFrms OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of broadcast frames received on this U channel,
+              whether dropped or passed. This includes MAC packets."
+        ::= { cadantUPortMeasEntry  5 }
+
+cadantUPortMeasUcastDataFrms OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of unicast frames received on this U channel,
+              whether dropped or passed. This does not include MAC packets."
+        ::= { cadantUPortMeasEntry  6 }
+
+cadantUPortMeasMcastDataFrms OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of multicast frames received on this U channel,
+              whether dropped or passed. This does not include MAC packets."
+        ::= { cadantUPortMeasEntry  7 }
+
+cadantUPortMeasBcastDataFrms OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of broadcast frames received on this U channel,
+              whether dropped or passed. This does not include MAC packets."
+        ::= { cadantUPortMeasEntry  8 }
+
+cadantUPortMeasDiscardFrms OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of frames received on this U channel that were
+              dropped for reasons other than ErrorFrms or FilterFrms."
+        ::= { cadantUPortMeasEntry  9 }
+
+cadantUPortMeasIfInOctets OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of octets received on this U channel.
+              This includes MAC packets and the length of the MAC header."
+        ::= { cadantUPortMeasEntry 10 }
+
+cadantUPortMeasIfInDataOctets OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of octets received on this U channel.
+          This does not include MAC packets or the length of the MAC header."
+        ::= { cadantUPortMeasEntry 11 }
+
+cadantUPortMeasIfInUnknownProtos OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " Aggregrate number of MAC frames with unknown protocol. This
+                  count is neither mutually exclusive with cadantUPortMeasErroredFrms
+                  nor cadantUPortMeasErroredFrms."
+        ::= { cadantUPortMeasEntry 12 }
+
+cadantUPortMeasAppMinusBWReqFrms OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The number of (unicast) frames received by the software application
+            which are not bandwidth request frames. "
+        ::= { cadantUPortMeasEntry 13 }
+
+cadantUPortMeasErroredFrms OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of packets received on this U channel that were
+          received in error and dropped. This count is neither mutually exclusive
+          with cadantUPortMeasIfInUnknownProtos nor cadantUPortMeasFilteredFrms."
+        ::= { cadantUPortMeasEntry 15 }
+
+cadantUPortMeasFilteredFrms OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of packets received on this U channel that were
+          dropped due to a filter rule match and discard. This count is neither
+          mutually exclusive with cadantUPortMeasIfInUnknownProtos nor
+                  cadantUPortMeasErroredFrms."
+        ::= { cadantUPortMeasEntry 16 }
+
+cadantUPortMeasBcastReqOpps OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "Broadcast contention request opportunity count"
+        ::= { cadantUPortMeasEntry 17 }
+
+cadantUPortMeasBcastReqColls OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "Broadcast contention request opportunities with possible collisions count"
+        ::= { cadantUPortMeasEntry 18 }
+
+cadantUPortMeasBcastReqNoEnergies OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "Broadcast contention request opportunities with no energy condition detected"
+        ::= { cadantUPortMeasEntry 19 }
+
+cadantUPortMeasBcastReqRxPwr1s OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "Broadcast contention request opportunities with received power level between
+                 power threshold 2 and power threshold 1"
+        ::= { cadantUPortMeasEntry 20 }
+
+cadantUPortMeasBcastReqRxPwr2s OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "Broadcast contention request opportunities with received power level greater
+                 than power threshold 2"
+        ::= { cadantUPortMeasEntry 21 }
+
+cadantUPortMeasInitMaintOpps OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "Initial maintenance opportunities"
+        ::= { cadantUPortMeasEntry 22 }
+
+cadantUPortMeasInitMaintColls OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "Initial maintenance opportunities with possible collision"
+        ::= { cadantUPortMeasEntry 23 }
+
+cadantUPortMeasInitMaintNoEnergies OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "Initial maintenance opportunities with no energy detected"
+        ::= { cadantUPortMeasEntry 24 }
+
+cadantUPortMeasInitMaintRxPwr1s OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "Initial maintenance opportunities with received power level between
+                 power threshold 2 and power threshold 1"
+        ::= { cadantUPortMeasEntry 25 }
+
+cadantUPortMeasInitMaintRxPwr2s OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "Initial maintenance opportunities with received power level greater
+                 than power threshold 2"
+        ::= { cadantUPortMeasEntry 26 }
+
+--======= D Port Meas Table ===============
+--
+
+cadantDPortMeasTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF CadantDPortMeasEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION
+                " This table contains information relevant 
+                  to D Card downstream channels."
+        ::= { cadHardwareMeasMib 4 }
+
+cadantDPortMeasEntry OBJECT-TYPE
+        SYNTAX  CadantDPortMeasEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION " "
+        INDEX { cadantDPortMeasCardId, cadantDPortMeasPortId  }
+        ::= { cadantDPortMeasTable  1 }
+
+CadantDPortMeasEntry ::= SEQUENCE {
+        cadantDPortMeasCardId                       CardId,
+        cadantDPortMeasPortId                       PortId,
+        cadantDPortMeasIfOutOctets                  Counter64,
+        cadantDPortMeasIfOutUcastPkts               Counter64,
+        cadantDPortMeasIfOutMcastPkts               Counter64,
+        cadantDPortMeasIfOutBcastPkts               Counter64,
+        cadantDPortMeasIfOutDataOctets              Counter64,
+        cadantDPortMeasIfOutUcastDataPkts           Counter64,
+        cadantDPortMeasIfOutMcastDataPkts           Counter64,
+        cadantDPortMeasIfOutBcastDataPkts           Counter64,
+        cadantDPortMeasGotNoDMACs                   Counter64,
+        cadantDPortMeasGotNoClasses                 Counter64,
+        cadantDPortMeasSyncPkts                     Counter64,
+        cadantDPortMeasAppUcastPkts                 Counter64,
+        cadantDPortMeasAppMcastPkts                 Counter64,
+        cadantDPortMeasIfOutTotalOctets             Counter64,
+        cadantDPortMeasOfdmIfSpeed                  Gauge32,
+        cadantDPortMeasOfdmHighestAvgBitsPerSubc    Unsigned32,
+        cadantDPortMeasOfdmNumDataSubc              Unsigned32,
+        cadantDPortMeasOfdmChanUtilization          Integer32
+}
+
+cadantDPortMeasCardId OBJECT-TYPE
+        SYNTAX  CardId
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION 
+                ""
+        ::= { cadantDPortMeasEntry  1 }
+
+cadantDPortMeasPortId OBJECT-TYPE
+        SYNTAX  PortId
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION 
+                ""
+        ::= { cadantDPortMeasEntry  2 }
+
+cadantDPortMeasIfOutOctets OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " Aggregrate number of data bytes sent on this D channel.
+              This includes MAC mgmt messages and the length of the
+              MAC header."
+        ::= { cadantDPortMeasEntry  3 }
+
+cadantDPortMeasIfOutUcastPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " Aggregrate number of unicast data packets sent on this D channel.
+              This includes MAC mgmt messages."
+        ::= { cadantDPortMeasEntry  4 }
+
+cadantDPortMeasIfOutMcastPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " Aggregrate number of multicast data packets sent on this D channel.
+              This includes MAC mgmt messages."
+        ::= { cadantDPortMeasEntry  5 }
+
+cadantDPortMeasIfOutBcastPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " Aggregrate number of broadcast data packets sent on this D channel.
+              This includes MAC mgmt messages."
+        ::= { cadantDPortMeasEntry  6 }
+
+cadantDPortMeasIfOutDataOctets OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " Aggregrate number of data bytes sent on this D channel.
+              This does not include MAC mgmt bytes."
+        ::= { cadantDPortMeasEntry  7 }
+
+cadantDPortMeasIfOutUcastDataPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " Aggregrate number of unicast data packets sent on this D channel.
+              This does not include MAC mgmt messages."
+        ::= { cadantDPortMeasEntry  8 }
+
+cadantDPortMeasIfOutMcastDataPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " Aggregrate number of multicast data packets sent on this D channel.
+              This does not include MAC mgmt messages."
+        ::= { cadantDPortMeasEntry  9 }
+
+cadantDPortMeasIfOutBcastDataPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " Aggregrate number of broadcast data packets sent on this D channel.
+              This does not include MAC mgmt messages."
+        ::= { cadantDPortMeasEntry 10 }
+
+cadantDPortMeasGotNoDMACs OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " Aggregrate number of ???"
+        ::= { cadantDPortMeasEntry 11 }
+
+cadantDPortMeasGotNoClasses OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " Aggregrate number of ???."
+        ::= { cadantDPortMeasEntry 12 }
+
+cadantDPortMeasSyncPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " Aggregrate number of sync. frames sent on this D channel."
+        ::= { cadantDPortMeasEntry 13 }
+
+cadantDPortMeasAppUcastPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " Aggregrate number of unicast DOCSIS Mac mgmt messages
+            sent by application software. "
+        ::= { cadantDPortMeasEntry 14 }
+
+cadantDPortMeasAppMcastPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " Aggregrate number of multicast DOCSIS Mac mgmt messages
+            sent by application software. "
+        ::= { cadantDPortMeasEntry 15 }
+
+cadantDPortMeasIfOutTotalOctets OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " Aggregrate number of octets sent by application software. "
+        ::= { cadantDPortMeasEntry 16 }
+
+cadantDPortMeasOfdmIfSpeed OBJECT-TYPE
+        SYNTAX  Gauge32
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "Downstream OFDM channel interface speed."
+        ::= { cadantDPortMeasEntry 17 }
+
+cadantDPortMeasOfdmHighestAvgBitsPerSubc OBJECT-TYPE
+        SYNTAX  Unsigned32
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "Highest average bits per subcarrier among all the data profiles of the downstream OFDM channel."
+        ::= { cadantDPortMeasEntry 18 }
+
+cadantDPortMeasOfdmNumDataSubc OBJECT-TYPE
+        SYNTAX  Unsigned32
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "The number of data subcarrier of the downstream OFDM channel."
+        ::= { cadantDPortMeasEntry 19 }
+
+cadantDPortMeasOfdmChanUtilization OBJECT-TYPE
+        SYNTAX       Integer32 (0..100)
+        UNITS        "percent"
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+             "The utilization of the downstream OFDM channel."
+        ::= { cadantDPortMeasEntry 20 }
+
+--======= UFID Meas Table ===============--
+
+cadantUFIDMeasTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF CadantUFIDMeasEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION
+                " "
+        ::= { cadHardwareMeasMib 6 }
+
+cadantUFIDMeasEntry OBJECT-TYPE
+        SYNTAX  CadantUFIDMeasEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION " "
+        INDEX { ifIndex, cadantUFIDMeasSID }
+        ::= { cadantUFIDMeasTable  1 }
+
+CadantUFIDMeasEntry ::= SEQUENCE {
+
+        cadantUFIDMeasSID                      SIDValue,
+        cadantUFIDMeasPktsSGreedyDrop          Counter64,
+        cadantUFIDMeasBytsOtherDrop            Counter64,
+        cadantUFIDMeasBytsArrived              Counter64,
+        cadantUFIDMeasPktsArrived              Counter64, 
+        cadantUFIDMeasSIDCorrecteds            Counter64,
+        cadantUFIDMeasSIDUnerroreds            Counter64,
+        cadantUFIDMeasSIDUnCorrecteds          Counter64,
+        cadantUFIDMeasSIDNoUniqueWordDetecteds Counter64,
+        cadantUFIDMeasSIDCollidedBursts        Counter64, 
+        cadantUFIDMeasSIDNoEnergyDetecteds     Counter64,
+        cadantUFIDMeasSIDLengthErrors          Counter64,
+        cadantUFIDMeasSIDMACErrors             Counter64,
+        cadantUFIDMeasMacAddress               MacAddress,
+        cadantUFIDMeasSCN                      DisplayString,
+        cadantUFIDMeasSFID                     SFIDIndex,
+        cadantUFIDMeasPHSUnknowns              Counter64,
+        cadantUFIDMeasFragPkts                 Counter64,
+        cadantUFIDMeasIncompletePkts           Counter64,
+        cadantUFIDMeasConcatBursts             Counter64,
+        cadantUFIDMeasSIDSignalNoise           TenthdB,
+        cadantUFIDMeasSIDMicroreflections      Integer32,
+        cadantUFIDMeasSIDHCSErrors             Counter64,
+        cadantUFIDMeasSIDCRCErrors             Counter64,
+        cadantUFIDMeasUFIDIndex                UFIDIndex,
+        cadantUFIDMeasGateID                   Unsigned32,
+        cadantUFIDMeasSIDMacIfIndex            InterfaceIndex,
+        cadantUFIDMeasSIDBonded                TruthValue,
+        cadantUFIDMeasCcfStatsSgmtValids       Counter32,
+        cadantUFIDMeasCcfStatsSgmtLost         Counter32,
+        cadantUFIDMeasCcfStatsSgmtDrop         Counter32
+}
+
+
+cadantUFIDMeasSID OBJECT-TYPE
+        SYNTAX  SIDValue
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION 
+                " The 14 bit (SID)."
+        ::= { cadantUFIDMeasEntry  3 }
+
+cadantUFIDMeasPktsSGreedyDrop OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of Super Greedy pkts dropped for this UFID for
+              this MAC layer."
+        ::= { cadantUFIDMeasEntry  4 }
+
+cadantUFIDMeasBytsOtherDrop OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of bytes dropped for this UFID for
+              this MAC layer for any other reason than Super Greedy."
+        ::= { cadantUFIDMeasEntry  5 }
+
+cadantUFIDMeasBytsArrived OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of bytes that arrived for this UFID for
+              this MAC layer."
+        ::= { cadantUFIDMeasEntry  6 }
+
+cadantUFIDMeasPktsArrived OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of packets that arrived for this UFID for
+              this MAC layer."
+        ::= { cadantUFIDMeasEntry  7 }
+
+cadantUFIDMeasSIDCorrecteds OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of bytes that had errors and were corrected
+              for this UFID for this MAC layer."
+        ::= { cadantUFIDMeasEntry  8 }
+
+cadantUFIDMeasSIDUnerroreds OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of bytes that had no errors
+              for this UFID for this MAC layer."
+        ::= { cadantUFIDMeasEntry  9 }
+
+cadantUFIDMeasSIDUnCorrecteds OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of bytes that had errors and were not
+              corrected for this UFID for this MAC layer."
+        ::= { cadantUFIDMeasEntry 10 }
+
+cadantUFIDMeasSIDNoUniqueWordDetecteds OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of bytes allocated for this UFID in which
+              no unique code word was detected for this UFID for this MAC layer."
+        ::= { cadantUFIDMeasEntry 11 }
+
+cadantUFIDMeasSIDCollidedBursts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of bytes allocated for this UFID that had
+              burst errors in their slots for this UFID for this MAC layer."
+        ::= { cadantUFIDMeasEntry 12 }
+
+cadantUFIDMeasSIDNoEnergyDetecteds OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of bytes allocated for this UFID that had
+              no energy detected in their slots for this UFID for this MAC layer."
+        ::= { cadantUFIDMeasEntry 13 }
+
+cadantUFIDMeasSIDLengthErrors OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of bytes allocated for this UFID that had
+              no length errors in their slots for this UFID for this MAC layer."
+        ::= { cadantUFIDMeasEntry 14 }
+
+cadantUFIDMeasSIDMACErrors OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The aggregrate number of bytes allocated for this UFID that had
+              MAC errors in their slots for this UFID for this MAC layer."
+        ::= { cadantUFIDMeasEntry 15 }
+cadantUFIDMeasMacAddress OBJECT-TYPE
+        SYNTAX  MacAddress
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The MAC address of the CM this flow is associated with."
+        ::= { cadantUFIDMeasEntry 17 }
+
+cadantUFIDMeasSCN OBJECT-TYPE
+        SYNTAX  DisplayString
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The Service Class Name for this flow."
+        ::= { cadantUFIDMeasEntry 18 }
+
+cadantUFIDMeasSFID OBJECT-TYPE
+        SYNTAX  SFIDIndex
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The SFID this UFID(SID) is for."
+        ::= { cadantUFIDMeasEntry 19 }
+
+cadantUFIDMeasPHSUnknowns OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "refer to docsQosServiceFlowPHSUnknowns"
+        ::= { cadantUFIDMeasEntry 20 }
+
+cadantUFIDMeasFragPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "refer to docsQosUpstreamFragPkts"
+        ::= { cadantUFIDMeasEntry 21 }
+
+cadantUFIDMeasIncompletePkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "refer to docsQosUpstreamIncompletePkts"
+        ::= { cadantUFIDMeasEntry 22 }
+
+cadantUFIDMeasConcatBursts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "refer to docsQosUpstreamConcatBursts"
+        ::= { cadantUFIDMeasEntry 23 }
+
+cadantUFIDMeasSIDSignalNoise OBJECT-TYPE
+        SYNTAX  TenthdB
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "refer to docsIfCmtsCmStatusSignalNoise"
+        ::= { cadantUFIDMeasEntry 24 }
+
+cadantUFIDMeasSIDMicroreflections OBJECT-TYPE
+        SYNTAX  Integer32
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "refer to docsIfCmtsCmStatusMicroreflections"
+        ::= { cadantUFIDMeasEntry 25 }
+
+cadantUFIDMeasSIDHCSErrors OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "The number of MAC HCS errors seen for this SID."
+        ::= { cadantUFIDMeasEntry 26 }
+
+cadantUFIDMeasSIDCRCErrors OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "The number of MAC CRC errors seen for this SID."
+        ::= { cadantUFIDMeasEntry 27 }
+
+cadantUFIDMeasUFIDIndex OBJECT-TYPE
+        SYNTAX  UFIDIndex
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The 15 bit (UFID)."
+        ::= { cadantUFIDMeasEntry 28 }
+
+cadantUFIDMeasGateID OBJECT-TYPE
+        SYNTAX  Unsigned32
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " The DQoS or PCMM gate ID corresponding to the flow,
+                  A zero in this field indicates no gate is associated with the flow."
+        ::= { cadantUFIDMeasEntry  29 }
+
+cadantUFIDMeasSIDMacIfIndex OBJECT-TYPE
+        SYNTAX  InterfaceIndex
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " The cable Mac domain ifIndex the SID is associated with."
+        ::= { cadantUFIDMeasEntry  30 }
+
+cadantUFIDMeasSIDBonded OBJECT-TYPE
+        SYNTAX  TruthValue
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " This object indicates whether a SID is associated with 
+                  a CCF service flow."
+        ::= { cadantUFIDMeasEntry  31 }
+
+cadantUFIDMeasCcfStatsSgmtValids OBJECT-TYPE
+        SYNTAX  Counter32
+		UNITS	"segments"
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+			"This attribute contains the number of segments counted
+			on this service flow regardless of whether the
+			fragment was correctly reassembled into valid packets.
+			Discontinuities in the value of this counter can
+			occur at reinitialization of the managed system."
+        ::= { cadantUFIDMeasEntry 32 }
+
+cadantUFIDMeasCcfStatsSgmtLost OBJECT-TYPE
+        SYNTAX  Counter32
+		UNITS	"segments"
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+			"This attribute counts the number of segments which
+			the CMTS segment reassembly function determines were
+			lost. Discontinuities in the value of this counter
+			can occur at reinitialization of the managed system."
+        ::= { cadantUFIDMeasEntry 33 }
+
+cadantUFIDMeasCcfStatsSgmtDrop OBJECT-TYPE
+        SYNTAX  Counter32
+		UNITS	"segments"
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+			"This attribute counts the number of segments which
+			the CMTS segment reassembly function determines were
+			dropped. Discontinuities in the value of this counter
+			can occur at reinitialization of the managed system."
+        ::= { cadantUFIDMeasEntry  34 }
+
+
+--
+--================== EtherPhys Meas Table ==============================-
+--
+
+cadantEtherPhyMeasTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF CadantEtherPhyMeasEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION
+                " "
+        ::= { cadHardwareMeasMib 10 }
+
+cadantEtherPhyMeasEntry OBJECT-TYPE
+        SYNTAX  CadantEtherPhyMeasEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION " "
+        INDEX { cadantEtherPhyMeasCardId, cadantEtherPhyMeasPortId }
+        ::= { cadantEtherPhyMeasTable  1 }
+
+CadantEtherPhyMeasEntry ::= SEQUENCE {
+        cadantEtherPhyMeasCardId         CardId,
+        cadantEtherPhyMeasPortId         PortId,
+
+        cadantEtherPhyMeasRxOctOK        Counter64,
+        cadantEtherPhyMeasRxUniOK        Counter64,
+        cadantEtherPhyMeasRxMultiOK      Counter64,
+        cadantEtherPhyMeasRxBroadOK      Counter64,
+        cadantEtherPhyMeasRxOverflow     Counter64,
+        cadantEtherPhyMeasRxNormAlign    Counter64,
+        cadantEtherPhyMeasRxNormCRC      Counter64,
+        cadantEtherPhyMeasRxLongOK       Counter64,
+        cadantEtherPhyMeasRxLongCRC      Counter64,
+        cadantEtherPhyMeasRxFalsCRS      Counter64,
+        cadantEtherPhyMeasRxSymbolErrors Counter64,
+        cadantEtherPhyMeasRxPause        Counter64,
+        cadantEtherPhyMeasTxOctOK        Counter64,
+        cadantEtherPhyMeasTxUniOK        Counter64, 
+        cadantEtherPhyMeasTxMultiOK      Counter64, 
+        cadantEtherPhyMeasTxBroadOK      Counter64,
+        cadantEtherPhyMeasTxScol         Counter64,
+        cadantEtherPhyMeasTxMcol         Counter64,
+        cadantEtherPhyMeasTxDeferred     Counter64,
+        cadantEtherPhyMeasTxLcol         Counter64,
+        cadantEtherPhyMeasTxCcol         Counter64,
+        cadantEtherPhyMeasTxErr          Counter64,
+        cadantEtherPhyMeasTxPause        Counter64,
+        cadantEtherPhyMeasRxShortOK      Counter64,
+        cadantEtherPhyMeasRxShortCRC     Counter64,
+        cadantEtherPhyMeasRxRunt         Counter64,
+        cadantEtherPhyMeasRxOctBad       Counter64
+}
+
+cadantEtherPhyMeasCardId OBJECT-TYPE
+        SYNTAX  CardId
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION
+                ""
+        ::= { cadantEtherPhyMeasEntry  1 }
+
+cadantEtherPhyMeasPortId OBJECT-TYPE
+        SYNTAX  PortId
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION
+                ""
+        ::= { cadantEtherPhyMeasEntry  2 }
+
+cadantEtherPhyMeasRxOctOK OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry  3 }
+
+cadantEtherPhyMeasRxUniOK OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry  4 }
+
+cadantEtherPhyMeasRxMultiOK OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry  5 }
+
+cadantEtherPhyMeasRxBroadOK OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry  6 }
+
+cadantEtherPhyMeasRxOverflow OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry  7 }
+
+cadantEtherPhyMeasRxNormAlign OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry  8 }
+
+cadantEtherPhyMeasRxNormCRC OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry  9 }
+
+cadantEtherPhyMeasRxLongOK OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 10 }
+
+cadantEtherPhyMeasRxLongCRC OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 11 }
+
+cadantEtherPhyMeasRxFalsCRS OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 12 }
+
+cadantEtherPhyMeasRxSymbolErrors OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 13 }
+
+cadantEtherPhyMeasRxPause OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 14 }
+
+cadantEtherPhyMeasTxOctOK OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 15 }
+
+cadantEtherPhyMeasTxUniOK OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 16 }
+
+cadantEtherPhyMeasTxMultiOK OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 17 }
+
+cadantEtherPhyMeasTxBroadOK OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 18 }
+
+cadantEtherPhyMeasTxScol OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 19 }
+
+cadantEtherPhyMeasTxMcol OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 20 }
+
+cadantEtherPhyMeasTxDeferred OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 21 }
+
+cadantEtherPhyMeasTxLcol OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 22 }
+
+cadantEtherPhyMeasTxCcol OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 23 }
+
+cadantEtherPhyMeasTxErr OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 24 }
+
+cadantEtherPhyMeasTxPause OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 25 }
+
+cadantEtherPhyMeasRxShortOK OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 26 }
+
+cadantEtherPhyMeasRxShortCRC OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 27 }
+
+cadantEtherPhyMeasRxRunt OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 28 }
+
+cadantEtherPhyMeasRxOctBad OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " ."
+        ::= { cadantEtherPhyMeasEntry 29 }
+
+
+
+--
+--================== DFID Meas Table ==============================-
+--
+
+cadDFIDMeasTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF CadDFIDMeasEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION
+                "This table contains DFID-specific counts."
+        ::= { cadHardwareMeasMib 14 }
+
+cadDFIDMeasEntry OBJECT-TYPE
+        SYNTAX  CadDFIDMeasEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION " "
+        INDEX { ifIndex, cadDFIDMeasIndex }
+        ::= { cadDFIDMeasTable  1 }
+
+CadDFIDMeasEntry ::= SEQUENCE {
+        cadDFIDMeasIndex           SFIDIndex,
+        cadDFIDMeasBytsArrived     Counter64,
+        cadDFIDMeasPktsArrived     Counter64,
+        cadDFIDMeasBytsDropped     Counter64,
+        cadDFIDMeasPktsDropped     Counter64,
+        cadDFIDMeasBytsUnkDropped  Counter64,
+        cadDFIDMeasDFID            DFIDIndex,
+        cadDFIDMeasPHSUnknowns     Counter64,
+        cadDFIDMeasMacAddress      MacAddress,
+        cadDFIDMeasSCN             DisplayString,
+        cadDFIDMeasPolicedDelayPkts Counter64,
+	cadDFIDMeasGateID          Unsigned32
+}
+
+
+cadDFIDMeasIndex OBJECT-TYPE
+        SYNTAX  SFIDIndex
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION
+                " The SFID these DFID counts are for."
+        ::= { cadDFIDMeasEntry  3 }
+
+cadDFIDMeasBytsArrived OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " The aggregrate number of bytes arriving to go out,
+              but not necessarily transmitted."
+        ::= { cadDFIDMeasEntry  4 }
+
+cadDFIDMeasPktsArrived OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " The aggregrate number of packets arriving to go out,
+              but not necessarily transmitted."
+        ::= { cadDFIDMeasEntry  5 }
+
+cadDFIDMeasBytsDropped OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " The aggregrate number of bytes dropped."
+        ::= { cadDFIDMeasEntry  6 }
+
+cadDFIDMeasPktsDropped OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " The aggregrate number of packets dropped."
+        ::= { cadDFIDMeasEntry  7 }
+
+cadDFIDMeasBytsUnkDropped OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " The aggregrate number of bytes dropped due to unknown DMAC."
+        ::= { cadDFIDMeasEntry  8 }
+
+cadDFIDMeasDFID OBJECT-TYPE
+        SYNTAX  DFIDIndex
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " The DFID."
+        ::= { cadDFIDMeasEntry  9 }
+
+cadDFIDMeasPHSUnknowns OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "refer to docsQosServiceFlowPHSUnknowns"
+        ::= { cadDFIDMeasEntry 10 }
+
+cadDFIDMeasMacAddress OBJECT-TYPE
+        SYNTAX  MacAddress
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The MAC address of the CM this flow is associated with."
+        ::= { cadDFIDMeasEntry 11 }
+
+cadDFIDMeasSCN OBJECT-TYPE
+        SYNTAX  DisplayString
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                " The Service Class Name for this flow."
+        ::= { cadDFIDMeasEntry 12 }
+
+cadDFIDMeasPolicedDelayPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "refer to docsQosServiceFlowPolicedDelayPkts"
+        ::= { cadDFIDMeasEntry 13 }
+
+cadDFIDMeasGateID OBJECT-TYPE
+        SYNTAX  Unsigned32
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " The DQoS or PCMM gate ID corresponding to the flow,
+                  A zero in this field indicates no gate is associated with the flow."
+        ::= { cadDFIDMeasEntry  14 }
+
+
+--
+--================= Classifier Match Count Table ==============================-
+--
+
+cadQosPktClassMeasTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF CadQosPktClassMeasEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION
+                " This table contains just one data member: cadQosPktClassMeasPkts,
+              which is equivalent to docsQosPktClassPkts in qos-draft-04."
+        ::= { cadHardwareMeasMib 16 }
+
+cadQosPktClassMeasEntry OBJECT-TYPE
+        SYNTAX  CadQosPktClassMeasEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION " "
+        INDEX { cadQosPktClassMeasIfIndex,
+              cadQosPktClassMeasSFID,
+              cadQosPktClassMeasPktClassId }
+        ::= { cadQosPktClassMeasTable 1 }
+
+CadQosPktClassMeasEntry ::= SEQUENCE {
+        cadQosPktClassMeasIfIndex    InterfaceIndex,
+        cadQosPktClassMeasSFID       SFIDIndex,
+        cadQosPktClassMeasPktClassId PktClassId,
+        cadQosPktClassMeasPkts       Counter64
+}
+
+cadQosPktClassMeasIfIndex OBJECT-TYPE
+        SYNTAX  InterfaceIndex
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION
+                " The ifIndex of ifType 127 for this classifier."
+        ::= { cadQosPktClassMeasEntry 1 }
+
+cadQosPktClassMeasSFID OBJECT-TYPE
+        SYNTAX  SFIDIndex
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION
+                " The Service Flow ID this classifier is for."
+        ::= { cadQosPktClassMeasEntry 2 }
+
+cadQosPktClassMeasPktClassId OBJECT-TYPE
+        SYNTAX  PktClassId
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " The ID of this classifier, which only need be unique for a given Service Flow ID."
+        ::= { cadQosPktClassMeasEntry 3 }
+
+cadQosPktClassMeasPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " The number of packets that have been classified using this classifier on this flow."
+        ::= { cadQosPktClassMeasEntry 4 }
+
+
+--
+--=========== Interface counts, to support If and IfX tables
+--
+cadIfMeasTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF CadIfMeasEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION
+                " This table is designed to concurrently support the counters
+            defined in the ifTable and the ifXTable. Every row that appears
+            in this table should have a corresponding row in both the ifTable
+            and the ifXTable. However, not every row in the ifTable and
+            ifXTable will appear in this table."
+        ::= { cadHardwareMeasMib 18 }
+
+cadIfMeasEntry OBJECT-TYPE
+        SYNTAX  CadIfMeasEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION ""
+        INDEX { ifIndex }
+        ::= { cadIfMeasTable 1 }
+
+CadIfMeasEntry ::= SEQUENCE {
+        cadIfInOctets              Counter64,
+        cadIfInUcastPkts           Counter64,
+        cadIfInMulticastPkts       Counter64,
+        cadIfInBroadcastPkts       Counter64,
+        cadIfInDiscards            Counter64,
+        cadIfInErrors              Counter64,
+        cadIfInUnknownProtos       Counter64,
+        cadIfOutOctets             Counter64,
+        cadIfOutUcastPkts          Counter64,
+        cadIfOutMulticastPkts      Counter64,
+        cadIfOutBroadcastPkts      Counter64,
+        cadIfOutDiscards           Counter64,
+        cadIfOutErrors             Counter64
+}
+
+cadIfInOctets OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " See the IF-MIB's corresponding object's DESCRIPTION for a
+            description of this object."
+        ::= { cadIfMeasEntry  1 }
+
+cadIfInUcastPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " See the IF-MIB's corresponding object's DESCRIPTION for a
+            description of this object."
+        ::= { cadIfMeasEntry  2 }
+
+cadIfInMulticastPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " See the IF-MIB's corresponding object's DESCRIPTION for a
+            description of this object."
+        ::= { cadIfMeasEntry  3 }
+
+cadIfInBroadcastPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " See the IF-MIB's corresponding object's DESCRIPTION for a
+            description of this object."
+        ::= { cadIfMeasEntry  4 }
+
+cadIfInDiscards OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " See the IF-MIB's corresponding object's DESCRIPTION for a
+            description of this object."
+        ::= { cadIfMeasEntry  5 }
+
+cadIfInErrors OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " See the IF-MIB's corresponding object's DESCRIPTION for a
+            description of this object."
+        ::= { cadIfMeasEntry  6 }
+
+cadIfInUnknownProtos OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " See the IF-MIB's corresponding object's DESCRIPTION for a
+            description of this object."
+        ::= { cadIfMeasEntry  7 }
+
+cadIfOutOctets OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " See the IF-MIB's corresponding object's DESCRIPTION for a
+            description of this object."
+        ::= { cadIfMeasEntry  8 }
+
+cadIfOutUcastPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " See the IF-MIB's corresponding object's DESCRIPTION for a
+            description of this object."
+        ::= { cadIfMeasEntry  9 }
+
+cadIfOutMulticastPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " See the IF-MIB's corresponding object's DESCRIPTION for a
+            description of this object."
+        ::= { cadIfMeasEntry 10 }
+
+cadIfOutBroadcastPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " See the IF-MIB's corresponding object's DESCRIPTION for a
+            description of this object."
+        ::= { cadIfMeasEntry 11 }
+
+cadIfOutDiscards OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " See the IF-MIB's corresponding object's DESCRIPTION for a
+            description of this object."
+        ::= { cadIfMeasEntry 12 }
+
+cadIfOutErrors OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                " See the IF-MIB's corresponding object's DESCRIPTION for a
+            description of this object."
+        ::= { cadIfMeasEntry 13 }
+
+
+--
+--======= D Card Meas Table ===============
+--
+
+cadDCardMeasTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF CadDCardMeasEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION
+                " This table contains information relevant 
+                  to D Card counts."
+        ::= { cadHardwareMeasMib 20 }
+
+cadDCardMeasEntry OBJECT-TYPE
+        SYNTAX  CadDCardMeasEntry
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION " "
+        INDEX { cadDCardMeasCardId }
+        ::= { cadDCardMeasTable 1 }
+
+CadDCardMeasEntry ::= SEQUENCE {
+            cadDCardMeasCardId           CardId,
+            cadDCardIpInReceives         Counter64,
+            cadDCardIpInHdrErrors        Counter64,
+            cadDCardIpInAddrErrors       Counter64,
+            cadDCardDhcpThrottleDropPkts Counter64,
+            cadDCardArpThrottleDropPkts  Counter64,
+            cadDCardDhcpV6ThrottleDropPkts Counter64,
+            cadDCardNdThrottleDropPkts   Counter64,
+            cadDCardIgmpThrottleDropPkts Counter64
+}
+
+cadDCardMeasCardId OBJECT-TYPE
+        SYNTAX  CardId
+        MAX-ACCESS      not-accessible
+        STATUS  current
+        DESCRIPTION 
+                ""
+        ::= { cadDCardMeasEntry  1 }
+
+cadDCardIpInReceives OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "The contribution to ipInRecevies for this
+            particular D Card."
+        ::= { cadDCardMeasEntry  2 }
+
+cadDCardIpInHdrErrors OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "The contribution to ipInHdrErrors for this
+            particular D Card."
+        ::= { cadDCardMeasEntry  3 }
+
+cadDCardIpInAddrErrors OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION 
+                "The contribution to ipInAddrErrors for this
+            particular D Card."
+        ::= { cadDCardMeasEntry  4 }
+
+cadDCardDhcpThrottleDropPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                "The number of dropped DHCP requests for this D Card."
+        ::= { cadDCardMeasEntry  5 }
+
+cadDCardArpThrottleDropPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                "The number of dropped ARP requests for this D Card."
+        ::= { cadDCardMeasEntry  6 }
+
+cadDCardDhcpV6ThrottleDropPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                "The number of dropped IPV6 DHCP requests for this D Card."
+        ::= { cadDCardMeasEntry  7 }
+
+cadDCardNdThrottleDropPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                "The number of dropped IPV6 ND requests for this D Card."
+        ::= { cadDCardMeasEntry  8 }
+
+cadDCardIgmpThrottleDropPkts OBJECT-TYPE
+        SYNTAX  Counter64
+        MAX-ACCESS      read-only
+        STATUS  current
+        DESCRIPTION
+                "The number of dropped IGMP messages for this UCAM."
+        ::= { cadDCardMeasEntry  9 }
+
+--
+-- Interface Utilization Table
+--
+
+cadInterfaceUtilizationTable  OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadInterfaceUtilizationEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Reports utilization statistics for attached interfaces."
+        ::= { cadHardwareMeasMib 23 }
+
+cadInterfaceUtilizationEntry OBJECT-TYPE
+        SYNTAX      CadInterfaceUtilizationEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Utilization statistics for a single interface. An entry exists in this table for each
+             ifEntry with an ifType equal to docsCableDownstreamInterface (128), 
+             docsCableUpstreamInterface (129), docsCableUpstreamChannel (205), ethernet(6), or 
+             gigabitEthernet(117)."
+        INDEX { ifIndex, cadInterfaceUtilizationDirection }
+        ::= { cadInterfaceUtilizationTable 1 }
+
+CadInterfaceUtilizationEntry ::= SEQUENCE {
+            cadInterfaceUtilizationDirection  CadIfDirection,
+            cadInterfaceUtilizationPercentage Integer32,
+            cadInterfaceUtilizationAvgContSlots Integer32,
+            cadInterfaceHighResUtilizationPercentage Integer32,
+            cadInterfaceIntervalOctetsForwarded Counter64
+        }
+
+cadInterfaceUtilizationDirection OBJECT-TYPE
+        SYNTAX       CadIfDirection
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+             "The direction of flow this utilization is for. Cable upstream interfaces
+                          will only have a value of 'in' for this object. Likewise, cable downstream
+                          interfaces will only hav a value of 'out' for this object. Full-duplex interfaces,
+                          such as fastEthernet and gigabitEthernet interfaces, will have both 'in' and 'out'
+                          rows."
+        ::= { cadInterfaceUtilizationEntry 1 }
+
+cadInterfaceUtilizationPercentage OBJECT-TYPE
+        SYNTAX       Integer32 (0..100)
+        UNITS        "percent"
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+             "The calculated and truncated utilization index for this interface, accurate 
+              as of the most recent docsIfCmtsChannelUtilizationInterval."
+        ::= { cadInterfaceUtilizationEntry 2 }
+
+cadInterfaceUtilizationAvgContSlots OBJECT-TYPE
+        SYNTAX       Integer32 (0..100)
+        UNITS        "percent"
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION 
+            "Applicable for ifType of docsCableUpstreamChannel (205) only.
+                         The average percentage of contention mini-slots for upstream channel. 
+                         This ratio is calculated the most recent utilization interval.
+
+              Formula:
+              Upstream contention mini-slots utilization = 
+              (100 * ((contention mini-slots ) / (total mini-slots))"
+        ::= { cadInterfaceUtilizationEntry 3 }
+
+cadInterfaceHighResUtilizationPercentage OBJECT-TYPE
+        SYNTAX       Integer32 (0..10000)
+        UNITS        "Hundredth of a percent"
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+             "The calculated and truncated utilization index for this interface, 
+              accurate (to 0.01% resolution) as of the most recent docsIfCmtsChannelUtilizationInterval."
+        ::= { cadInterfaceUtilizationEntry 4 }
+
+cadInterfaceIntervalOctetsForwarded OBJECT-TYPE
+        SYNTAX       Counter64
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+             "The number of octets forwarded since the most recent docsIfCmtsChannelUtilizationInterval. 
+              Note that this count will only apply to the following interface types: Ethernet, 
+              Link-Aggregate. For all other interface types this value will display 0"
+        ::= { cadInterfaceUtilizationEntry 5 }
+
+--
+-- FFT Status Table removed
+--
+-- cadFftUpstreamChannelTable  OBJECT-TYPE
+--        ::= { cadHardwareMeasMib 24 }
+
+
+--
+-- IP filter match counter clear table
+--
+cadSubMgtPktFilterExtTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadSubMgtPktFilterExtEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table augments the docsSubMgtPktFilterTable. In its
+                        current form, it is used to clear docsSubMgtPktFilterMatches
+                        and keep track of the change."
+        ::= { cadHardwareMeasMib 25 }
+
+cadSubMgtPktFilterExtEntry OBJECT-TYPE
+        SYNTAX      CadSubMgtPktFilterExtEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "For every docsSubmgt3FilterGrpEntry, there is a matching
+                        cadSubMgtPktFilterExtEntry."
+        AUGMENTS { docsSubmgt3FilterGrpEntry }
+        ::= { cadSubMgtPktFilterExtTable 1 }
+
+CadSubMgtPktFilterExtEntry ::= SEQUENCE {
+            cadSubMgtPktFilterMatchesReset   TruthValue,
+            cadSubMgtPktFilterLastChanged    TimeStamp,
+            cadSubMgtPktFilterCaptureEnabled TruthValue
+        }
+
+cadSubMgtPktFilterMatchesReset OBJECT-TYPE
+        SYNTAX       TruthValue
+        MAX-ACCESS   read-write
+        STATUS       current
+        DESCRIPTION
+             "This object always return false(2) when read. If the value
+              false(2) is assigned to this object, no action is taken.
+              However, if this object it set to the value true(1), the
+              corresponding docsSubMgtPktFilterMatches counter object is
+              set to 0 and cadSubMgtPktFilterLastChanged is set to the current
+              time."
+        DEFVAL { false }
+        ::= { cadSubMgtPktFilterExtEntry 1 }
+
+cadSubMgtPktFilterLastChanged OBJECT-TYPE
+        SYNTAX       TimeStamp
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+             "The time at which docsSubMgtPktFilterMatches might have
+              experienced a discontinuity, such as when
+              cadSubMgtPktFilterMatchesReset is set to true(1) or when any
+              of the parameters in the docsSubMgtPktFilterTable affecting
+              filtering last changed."
+        ::= { cadSubMgtPktFilterExtEntry 2 }
+
+cadSubMgtPktFilterCaptureEnabled OBJECT-TYPE
+        SYNTAX       TruthValue
+        MAX-ACCESS   read-write
+        STATUS       current
+        DESCRIPTION
+             "Indicates whether packets matching this filter are captured
+              for possible debug logging.  A value of true indicates that
+              packets matching this filter will be captured.  A value of
+              false indicates that packets matching this filter will not
+              be captured for later debuggging."
+        DEFVAL { false }
+        ::= { cadSubMgtPktFilterExtEntry 3 }
+
+
+
+--
+-- Cadant LAES count table
+--
+cadLaesCountTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadLaesCountEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table references pktcEScTapStreamTable"
+        ::= { cadHardwareMeasMib 26 }
+
+cadLaesCountEntry OBJECT-TYPE
+        SYNTAX      CadLaesCountEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "For every cadLaesCountEntry, there is a matching
+                       pktcEScTapStreamEntry."
+        INDEX { pktcEScTapMediationContentId, pktcEScTapStreamIndex }
+        ::= { cadLaesCountTable 1 }
+
+CadLaesCountEntry ::= SEQUENCE {
+            cadLaesCountMacDomainIfIndex     InterfaceIndex,
+            cadLaesCountStreamDirection      IfDirection,
+            cadLaesCountInterceptedPackets   Counter32,
+            cadLaesCountInterceptDrops       Counter32
+        }
+
+cadLaesCountMacDomainIfIndex OBJECT-TYPE
+        SYNTAX       InterfaceIndex
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+             "This object indicates the cable Mac domain interface index that the
+              LAES stream is associated with."
+
+        ::= { cadLaesCountEntry 1 }
+
+cadLaesCountStreamDirection OBJECT-TYPE
+        SYNTAX       IfDirection
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+             "This object indicates either downstream or upstream direction that the
+              LAES stream is associated with."
+        ::= { cadLaesCountEntry 2 }
+
+cadLaesCountInterceptedPackets OBJECT-TYPE
+        SYNTAX       Counter32
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+             "Indicates number of intercepted packets are sent of the LAES stream."  
+        ::= { cadLaesCountEntry 3 }
+
+cadLaesCountInterceptDrops OBJECT-TYPE
+        SYNTAX       Counter32
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+             "Indicates number of intercepted packets are dropped of the LAES stream."  
+        ::= { cadLaesCountEntry 4 }
+
+--
+-- FFT Status Table
+--
+cadFftUpstreamChannelTable  OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadFftUpstreamChannelEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Reports current FFT operation status."
+        ::= { cadHardwareMeasMib 24 }
+
+cadFftUpstreamChannelEntry OBJECT-TYPE
+        SYNTAX      CadFftUpstreamChannelEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "FFT status for a single upstream channel with ifType
+             docsCableUpstreamInterface(129)."
+        INDEX { ifIndex }
+        ::= { cadFftUpstreamChannelTable 1 }
+
+CadFftUpstreamChannelEntry ::= SEQUENCE {
+            cadFftInProgress  TruthValue,
+            cadFftCurrentTriggers Unsigned32
+        }
+
+cadFftInProgress OBJECT-TYPE
+        SYNTAX       TruthValue
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+             "The current state on the FFT capture. "
+        ::= { cadFftUpstreamChannelEntry 1 }
+
+cadFftCurrentTriggers OBJECT-TYPE
+        SYNTAX       Unsigned32
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+             "The number of times the FFT capture has triggered and
+              transferred data from the Broadcom device."
+        ::= { cadFftUpstreamChannelEntry 2 }
+
+END
+

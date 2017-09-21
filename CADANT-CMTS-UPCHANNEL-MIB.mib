@@ -1,0 +1,1318 @@
+CADANT-CMTS-UPCHANNEL-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+        OBJECT-TYPE, MODULE-IDENTITY, 
+        -- do not import BITS,
+        Integer32, Unsigned32
+                FROM SNMPv2-SMI 
+
+        RowStatus, TruthValue, DateAndTime
+                FROM SNMPv2-TC
+
+	OBJECT-GROUP,
+	MODULE-COMPLIANCE
+		FROM SNMPv2-CONF
+
+        InterfaceIndex
+                FROM IF-MIB
+
+        DocsisUpstreamType
+                FROM DOCS-IF-MIB
+
+        cadSpectrum
+                FROM CADANT-PRODUCTS-MIB
+
+        CardId
+                FROM CADANT-TC;
+
+
+cadUpchannelMib MODULE-IDENTITY
+        LAST-UPDATED "201404250000Z"  -- Apr 25, 2014
+        ORGANIZATION "Arris International, Inc."
+	CONTACT-INFO "Arris Technical Support
+	      Postal: ARRIS
+	       Phone: +1 770 622 8530
+	      E-Mail: support@arrisi.com"
+
+	DESCRIPTION "Arris C4 Upstram Channel Configuration and Constants"
+    
+        REVISION "201404250000Z"  -- Apr 25, 2014
+        DESCRIPTION "Add cadUpchannelDsaRspSidTlvOverride"
+        REVISION "201402240000Z"  -- Feb 24, 2014
+        DESCRIPTION "Remove cadIfUpChannelCACL1Threshold, cadIfUpChannelCACL2Threshold and
+                            cadIfUpChannelCACL3Threshold"    
+        REVISION "201402070000Z"  -- Feb 7, 2014
+        DESCRIPTION "Add cadUpchannelRecoverImpairedOnAck"
+        REVISION "201310220000Z"  -- Oct 22, 2013
+        DESCRIPTION "Remove cadIfUpChannelFreqPriorityListIdx and cadIfFreqPriorityListTable"
+        REVISION "201309260000Z"  -- Sep 26, 2013
+        DESCRIPTION "Add cadUpchannelRangingTimingOffset"
+        REVISION "201304250000Z"  -- April 25, 2013
+        DESCRIPTION "Add extendedRange(4) to cadUpchannelFreqRange
+                     Change cadIfUpChannelFrequency range up to 85000000"
+        REVISION "201301150000Z" -- Jan 15, 2013
+        DESCRIPTION "Add cadUpchannelCaCertDropEnable"
+        REVISION "201211290000Z" -- Nov 29, 2012
+        DESCRIPTION "Add cadIfUpChannelNumberEqTaps"
+        REVISION "201209180000Z" -- Sep 18, 2012
+        DESCRIPTION "Add cadUpchannelRtpsPiggybackEnable"
+        REVISION "201205220000Z" -- May 22, 2012
+        DESCRIPTION "Removed cadIfUpChannelCableGroupId"
+        REVISION "200806260000Z" -- June 8, 2008
+        DESCRIPTION "Removed cadIfUpChannelFlexPathOnly"
+        REVISION "200804080000Z" -- April 8, 2008
+        DESCRIPTION "Change default value of cadUpChannelFreqRange to northAmerican(3)."
+        REVISION "200803310000Z" -- Mar 31, 2008
+        DESCRIPTION "Removed cadIfUpChannelCloneGroupId and cadIfCloneGroupTable."
+        REVISION "200704040000Z" -- April 4, 2007
+        DESCRIPTION "Removed cadIfUpChannelDownstreamChannelId."
+        REVISION "200702050000Z" -- Feb 5, 2007
+        DESCRIPTION "change cadIfUpChannelId to read-only."
+        REVISION "200701160000Z" -- Jan 16, 2007
+        DESCRIPTION "change cadIfUpChannelIfIndex as the index of cadIfUpstreamChannelTable."
+        REVISION "200609110000Z" -- Sep 11, 2006
+        DESCRIPTION "Added cadIfUpChannelFlexPathOnly."
+        REVISION "200603020000Z"
+        DESCRIPTION "Removed cadIfUpChannelRelayAgentOptionType, cadIfUpChannelRelayAgentOptionString and a textual convention RelayAgentOptionType."
+        REVISION "200511290000Z"
+        DESCRIPTION "Moved cadIfUpChannelSpGroupCurrState, cadIfUpChannelSPGroupStateTransTime in cadIfUpStreamChannelEntry to different table."
+        REVISION "200511100000Z"
+        DESCRIPTION "Added cadIfUpChannelSpGroupIndex, cadIfUpChannelSpGroupCurrState for Upstream Frequency Agility."
+        REVISION "200510040000Z"
+        DESCRIPTION "Added cadIfUpChannelRelayAgentOptionType, cadIfUpChannelRelayAgentOptionString and a textual convention RelayAgentOptionType."
+        REVISION "200508190000Z"
+        DESCRIPTION "Added value range for cadIfUpChannelIngressCancellationInterval and cadIfUpChannelIngressCancellationSize."
+        REVISION "200502240000Z"
+        DESCRIPTION "Added cadUnicastPolling table object."
+        REVISION "200406110000Z"
+        DESCRIPTION "Added cadUpchannelParams scalar group and the cadUpchannelFreqRange object."
+        REVISION "200403040000Z"
+        DESCRIPTION "Adding DEFVALs for every read-write/read-create object"
+        REVISION "200402180000Z"
+        DESCRIPTION "Changing the default value for cadIfUpChannelIngressCancellationInterval."
+        REVISION "200402150000Z"
+        DESCRIPTION "Adding preemption for emergency voice calls."
+        REVISION "200402060000Z"
+        DESCRIPTION "Adding cadIfUpChannelIngressCancellationInterval and cadIfUpChannelIngressCancellationSize."
+        REVISION "200309260000Z"
+        DESCRIPTION "Defaulting cadIfCmtsModScramblerSeed to 338 from 0 and cadIfCmtsModScrambler to true from false"
+        REVISION "200307310000Z"
+        DESCRIPTION "Adding cadIfUpChannelCMKeepSpectralDensity"
+        REVISION "200306230000Z"
+        DESCRIPTION "Updating for DOCSIS 2.0"
+        REVISION "200305210000Z"
+        DESCRIPTION "Removed cadIfUpChannelBroadcom... and cadIfUpChannelPreamble..."
+        REVISION "200303050000Z"
+        DESCRIPTION "Adding cadIfUpChannelIfIndex."
+        REVISION "200302180000Z"
+        DESCRIPTION "Demoted cadIfUpChannelDownstreamChannelId from index to read-only object."
+        REVISION "200212030000Z"
+        DESCRIPTION "Updated the default value for cadIfUpChannelBroadcomLoopCtl from 0x14 to 0x04"
+        REVISION "200212020000Z"
+        DESCRIPTION "Add PacketCable CAC Reserved and Allowed Values for Normal and Emergency Calls."
+        ::= { cadSpectrum 3 }
+
+
+--
+-- The following table provides upstream channel modulation profiles.
+-- Entries in this table can be
+-- re-used by one or more upstream channels. An upstream channel will
+-- have a modulation profile
+-- for each value of cadIfModIntervalUsageCode.
+--
+
+cadIfCmtsModulationTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadIfCmtsModulationEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Describes a modulation profile associated with one or more
+             upstream channels."
+        ::= { cadUpchannelMib 1 }
+
+cadIfCmtsModulationEntry OBJECT-TYPE
+        SYNTAX      CadIfCmtsModulationEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Describes a modulation profile for an Interval Usage Code
+             for one or more upstream channels.
+             Entries in this table are created by the operator. Initial
+             default entries may be created at system initialization
+             time. No individual objects have to be specified in order
+             to create an entry in this table.
+             Note that some objects do not have DEFVALs, but do have
+             calculated defaults and need not be specified during row
+             creation.
+             There is no restriction on the changing of values in this
+             table while their associated rows are active."
+        INDEX { cadIfCmtsModIndex, cadIfCmtsModIntervalUsageCode }
+        ::= { cadIfCmtsModulationTable 1 }
+
+CadIfCmtsModulationEntry ::= SEQUENCE {
+            cadIfCmtsModIndex                    Integer32,
+            cadIfCmtsModIntervalUsageCode        INTEGER,
+            cadIfCmtsModControl                  RowStatus,
+            cadIfCmtsModType                     INTEGER,
+            cadIfCmtsModPreambleLen              Integer32,
+            cadIfCmtsModDifferentialEncoding     TruthValue,
+            cadIfCmtsModFECErrorCorrection       Integer32,
+            cadIfCmtsModFECCodewordLength        Integer32,
+            cadIfCmtsModScramblerSeed            Integer32,
+            cadIfCmtsModMaxBurstSize             Integer32,
+            cadIfCmtsModGuardTimeSize            Unsigned32,
+            cadIfCmtsModLastCodewordShortened    TruthValue,
+            cadIfCmtsModScrambler                TruthValue,
+            cadIfCmtsModPreambleValueOffset      Integer32,
+            cadIfCmtsModBroadcomUwLength         Integer32,
+            cadIfCmtsModBroadcomUwPattern        OCTET STRING,
+            cadIfCmtsModBroadcomUwDetectionWindow OCTET STRING,
+            cadIfCmtsModBroadcomUwMismatchThreshold OCTET STRING,
+            cadIfCmtsModByteInterleaverDepth     Unsigned32,
+            cadIfCmtsModByteInterleaverBlockSize Unsigned32,
+            cadIfCmtsModPreambleType             INTEGER,
+            cadIfCmtsModTcmErrorCorrectionOn     TruthValue,
+            cadIfCmtsModScdmaInterleaverStepSize Unsigned32,
+            cadIfCmtsModScdmaSpreaderEnable      TruthValue,
+            cadIfCmtsModScdmaSubframeCodes       Unsigned32,
+            cadIfCmtsModChannelType              DocsisUpstreamType
+        }
+
+cadIfCmtsModIndex OBJECT-TYPE
+        SYNTAX       Integer32 (1..2147483647)
+        MAX-ACCESS   not-accessible
+        STATUS      current
+        DESCRIPTION
+             "An index into the Channel Modulation table representing
+              a group of Interval Usage Codes, all associated with the
+              same channel."
+        ::= { cadIfCmtsModulationEntry 1 }
+
+cadIfCmtsModIntervalUsageCode OBJECT-TYPE
+        SYNTAX       INTEGER {
+            request(1),
+            requestData(2),
+            initialRanging(3),
+            periodicRanging(4),
+            shortData(5),
+            longData(6),
+            advPhyShortData(9),
+            advPhyLongData(10),
+            ugs(11)
+        }
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An index into the Channel Modulation table which, when
+             grouped with other Interval Usage Codes, fully
+             instantiate all modulation sets for a given upstream
+             channel."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification,
+             Table 8-20."
+        ::= { cadIfCmtsModulationEntry 2 }
+
+cadIfCmtsModControl OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Controls and reflects the status of rows in this table."
+        ::= { cadIfCmtsModulationEntry 3 }
+
+cadIfCmtsModType OBJECT-TYPE
+        SYNTAX      INTEGER {
+            other(1),
+            qpsk(2),
+            qam16(3),
+            qam8(4),
+            qam32(5),
+            qam64(6),
+            qam128(7)
+        }
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The modulation type used on this channel. Returns
+             other(1) if the modulation type is neither 
+             qpsk, qam16, qam8, qam32, qam64 or qam128.
+             Type qam128 is used for SCDMA channels only.
+             See the reference for the modulation profiles
+             implied by different modulation types."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+        DEFVAL { qpsk }
+        ::= { cadIfCmtsModulationEntry 4 }
+
+cadIfCmtsModPreambleLen OBJECT-TYPE
+        SYNTAX      Integer32 (0..1536)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The preamble length for this modulation profile in bits.
+             Default value is the minimum needed by the implementation
+             at the CMTS for the given modulation profile."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+        DEFVAL { 0 } -- 0 implies that the CMTS will pick an appropriate value
+        ::= { cadIfCmtsModulationEntry 5 }
+
+cadIfCmtsModDifferentialEncoding OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Specifies whether or not differential encoding is used
+             on this channel."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+        DEFVAL { false }
+        ::= { cadIfCmtsModulationEntry 6 }
+
+cadIfCmtsModFECErrorCorrection OBJECT-TYPE
+        SYNTAX      Integer32 (0..16)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The number of correctable errored bytes (t) used in
+             forward error correction code. The value of 0 indicates
+             no correction is employed. The number of check bytes
+             appended will be twice this value."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+        DEFVAL { 0 }
+        ::= { cadIfCmtsModulationEntry 7 }
+
+cadIfCmtsModFECCodewordLength OBJECT-TYPE
+        SYNTAX      Integer32 (16..253)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The number of data bytes (k) in the forward error correction codeword.
+             This object is not used if cadIfCmtsModFECErrorCorrection
+             is zero."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+        DEFVAL { 32 }
+        ::= { cadIfCmtsModulationEntry 8 }
+
+cadIfCmtsModScramblerSeed OBJECT-TYPE
+        SYNTAX      Integer32 (0..32767)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The 15 bit seed value for the scrambler polynomial."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+        DEFVAL { 338 } -- DOCS-IF-MIB defaults this object to 0
+        ::= { cadIfCmtsModulationEntry 9 }
+
+cadIfCmtsModMaxBurstSize OBJECT-TYPE
+        SYNTAX      Integer32 (0..255)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The maximum number of mini-slots that can be transmitted
+             during this channel's burst time. Returns zero if the
+             burst length is bounded by the allocation MAP rather than
+             this profile.
+             Default value is 0 except for shortData, where it is 8."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+        DEFVAL { 0 }
+        ::= { cadIfCmtsModulationEntry 10 }
+
+cadIfCmtsModGuardTimeSize OBJECT-TYPE
+        SYNTAX      Unsigned32 (0|8..96)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The number of symbol-times which must follow the end of
+             this channel's burst. Default value is the minimum time
+             needed by the implementation for this modulation profile.
+             A value of 0 is only valid for SCDMA modulation profiles."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+	    DEFVAL { 8 } -- 48 for initial and periodic ranging IUCs
+        ::= { cadIfCmtsModulationEntry 11 }
+
+cadIfCmtsModLastCodewordShortened OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Indicates if the last FEC codeword is truncated."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+        DEFVAL { true }
+        ::= { cadIfCmtsModulationEntry 12 }
+
+cadIfCmtsModScrambler OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Indicates if the scrambler is employed."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+        DEFVAL { true } -- DOCS-IF-MIB defaults this object to false
+        ::= { cadIfCmtsModulationEntry 13 }
+
+cadIfCmtsModPreambleValueOffset OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The preamble value offset for this modulation profile."
+        DEFVAL { 0 } -- there is no single, "good" default value for this object
+        ::= { cadIfCmtsModulationEntry 14 }
+
+cadIfCmtsModBroadcomUwLength OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The WHAT"
+        DEFVAL { 2 } -- 1 for data IUCs
+        ::= { cadIfCmtsModulationEntry 15 }
+
+cadIfCmtsModBroadcomUwPattern OBJECT-TYPE
+        SYNTAX      OCTET STRING (SIZE(3))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION 
+	    "The WHAT"
+	DEFVAL { '0d0d00'h }
+        ::= { cadIfCmtsModulationEntry 16 }
+
+cadIfCmtsModBroadcomUwDetectionWindow OBJECT-TYPE
+        SYNTAX      OCTET STRING (SIZE(1))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The WHAT"
+        DEFVAL { '04'h }
+        ::= { cadIfCmtsModulationEntry 17 }
+
+cadIfCmtsModBroadcomUwMismatchThreshold OBJECT-TYPE
+        SYNTAX      OCTET STRING (SIZE(1))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The WHAT"
+        DEFVAL { '01'h } -- '00'h for data IUCs
+        ::= { cadIfCmtsModulationEntry 18 }
+
+cadIfCmtsModByteInterleaverDepth     OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            " ATDMA Byte Interleaver Depth (Ir). This object returns 1 for                    
+              non ATDMA profiles. "
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+        DEFVAL { 1 }
+        ::= { cadIfCmtsModulationEntry 19 }
+
+cadIfCmtsModByteInterleaverBlockSize OBJECT-TYPE
+        SYNTAX      Unsigned32 (0|36..2048)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            " ATDMA Byte Interleaver Block size (Br). This object returns 
+              zero for non ATDMA profiles "
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+        DEFVAL { 0 }
+        ::= { cadIfCmtsModulationEntry 20 }
+
+cadIfCmtsModPreambleType        OBJECT-TYPE
+        SYNTAX       INTEGER {
+            qpsk0(1),
+            qpsk1(2)
+        }
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Preamble type for DOCSIS 2.0 bursts"
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+        DEFVAL { qpsk0 }
+        ::= { cadIfCmtsModulationEntry 21 }
+
+cadIfCmtsModTcmErrorCorrectionOn OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            " Trellis Code Modulation (TCM) On/Off. This value returns false for 
+              non S-CDMA profiles."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+        DEFVAL { false }
+        ::= { cadIfCmtsModulationEntry 22 }
+
+cadIfCmtsModScdmaInterleaverStepSize OBJECT-TYPE
+        SYNTAX      Unsigned32 (0 | 1..32)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            " S-CDMA Interleaver step size. This value returns zero 
+              for non S-CDMA profiles. This object defaults to 1 for
+	      S-CDMA profiles."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+        DEFVAL { 0 } -- defaults to 1 for S-CDMA profiles
+        ::= { cadIfCmtsModulationEntry 23 }
+
+cadIfCmtsModScdmaSpreaderEnable      OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            " S-CDMA spreader. This value returns false for non S-CDMA
+              profiles. Default value for IUC 3 and 4 is OFF, for 
+              all other IUCs it is ON."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+        DEFVAL { false }
+        ::= { cadIfCmtsModulationEntry 24 }
+
+cadIfCmtsModScdmaSubframeCodes      OBJECT-TYPE
+        SYNTAX      Unsigned32 (0 | 1..128)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            " S-CDMA sub-frame size. This value returns zero 
+              for non S-CDMA profiles."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+        DEFVAL { 0 }
+        ::= { cadIfCmtsModulationEntry 25 }
+
+cadIfCmtsModChannelType              OBJECT-TYPE
+        SYNTAX      DocsisUpstreamType
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Describes the modulation channel type for this modulation entry."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface specification, Table 8-19."
+        DEFVAL { tdma }
+        ::= { cadIfCmtsModulationEntry 26 }
+
+--
+-- cadIfUpstreamChannelTable
+--
+
+cadIfUpstreamChannelTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadIfUpstreamChannelEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table describes the attributes of attached upstream
+             channels."
+        ::= { cadUpchannelMib 2 }
+
+cadIfUpstreamChannelEntry OBJECT-TYPE
+        SYNTAX      CadIfUpstreamChannelEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of attributes for a single upstream channel. For
+             Docsis 2.0 CMTSs, an entry in this table exists for 
+             each ifEntry with an ifType of docsCableUpstreamChannel (205).
+             For Docsis 1.x CM/CMTSs and Docsis 2.0 CMs, an entry in this table exists 
+             for each ifEntry with an ifType of docsCableUpstreamInterface (129)."
+        INDEX { cadIfUpChannelIfIndex }
+        ::= { cadIfUpstreamChannelTable 1 }
+
+CadIfUpstreamChannelEntry ::= SEQUENCE {
+            cadIfUpChannelCardNumber             CardId,
+            cadIfUpChannelId                     Integer32,
+            cadIfUpChannelFrequency              Integer32,
+            cadIfUpChannelWidth                  Integer32,
+            cadIfUpChannelModulationProfile      Integer32,
+            cadIfUpChannelPowerDesired           Integer32,
+            cadIfUpChannelSlotSize               Unsigned32,
+            cadIfUpChannelRangingBackoffStart    Integer32,
+            cadIfUpChannelRangingBackoffEnd      Integer32,
+            cadIfUpChannelTxBackoffStart         Integer32,
+            cadIfUpChannelTxBackoffEnd           Integer32,
+            cadIfUpChannelMapSize                Integer32,
+            cadIfUpChannelMaxPowerAdjust         Integer32,
+            cadIfUpChannelThresholdPowerOffset   Integer32,
+            cadIfUpChannelZeroPowerAdjust        TruthValue,
+            cadIfUpChannelZeroFreqAdjust         TruthValue,
+            cadIfUpChannelZeroTimingAdjust       TruthValue,
+            cadIfUpChannelPreEqEnable            TruthValue,
+            cadIfUpChannelPCNormAllowedUsage     Integer32,
+            cadIfUpChannelPCNormResUsage         Integer32,
+            cadIfUpChannelPCEmerAllowedUsage     Integer32,
+            cadIfUpChannelPCEmerResUsage         Integer32,
+            cadIfUpChannelPCTotalAllowedUsage    Integer32,
+            cadIfUpChannelIfIndex                InterfaceIndex,
+            cadIfUpChannelScdmaActiveCodes       Unsigned32,
+            cadIfUpChannelScdmaCodesPerSlot      Integer32,
+            cadIfUpChannelScdmaFrameSize         Unsigned32,
+            cadIfUpChannelScdmaHoppingSeed       Unsigned32,
+            cadIfUpChannelType                   DocsisUpstreamType,
+            cadIfUpChannelCMKeepSpectralDensity  TruthValue,
+            cadIfUpChannelIngressCancellationInterval Unsigned32,
+            cadIfUpChannelIngressCancellationSize     Unsigned32,
+            cadIfUpChannelPCPreemptionAllowed    TruthValue,
+            cadIfUpChannelSpGroupIndex           Integer32,
+            cadIfUpChannelNumberEqTaps           Unsigned32
+        }
+
+cadIfUpChannelCardNumber OBJECT-TYPE
+        SYNTAX      CardId
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+	    "Card Number associated with this Channel."
+        ::= { cadIfUpstreamChannelEntry 1 }
+
+cadIfUpChannelId OBJECT-TYPE
+        SYNTAX      Integer32 (0..255)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The CMTS identification of the upstream channel."
+        ::= { cadIfUpstreamChannelEntry 2 }
+
+cadIfUpChannelFrequency OBJECT-TYPE
+        SYNTAX      Integer32 (0..85000000)
+        UNITS       "hertz"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The center of the frequency band associated with this
+             upstream channel. This object returns 0 if the frequency
+             is undefined or unknown. Minimum permitted upstream
+             frequency is 5,000,000 Hz for current technology.  See
+             the associated conformance object for write conditions
+             and limitations.
+             
+             The legal range may be restricted further, depending on 
+             the provisioned width of the channel.
+             For Docsis:
+             5.1-41.9 MHz for a 200 kHz channel
+             5.2-41.8 MHz for a 400 kHz channel
+             5.4-41.6 MHz for a 800 kHz channel
+             5.8-41.2 MHz for a 1600 kHz channel
+             6.6-40.4 MHz for a 3200 kHz channel
+             For Euro-Docsis:
+             5.1-64.9 MHz for a 200 kHz channel
+             5.2-64.8 MHz for a 400 kHz channel
+             5.4-64.6 MHz for a 800 kHz channel
+             5.8-64.2 MHz for a 1600 kHz channel
+             6.6-63.4 MHz for a 3200 kHz channel
+
+             Note that this entry will be read-only if 
+             cadIfUpChannelCloneGroupId is nonzero."
+        REFERENCE
+	    "DOCSIS Radio Frequency Interface Specification,
+	     Table 4-2."
+        DEFVAL { 0 } -- no frequency
+        ::= { cadIfUpstreamChannelEntry 4 }
+
+cadIfUpChannelWidth OBJECT-TYPE
+        SYNTAX      Integer32 (0|200000|400000|800000|1600000|3200000|6400000)
+        UNITS       "hertz"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The bandwidth of this upstream channel. This object
+             returns 0 if the channel width is undefined or unknown.
+             Minimum permitted channel width is 200,000 Hz currently.
+             See the associated conformance object for write conditions
+             and limitations.
+             
+             Note that this entry will be read-only if 
+             cadIfUpChannelCloneGroupId is nonzero."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface Specification,
+             Table 6-12."
+        DEFVAL { 3200000 } -- 3.2 MHz
+        ::= { cadIfUpstreamChannelEntry 5 }
+
+cadIfUpChannelModulationProfile OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "An entry identical to the cadIfModIndex in the
+             cadIfCmtsModulationTable that describes this channel.
+             This channel is further instantiated there by a grouping
+             of interval usage codes which together fully describe the
+             channel modulation. This object returns 0 if the
+             cadIfCmtsModulationTable entry does not exist or
+             cadIfCmtsModulationTable is empty. See
+             the associated conformance object for write conditions
+             and limitations.
+             
+             Note that this entry will be read-only if 
+             cadIfUpChannelCloneGroupId is nonzero."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface Specification, Table 8-19."
+        DEFVAL { 0 } -- no modulation profile
+        ::= { cadIfUpstreamChannelEntry 6 }
+
+cadIfUpChannelPowerDesired OBJECT-TYPE
+        SYNTAX      Integer32 (-16..29)
+        UNITS       "dBmV"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The CMTS desired receive power level.  See Cadant 
+             documentation for range limitations due to ChannelWidth.
+             If this CMTS interface does not support control of
+             the receive power level then this will be treated as
+             read-only."
+        DEFVAL { 0 }
+        ::= { cadIfUpstreamChannelEntry 7 }
+
+cadIfUpChannelSlotSize OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The number of 6.25 microsecond ticks in each upstream mini-
+             slot. Returns zero if the value is undefined or unknown.
+             See the associated conformance object for write
+             conditions and limitations."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface Specification,
+             Section 8.1.2.4."
+        DEFVAL { 4 } -- 12800000 / 3.2MHz = 4
+        ::= { cadIfUpstreamChannelEntry 8 }
+
+cadIfUpChannelRangingBackoffStart OBJECT-TYPE
+        SYNTAX      Integer32 (0..16)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The initial random backoff window to use when retrying
+             Ranging Requests. Expressed as a power of 2. A value of 16
+             at the CMTS indicates that a proprietary adaptive retry
+             mechanism is to be used. See the associated conformance
+             object for write conditions and limitations."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface Specification,
+             Section 8.3.4."
+        DEFVAL { 2 } -- 2^2 = 4
+        ::= { cadIfUpstreamChannelEntry 9 }
+
+cadIfUpChannelRangingBackoffEnd OBJECT-TYPE
+        SYNTAX      Integer32 (0..16)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The final random backoff window to use when retrying
+             Ranging Requests. Expressed as a power of 2. A value of 16
+             at the CMTS indicates that a proprietary adaptive retry
+             mechanism is to be used. See the associated conformance
+             object for write conditions and limitations."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface Specification,
+             Section 8.3.4."
+        DEFVAL { 7 } -- 2^7 = 128
+        ::= { cadIfUpstreamChannelEntry 10 }
+
+cadIfUpChannelTxBackoffStart OBJECT-TYPE
+        SYNTAX      Integer32 (0..16)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The initial random backoff window to use when retrying
+             transmissions. Expressed as a power of 2. A value of 16
+             at the CMTS indicates that a proprietary adaptive retry
+             mechanism is to be used. See the associated conformance
+             object for write conditions and limitations."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface Specification,
+             Section 8.3.4."
+        DEFVAL { 2 } -- 2^2 = 4
+        ::= { cadIfUpstreamChannelEntry 11 }
+
+cadIfUpChannelTxBackoffEnd OBJECT-TYPE
+        SYNTAX      Integer32 (0..16)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The final random backoff window to use when retrying
+             transmissions. Expressed as a power of 2. A value of 16
+             at the CMTS indicates that a proprietary adaptive retry
+             mechanism is to be used. See the associated conformance
+             object for write conditions and limitations."
+        REFERENCE
+            "DOCSIS Radio Frequency Interface Specification,
+             Section 8.3.4."
+        DEFVAL { 8 } -- 2^8 = 256
+        ::= { cadIfUpstreamChannelEntry 12 }
+
+cadIfUpChannelMapSize OBJECT-TYPE
+        SYNTAX      Integer32 (1..13)
+        UNITS       "800microsecondTicks"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The average size of MAPs in 800usec ticks."
+        DEFVAL { 4 } -- 3.2msec
+        ::= { cadIfUpstreamChannelEntry 13 }
+
+cadIfUpChannelMaxPowerAdjust OBJECT-TYPE
+        SYNTAX      Integer32 (1..48)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+	    "Maximum size of the CMTS range response power adjustments 
+	     in 1/4 dBmV units."
+        DEFVAL { 24 } -- 6dB
+        ::= { cadIfUpstreamChannelEntry 17 }
+
+cadIfUpChannelThresholdPowerOffset OBJECT-TYPE
+        SYNTAX      Integer32 (4..48)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Ranging success threshold for CM power measured."
+        DEFVAL { 24 }
+        ::= { cadIfUpstreamChannelEntry 18 }
+
+cadIfUpChannelZeroPowerAdjust OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+	    "If TRUE, then do NOT send power adjustments in the ranging responses."
+        DEFVAL { false }
+        ::= { cadIfUpstreamChannelEntry 19 }
+
+cadIfUpChannelZeroFreqAdjust OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "If TRUE, then do NOT send frequency adjustments in the ranging responses."
+        DEFVAL { false }
+        ::= { cadIfUpstreamChannelEntry 20 }
+
+cadIfUpChannelZeroTimingAdjust OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+	    "If TRUE, then do NOT send timing adjustments in the ranging responses."
+        DEFVAL { false }
+        ::= { cadIfUpstreamChannelEntry 21 }
+
+cadIfUpChannelPreEqEnable OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION 
+	    "If true(1), then send back equalizer coefficients to
+	     the CMs to help them offset upstream channel noise."
+        DEFVAL { false }
+        ::= { cadIfUpstreamChannelEntry 22 }
+
+
+cadIfUpChannelPCNormAllowedUsage OBJECT-TYPE
+	SYNTAX          Integer32 (0..100)
+	UNITS           "percent"       
+	MAX-ACCESS      read-write
+	STATUS          current
+	DESCRIPTION     
+	    "Maximum percentage of upstream resources that may be
+	     used by non-emergency telephony services. This is also 
+	     the maximum amount of resources non-exclusively allocated
+	     to sessions of this type.  The default set from the 
+	     globals in CadPcMibBase."
+	REFERENCE       
+	    "Cadant CMTS Requirements for PacketCable requirement 3.3.3.0.2"
+	::= { cadIfUpstreamChannelEntry 52 }
+
+cadIfUpChannelPCNormResUsage OBJECT-TYPE
+	SYNTAX          Integer32 (0..100)
+	UNITS           "percent"       
+	MAX-ACCESS      read-write
+	STATUS          current
+	DESCRIPTION     
+	    "Minimum percentage of upstream resources that may be
+	     used by non-emergency telephony services. This is also 
+	     the maximum amount of resources exclusively allocated to
+	     sessions of this type. If the value of this object is 
+	     non-zero, then a portion of the upstream bandwidth will 
+	     be set aside for normal telephony use only - reducing
+	     the bandwidth that is available for normal data.  The
+	     default is set from the globals in CadPcMibBase."
+	REFERENCE       
+	    "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+	::= { cadIfUpstreamChannelEntry 53 }
+
+cadIfUpChannelPCEmerAllowedUsage OBJECT-TYPE
+	SYNTAX          Integer32 (0..100)
+	UNITS           "percent"       
+	MAX-ACCESS      read-write
+	STATUS          current
+	DESCRIPTION     
+	    "Maximum percentage of upstream resources that may be
+	     used by emergency telephony services.  The default is
+	     set from the globals in CadPcMibBase."
+	REFERENCE       
+	    "Cadant CMTS Requirements for PacketCable requirement 3.3.3.0.2"
+	::= { cadIfUpstreamChannelEntry 54 }
+
+cadIfUpChannelPCEmerResUsage OBJECT-TYPE
+	SYNTAX          Integer32 (0..100)
+	UNITS           "percent"       
+	MAX-ACCESS      read-write
+	STATUS          current
+	DESCRIPTION     
+	    "Minimum percentage of upstream resources that may be used
+	     by emergency telephony services. If the value of this 
+	     object is non-zero, then a portion of the upstream 
+	     bandwidth will be set aside for emercency telephony use 
+	     only - reducing the bandwidth that is available for normal
+	     data.  The default is set from the globals in 
+	     CadPCMibBase."
+	REFERENCE       
+	    "'Cadant CMTS Requirements for PacketCable' requirement 3.3.3.0.2"
+	::= { cadIfUpstreamChannelEntry 55 }
+
+cadIfUpChannelPCTotalAllowedUsage OBJECT-TYPE
+	SYNTAX          Integer32 (0..100)
+	UNITS           "percent"       
+	MAX-ACCESS      read-write
+	STATUS          current
+	DESCRIPTION     
+	    "Maximum percentage of upstream resources that may be used
+	     by both normal and  emergency telephony services.  The
+	     default is set from the globals in CadPcMibBase."
+	REFERENCE
+	    "Cadant CMTS Requirements for PacketCable requirement 3.3.3.0.2"
+	::= { cadIfUpstreamChannelEntry 56 }
+
+cadIfUpChannelIfIndex OBJECT-TYPE
+	SYNTAX      InterfaceIndex
+	MAX-ACCESS  not-accessible
+	STATUS      current
+	DESCRIPTION 
+	    "IfIndex of this upstream channel."
+	::= { cadIfUpstreamChannelEntry 57 }
+
+cadIfUpChannelScdmaActiveCodes  OBJECT-TYPE
+	SYNTAX      Unsigned32 (0 | 64..128)
+	MAX-ACCESS  read-write
+	STATUS      current
+	DESCRIPTION 
+	    "Applicable for SCDMA channel types only.
+	     Number of active codes. Returns zero for
+	     Non-SCDMA channel types. Note that legal 
+	     values from 64..128 MUST be non-prime."
+	REFERENCE   
+	    "DOCSIS Radio Frequency Interface Specification, Section 6.2.11.2.1."
+	DEFVAL      { 0 }
+	::= { cadIfUpstreamChannelEntry 58 }
+
+cadIfUpChannelScdmaCodesPerSlot OBJECT-TYPE
+	SYNTAX      Integer32 (0 | 2..32)
+	MAX-ACCESS  read-write
+	STATUS      current
+	DESCRIPTION 
+	    "Applicable for SCDMA channel types only.
+	     The number of SCDMA codes per mini-slot.
+	     Returns zero if the value is undefined, unknown or in
+	     case of a TDMA or ATDMA channel."
+	REFERENCE   
+	    "DOCSIS Radio Frequency Interface Specification, Section 6.2.11.2.1."
+	DEFVAL      { 0 }
+	::= { cadIfUpstreamChannelEntry 59 }
+
+cadIfUpChannelScdmaFrameSize OBJECT-TYPE
+	SYNTAX      Unsigned32 (0..32)
+	MAX-ACCESS  read-write
+	STATUS      current
+	DESCRIPTION 
+	    "Applicable for SCDMA channel types only.
+	     SCDMA Frame size in units of spreading intervals. 
+	     This value returns zero for non SCDMA Profiles."
+	REFERENCE   
+	    "DOCSIS Radio Frequency Interface Specification, Section 6.2.12."
+	DEFVAL      { 0 }
+	::= { cadIfUpstreamChannelEntry 60 }
+
+cadIfUpChannelScdmaHoppingSeed OBJECT-TYPE
+	SYNTAX      Unsigned32 (0..32767)
+	MAX-ACCESS  read-write
+	STATUS      current
+	DESCRIPTION 
+	    "Applicable for SCDMA channel types only.
+	     15 bit seed used for code hopping sequence initialization.
+	     Returns zero for non-SCDMA channel types."
+	REFERENCE   
+	    "DOCSIS Radio Frequency Interface Specification, Section 6.2.14.1."
+	DEFVAL      { 0 }
+	::= { cadIfUpstreamChannelEntry 61 }
+	
+cadIfUpChannelType OBJECT-TYPE
+	SYNTAX      DocsisUpstreamType
+	MAX-ACCESS  read-write
+	STATUS      current
+	DESCRIPTION 
+	    "Defines the Upstream channel type.
+	     Given the channel type, other channel attributes can be checked
+	     for value validity at the time of entry creation and update."
+	REFERENCE   
+	    "DOCSIS Radio Frequency Interface Specification, Section 6.2.1."
+	DEFVAL      { tdma }
+	::= { cadIfUpstreamChannelEntry 62 }
+
+cadIfUpChannelCMKeepSpectralDensity OBJECT-TYPE
+	SYNTAX      TruthValue
+	MAX-ACCESS  not-accessible
+	STATUS      current
+	DESCRIPTION 
+	    "Indicates to the CMs that if is there is a modulation change,
+	     whether the CM MUST maintain its current transmit power or 
+	     its current power spectral density.  A value of false means the 
+	     CM MUST keep its current transmit power.  A value of true means 
+	     the CM MUST keep the same power spectral density."
+	DEFVAL      { false } -- CMs MUST maintain their current transmit power
+	::= { cadIfUpstreamChannelEntry 63 }
+
+cadIfUpChannelIngressCancellationInterval OBJECT-TYPE
+	SYNTAX      Unsigned32 (0..1000)
+	UNITS       "milliseconds"
+	MAX-ACCESS  read-write
+	STATUS      current
+	DESCRIPTION 
+	    "The interval at which reserved burst intervals are scheduled for ingress
+	     cancellation analysis.  A value of zero indicates ingress cancellation
+	     is disabled."
+	DEFVAL      { 0 }
+	::= { cadIfUpstreamChannelEntry 64 }
+
+cadIfUpChannelIngressCancellationSize OBJECT-TYPE
+	SYNTAX      Unsigned32 (0..64)
+	UNITS       "minislots"
+	MAX-ACCESS  read-write
+	STATUS      current
+	DESCRIPTION 
+	    "The number of minislots granted for each reserved burst interval
+	     that is scheduled for ingress cancellation analysis.  A value of zero
+	     indicates the grant size will be automatically calculated based upon. 
+	     the size that is required and the upstream parameters."
+	DEFVAL      { 0 }
+	::= { cadIfUpstreamChannelEntry 65 }
+
+cadIfUpChannelPCPreemptionAllowed OBJECT-TYPE
+	SYNTAX          TruthValue
+	MAX-ACCESS      read-write
+	STATUS          current
+	DESCRIPTION     
+	    "Indicates whether the system will preempt another session
+	     for an emergency call. The default is set from the 
+	     globals in CadPcMibBase."
+	REFERENCE      
+	    "Cadant CMTS Requirements for PacketCable requirement 3.3.3.0.2"
+	::= { cadIfUpstreamChannelEntry 66 }
+
+cadIfUpChannelSpGroupIndex OBJECT-TYPE
+	SYNTAX          Integer32
+	MAX-ACCESS      read-write
+	STATUS          current
+	DESCRIPTION     
+	    "An entry identical to the cadSpMgtGroupIndex in the cadSpMgtGroupTable
+		that describes the upstream spectrum management group.
+		A value of zero means that upstream spectrum management is disabled for 
+		this upstream channel."
+	REFERENCE      
+	    "C4 CMTS Upstream Frequency Agility"
+	DEFVAL      { 0 }
+	::= { cadIfUpstreamChannelEntry 69 }
+
+cadIfUpChannelNumberEqTaps  OBJECT-TYPE
+    SYNTAX          Unsigned32 (5 | 24)
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION
+      "Contains the number of taps to be used by the upstream receiver's equalizer for non-ranging IUCs.  
+       Default value of 24 taps."  
+    DEFVAL { 24 }
+    ::= { cadIfUpstreamChannelEntry 70 }
+
+--
+--
+--
+-- Remove cadIfFreqPriorityListTable OBJECT-TYPE
+--        ::= { cadUpchannelMib 3 }
+
+
+--
+--
+--
+cadUpchannelParams OBJECT IDENTIFIER ::= { cadUpchannelMib 5 }
+
+cadUpchannelFreqRange OBJECT-TYPE
+        SYNTAX      INTEGER {
+                      none(0),
+                      european(1),
+                      japanese(2),
+                      northAmerican(3),
+                      extendedRange(4)
+                    }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This object is used to configure the C4 CMTS to accept upstream
+            frequency ranges that conform with the EuroDOCSIS specifications
+            (5 MHz to 65 MHz), to the extended range used in Japan
+            (5 MHz to 55 MHz), or to the DOCSIS specifications (5 MHz to 42 MHz),
+            or to the Arris extended range (5 MHz to 85 MHz).
+            Changes to upstream frequency and width are verified against this
+            object to ensure the C4 CMTS does not exceed the upstream spectrum
+            limits imposed by this object. Attempting to narrow the upstream
+            frequency spectrum implied by this object will fail if at least
+            a single upstream is configured outside of the range for the new
+            value. It is recommended this object be set during initial system
+            setup."
+        DEFVAL { northAmerican } 
+        ::= { cadUpchannelParams 6 }
+
+cadUpchannelRtpsPiggybackEnable OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Allows piggybacking data requests when RTP bit'4' disabled
+             if set this object to true."
+        DEFVAL { false } 
+        ::= { cadUpchannelParams 7 }
+
+cadUpchannelCaCertDropEnable OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Prevents storage of newly learned untrusted or invalid certificates 
+             if set this object to true."
+        DEFVAL { false } 
+        ::= { cadUpchannelParams 8 }
+
+cadUpchannelRangingTimingOffset OBJECT-TYPE
+        SYNTAX      Integer32 (-512 .. 512)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This object controls TLV 46.8.2, an offset from the reference channel, to set the
+             Ranging Offset of the burst transmission for the new channel so that bursts
+             arrive at the expected mini-slots time at the CMTS. The units are (1/10.24MHz) = 97.65625 ns.
+             A negative value implies the Ranging Offset is to be decreased, resulting in later times of
+             transmission at the CM. The CMTS MUST include this TLV within the TCC when the Upstream
+             Channel Action is Add or Replace and Initialization Technique has a value of 2, 3 or 4."
+        REFERENCE
+            "CM-SP-MULPIv3.0-I22-130808, Section C.1.5.1.8.2"
+        DEFVAL { 0 } 
+        ::= { cadUpchannelParams 9 }
+
+cadUpchannelRecoverImpairedOnAck OBJECT-TYPE
+        SYNTAX      INTEGER {
+                        disable(0),
+                        attemptIndefiniteRecovery(1)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This parameter controls whether and how to attempt to recover
+             an US channel if it is impaired after receipt of a REG-ACK or
+             DBC-ACK.  If set to attempt_indefinite_recovery, then if an
+             US is impaired, the E6000 attempts to recover the US channel
+             after receipt of the REG/DBC-ACK indefinitely.  Note that
+             this object is an INTEGER instead of a TruthValue to allow
+             for other future values that may alter the method of recovery
+             of US channels that are impaired due to being reported as
+             impaired via a REG-ACK or DBC-ACK."
+        DEFVAL { disable }
+        ::= { cadUpchannelParams 10 }
+
+
+cadUpchannelDsaRspSidTlvOverride OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "When this object is set to true, CMTS will include the SID in Upstream Service Flow TLV 24.3 
+             in a DSA-RSP and not include a SID cluster TLV for a US flow when the REG-RSP contains a SID cluster 
+             TLV for Mx1 downstream bonded modems."
+        DEFVAL { false } 
+        ::= { cadUpchannelParams 11 }
+
+
+--
+-- Configuration for the CAM unicast polling algorithm
+--
+cadUnicastPollingTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadUnicastPollingEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table contains the polling intervals used
+	     by the unicast polling algorithm of the MapMaker.
+	     This allows the MapMaker to adjust the polling for
+	     a service flow based on the flow's priority and
+	     data characteristics."
+        ::= { cadUpchannelMib 6 }
+
+cadUnicastPollingEntry OBJECT-TYPE
+        SYNTAX      CadUnicastPollingEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Matrix of polling intervals used for various flow priorities."
+        INDEX { cadUnicastPriority }
+        ::= { cadUnicastPollingTable 1 }
+
+CadUnicastPollingEntry ::= SEQUENCE {
+            cadUnicastPriority          Integer32,
+            cadUnicastSlowPollInterval  Integer32,
+            cadUnicastFastPollInterval  Integer32,
+            cadUnicastFastPollTimeout   Integer32
+        }
+
+cadUnicastPriority OBJECT-TYPE
+        SYNTAX       Integer32 (0..7)
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+             "An index repesenting the DOCSIS service flow priority."
+        ::= { cadUnicastPollingEntry 1 }
+
+cadUnicastSlowPollInterval OBJECT-TYPE
+        SYNTAX      Integer32 (0|2..1000)
+	UNITS       "tens of milliseconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The slow poll interval repesents the worst cast latency for 
+	     the first message when traffic is just starting.  Broadcast
+	     opportunities should be used to help avoid this being hit.
+	     A value of 0 disables all polling for this priority."
+        ::= { cadUnicastPollingEntry 2 }
+
+cadUnicastFastPollInterval OBJECT-TYPE
+        SYNTAX      Integer32 (0|2..1000)
+        UNITS       "tens of milliseconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The fast poll interval represents the polling rate desired
+	     while traffic is flowing. A value of 0 disables fast polling"
+        ::= { cadUnicastPollingEntry 3 }
+
+cadUnicastFastPollTimeout OBJECT-TYPE
+        SYNTAX      Integer32 (0|2..5000)
+        UNITS       "tens of milliseconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The fast poll timeout represents the amount of time in fast
+	     polling before transitioning back to slow polling.  This is
+	     expected to be used during call setup/teardown.  A value of
+	     0 sets the timeout to a single interval."
+        ::= { cadUnicastPollingEntry 4 }
+
+--
+-- Conformance information
+--
+cadUpchannelConformance OBJECT IDENTIFIER ::= { cadUpchannelMib 7 }
+cadUpchannelCompliances OBJECT IDENTIFIER ::= { cadUpchannelConformance 1 }
+cadUpchannelGroups      OBJECT IDENTIFIER ::= { cadUpchannelConformance 2 }
+
+cadUpchannelCompliance MODULE-COMPLIANCE
+	STATUS current
+	DESCRIPTION
+	    " The compliance statement for Arris Upstream channel interfaces."
+	MODULE
+	    MANDATORY-GROUPS { cadUpchannelGroup }
+
+        ::= { cadUpchannelCompliances 1 }
+
+cadUpchannelGroup OBJECT-GROUP
+	OBJECTS {
+	    -- Modulation profiles
+	    cadIfCmtsModControl,
+	    cadIfCmtsModType,
+	    cadIfCmtsModPreambleLen,
+	    cadIfCmtsModDifferentialEncoding,
+	    cadIfCmtsModFECErrorCorrection,
+	    cadIfCmtsModFECCodewordLength,
+	    cadIfCmtsModScramblerSeed,
+	    cadIfCmtsModMaxBurstSize,
+	    cadIfCmtsModGuardTimeSize,
+	    cadIfCmtsModLastCodewordShortened,
+	    cadIfCmtsModScrambler,
+	    cadIfCmtsModPreambleValueOffset,
+	    cadIfCmtsModBroadcomUwLength,
+	    cadIfCmtsModBroadcomUwPattern,
+	    cadIfCmtsModBroadcomUwDetectionWindow,
+	    cadIfCmtsModBroadcomUwMismatchThreshold,
+	    cadIfCmtsModByteInterleaverDepth,
+	    cadIfCmtsModByteInterleaverBlockSize,
+	    cadIfCmtsModPreambleType,
+	    cadIfCmtsModTcmErrorCorrectionOn,
+	    cadIfCmtsModScdmaInterleaverStepSize,
+	    cadIfCmtsModScdmaSpreaderEnable,
+	    cadIfCmtsModScdmaSubframeCodes,
+	    cadIfCmtsModChannelType,
+
+	    -- Upstream channel configuration
+	    cadIfUpChannelFrequency,
+	    cadIfUpChannelWidth,
+	    cadIfUpChannelModulationProfile,
+	    cadIfUpChannelPowerDesired,
+	    cadIfUpChannelSlotSize,
+	    cadIfUpChannelRangingBackoffStart,
+	    cadIfUpChannelRangingBackoffEnd,
+	    cadIfUpChannelTxBackoffStart,
+	    cadIfUpChannelTxBackoffEnd,
+	    cadIfUpChannelMapSize,
+	    cadIfUpChannelMaxPowerAdjust,
+	    cadIfUpChannelThresholdPowerOffset,
+	    cadIfUpChannelZeroPowerAdjust,
+	    cadIfUpChannelZeroFreqAdjust,
+	    cadIfUpChannelZeroTimingAdjust,
+	    cadIfUpChannelPreEqEnable,
+	    cadIfUpChannelPCNormAllowedUsage,
+	    cadIfUpChannelPCNormResUsage,
+	    cadIfUpChannelPCEmerAllowedUsage,
+	    cadIfUpChannelPCEmerResUsage,
+	    cadIfUpChannelPCTotalAllowedUsage,
+	    cadIfUpChannelScdmaActiveCodes,
+	    cadIfUpChannelScdmaCodesPerSlot,
+	    cadIfUpChannelScdmaFrameSize,
+	    cadIfUpChannelScdmaHoppingSeed,
+	    cadIfUpChannelType,
+	    cadIfUpChannelIngressCancellationInterval,
+	    cadIfUpChannelIngressCancellationSize,
+	    cadIfUpChannelPCPreemptionAllowed,
+
+	    -- Annex frequency range
+	    cadUpchannelFreqRange,
+
+	    -- Unicast polling parameters
+	    cadUnicastSlowPollInterval,
+	    cadUnicastFastPollInterval,
+	    cadUnicastFastPollTimeout
+	}
+	STATUS current
+	DESCRIPTION
+	    "Group of objects required for implementing upstream
+	     channels in the Arris C4."
+	::= { cadUpchannelGroups 1 }
+
+
+END

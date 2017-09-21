@@ -1,0 +1,824 @@
+CADANT-CMTS-SPECTRUM-MGMT-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, Integer32, Counter32, Unsigned32
+        	FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION, TruthValue, RowStatus, DateAndTime, DisplayString    
+		FROM SNMPv2-TC
+    MODULE-COMPLIANCE, OBJECT-GROUP  
+		FROM SNMPv2-CONF
+    InterfaceIndex 
+		FROM IF-MIB
+	cadIfUpstreamChannelEntry
+		FROM CADANT-CMTS-UPCHANNEL-MIB
+    TenthdB
+		FROM DOCS-IF-MIB
+    cadSpectrum
+		FROM CADANT-PRODUCTS-MIB;
+
+cadSpMgtMib  MODULE-IDENTITY
+    LAST-UPDATED "201304300000Z"
+    ORGANIZATION "Arris International Inc."
+    CONTACT-INFO
+        "Customer Support 
+
+        Address: Arris Group Inc.
+                2400 E. Ogden Avenue, Suite 180
+                Lisle, IL 60532
+
+        Phone:  +1 630 281 3000"
+     DESCRIPTION
+     "The MIB module describes the C4 Upstream Spectrum Management"
+    REVISION "201304300000Z"
+    DESCRIPTION "Support cadSpMgtStateFrequency up to 85MHz."
+    REVISION "201207030000Z"
+    DESCRIPTION "Added state change count in history entry."
+    REVISION "201207020000Z"
+    DESCRIPTION "Added cadSpMgtHistorySysUpTime in history entry."
+    REVISION "200602210000Z"
+    DESCRIPTION "Use cadSpMgtHistoryTime for index."
+    REVISION "200602060000Z"
+    DESCRIPTION "Added spectrum group id in history entry."
+    REVISION "200511100000Z"
+    DESCRIPTION "Initial version."
+    ::= { cadSpectrum 4 }
+
+cadSpMgtNotifications OBJECT IDENTIFIER ::= { cadSpMgtMib 1 }
+cadSpMgtObjects       OBJECT IDENTIFIER ::= { cadSpMgtMib 2 }
+cadSpMgtConformance   OBJECT IDENTIFIER ::= { cadSpMgtMib 3 }
+cadSpMgtGroup  	      OBJECT IDENTIFIER ::= { cadSpMgtObjects 1 }
+cadSpMgtRequests      OBJECT IDENTIFIER ::= { cadSpMgtObjects 2 }
+
+
+
+--
+-- Textual conventions
+--
+
+SpTriggerType ::= TEXTUAL-CONVENTION
+    STATUS       current
+DESCRIPTION 
+   "The trigger is used to manage the state transition in C4
+   Upstream Spectrum Management State Machine. The trigger has the
+   following defined values:
+
+      TOD - 
+defined with <Time of Day> and reoccurring day within a week 
+                                  
+Periodic - 
+defined with a period of time
+                                  
+degradation	- 
+defined with 3 threshold value for the purpose of degradation
+                                  
+improvement - 
+defined with 3 threshold value for the purpose of improvement
+
+                "
+    SYNTAX       INTEGER { tod(1),
+				   periodic(2),
+				   degradation(3),
+				   improvement(4)
+                 }
+
+SpTriggerDay ::= TEXTUAL-CONVENTION
+    STATUS       current
+DESCRIPTION 
+   "The trigger day is to specify the reoccurrence of the TOD
+trigger for a week. 
+
+	  The trigger day has the following defined values:
+				7: every day
+				0: Sunday
+				1: Monday
+				2: Tuesday
+				3: Wednesday
+				4: Thursday
+				5: Friday
+				6: Saturday"
+                
+    SYNTAX       INTEGER { 
+				   sunday(0),
+				   monday(1),
+				   tuesday(2),
+				   wednesday(3),
+				   thursday(4),
+				   friday(5),
+				   saturday(6),
+                   everyday(7)
+                 }
+
+SpTimeOfDay ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1d:1d:1d"
+    STATUS       current
+    DESCRIPTION
+            "A time-of-day specification in hours:minutes:seconds.
+
+            field  octets  contents                  range
+            -----  ------  --------                  -----
+              1       1    hour                      0..23
+              2       1    minutes                   0..59
+              3       1    seconds                   0..59"
+    SYNTAX    OCTET STRING (SIZE (3))
+
+Unsigned16 ::= TEXTUAL-CONVENTION  
+    STATUS       current  
+    DESCRIPTION  
+    "An unsigned 16 bit integer."  
+    SYNTAX    Unsigned32 (0..65535)
+
+--
+-- Upstream Spectrum Management Group Table
+--
+
+cadSpMgtGroupTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadSpMgtGroupEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "Each entry in this table defines a C4 Upstream Spectrum
+ Management group."
+       ::= { cadSpMgtGroup 1 }
+
+cadSpMgtGroupEntry OBJECT-TYPE
+    SYNTAX     CadSpMgtGroupEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION 
+        "A set of C4 Upstream Spectrum Management group information.
+         Entries in the cadSpMgtGroupTable are created and
+         deleted using the cadSpMgtGroupRowStatus object."
+    INDEX { cadSpMgtGroupIndex }
+    ::= { cadSpMgtGroupTable 1 }
+
+CadSpMgtGroupEntry ::=
+    SEQUENCE {
+		cadSpMgtGroupIndex			Integer32,		
+		cadSpMgtGroupSamplePeriod	Integer32,
+		cadSpMgtGroupHopPeriod		Integer32,
+		cadSpMgtGroupCodeword		Integer32,
+		cadSpMgtGroupRetryPeriod	Integer32,
+		cadSpMgtGroupEnabled		TruthValue,
+		cadSpMgtGroupRowStatus		RowStatus
+    }
+
+cadSpMgtGroupIndex OBJECT-TYPE
+    SYNTAX     Integer32 (1..40)
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "The index used to identify the Upstream Spectrum Group."
+       ::= { cadSpMgtGroupEntry 1 }
+
+cadSpMgtGroupSamplePeriod OBJECT-TYPE
+     SYNTAX     Integer32 (0..60)
+     MAX-ACCESS read-create
+     STATUS     current
+     DESCRIPTION
+        "The time (in seconds) between samples used for the degradation 
+	    and the improvement triggers."
+    DEFVAL { 4 }
+     ::= { cadSpMgtGroupEntry 2 }
+
+cadSpMgtGroupHopPeriod OBJECT-TYPE
+     SYNTAX     Integer32 (0..3600)
+     MAX-ACCESS read-create
+     STATUS     current
+     DESCRIPTION
+        "The minimum period of time (in seconds) that must pass between
+        successive state transitions."
+    DEFVAL { 1200 }
+     ::= { cadSpMgtGroupEntry 3 }
+
+cadSpMgtGroupCodeword OBJECT-TYPE
+    SYNTAX	Integer32 (100..32768)
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "The minimum number of codewords that must have been transmitted
+       on the upstream channel before the degradation and improvement
+       triggers are considered to be valid."
+    DEFVAL { 256 }
+     ::= { cadSpMgtGroupEntry 4 }
+
+cadSpMgtGroupRetryPeriod OBJECT-TYPE
+     SYNTAX     Integer32 (1..604800)
+     MAX-ACCESS read-create
+     STATUS     current
+     DESCRIPTION
+        "This object specifies the minimum wait time (in seconds) 
+	    before the retry is attempted.  The retry-period timer controls 
+        how quickly the state machine is allowed to retry when   
+        transition failure occurred."
+    DEFVAL { 86400 }
+     ::= { cadSpMgtGroupEntry 5 }
+
+cadSpMgtGroupEnabled OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "This object allows for the optional enabling and disabling of a
+       spectrum group."
+    DEFVAL { true }
+    ::= { cadSpMgtGroupEntry 6 }
+
+cadSpMgtGroupRowStatus OBJECT-TYPE
+    SYNTAX      	RowStatus
+    MAX-ACCESS	read-create
+    STATUS		current
+    DESCRIPTION
+	   "The status of this conceptual row. To create a row in this
+       table, set this object to createAndGo(4). Support of the values
+       includes createAndGo(4) and destroy(6)"
+    ::= { cadSpMgtGroupEntry 7 }
+
+--
+-- Upstream Spectrum Management State Table
+--
+
+cadSpMgtStateTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadSpMgtStateEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "Each entry in this table defines a state used for C4 Upstream 
+       Spectrum Management."
+       ::= { cadSpMgtGroup 2 }
+
+cadSpMgtStateEntry OBJECT-TYPE
+    SYNTAX     CadSpMgtStateEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION 
+       "A set of Upstream Spectrum Management state information.
+        Entries in the cadSpMgtStateTable are created and
+        deleted using the cadSpMgtStateRowStatus object."
+    INDEX { cadSpMgtGroupIndex, cadSpMgtStateIndex }
+    ::= { cadSpMgtStateTable 1 }
+
+CadSpMgtStateEntry ::=
+    SEQUENCE {
+		cadSpMgtStateIndex          Integer32,
+		cadSpMgtStateFrequency      Integer32,
+		cadSpMgtStateWidth          Integer32,
+		cadSpMgtStateModulationProfile Unsigned32,
+		cadSpMgtStateRowStatus      RowStatus
+    }
+
+cadSpMgtStateIndex OBJECT-TYPE
+    SYNTAX     	Integer32 (1..16)
+    MAX-ACCESS 	not-accessible
+    STATUS     	current
+    DESCRIPTION
+       "The index used to identify the state in C4 Upstream Spectrum 
+	 Management."
+       ::= { cadSpMgtStateEntry 1 }
+
+cadSpMgtStateFrequency OBJECT-TYPE
+    SYNTAX     	Integer32 (0 | 5000000..85000000)
+    UNITS      	"hertz"
+    MAX-ACCESS	read-create
+    STATUS		current
+    DESCRIPTION
+       "The center of the frequency band for the upstream channel 
+	   associated with this state."
+	DEFVAL { 0 }
+       ::= { cadSpMgtStateEntry 2 }
+
+cadSpMgtStateWidth OBJECT-TYPE
+    SYNTAX     	Integer32 (0..6400000)
+    UNITS      	"hertz"
+    MAX-ACCESS 	read-create
+    STATUS     	current
+    DESCRIPTION
+       "The bandwidth for the upstream channel associated with this
+ state."
+    DEFVAL { 0 }
+     ::= { cadSpMgtStateEntry 3 }
+
+cadSpMgtStateModulationProfile OBJECT-TYPE
+     SYNTAX     Unsigned32
+     MAX-ACCESS read-create
+     STATUS     current
+     DESCRIPTION
+        "An entry identical to the docsIfModIndex in the 
+        docsIfCmtsModulationTable that describes the upstream channel 
+        associated with this state."
+    DEFVAL { 0 }
+     ::= { cadSpMgtStateEntry 4 }
+
+cadSpMgtStateRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS	read-create
+    STATUS		current
+    DESCRIPTION
+	 "The status of this conceptual row. To create a row in this
+       table, set this object to createAndGo(4). Support of the
+ values includes createAndGo(4) and destroy(6)"
+       ::= { cadSpMgtStateEntry 5 }
+
+--
+-- Upstream Spectrum Management trigger table
+--
+
+cadSpMgtTriggerTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadSpMgtTriggerEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "Each entry in this table defines a trigger for C4 Upstream 
+ 	 Spectrum Management"
+       ::= { cadSpMgtGroup 3 }
+
+cadSpMgtTriggerEntry OBJECT-TYPE
+    SYNTAX     	CadSpMgtTriggerEntry
+    MAX-ACCESS 	not-accessible
+    STATUS    	current
+    DESCRIPTION 
+        "A set of Upstream Spectrum Management trigger information.
+         Entries in the cadSpMgtTriggerTable are created and
+         deleted using the cadSpMgtTriggerRowStatus object."
+    INDEX { cadSpMgtTriggerIndex }
+    ::= { cadSpMgtTriggerTable 1 }
+
+CadSpMgtTriggerEntry ::=
+    SEQUENCE {
+		cadSpMgtTriggerIndex	Integer32,
+		cadSpMgtTriggerType		SpTriggerType,
+		cadSpMgtTriggerDay		SpTriggerDay,
+		cadSpMgtTriggerTOD		SpTimeOfDay, 
+		cadSpMgtTriggerPeriod	Integer32,	
+		cadSpMgtTriggerThres1	Unsigned32,
+		cadSpMgtTriggerThres2	Unsigned32,
+		cadSpMgtTriggerThres3	TenthdB,
+		cadSpMgtTriggerRowStatus RowStatus
+    }
+
+cadSpMgtTriggerIndex OBJECT-TYPE
+    SYNTAX     	Integer32 (1..64)
+    MAX-ACCESS 	not-accessible
+    STATUS     	current
+    DESCRIPTION
+       "The trigger index used to identify the trigger for each state 
+	 transition."
+       ::= { cadSpMgtTriggerEntry 1 }
+
+cadSpMgtTriggerType OBJECT-TYPE
+    SYNTAX     	SpTriggerType
+    MAX-ACCESS 	read-create
+    STATUS     	current
+    DESCRIPTION
+       "The trigger type."
+    DEFVAL { degradation }
+       ::= { cadSpMgtTriggerEntry 2 }
+
+cadSpMgtTriggerDay OBJECT-TYPE
+    SYNTAX     	SpTriggerDay
+    MAX-ACCESS 	read-create
+    STATUS     	current
+    DESCRIPTION
+       "The trigger day is to specify the reoccurrence of the TOD 
+   	   trigger for a week. The trigger day has the following defined 
+       values:
+				0: Sunday
+				1: Monday
+				2: Tuesday
+				3: Wednesday
+				4: Thursday
+				5: Friday
+				6: Saturday
+				7: Everyday
+                "
+    ::= { cadSpMgtTriggerEntry 3 }
+
+cadSpMgtTriggerTOD OBJECT-TYPE
+   SYNTAX		SpTimeOfDay
+   MAX-ACCESS	read-create
+   STATUS     	current
+   DESCRIPTION
+      "Time of day to transition to next state, in HH:MM:SS format"
+    DEFVAL { '000000'h }
+       ::= { cadSpMgtTriggerEntry 4 }
+
+cadSpMgtTriggerPeriod OBJECT-TYPE
+SYNTAX		Integer32 (1..604800)
+UNITS		"seconds"
+    MAX-ACCESS 	read-create
+    STATUS     	current
+    DESCRIPTION
+       "The amount of time that should be loaded into a timer, in
+       seconds, once the state machine has transitioned into the 
+       associated current state. When the timer expires, the transition 
+       to next state defined in the state machine is executed. This 
+       value is an integer between 1 and 604,800 (which covers a period 
+       of a week). This object is applicable for trigger type of   
+       periodic(2)"
+       ::= { cadSpMgtTriggerEntry 5 }
+
+cadSpMgtTriggerThres1 OBJECT-TYPE
+    SYNTAX	    Unsigned32 (0..100000)
+    UNITS		"0.001 percentage"  
+    MAX-ACCESS	read-create
+    STATUS		current
+    DESCRIPTION
+       "This object is applicable for trigger type of degradation (3) 
+	   and improvement (4).
+       For degradation trigger, this is the maximum acceptable
+       percentage of FEC errors (uncorrectable plus correctable).
+       For improvement trigger, this is the minimum acceptable
+       percentage of FEC errors (uncorrectable plus correctable)"
+    DEFVAL { 0 }
+       ::= { cadSpMgtTriggerEntry 6 }
+
+cadSpMgtTriggerThres2 OBJECT-TYPE
+    SYNTAX	    Unsigned32 (0..100000)
+    UNITS		"0.001 percentage"  
+    MAX-ACCESS	read-create
+    STATUS		current
+    DESCRIPTION
+       "This object is applicable for trigger type of degradation (3) 
+	   and improvement (4).
+       For degradation trigger, this is the maximum acceptable  
+       percentage of uncorrectable FEC errors.
+       For improvement trigger, this is the minimum acceptable  
+       percentage of uncorrectable FEC errors."
+    DEFVAL { 0 }
+       ::= { cadSpMgtTriggerEntry 7 }
+
+cadSpMgtTriggerThres3 OBJECT-TYPE
+SYNTAX      	TenthdB (0..1000)
+UNITS       	"dB"
+    MAX-ACCESS 	read-create
+    STATUS     	current
+    DESCRIPTION
+       "This object is applicable for trigger type of degradation (3) 
+	   and improvement (4).
+       For degradation trigger, this is the minimum acceptable   
+       Signal/Noise ratio (in dB).
+       For improvement trigger, this is the maximum acceptable   
+       Signal/Noise ratio (in dB). "
+    DEFVAL { 1000 }
+       ::= { cadSpMgtTriggerEntry 8 }
+
+cadSpMgtTriggerRowStatus OBJECT-TYPE
+    SYNTAX	      RowStatus
+    MAX-ACCESS	read-create
+    STATUS		current
+    DESCRIPTION
+	   "The status of this conceptual row. To create a row in this
+       table, set this object to createAndGo(4). Support of the values
+       includes createAndGo(4) and destroy(6)"
+       ::= { cadSpMgtTriggerEntry 9 }
+
+--
+-- Upstream Spectrum Management State Transition Table
+--
+
+cadSpMgtStateTransTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadSpMgtStateTransEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "Each entry in this table defines the state machine in C4 Upstream Spectrum Management."
+       ::= { cadSpMgtGroup 4 }
+
+cadSpMgtStateTransEntry OBJECT-TYPE
+    SYNTAX     CadSpMgtStateTransEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION 
+      ""
+    INDEX { cadSpMgtGroupIndex, cadSpMgtStateIndex, cadSpMgtTriggerIndex }
+    ::= { cadSpMgtStateTransTable 1 }
+
+CadSpMgtStateTransEntry ::=
+    SEQUENCE {
+		cadSpMgtTransNextState			Integer32,
+		cadSpMgtStateTransRowStatus		RowStatus
+    }
+
+cadSpMgtTransNextState OBJECT-TYPE
+    SYNTAX     Integer32 (1..16)
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "The index used to identify the next state to which the state
+        machine may transition to as a result of this trigger."
+       ::= { cadSpMgtStateTransEntry 1 }
+
+cadSpMgtStateTransRowStatus OBJECT-TYPE
+    SYNTAX      	RowStatus
+    MAX-ACCESS	read-create
+    STATUS		current
+    DESCRIPTION
+	 "The status of this conceptual row. To create a row in this
+ table, set this object to createAndGo(4). Support of the values
+ includes createAndGo(4) and destroy(6)"
+       ::= { cadSpMgtStateTransEntry 2 }
+
+cadSpMgtRequestUpChannelIfIndex OBJECT-TYPE
+    SYNTAX     	InterfaceIndex
+    MAX-ACCESS 	read-write
+    STATUS     	current
+    DESCRIPTION
+       "IfIndex of the upstream channel."
+       ::= { cadSpMgtRequests 1 }
+
+cadSpMgtRequestTriggerIndex OBJECT-TYPE
+    SYNTAX     	Integer32 
+    MAX-ACCESS 	read-write
+    STATUS     	current
+    DESCRIPTION
+ "The trigger index used to identify the trigger. A value of 0  
+ indicates no trigger is attempted."
+       ::= { cadSpMgtRequests 2 }
+
+cadSpMgtRequestNextState OBJECT-TYPE
+    SYNTAX     	Integer32 
+    MAX-ACCESS 	read-write
+    STATUS     	current
+    DESCRIPTION
+       "The index used to identify the next state to which the state
+        machine may transition to."
+       ::= { cadSpMgtRequests 3 }
+
+cadSpMgtRequestSNR OBJECT-TYPE
+SYNTAX      	TenthdB
+UNITS       	"dB"
+    MAX-ACCESS 	read-write
+    STATUS     	current
+    DESCRIPTION
+       "This object is the measured Signal/Noise ratio (in dB) for the 
+       upstream channel. This object is applicable when the value in 
+       cadSpMgtRequestTriggerIndex defines the trigger of type 
+       degradation or improvement."
+       ::= { cadSpMgtRequests 4 }
+
+cadSpMgtRequestUFecError OBJECT-TYPE
+    SYNTAX	    Unsigned32 (0..100000)
+    UNITS		"0.001 percentage"       
+    MAX-ACCESS	read-write
+    STATUS		current
+    DESCRIPTION
+       "This object is the measured percentage of uncorrectable
+       FEC errors for the upstream channel.
+       This object is applicable when the value in 
+       cadSpMgtRequestTriggerIndex defines the trigger of type 
+       degradation or improvement."
+       ::= { cadSpMgtRequests 5 }
+
+cadSpMgtRequestFecError OBJECT-TYPE
+    SYNTAX		Unsigned32 (0..100000)
+    UNITS		"0.001 percentage"       
+    MAX-ACCESS	read-write
+    STATUS		current
+	DESCRIPTION
+       "This object is the measured percentage of FEC errors 
+       (uncorrectable plus correctable) for the upstream channel.
+       This object is applicable when the value in 
+       cadSpMgtRequestTriggerIndex defines the trigger of type 
+       degradation or improvement."
+       ::= { cadSpMgtRequests 6 }
+
+cadSpMgtRequestCommit OBJECT-TYPE 
+    SYNTAX 		TruthValue 
+    MAX-ACCESS 	read-write 
+    STATUS 		current 
+    DESCRIPTION 
+       "The command to execute the request when set to
+       true(1). 
+       The following are reasons for rejecting an SNMP 
+       SET to this object: 
+       -	An operation is commited for a non-existing upstream channel ID or the corresponding ifOperStatus is down(2).
+       -	An operation is committed but cadSpMgtRequestNextState is not an existing state index in cadSpMgtStateEntry.
+       -	An operation is committed but the value in cadSpMgtRequestTriggerIndex is non-zero and not an existing trigger index in cadSpMgtTriggerEntry. 
+       Reading this object always returns false(2)." 
+    DEFVAL {false} 
+    ::= { cadSpMgtRequests 7 }
+
+--
+-- Upstream Spectrum Management History Table
+--
+
+cadSpMgtHistoryTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF CadSpMgtHistoryEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+       "Table of state transition history."
+       ::= { cadSpMgtGroup 5 }
+
+cadSpMgtHistoryEntry OBJECT-TYPE
+    SYNTAX     CadSpMgtHistoryEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION 
+      "Entry of state transition history."
+    INDEX { cadSpMgtHistoryUpChannelIfIndex, cadSpMgtHistoryTime }
+    ::= { cadSpMgtHistoryTable 1 }
+
+CadSpMgtHistoryEntry::=
+    SEQUENCE {
+		cadSpMgtHistoryUpChannelIfIndex     InterfaceIndex,
+		cadSpMgtHistoryTime                 DateAndTime,
+		cadSpMgtHistoryTriggerIndex         Integer32,
+		cadSpMgtHistoryFromStateIndex       Integer32,
+		cadSpMgtHistoryNextStateIndex       Integer32,
+		cadSpMgtHistoryResultStateIndex     Integer32,
+		cadSpMgtHistorySNR                  TenthdB,
+		cadSpMgtHistoryUFecError            Unsigned32,
+		cadSpMgtHistoryFecError             Unsigned32,
+		cadSpMgtHistorySpareCardId          Integer32,
+		cadSpMgtHistoryText                 DisplayString,
+		cadSpMgtHistoryGroupId              Integer32,
+		cadSpMgtHistoryStateChangeCount     Unsigned16,
+		cadSpMgtHistorySysUpTime            Unsigned32
+    }
+
+cadSpMgtHistoryUpChannelIfIndex OBJECT-TYPE
+    SYNTAX     	InterfaceIndex
+    MAX-ACCESS 	not-accessible
+    STATUS     	current
+    DESCRIPTION
+       "IfIndex of the upstream channel."
+       ::= { cadSpMgtHistoryEntry 1 }
+
+cadSpMgtHistoryTime OBJECT-TYPE
+    SYNTAX     	DateAndTime
+    MAX-ACCESS 	not-accessible
+    STATUS     	current
+    DESCRIPTION
+       "The value of this object is the actual clock time
+        when this entry was created."
+       ::= { cadSpMgtHistoryEntry 2 }
+
+cadSpMgtHistoryTriggerIndex OBJECT-TYPE
+    SYNTAX     	Integer32 
+    MAX-ACCESS 	read-only
+    STATUS     	current
+    DESCRIPTION
+       "The trigger index used to identify the trigger for state 
+       transition. A value of 0 indicates a manual trigger."
+       ::= { cadSpMgtHistoryEntry 3 }
+
+cadSpMgtHistoryFromStateIndex OBJECT-TYPE
+    SYNTAX     	Integer32 
+    MAX-ACCESS 	read-only
+    STATUS     	current
+    DESCRIPTION
+       "The index used to identify the current state."
+       ::= { cadSpMgtHistoryEntry 4 }
+
+cadSpMgtHistoryNextStateIndex OBJECT-TYPE
+    SYNTAX     	Integer32 
+    MAX-ACCESS 	read-only
+    STATUS     	current
+    DESCRIPTION
+       "The index used to identify the next state to which the state
+        machine may transition to."
+       ::= { cadSpMgtHistoryEntry 5 }
+
+cadSpMgtHistoryResultStateIndex OBJECT-TYPE
+    SYNTAX     	Integer32 
+    MAX-ACCESS 	read-only
+    STATUS     	current
+    DESCRIPTION
+       "The index used to identify the result state to which the state
+       machine has transitioned to. For a successful state transition
+       request, the value of this object is the same as 
+       cadSpMgtHistoryNextState."
+       ::= { cadSpMgtHistoryEntry 6 }
+
+cadSpMgtHistorySNR OBJECT-TYPE
+    SYNTAX      TenthdB
+    UNITS       "dB"
+    MAX-ACCESS 	read-only
+    STATUS     	current
+    DESCRIPTION
+       "This object is the measured Signal/Noise ratio (in dB) for the 
+       upstream channel. This object is applicable when the value in 
+       cadSpMgtHistoryTriggerIndex defines the trigger of type 
+       degradation or improvement."
+       ::= { cadSpMgtHistoryEntry 7 }
+
+cadSpMgtHistoryUFecError OBJECT-TYPE
+    SYNTAX	    Unsigned32 (0..100000)
+    UNITS		"0.001 percentage"  
+    MAX-ACCESS	read-only
+    STATUS		current
+    DESCRIPTION
+       "This object is the measured percentage of uncorrectable
+       FEC errors for the upstream channel. This object is applicable 
+	   when the value in cadSpMgtHistoryTriggerIndex defines the trigger 
+	   of type degradation or improvement."
+       ::= { cadSpMgtHistoryEntry 8 }
+
+cadSpMgtHistoryFecError OBJECT-TYPE
+    SYNTAX	    Unsigned32 (0..100000)
+    UNITS		"0.001 percentage"  
+    MAX-ACCESS	read-only
+    STATUS		current
+	DESCRIPTION
+       "This object is the measured percentage of FEC errors 
+	   (uncorrectable plus correctable) for the upstream channel.
+       This object is applicable when the value in 
+       cadSpMgtHistoryTriggerIndex defines the trigger of type 
+       degradation or improvement."
+       ::= { cadSpMgtHistoryEntry 9 }
+
+cadSpMgtHistorySpareCardId OBJECT-TYPE
+    SYNTAX     	Integer32 (0..99)
+    MAX-ACCESS 	read-only
+    STATUS     	current
+    DESCRIPTION
+       " The cardId of the spare CAM. The value of 0 indicates the
+       CAM is not spared at the time the request is received."       
+       ::= { cadSpMgtHistoryEntry 10 }
+
+cadSpMgtHistoryText OBJECT-TYPE
+    SYNTAX     	DisplayString
+    MAX-ACCESS 	read-only
+    STATUS     	current
+    DESCRIPTION
+       "This object provides a human-readable description of the entry,
+       including all relevant context."       
+       ::= { cadSpMgtHistoryEntry 11 }
+
+cadSpMgtHistoryGroupId OBJECT-TYPE
+    SYNTAX     	Integer32
+    MAX-ACCESS 	read-only
+    STATUS     	current
+    DESCRIPTION
+       "The Upstream Spectrum Group index associated with the upstream channel."       
+       ::= { cadSpMgtHistoryEntry 12 }
+
+cadSpMgtHistoryStateChangeCount OBJECT-TYPE
+    SYNTAX     	Unsigned16
+    MAX-ACCESS 	read-only
+    STATUS     	current
+    DESCRIPTION
+       "Provides the count of state changes in the history entry. This object will
+       always increase. It is 16 bits, once it is at 0xffff, the counter will roll
+       over and start from beginning."       
+       ::= { cadSpMgtHistoryEntry 13 }
+
+cadSpMgtHistorySysUpTime OBJECT-TYPE
+    SYNTAX     	Unsigned32
+    MAX-ACCESS 	read-only
+    STATUS     	current
+    DESCRIPTION
+       "Provides the system up time in the history entry. This object will
+       always increase."       
+       ::= { cadSpMgtHistoryEntry 14 }
+
+--
+-- Upstream Spectrum Management History Table
+--
+
+cadSpMgtUpChannelTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF CadSpMgtUpChannelEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table describes Upstream Frequency Agility attributes of 
+			attached upstream channels."
+       ::= { cadSpMgtGroup 6 }
+
+cadSpMgtUpChannelEntry OBJECT-TYPE
+        SYNTAX      CadSpMgtUpChannelEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The List of Upstream Frequency Agility attributes associated with
+			an upstream channel."
+		AUGMENTS { cadIfUpstreamChannelEntry }
+        ::= { cadSpMgtUpChannelTable 1 }
+
+CadSpMgtUpChannelEntry ::= SEQUENCE {
+		cadSpMgtUpChannelCurrState       Integer32,
+        cadSpMgtUpChannelStateTransTime  DateAndTime
+        }
+
+cadSpMgtUpChannelCurrState OBJECT-TYPE
+	SYNTAX          Integer32
+	MAX-ACCESS      read-only
+	STATUS          current
+	DESCRIPTION     
+	   "The current state as a result of the upstream spectrum group 
+	   state transition.  This object is only applicable if upstream
+	   spectrum management is enabled for this upstream channel."
+	REFERENCE      
+	    "C4 CMTS Upstream Frequency Agility"
+	::= { cadSpMgtUpChannelEntry 1 }
+
+cadSpMgtUpChannelStateTransTime OBJECT-TYPE
+    SYNTAX     	DateAndTime
+    MAX-ACCESS 	read-only
+    STATUS     	current
+    DESCRIPTION
+       "The value of this object is the actual clock time when the current 
+	   state information in cadIfUpChannelSpGroupCurrState is most 
+	   recently updated."
+       ::= { cadSpMgtUpChannelEntry 2 }
+END

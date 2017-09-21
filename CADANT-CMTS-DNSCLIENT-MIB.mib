@@ -1,0 +1,159 @@
+CADANT-CMTS-DNSCLIENT-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY,
+    OBJECT-TYPE,
+    Integer32,
+    IpAddress
+        FROM SNMPv2-SMI
+    DisplayString,
+    RowStatus,
+    TruthValue
+        FROM SNMPv2-TC
+    cadLayer3
+        FROM CADANT-PRODUCTS-MIB;
+
+cadDnsClientMib MODULE-IDENTITY
+    LAST-UPDATED "200307140000Z"  -- 2003, July 14, midnight
+    ORGANIZATION "Cadant Inc"
+    CONTACT-INFO "Email: support@cadant.com"
+    DESCRIPTION
+      "This MIB module defines objects to help support the
+       Domain Name Server Client (DNS) in the Cadant CMTS."
+  	REVISION "200307140000Z"
+	DESCRIPTION "Added support for default domain name MIB."
+    ::= { cadLayer3 8 }
+
+--
+-- DNS scalar objects
+--
+
+cadDnsClientObjects OBJECT IDENTIFIER ::= { cadDnsClientMib 1 }
+
+cadDnsClientEnable OBJECT-TYPE
+    SYNTAX       TruthValue
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION
+        "If set to true(1), then DNS client operations should
+        be enabled. Otherwise, DNS client operations are disabled."
+    DEFVAL { true }
+    ::= { cadDnsClientObjects 1 }
+
+cadDnsClientDefaultDomain OBJECT-TYPE
+	SYNTAX      DisplayString
+	MAX-ACCESS  read-write
+	STATUS      current
+	DESCRIPTION
+		" Specifies the default domain name to use for non-FQDN
+        hostname queries."
+	::= { cadDnsClientObjects 2 }
+
+--
+-- The DNS server table.
+--
+
+cadDnsClientServerTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF CadDnsClientServerEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        ""
+    ::= { cadDnsClientMib 2 }
+
+cadDnsClientServerEntry OBJECT-TYPE
+    SYNTAX   CadDnsClientServerEntry
+    MAX-ACCESS not-accessible
+    STATUS   current
+    DESCRIPTION
+       " Each entry contains a DNS server address. The
+       table has a maximum size of 6 entries."
+    INDEX { cadDnsClientServerIpAddr }
+    ::= { cadDnsClientServerTable 1 }
+
+CadDnsClientServerEntry::=
+    SEQUENCE {
+      cadDnsClientServerIpAddr    IpAddress,
+      cadDnsClientServerPrefId    Integer32,
+      cadDnsClientServerRowStatus RowStatus
+    }
+
+cadDnsClientServerIpAddr OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        " The DNS server IP address"
+    ::= { cadDnsClientServerEntry 1 }
+
+cadDnsClientServerPrefId OBJECT-TYPE
+    SYNTAX      Integer32 (1..6)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        " The preference ID of the DNS server. Lower values
+        denote greater preference. The first row created
+        in the table will be assigned a value of 1. Subsequent
+        rows will be assigned a value 1 greater than the largest
+        cadDnsClientServerPrefId currently in use. When a row
+        is deleted from this table, any other rows that have values
+        of cadDnsClientServerPrefId larger than it will all have
+        their values decreased by 1. This ensures the values of
+        cadDnsClientServerPrefId in use always start at 1 and are
+        of monotonically increasing values, thus providing an
+        unambiguous representation of the preference order of each
+        DNS server."
+    ::= { cadDnsClientServerEntry 2 }
+
+cadDnsClientServerRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        " MIB row control object"
+    ::= { cadDnsClientServerEntry 3 }        
+
+--==============DNS Client Domain Name Table=================
+--=                                                         =
+--===========================================================
+
+cadDnsClientDomainNameTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF CadDnsClientDomainNameEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        ""
+    ::= { cadDnsClientMib 3 }
+
+cadDnsClientDomainNameEntry OBJECT-TYPE
+    SYNTAX   CadDnsClientDomainNameEntry
+    MAX-ACCESS not-accessible
+    STATUS   current
+    DESCRIPTION
+       " Each entry contains a DNS domain name."
+    INDEX { cadDnsClientDomainName }
+    ::= { cadDnsClientDomainNameTable 1 }
+
+CadDnsClientDomainNameEntry::=
+    SEQUENCE {
+      cadDnsClientDomainName          DisplayString,
+      cadDnsClientDomainNameRowStatus RowStatus
+    }
+
+cadDnsClientDomainName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        " The DNS domain name"
+    ::= { cadDnsClientDomainNameEntry 1 }
+
+cadDnsClientDomainNameRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        " MIB row control object"
+    ::= { cadDnsClientDomainNameEntry 2 }
+
+END

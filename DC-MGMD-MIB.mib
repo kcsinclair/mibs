@@ -1,0 +1,749 @@
+   DC-MGMD-MIB DEFINITIONS ::= BEGIN
+   -- PRODUCT-SHORT-NAME mgmd
+
+   IMPORTS
+       MODULE-IDENTITY, OBJECT-TYPE, Counter32, Gauge32,
+       Unsigned32, TimeTicks                     FROM SNMPv2-SMI
+       TEXTUAL-CONVENTION, RowStatus, TruthValue FROM SNMPv2-TC
+       StorageType                               FROM SNMPv2-TC
+       MODULE-COMPLIANCE, OBJECT-GROUP           FROM SNMPv2-CONF
+       InterfaceIndexOrZero, InterfaceIndex      FROM IF-MIB
+       InetAddress, InetAddressType              FROM INET-ADDRESS-MIB;
+
+   --  This MIB module uses the extended OBJECT-TYPE macro as
+   --  defined in [9].
+
+  dcMgmdMib MODULE-IDENTITY
+      LAST-UPDATED "201411190000Z"    -- November 19, 2014
+      ORGANIZATION "Arris"
+      CONTACT-INFO "Arris Technical Support"
+      DESCRIPTION  "The MIB module for management of the MGMD product."
+
+      REVISION "201411190000Z"
+      DESCRIPTION "Added mgmdPmRouterInterfaceProxyAutoSwitchback IEQ SDV feature."
+      REVISION "201103090000Z"
+      DESCRIPTION "Added mgmdPmStaticGroupStorageType for MCAST FQDN feature"
+      REVISION "200508090000Z"
+      DESCRIPTION "Added the mib"
+
+  ::= { iso
+        member-body(2)
+        gb(826)
+        national(0) 1
+        dataConnectionLtd(1578918)
+        adg(5)
+        mgmd(99) 1}
+
+ --  MGMD-2 Management Information Base
+
+-- DC additions {
+
+  NonZeroUnsigned8 ::= TEXTUAL-CONVENTION
+      STATUS       current
+      DESCRIPTION
+          "An non-zero unsigned32 further restricted to 8 Bits."
+      SYNTAX       Unsigned32 (1..255)
+
+  NonZeroInteger ::= TEXTUAL-CONVENTION
+        STATUS       current
+        DESCRIPTION
+           "A positive integer."
+        SYNTAX       Unsigned32 (1..'7FFFFFFF'h)
+
+  AdminStatus ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION
+         "The desired administrative state of a MGMD entity."
+      SYNTAX      INTEGER {
+                    adminStatusUp(1),
+                    adminStatusDown(2)
+                  }
+
+  OperStatus ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION
+         "The current operational state of a MGMD entity."
+      SYNTAX      INTEGER {
+                    operStatusUp(1),       -- active
+                    operStatusDown(2),     -- inactive
+                    operStatusGoingUp(3),  -- activating
+                    operStatusGoingDown(4),-- deactivating
+                    operStatusActFailed(5) -- activation failed
+                  }
+
+  PmIndex ::= TEXTUAL-CONVENTION
+      STATUS      current
+      DESCRIPTION "The index value identifying a MGMD entity."
+      SYNTAX      Unsigned32
+
+  MjStatus ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION "The status of a Master Join."
+    SYNTAX      INTEGER {
+                  mjNotJoined(1),        -- initial state of join
+                  mjSentAddJoin(2),      -- sent ATG_FT_ADD_JOIN to slave
+                  mjSentRegister(3),     -- sent registration signal to slave
+                  mjJoinActive(4),       -- join is active
+                  mjSentDelJoin(5),      -- sent ATG_FT_DELETE_JOIN to slave
+                  mjSentUnregister(6),   -- sent unregistration signal to slave
+                  mjJoinGone(7),         -- join has been deleted
+                  mjFailedToRegister(8), -- slave rejected registration message
+                  mjFailingOver(9),      -- slave is failing over
+                  mjFailed(10)           -- join has permanently failed
+                }
+
+  InterfaceType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION "The type of interface to which a join applies."
+    SYNTAX      INTEGER {
+                  ifIpSockets(1),          -- IP Sockets
+                  ifIfInfo(2),             -- Interface Information
+                  ifRteProtInput(3)        -- Routing Protocol Input
+                }
+
+  MgmdEntityType ::= TEXTUAL-CONVENTION
+    STATUS     current
+    DESCRIPTION
+       "The MGMD entity type."
+    SYNTAX     INTEGER {
+                 host (1),
+                 router (2)
+               }
+
+-- MGMD Protocol Manager Entity Table
+-- This table is used to create and manage MGMD Protocol Manager entities.  It
+-- incorporates the counters from the MGMD-2 Globals group.
+
+  mgmdPmEntTable OBJECT-TYPE
+  -- FAMILY-SHORT-NAME qmgmd_ent
+       SYNTAX      SEQUENCE OF MgmdPmEntEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+          "The table of MGMD entities."
+       ::= { dcMgmdMib 1 }
+
+  mgmdPmEntEntry OBJECT-TYPE
+       SYNTAX      MgmdPmEntEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+          "Each entry represents an instance of the MGMD Protocol Manager
+          entity."
+       INDEX { mgmdPmEntIndex }
+       ::= { mgmdPmEntTable 1 }
+
+  MgmdPmEntEntry ::= SEQUENCE {
+         mgmdPmEntIndex                   PmIndex,
+         mgmdPmEntAdminStatus             AdminStatus,
+         mgmdPmEntOperStatus              OperStatus,
+         mgmdPmEntRowStatus               RowStatus
+       }
+
+  mgmdPmEntIndex OBJECT-TYPE
+       SYNTAX       PmIndex
+       MAX-ACCESS   not-accessible
+       STATUS       current
+       DESCRIPTION
+          "The index of this mgmdPmEntEntry.  This is the HAF entity index
+          passed on the entity create parameters."
+       ::= { mgmdPmEntEntry 1 }
+
+  mgmdPmEntAdminStatus OBJECT-TYPE
+       SYNTAX       AdminStatus
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "The desired administrative state of the MGMD Protocol Manager
+          entity."
+       DEFVAL { adminStatusUp }
+       ::= { mgmdPmEntEntry 2 }
+
+  mgmdPmEntOperStatus OBJECT-TYPE
+       SYNTAX       OperStatus
+       MAX-ACCESS   read-only
+       STATUS       current
+       DESCRIPTION
+          "The current operational state of the MGMD Protocol Manager entity."
+       ::= { mgmdPmEntEntry 3 }
+
+  mgmdPmEntRowStatus OBJECT-TYPE
+       SYNTAX       RowStatus
+       MAX-ACCESS   read-create
+       STATUS       current
+       DESCRIPTION
+          "Used to create and delete an MGMD Protocol Manager Entity Table
+          entry."
+       ::= { mgmdPmEntEntry 4 }
+
+
+-- MGMD Protocol Manager Master Join Table.
+--
+-- This table controls which entities the MGMD Protocol Manager should join
+-- to as master.  Each join is represented by a row in this table.  The status
+-- of each join is represented by a read-only object within each row.
+--
+
+  mgmdPmMjTable OBJECT-TYPE
+  -- FAMILY-SHORT-NAME qmgmd_mj
+    SYNTAX      SEQUENCE OF MgmdPmMjEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "This table controls which entities the MGMD Protocol Manager should
+       join to as master.  Each join is represented by a row in this table.
+       The status of each join is represented by a read-only object within
+       each row."
+    ::= { dcMgmdMib 2 }
+
+  mgmdPmMjEntry OBJECT-TYPE
+    SYNTAX      MgmdPmMjEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "Represents a join for which the MGMD Protocol Manager is master."
+    INDEX {
+       mgmdPmMjEntIndex,
+       mgmdPmMjInterfaceId,
+       mgmdPmMjPartnerIndex
+       }
+    ::= { mgmdPmMjTable 1 }
+
+  MgmdPmMjEntry ::= SEQUENCE {
+      mgmdPmMjEntIndex                 PmIndex,
+      mgmdPmMjInterfaceId              InterfaceType,
+      mgmdPmMjPartnerIndex             Unsigned32,
+      mgmdPmMjRowStatus                RowStatus,
+      mgmdPmMjAdminStatus              AdminStatus,
+      mgmdPmMjOperStatus               OperStatus,
+      mgmdPmMjJoinStatus               MjStatus
+    }
+
+  mgmdPmMjEntIndex OBJECT-TYPE
+    SYNTAX      PmIndex
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "Identifies a MGMD Protocol Manager entity."
+    ::= { mgmdPmMjEntry 1 }
+
+  mgmdPmMjInterfaceId OBJECT-TYPE
+    SYNTAX      InterfaceType
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "Identifies the interface required of this master join."
+    ::= { mgmdPmMjEntry 2 }
+
+  mgmdPmMjPartnerIndex OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "Identifies the slave entity to join with.  This index is used in the
+       join user data, to enable FTI-specific code within System Manager to
+       select a suitable slave entity."
+    ::= { mgmdPmMjEntry 3 }
+
+  mgmdPmMjRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+       "The row status for this MGMD Protocol Manager Master Join Table
+       entry, used to create and destroy table entries."
+    ::= { mgmdPmMjEntry 4 }
+
+  mgmdPmMjAdminStatus OBJECT-TYPE
+    SYNTAX      AdminStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+       "The administrative status of this master join, used to start and stop
+       the join."
+    DEFVAL { adminStatusUp }
+    ::= { mgmdPmMjEntry 5 }
+
+  mgmdPmMjOperStatus OBJECT-TYPE
+    SYNTAX      OperStatus
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The current operational status of this master join."
+    ::= { mgmdPmMjEntry 6 }
+
+  mgmdPmMjJoinStatus OBJECT-TYPE
+    SYNTAX      MjStatus
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The status of the master join."
+    ::= { mgmdPmMjEntry 7 }
+
+
+--
+--  The MGMD Static Group Table
+--  This table provisions static groups for the MGMD host and router.
+--
+
+  mgmdPmStaticGroupTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF MgmdPmStaticGroupEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The list of multicast groups which are statically joined
+            on an MGMD host or router."
+    ::= { dcMgmdMib 3 }
+
+  mgmdPmStaticGroupEntry OBJECT-TYPE
+    SYNTAX     MgmdPmStaticGroupEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "An entry (conceptual row) in the mgmdPmStaticGroupTable."
+    INDEX      { mgmdPmStaticGroupEntityType, mgmdPmStaticGroupIfIndex,
+                 mgmdPmStaticGroupAddressType, mgmdPmStaticGroupAddress,
+                 mgmdPmStaticGroupSourceAddress }
+    ::= { mgmdPmStaticGroupTable 1 }
+
+  MgmdPmStaticGroupEntry ::= SEQUENCE {
+    mgmdPmStaticGroupEntityType         MgmdEntityType,
+    mgmdPmStaticGroupIfIndex            InterfaceIndex,
+    mgmdPmStaticGroupAddressType        InetAddressType,
+    mgmdPmStaticGroupAddress            InetAddress,
+    mgmdPmStaticGroupSourceAddress      InetAddress,
+    mgmdPmStaticGroupStatus             RowStatus,
+	  mgmdPmStaticGroupStorageType        StorageType
+  }
+
+  mgmdPmStaticGroupEntityType OBJECT-TYPE
+    SYNTAX     MgmdEntityType
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The entity type, host or router, that this static group will
+             apply to."
+    ::= { mgmdPmStaticGroupEntry 1 }
+
+  mgmdPmStaticGroupIfIndex OBJECT-TYPE
+    SYNTAX     InterfaceIndex
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The interface that is a member of the group.
+             The interface can be either a layer 2 or 3 interface."
+    ::= { mgmdPmStaticGroupEntry 2 }
+
+  mgmdPmStaticGroupAddressType OBJECT-TYPE
+    SYNTAX     InetAddressType
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The address type of the InetAddress variables in this table.
+            This value applies to the mgmdPmStaticGroupAddress
+            and mgmdPmStaticGroupSourceAddress entries."
+    ::= { mgmdPmStaticGroupEntry 3 }
+
+  mgmdPmStaticGroupAddress OBJECT-TYPE
+    SYNTAX     InetAddress
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The multicast group address to make static."
+    ::= { mgmdPmStaticGroupEntry 4 }
+
+  mgmdPmStaticGroupSourceAddress OBJECT-TYPE
+    SYNTAX     InetAddress
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The source of the multicast group traffic for SSM.
+             Set to 0.0.0.0 if not using SSM."
+    ::= { mgmdPmStaticGroupEntry 5 }
+
+  mgmdPmStaticGroupStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The status of this row."
+    ::= { mgmdPmStaticGroupEntry 6 }
+
+  mgmdPmStaticGroupStorageType OBJECT-TYPE
+    SYNTAX     StorageType
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The storage type for this conceptual row. Only the rows
+             provisioned with nonVolatie(3) will be persistent."
+    DEFVAL { nonVolatile }
+    ::= { mgmdPmStaticGroupEntry 7 }
+
+--
+--  The DC MGMD Router Interface Table
+--  This table is used to add new objects to the mgmdRouterInterfaceTable.
+--
+
+  mgmdPmRouterInterfaceTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF MgmdPmRouterInterfaceEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The (conceptual) table listing the interfaces on which
+             IGMP or MLD is enabled."
+    ::= { dcMgmdMib 4 }
+
+  mgmdPmRouterInterfaceEntry OBJECT-TYPE
+    SYNTAX     MgmdPmRouterInterfaceEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "An entry (conceptual row) representing an interface on
+            which IGMP or MLD is enabled."
+    INDEX      { mgmdPmRouterInterfaceIfIndex, mgmdPmRouterInterfaceQuerierType }
+    ::= { mgmdPmRouterInterfaceTable 1 }
+
+  MgmdPmRouterInterfaceEntry ::= SEQUENCE {
+    mgmdPmRouterInterfaceIfIndex               InterfaceIndex,
+    mgmdPmRouterInterfaceQuerierType           InetAddressType,
+    mgmdPmRouterInterfaceQuerier               InetAddress,
+    mgmdPmRouterInterfaceQueryInterval         Unsigned32,
+    mgmdPmRouterInterfaceStatus                RowStatus,
+    mgmdPmRouterInterfaceVersion               Unsigned32,
+    mgmdPmRouterInterfaceQueryMaxResponseTime  Unsigned32,
+    mgmdPmRouterInterfaceQuerierUpTime         TimeTicks,
+    mgmdPmRouterInterfaceQuerierExpiryTime     TimeTicks,
+    mgmdPmRouterInterfaceWrongVersionQueries   Counter32,
+    mgmdPmRouterInterfaceJoins                 Counter32,
+    mgmdPmRouterInterfaceProxyIfIndex          InterfaceIndexOrZero,
+    mgmdPmRouterInterfaceGroups                Gauge32,
+    mgmdPmRouterInterfaceRobustness            Unsigned32,
+    mgmdPmRouterInterfaceLastMembQueryIntvl    Unsigned32,
+    mgmdPmRouterInterfaceLastMembQueryCount    Unsigned32,
+    mgmdPmRouterInterfaceStartupQueryCount     Unsigned32,
+    mgmdPmRouterInterfaceStartupQueryInterval  Unsigned32,
+    mgmdPmRouterInterfaceStaticMulticastMode   TruthValue,
+    mgmdPmRouterInterfaceBackupProxyIfIndex    InterfaceIndexOrZero,
+    mgmdPmRouterInterfaceActiveProxyIfIndex    InterfaceIndexOrZero,
+    mgmdPmRouterInterfaceAccessList            Unsigned32,
+    mgmdPmRouterInterfaceIgmpResetCounts       Unsigned32,
+    mgmdPmRouterInterfaceIgmpCountIntvl        Unsigned32,
+    mgmdPmRouterInterfaceIgmpRcvCount          Unsigned32,
+    mgmdPmRouterInterfaceIgmpSendCount         Unsigned32,
+    mgmdPmRouterInterfaceProxyAutoSwitchback   TruthValue
+  }
+
+  mgmdPmRouterInterfaceIfIndex OBJECT-TYPE
+    SYNTAX     InterfaceIndex
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The ifIndex value of the interface for which IGMP or MLD
+            is enabled. The table is indexed by the ifIndex value and
+            the InetAddressType to allow for interfaces which may be
+            configured in both IPv4 and IPv6 modes."
+    ::= { mgmdPmRouterInterfaceEntry 1 }
+
+  mgmdPmRouterInterfaceQuerierType OBJECT-TYPE
+    SYNTAX     InetAddressType
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "The address type of this interface. This entry along with
+             the ifIndex value acts as the index to the mgmdPmRouterInterface
+             table. A physical interface may be configured in multiple
+             modes concurrently, e.g. in IPv4 and IPv6 modes connected
+             to the same interface, however the traffic is considered to
+             be logically separate."
+    ::= { mgmdPmRouterInterfaceEntry 2 }
+
+  mgmdPmRouterInterfaceQuerier OBJECT-TYPE
+    SYNTAX     InetAddress
+    MAX-ACCESS read-only
+    STATUS     current
+
+    DESCRIPTION
+            "The address of the IGMP or MLD Querier on the IP subnet to
+            which this interface is attached. The InetAddressType, e.g.
+            IPv4 or IPv6, is identified by the mgmdPmRouterInterfaceQuerierType
+            variable in the mgmdPmRouterInterface table."
+    ::= { mgmdPmRouterInterfaceEntry 3 }
+
+  mgmdPmRouterInterfaceQueryInterval OBJECT-TYPE
+    SYNTAX     Unsigned32 (1..31744)
+    UNITS      "seconds"
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The frequency at which IGMP or MLD Host-Query packets are
+            transmitted on this interface. This variable must be a 
+            non-zero value."
+    DEFVAL     { 125 }
+    ::= { mgmdPmRouterInterfaceEntry 4 }
+
+  mgmdPmRouterInterfaceStatus OBJECT-TYPE
+    SYNTAX     RowStatus
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The activation of a row enables the router side of IGMP or MLD
+            on the interface.  The destruction of a row disables the router
+            side of IGMP or MLD  on the interface."
+    ::= { mgmdPmRouterInterfaceEntry 5 }
+
+  mgmdPmRouterInterfaceVersion OBJECT-TYPE
+    SYNTAX     Unsigned32 (1..3)
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The version of MGMD which is running on this interface.
+            Value 1 applies to IGMPv1 routers only. Value 2 applies
+            To IGMPv2 and MLDv1 routers, and value 3 applies to IGMPv3
+            and MLDv2 routers.
+            This object can be used to configure a router capable of
+            running either version.  For IGMP and MLD to function
+            correctly, all routers on a LAN must be configured to run
+            the same version on that LAN."
+    DEFVAL     { 2 }
+    ::= { mgmdPmRouterInterfaceEntry 6 }
+
+  mgmdPmRouterInterfaceQueryMaxResponseTime OBJECT-TYPE
+    SYNTAX     Unsigned32 (0..31744)
+    UNITS      "tenths of seconds"
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The maximum query response time advertised in MGMDv2 or v3
+            queries on this interface."
+    DEFVAL     { 100 }
+    ::= { mgmdPmRouterInterfaceEntry 7 }
+
+  mgmdPmRouterInterfaceQuerierUpTime OBJECT-TYPE
+    SYNTAX     TimeTicks
+    MAX-ACCESS read-only
+    STATUS     current
+
+    DESCRIPTION
+            "The time since mgmdPmRouterInterfaceQuerier was last changed."
+    ::= { mgmdPmRouterInterfaceEntry 8 }
+
+  mgmdPmRouterInterfaceQuerierExpiryTime OBJECT-TYPE
+    SYNTAX     TimeTicks
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "The amount of time remaining before the Other Querier
+            Present Timer expires.  If the local system is the querier,
+            the value of this object is zero."
+    ::= { mgmdPmRouterInterfaceEntry 9 }
+
+  mgmdPmRouterInterfaceWrongVersionQueries OBJECT-TYPE
+    SYNTAX     Counter32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+             "The number of queries received whose IGMP or MLD version
+            does not match the equivalent mgmdPmRouterInterfaceVersion, over
+            the lifetime of the row entry.  Both IGMP and MLD require that all
+            routers on a LAN be configured to run the same version.
+            Thus, if any queries are received with the wrong version,
+            this indicates a configuration error."
+    ::= { mgmdPmRouterInterfaceEntry 10 }
+
+  mgmdPmRouterInterfaceJoins OBJECT-TYPE
+    SYNTAX     Counter32
+
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "The number of times a group membership has been added on
+            this interface; that is, the number of times an entry for
+            this interface has been added to the Cache Table.  This
+            object gives an indication of the amount of IGMP or MLD
+            activity over the lifetime of the row entry."
+    ::= { mgmdPmRouterInterfaceEntry 11 }
+
+  mgmdPmRouterInterfaceProxyIfIndex OBJECT-TYPE
+    SYNTAX     InterfaceIndexOrZero
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "Some devices implement a form of IGMP or MLD proxying
+            whereby memberships learned on the interface represented by
+            this row, cause Host Membership Reports to be sent on the
+            interface whose ifIndex value is given by this object.
+            Such a device would implement the mgmdV2RouterMIBGroup only
+            on its router interfaces (those interfaces with non-zero
+            mgmdPmRouterInterfaceProxyIfIndex).  Typically, the value of this
+            object is 0, indicating that no proxying is being done."
+    DEFVAL     { 0 }
+    ::= { mgmdPmRouterInterfaceEntry 12 }
+
+  mgmdPmRouterInterfaceGroups OBJECT-TYPE
+    SYNTAX     Gauge32
+    MAX-ACCESS read-only
+	
+    STATUS     current
+    DESCRIPTION
+            "The current number of entries for this interface in the
+            RouterCache Table."
+    ::= { mgmdPmRouterInterfaceEntry 13 }
+
+  mgmdPmRouterInterfaceRobustness OBJECT-TYPE
+    SYNTAX     Unsigned32 (1..255)
+    MAX-ACCESS read-create
+
+    STATUS     current
+    DESCRIPTION
+            "The Robustness Variable allows tuning for the expected
+            packet loss on a subnet.  If a subnet is expected to be
+            lossy, the Robustness Variable may be increased.  IGMP and
+            MLD is robust to (Robustness Variable-1) packet losses."
+    DEFVAL     { 2 }
+    ::= { mgmdPmRouterInterfaceEntry 14 }
+
+  mgmdPmRouterInterfaceLastMembQueryIntvl OBJECT-TYPE
+    SYNTAX     Unsigned32 (0..31744)
+    UNITS      "tenths of seconds"
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The Last Member Query Interval is the Max Response Time
+            inserted into Group-Specific Queries sent in response to
+            Leave Group messages, and is also the amount of time
+            Between Group-Specific Query messages.  This value may be
+            tuned to modify the leave latency of the network.  A
+            reduced value results in reduced time to detect the loss of
+            the last member of a group.  The value of this object is
+            irrelevant if mgmdPmRouterInterfaceVersion is 1."
+    DEFVAL     { 10 }
+    ::= { mgmdPmRouterInterfaceEntry 15 }
+
+  mgmdPmRouterInterfaceLastMembQueryCount OBJECT-TYPE
+    SYNTAX     Unsigned32 (1..255)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "Represents the number of Group-specific and
+            Group-and-Source-specific queries sent by the router before
+            it assumes there are no local members."
+    DEFVAL     { 2 }
+    ::= { mgmdPmRouterInterfaceEntry 16 }
+
+  mgmdPmRouterInterfaceStartupQueryCount OBJECT-TYPE
+    SYNTAX     Unsigned32 (1..255)
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "Represents the number of Queries sent out on startup
+            separated by the Startup Query Interval."
+    DEFVAL     { 2 }
+    ::= { mgmdPmRouterInterfaceEntry 17 }
+    
+  mgmdPmRouterInterfaceStartupQueryInterval OBJECT-TYPE
+    SYNTAX     Unsigned32 (1..31744)
+    UNITS      "seconds"
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "This variable represents the interval between General
+       	    Queries sent by a Querier on startup."
+    DEFVAL     { 31 }
+    ::= { mgmdPmRouterInterfaceEntry 18 }
+
+  mgmdPmRouterInterfaceStaticMulticastMode OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "If true then this interface will only be able to join
+            groups statically. All querier and dynamic join
+            functionality will be disabled."
+    DEFVAL     { false }
+    ::= { mgmdPmRouterInterfaceEntry 19 }
+
+  mgmdPmRouterInterfaceBackupProxyIfIndex OBJECT-TYPE
+    SYNTAX     InterfaceIndexOrZero
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "Some devices implement a form of IGMP or MLD proxying
+            whereby memberships learned on the interface represented by
+            this row, cause Host Membership Reports to be sent on the
+            interface whose ifIndex value is given by this object.
+            Such a device would implement the mgmdV2RouterMIBGroup only
+            on its router interfaces (those interfaces with non-zero
+            mgmdPmRouterInterfaceProxyIfIndex).  If a proxy interface
+            is defined for an interface a secondary backup proxy
+            interface can be configured for failover operation."
+    DEFVAL     { 0 }
+    ::= { mgmdPmRouterInterfaceEntry 20 }
+
+  mgmdPmRouterInterfaceActiveProxyIfIndex OBJECT-TYPE
+    SYNTAX     InterfaceIndexOrZero
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "The active proxy interface."
+    DEFVAL     { 0 }
+    ::= { mgmdPmRouterInterfaceEntry 21 }
+
+  mgmdPmRouterInterfaceAccessList OBJECT-TYPE
+    SYNTAX     Unsigned32 (0..199)
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The access list number for filtering multicast group join
+             requests  by hosts. Set to 0 for no filtering. Only Standard ACLs
+            (in the range 1-99) are supported."
+    DEFVAL     { 0 }
+    ::= { mgmdPmRouterInterfaceEntry 22 }
+
+  mgmdPmRouterInterfaceIgmpResetCounts OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "Reset the send and receive counts and intervals"
+    ::= { mgmdPmRouterInterfaceEntry 23 }
+
+  mgmdPmRouterInterfaceIgmpCountIntvl OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The time interval in seconds that IGMP receive and send packets were counted"
+    ::= { mgmdPmRouterInterfaceEntry 24 }
+
+
+  mgmdPmRouterInterfaceIgmpRcvCount OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The number of IGMP packets received during the count interval"
+    ::= { mgmdPmRouterInterfaceEntry 25 }
+
+
+  mgmdPmRouterInterfaceIgmpSendCount OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+            "The number of IGMP packets sent during the count interval"
+    ::= { mgmdPmRouterInterfaceEntry 26 }
+
+  mgmdPmRouterInterfaceProxyAutoSwitchback OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+        "If set to true then auto-switchback mode is enabled. If set 
+         to false then auto-switchback mode is disabled."
+    DEFVAL     { true }
+    ::= { mgmdPmRouterInterfaceEntry 27 }
+
+
+-- } End DC addition
+
+END

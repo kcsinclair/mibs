@@ -1,0 +1,348 @@
+CADANT-CMTS-IP-VIDEO-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    OBJECT-TYPE, MODULE-IDENTITY, Counter32, Integer32, IpAddress, Unsigned32
+        FROM SNMPv2-SMI
+    MODULE-COMPLIANCE, OBJECT-GROUP
+        FROM SNMPv2-CONF
+    TruthValue, DisplayString, MacAddress, DateAndTime, RowStatus
+        FROM SNMPv2-TC
+    ifIndex, InterfaceIndexOrZero 
+        FROM IF-MIB
+    cadCmtsIpVideo
+        FROM CADANT-PRODUCTS-MIB
+    CardId, PortId
+        FROM CADANT-TC
+    AttributeMask
+        FROM DOCS-IF3-MIB
+    TenthdB
+        FROM DOCS-IF-MIB
+    SnmpAdminString, SnmpEngineID
+        FROM SNMP-FRAMEWORK-MIB;
+
+cadCmtsIpVideoMib MODULE-IDENTITY
+    LAST-UPDATED "201108040000Z"  -- Aug 4, 2011
+    ORGANIZATION 
+        "Arris International, Inc."
+    CONTACT-INFO 
+        "Arris Technical Support
+         Phone:  +1 630 281 3000
+         E-Mail: support@arrisi.com"
+    DESCRIPTION 
+        "Arris C4 system IP video parameters and constants"
+
+    REVISION "201108040000Z"  -- Aug 4, 2011
+    DESCRIPTION "Change indices of cadIpVideoMonitorDropsEntry to cadIpVideoMonitorCardId,  cadIpVideoMonitorPortConnectorId"
+    REVISION "201107110000Z"  -- July 11, 2011
+    DESCRIPTION "Change indices of cadIpVideoMonitorDropsEntry to cerCardId, cerPortConnectorId"
+    REVISION "201104200000Z"  -- Apr 20, 2010
+    DESCRIPTION "Add cadSysIpVideoMulticastAllowedUsage."
+    REVISION "201104190000Z"  -- Apr 19, 2010
+    DESCRIPTION "Add cadSysIpVideoMulticastControlled."
+    REVISION "201012160000Z"  -- Dec 16, 2010
+    DESCRIPTION "Add cadSysIpVideoInterDbcDelayTimer"
+    REVISION "201007070000Z"  -- July 7, 2010
+    DESCRIPTION "Change description of cadIpVideoMonitorCurTimeIdx and cadIpVideoMonitorDsChlCurTimeIdx."
+    REVISION "201004200000Z"  -- Apr 20, 2010
+    DESCRIPTION "Add cadIPVideoMonitorDropsTable and cadIPVideoMonitorDsChlTable."
+    REVISION "201004150000Z"  -- Apr 15, 2010
+    DESCRIPTION "Initial version."
+    ::= { cadCmtsIpVideo 1 }
+
+
+
+--============== TEXTUAL-CONVENTION ========================
+
+
+--==========================================================
+cadSysIpVideoCfg       OBJECT IDENTIFIER ::=  { cadCmtsIpVideoMib 1 }
+
+cadSysIpVideoAttributeMask OBJECT-TYPE
+     SYNTAX      AttributeMask
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+        "This Attribute Mask provides a mechanism for the MSO to tell the 
+         C4 CMTS which attribute bit(s) indicate a type of IP Video for the
+         purposes of monitoring. Only the least significant 16 bits of this mask 
+		 (the ones numbered 16-31) can be non-zero."
+     DEFVAL { '00000000'H }
+     ::= { cadSysIpVideoCfg 1 }
+
+cadSysIpVideoVodThreshold OBJECT-TYPE
+     SYNTAX      Unsigned32 (100..10000)
+     UNITS "milliseconds"
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+        "This threshold timer parameter sets the watermark against which 
+         all IP Video VOD setups will be measured. When a setup exceeds 
+         this parameter, then a counter is pegged.
+         For the purpose of this threshold, reception of the request message
+         (Gate-Set in PCMM) begins the setup time and completion of all 
+         necessary protocol exchanges at both the CM and network side 
+         stops the timer."
+     DEFVAL { 5000 }
+     ::= { cadSysIpVideoCfg 2 }
+
+cadSysIpVideoLinearThreshold OBJECT-TYPE
+     SYNTAX      Unsigned32 (100..10000)
+     UNITS "milliseconds"
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+        "This threshold timer parameter sets the watermark against which 
+         all IP Video Linear setups will be measured. When a setup exceeds 
+         this parameter, then a counter is pegged.
+         For the purpose of this threshold, reception of the request message
+         (Gate-Set in PCMM) begins the setup time and completion of all 
+         necessary protocol exchanges at both the CM and network side 
+         stops the timer."
+     DEFVAL { 1000 }
+     ::= { cadSysIpVideoCfg 3 }
+
+cadSysIpVideoInterDbcDelayTimer OBJECT-TYPE 
+     SYNTAX     Unsigned32 (0..3000)
+     UNITS 	"milliseconds"
+     MAX-ACCESS 	read-write
+     STATUS	current
+     DESCRIPTION
+	    "This object specifies the time the C4 will wait after receiving 
+         a DBC-RSP from a single modem before the C4 launches the next DBC-REQ 
+         to that same modem."
+     DEFVAL { 100 }
+     ::= { cadSysIpVideoCfg 4 }
+
+cadSysIpVideoMulticastControlled OBJECT-TYPE
+     SYNTAX      TruthValue
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+        "Indicates whether IP Multicast is subject to Admission Control. 
+         A value of true(1) indicates that all IP Multicast service flows 
+         are subjected to a CAC check."
+     DEFVAL { false }
+     ::= { cadSysIpVideoCfg 5}
+
+cadSysIpVideoMulticastAllowedUsage OBJECT-TYPE
+    SYNTAX          INTEGER (0..100)
+    UNITS           "percent"       
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "Maximum percentage of downstream resources that may be admitted for use by
+                     Multicast services. Unlike other similar parameters in the cadPCMibBase section, this
+                     parameter is the actual limiting MIB parameter to be used across all downstream 
+                     channels and is not just the default value for other MIB parameters.
+
+                     This value at all times must be less than or equal to 100% minus all default CAC 
+                     downstream channel parameters that reserve resources for other applications  (including, 
+                     but not necessarily limited to, emergency and normal voice)."
+    DEFVAL          { 20 }
+    ::= { cadSysIpVideoCfg 6 }
+
+----------------------------------------------------------------------------------------
+
+cadIpVideoMonitor       OBJECT IDENTIFIER ::=  { cadCmtsIpVideoMib 3 }
+
+
+cadIPVideoMonitorDropsTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CadIpVideoMonitorDropsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+       "A circular table of historic drop counts for the downstream channels which
+        transport IP Video streams within a DS-SG."
+    ::= { cadIpVideoMonitor 1 }
+
+cadIpVideoMonitorDropsEntry OBJECT-TYPE
+    SYNTAX      CadIpVideoMonitorDropsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+      "The drop counts for the downstream IP Video channels associated with a
+       connector.
+
+       The cadIpVideoMonitorCardId key is for the card that contains the connector. 
+
+       The cadIpVideoMonitorPortConnectorId indicates which downstream port the counts are for.
+
+       The cadIpVideoMonitorCurTimeIdx is a sequence number."
+    INDEX { cadIpVideoMonitorCardId,  cadIpVideoMonitorPortConnectorId, cadIpVideoMonitorCurTimeIdx  }
+    ::= { cadIPVideoMonitorDropsTable 1 } 
+
+CadIpVideoMonitorDropsEntry ::= SEQUENCE {
+    cadIpVideoMonitorCurTimeIdx          Unsigned32,
+    cadIpVideoMonitorMulticastDrops      Unsigned32,
+    cadIpVideoMonitorUnicastDrops        Unsigned32,
+    cadIpVideoMonitorDropsSuspectFlag    TruthValue,
+    cadIpVideoMonitorCreateTime         DateAndTime,
+    cadIpVideoMonitorCardId                  CardId,
+    cadIpVideoMonitorPortConnectorId         PortId               
+}
+
+cadIpVideoMonitorCurTimeIdx OBJECT-TYPE
+    SYNTAX        Unsigned32
+    MAX-ACCESS    not-accessible
+    STATUS        current
+    DESCRIPTION 
+       "A unique index to identify a cadIpVideoMonitorDropsEntry. "
+    ::= { cadIpVideoMonitorDropsEntry 1 }
+
+cadIpVideoMonitorMulticastDrops OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+     "This object represents the total number of multicast packets dropped for DOCSIS 
+      IP video channels in the downstream service group over a one hour period."
+    ::= { cadIpVideoMonitorDropsEntry 2 }
+
+cadIpVideoMonitorUnicastDrops OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+     "This object represents the total number of multicast packets dropped for DOCSIS 
+      IP video channels in the downstream service group over a one hour period."
+    ::= { cadIpVideoMonitorDropsEntry 3 }
+
+cadIpVideoMonitorDropsSuspectFlag    OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+     "This object indicates that the rest of the data in this row is suspected to not
+      correctly reflect the counts for the one-hour monitoring period. This condition 
+      might have been caused by any scenario which might have resulted in errant 
+      statistics (for example, a CAM failover)."
+    ::= { cadIpVideoMonitorDropsEntry 4 }
+
+cadIpVideoMonitorCreateTime OBJECT-TYPE
+    SYNTAX      DateAndTime
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+     "This object indicates the time when the row is created."
+    ::= { cadIpVideoMonitorDropsEntry 5 }
+
+cadIpVideoMonitorCardId OBJECT-TYPE
+        SYNTAX      CardId
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The unique id of this card within the shelf."
+   ::= { cadIpVideoMonitorDropsEntry 6 }
+
+cadIpVideoMonitorPortConnectorId OBJECT-TYPE
+        SYNTAX PortId
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            " For a DOCSIS or EQAM type port, this is the rear PIC connector."
+   ::= { cadIpVideoMonitorDropsEntry 7 }
+
+----------------------------------------------------------------------------------------
+
+cadIpVideoMonitorDsChlTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF CadIpVideoMonitorDsChlEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+       "A circular table of historic drop counts for the downstream channels which
+        transport IP Video streams within a DS-SG."
+    ::= { cadIpVideoMonitor 2 }
+
+cadIpVideoMonitorDsChlEntry OBJECT-TYPE
+    SYNTAX      CadIpVideoMonitorDsChlEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+      "The drop counts for a DS-SG.
+
+       The ifIndex key is for the downstream channel that carries IP Video service. 
+
+       The cadIpVideoMonitorDsChlCurTimeIdx is a sequence number."
+    INDEX { ifIndex, cadIpVideoMonitorCurTimeIdx }
+    ::= { cadIpVideoMonitorDsChlTable 1 } 
+
+CadIpVideoMonitorDsChlEntry ::= SEQUENCE {
+    cadIpVideoMonitorDsChlCurTimeIdx   Unsigned32,
+    cadIpVideoMonitorMcastPkts         Unsigned32,
+    cadIpVideoMonitorMcastFlows        Unsigned32,
+--    cadIpVideoMonitorMcastSlowFlows    Unsigned32,
+    cadIpVideoMonitorUcastPkts         Unsigned32,
+    cadIpVideoMonitorUcastFlows        Unsigned32,
+--    cadIpVideoMonitorUcastSlowFlows    Unsigned32,
+    cadIpVideoMonitorDsChlSuspectFlag  TruthValue,
+    cadIpVideoMonitorDsChlCreateTime   DateAndTime
+}
+
+
+cadIpVideoMonitorDsChlCurTimeIdx OBJECT-TYPE
+    SYNTAX        Unsigned32
+    MAX-ACCESS    not-accessible
+    STATUS        current
+    DESCRIPTION 
+       "A unique index to identify a cadIpVideoMonitorDsChlEntry."
+    ::= { cadIpVideoMonitorDsChlEntry 1 }
+
+cadIpVideoMonitorMcastPkts OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+     "This object represents the total number of multicast IP Video packets 
+      transmitted for DOCSIS IP video channels in the downstream service group over a 
+      one hour period."
+    ::= { cadIpVideoMonitorDsChlEntry 2 }
+
+cadIpVideoMonitorMcastFlows        OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+     "This object represents the total number of multicast IP Video flows created 
+      over a one hour period."
+    ::= { cadIpVideoMonitorDsChlEntry 3 }
+
+
+cadIpVideoMonitorUcastPkts OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+     "This object represents the total number of unicast IP Video packets 
+      transmitted for DOCSIS IP video channels in the downstream service group over a 
+      one hour period."
+    ::= { cadIpVideoMonitorDsChlEntry 5 }
+
+cadIpVideoMonitorUcastFlows        OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+     "This object represents the total number of unicast IP Video flows created 
+      over a one hour period."
+    ::= { cadIpVideoMonitorDsChlEntry 7 }
+
+
+cadIpVideoMonitorDsChlSuspectFlag OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+     "This object indicates that the rest of the data in this row is suspected to not
+      correctly reflect the counts for the one-hour monitoring period. This condition 
+      might have been caused by any scenario which might have resulted in errant 
+      statistics (for example, a CAM failover)."
+    ::= { cadIpVideoMonitorDsChlEntry 9 }
+
+cadIpVideoMonitorDsChlCreateTime        OBJECT-TYPE
+    SYNTAX      DateAndTime
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+     "This object incicates when the row is created."
+    ::= { cadIpVideoMonitorDsChlEntry 10 }
+
+END

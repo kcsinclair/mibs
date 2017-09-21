@@ -1,0 +1,1315 @@
+-- ============================================================================
+-- Copyright (C) 2013 by HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description: The MIB is used to configure the simulation for the DSLAM.
+-- Reference: 
+-- Version: V1.04
+-- ============================================================================
+    HUAWEI-IPDSLAM-SIMULATION-MIB DEFINITIONS ::= BEGIN
+    
+    IMPORTS
+        huaweiMgmt
+            FROM HUAWEI-MIB
+        IpAddress, Integer32, Unsigned32, OBJECT-TYPE,
+        MODULE-IDENTITY, NOTIFICATION-TYPE
+            FROM SNMPv2-SMI
+        RowStatus, MacAddress
+            FROM SNMPv2-TC;
+                               
+        hwIpdslamSimulation  MODULE-IDENTITY
+            LAST-UPDATED "201306050000Z"
+            ORGANIZATION "Huawei Technologies Co., Ltd."
+            CONTACT-INFO                                              
+                "Huawei Industrial Base                      
+                 Bantian, Longgang                           
+                 Shenzhen 518129                             
+                 People's Republic of China                  
+                 Website: http://www.huawei.com              
+                 Email: support@huawei.com                   
+                "                                 
+            DESCRIPTION 
+                "The MIB is used to configure the simulation for the DSLAM.
+                " 
+                                  
+-- Revision history
+       REVISION     "201306050000Z"                           
+       DESCRIPTION  "V1.04, modify the description of the nodes which are hwDhcpSimulateUserVlanTagNumber, hwDhcpSimulateOption61Type, 
+                    hwOntDhcpSimulateOption61Type."
+                     
+       REVISION     "201303180000Z"                           
+       DESCRIPTION  "V1.03, modify the description of the nodes which are hwDhcpSimulateUserVlanTagNumber, hwDhcpSimulateUserVlanid,
+                    hwDhcpSimulateOption61Type, hwOntDhcpSimulateOption61Type."
+
+       REVISION     "201105190000Z"                           
+       DESCRIPTION  "V1.00, add DHCP simulation."
+            
+            ::= { huaweiMgmt 113 }
+              
+       hwDhcpSimulateObject OBJECT IDENTIFIER
+           ::= { hwIpdslamSimulation 1 }     
+           
+       hwOntDhcpSimulateObject OBJECT IDENTIFIER
+           ::= { hwIpdslamSimulation 2 }                                  
+                                       
+       hwDhcpSimulateCfgTable OBJECT-TYPE
+           SYNTAX        SEQUENCE OF HwDhcpSimulateCfgEntry
+           MAX-ACCESS    not-accessible
+           STATUS        current
+           DESCRIPTION
+                "This table is mainly used to configure the DHCP simulation.
+                 You can use the set operation to set a leave in the table to start a DHCP simulation instance and simulate an actual user.
+                 You can use the get operation to query the existing DHCP simulation instances in the current system.
+                 The indexes of this table are hwDhcpSimulateFlowId and hwDhcpSimulateMacAddress.
+                "
+           ::= { hwDhcpSimulateObject 1 }
+        
+       hwDhcpSimulateCfgEntry OBJECT-TYPE
+           SYNTAX        HwDhcpSimulateCfgEntry
+           MAX-ACCESS    not-accessible
+           STATUS        current
+           DESCRIPTION
+                "This table is mainly used to configure the DHCP simulation.
+                 You can use the set operation to set a leave in the table to start a DHCP simulation instance and simulate an actual user.
+                 You can use the get operation to query the existing DHCP simulation instances in the current system.
+                 The indexes of this entry are hwDhcpSimulateFlowId and hwDhcpSimulateMacAddress.
+                "
+           INDEX { hwDhcpSimulateFlowId, hwDhcpSimulateMacAddress }
+           ::= { hwDhcpSimulateCfgTable 1 }
+        
+       HwDhcpSimulateCfgEntry ::=  SEQUENCE
+       {
+           hwDhcpSimulateFlowId                  Integer32,
+           hwDhcpSimulateMacAddress              MacAddress,   
+           hwDhcpSimulateUserVlanTagNumber       Unsigned32,
+           hwDhcpSimulateUserVlanid              Unsigned32,
+           hwDhcpSimulateOption60                OCTET STRING,
+           hwDhcpSimulateOption61Type            Unsigned32,
+           hwDhcpSimulateOption61ClientId        OCTET STRING,
+           hwDhcpSimulatePingHost1IPAddress      IpAddress,
+           hwDhcpSimulatePingHost2IPAddress      IpAddress,
+           hwDhcpSimulatePingHost3IPAddress	 IpAddress,
+           hwDhcpSimulatePingHost4IPAddress	 IpAddress,
+           hwDhcpSimulatePingHost5IPAddress	 IpAddress,
+           hwDhcpSimulateRowStatus               RowStatus                                 		                                            
+       }
+                 
+        hwDhcpSimulateFlowId
+           OBJECT-TYPE
+           SYNTAX        Integer32
+           MAX-ACCESS    not-accessible
+           STATUS        current
+           DESCRIPTION
+           "Indicates the flow ID of the user to be simulated. This leave is the index of hwDhcpSimulateCfgTable.
+            The value of this leave must be set when a DHCP simulation is started on the OLT.          
+           "
+           ::= { hwDhcpSimulateCfgEntry 1 }
+          
+        hwDhcpSimulateMacAddress 
+		   OBJECT-TYPE
+		   SYNTAX        MacAddress
+		   MAX-ACCESS    not-accessible
+		   STATUS        current
+		   DESCRIPTION
+		   "Indicates the MAC address of the user to be simulated. In the start of DHCP simulation, the recommended MAC address corresponding this leave is the MAC address of an actual user.
+		   This leave is the index of hwDhcpSimulateCfgTable. The value of this leave must be set when a DHCP simulation is started on the OLT.
+		   "	
+		   ::= { hwDhcpSimulateCfgEntry 2 }     
+		
+        hwDhcpSimulateUserVlanTagNumber 
+		   OBJECT-TYPE
+		   SYNTAX        Unsigned32
+		   MAX-ACCESS    read-write
+		   STATUS        current
+		   DESCRIPTION
+		   "Indicates the number of tags carried by the user-side packet.
+		    Options:
+		    1. untag(0)            -Indicates that the user packet is untagged.
+		    2. singleTag(1)        -Indicates that the user packet is single tag.
+		    3. invalid(4294967295) -Invalid value, an invalid value is returned if the user vlan is not configured.
+		   "	
+		   ::= { hwDhcpSimulateCfgEntry 3 }
+			
+        hwDhcpSimulateUserVlanid 
+		   OBJECT-TYPE
+		   SYNTAX        Unsigned32
+		   MAX-ACCESS    read-write
+		   STATUS        current
+		   DESCRIPTION
+		   "Indicates the VLAN ID of the user-side packet. If hwDhcpSimulateUserVlanTagNumber is 0, this item does not need to be configured.
+		    If the value of this leave is 0 and hwDhcpSimulateUserVlanTagNumber is 1, the current mode is priority-tag.
+		    An invalid value(4294967295) is returned if the user vlan is not configured or the user vlan tag number is configured untag.
+		    Range: 0-4095.		    
+		   "
+		   ::= { hwDhcpSimulateCfgEntry 4 }
+
+        hwDhcpSimulateOption60 
+		   OBJECT-TYPE
+		   SYNTAX        OCTET STRING (SIZE (0..64))
+	       MAX-ACCESS    read-write
+		   STATUS        current
+		   DESCRIPTION
+		   "Indicates the option 60 contents of the DHCP simulation instance. The length is 0-64 bytes. The system considers that this leave is not configured when the length is 0.		   
+		   "
+		   ::= { hwDhcpSimulateCfgEntry 5 }
+
+        hwDhcpSimulateOption61Type
+		   OBJECT-TYPE		       
+		   SYNTAX        Unsigned32
+		   MAX-ACCESS    read-write
+		   STATUS        current
+		   DESCRIPTION
+		   "Indicates the option 61 type of the DHCP simulation instance. The values are 0 and 1.
+		  
+            Options:
+            1. string(0)             -Indicates that the option 61 contents are a string.
+            2. mac(1)                -Indicates that the option 61 contents are a hardware address.
+            3. invalid(4294967295)   -Invalid value, an invalid value is returned if the option61 type is not configured.
+           "		  
+           ::= { hwDhcpSimulateCfgEntry 6 }
+			
+        hwDhcpSimulateOption61ClientId
+           OBJECT-TYPE
+		   SYNTAX        OCTET STRING (SIZE (0..64))
+		   MAX-ACCESS    read-write
+		   STATUS        current
+		   DESCRIPTION
+		   "Indicates the option 61 contents of the DHCP simulation instance. The length is 0-64 bytes.
+		   "
+		   ::= { hwDhcpSimulateCfgEntry 7 }
+        
+        hwDhcpSimulatePingHost1IPAddress
+		   OBJECT-TYPE
+		   SYNTAX        IpAddress
+		   MAX-ACCESS    read-write
+		   STATUS        current
+		   DESCRIPTION
+		   "Indicates the first host IP address to be pinged in the DHCP simulation instance. After an IP address is requested successfully in the DHCP simulation instance, this IP address is pinged to verify the connectivity to the host.
+		    		   
+		   "
+		   ::= { hwDhcpSimulateCfgEntry 8 }
+			
+        hwDhcpSimulatePingHost2IPAddress
+		   OBJECT-TYPE
+		   SYNTAX        IpAddress
+		   MAX-ACCESS    read-write
+		   STATUS        current
+		   DESCRIPTION
+		   "Indicates the second host IP address to be pinged in the DHCP simulation instance. After an IP address is requested successfully in the DHCP simulation instance, this IP address is pinged to verify the connectivity to the host.
+		   "
+		   ::= { hwDhcpSimulateCfgEntry 9 }
+
+        hwDhcpSimulatePingHost3IPAddress
+		   OBJECT-TYPE
+		   SYNTAX        IpAddress
+		   MAX-ACCESS    read-write
+		   STATUS        current
+		   DESCRIPTION
+		   "Indicates the third host IP address to be pinged in the DHCP simulation instance. After an IP address is requested successfully in the DHCP simulation instance, this IP address is pinged to verify the connectivity to the host.
+		   "
+		   ::= { hwDhcpSimulateCfgEntry 10 }
+
+        hwDhcpSimulatePingHost4IPAddress
+		   OBJECT-TYPE
+		   SYNTAX        IpAddress
+		   MAX-ACCESS    read-write
+		   STATUS        current
+		   DESCRIPTION
+		   "Indicates the fourth host IP address to be pinged in the DHCP simulation instance. After an IP address is requested successfully in the DHCP simulation instance, this IP address is pinged to verify the connectivity to the host.
+		   "
+		   ::= { hwDhcpSimulateCfgEntry 11 }
+			
+        hwDhcpSimulatePingHost5IPAddress
+		   OBJECT-TYPE
+		   SYNTAX        IpAddress
+		   MAX-ACCESS    read-write
+		   STATUS        current
+		   DESCRIPTION
+		   "Indicates the fifth host IP address to be pinged in the DHCP simulation instance. After an IP address is requested successfully in the DHCP simulation instance, this IP address is pinged to verify the connectivity to the host.
+		   "
+		   ::= { hwDhcpSimulateCfgEntry 12 }
+			
+        hwDhcpSimulateRowStatus
+		   OBJECT-TYPE
+		   SYNTAX        RowStatus
+		   MAX-ACCESS    read-write
+		   STATUS        current
+		   DESCRIPTION
+		   "Indicates the operation type and is mainly used to start or stop the DHCP simulation. During query, if the corresponding simulation instance exists, the result is active.
+            Options:
+            1. active(1)             -indicates the query operation.
+            2. createAndGo(4)        -means to create a DHCP simulation.
+            3. destroy(6)            -means to stop a DHCP simulation.
+           "
+		   ::= { hwDhcpSimulateCfgEntry 13 }	                                          
+	                                          
+        hwDhcpSimulateResultTable
+            OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwDhcpSimulateResultEntry
+            MAX-ACCESS         not-accessible
+            STATUS             current
+            DESCRIPTION
+            "Indicates the simulation result. During simulation, you can perform the get operation to query the simulation result of the simulation instance.
+             The indexes of this table are hwDhcpSimulateFlowId and hwDhcpSimulateMacAddress.           
+           "
+           ::= { hwDhcpSimulateObject 2 }
+            
+       hwDhcpSimulateResultEntry OBJECT-TYPE
+           SYNTAX            HwDhcpSimulateResultEntry
+           MAX-ACCESS        not-accessible
+           STATUS            current
+           DESCRIPTION
+           "Indicates the simulation result. During simulation, you can perform the get operation to query the simulation result of the simulation instance.
+            The indexes of this entry are hwDhcpSimulateFlowId and hwDhcpSimulateMacAddress.
+           "
+           INDEX { hwDhcpSimulateFlowId, hwDhcpSimulateMacAddress }
+           ::= { hwDhcpSimulateResultTable 1 }
+                 
+       HwDhcpSimulateResultEntry ::= SEQUENCE
+       {
+           hwDhcpSimulateStatus                            INTEGER,
+           hwDhcpSimulateResult                            INTEGER,
+           hwDhcpSimulateUserIp                            IpAddress,
+           hwDhcpSimulateSubNetMask                        IpAddress,
+           hwDhcpSimulateDhcpServerIp                      IpAddress,
+           hwDhcpSimulatePrimaryDnsServerIp                IpAddress,
+           hwDhcpSimulateSecondaryDnsServerIp              IpAddress,
+           hwDhcpSimulateGatewayIp                         IpAddress,
+           hwDhcpSimulateDefaultGatewayIp                  IpAddress,
+           hwDhcpSimulateDest1IpAddr                       IpAddress,
+           hwDhcpSimulateDest1MaskAddr                     IpAddress,
+           hwDhcpSimulateDest1NextHop                      IpAddress,
+           hwDhcpSimulateDest2IpAddr                       IpAddress,
+           hwDhcpSimulateDest2MaskAddr                     IpAddress,
+           hwDhcpSimulateDest2NextHop                      IpAddress,
+           hwDhcpSimulateDest3IpAddr                       IpAddress,
+           hwDhcpSimulateDest3MaskAddr                     IpAddress,
+           hwDhcpSimulateDest3NextHop                      IpAddress,
+           hwDhcpSimulatePingHost1TotalCount               Unsigned32,
+           hwDhcpSimulatePingHost1OkCount                  Unsigned32,
+           hwDhcpSimulatePingHost2TotalCount               Unsigned32,
+           hwDhcpSimulatePingHost2OkCount                  Unsigned32,
+           hwDhcpSimulatePingHost3TotalCount               Unsigned32,
+           hwDhcpSimulatePingHost3OkCount                  Unsigned32,
+           hwDhcpSimulatePingHost4TotalCount               Unsigned32,
+           hwDhcpSimulatePingHost4OkCount                  Unsigned32,
+           hwDhcpSimulatePingHost5TotalCount               Unsigned32,
+           hwDhcpSimulatePingHost5OkCount                  Unsigned32,
+           hwDhcpSimulateTftpServer                        OCTET STRING,
+           hwDhcpSimulateBootFileName                      OCTET STRING,
+           hwDhcpSimulateTimeServerIp                      IpAddress
+       }
+                  
+       hwDhcpSimulateStatus
+           OBJECT-TYPE
+           SYNTAX  INTEGER{
+                           dhcpProcessing(1),
+                           pingProcessing(2),
+                           finished(3),
+                           unknown(4)
+                          }
+           MAX-ACCESS     read-only
+           STATUS        current
+           DESCRIPTION
+           "Indicates the simulation status of the current simulation instance.
+            Options:
+                    1. dhcpProcessing(1)          -indicates DHCP processing.
+                    2. pingProcessing(2)          -indicates ping processing.
+                    3. finished(3)                -Indicates that the simulation is finished.   
+                    4. unknown(4)                 -indicates other status.
+           "
+           ::= { hwDhcpSimulateResultEntry 1 }    
+
+       hwDhcpSimulateResult                    
+           OBJECT-TYPE                     
+           SYNTAX  INTEGER{
+                            sendPacketFail(1),
+                            dhcpServerNotFound(2),
+                            dhcpServerRejectRequest(3),
+                            getIpOvertime(4),
+                            getIpSuccessful(5),
+                            allPingSucceed(6),
+                            partialPingSucceed(7),
+                            allPingFail(8),
+                            systemResourceNotEnough(9),
+                            unknown(10)                                                          
+                           }            
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the simulation result of the current simulation instance.
+            Options:
+                    1. sendPacketFail(1)                -Indicates that the packet fails to be sent.
+                    2. dhcpServerNotFound(2)            -Indicates that the DHCP server cannot be found.
+                    3. dhcpServerRejectRequest(3)       -Indicates that the DHCP server rejects the request.
+                    4. getIpOvertime(4)                 -Indicates that the request for IP address is overtime.
+                    5. getIpSuccessful(5)               -Indicates that the request for IP address succeeds.
+                    6. allPingSucceed(6)                -Indicates that all ping operations succeed.     
+                    7. partialPingSucceed(7)            -Indicates that parts of ping operations succeed.  
+                    8. allPingFail(8)                   -Indicates that all ping operations fail.      
+                    9. systemResourceNotEnough(9)       -Indicates that the resource is not enough.
+                    10. unknown(10)                     -Indicates other results.
+           "               
+           ::= { hwDhcpSimulateResultEntry 2 }     
+                                  
+      hwDhcpSimulateUserIp                    
+           OBJECT-TYPE                    
+           SYNTAX        IpAddress               
+           MAX-ACCESS    read-only           
+           STATUS        current                 
+           DESCRIPTION                    
+           "Indicates the simulation user IP address that is obtained in the DHCP simulation instance.                         
+           "                              
+           ::= { hwDhcpSimulateResultEntry 3 }
+
+      hwDhcpSimulateSubNetMask                 
+           OBJECT-TYPE                     
+           SYNTAX        IpAddress                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the mask of the simulation user IP address that is obtained in the DHCP simulation instance.
+           "               
+           ::= { hwDhcpSimulateResultEntry 4 }                                            
+                                           
+      hwDhcpSimulateDhcpServerIp               
+           OBJECT-TYPE                     
+           SYNTAX        IpAddress                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the DHCP server IP address in the DHCP simulation instance.              
+           "                               
+           ::= { hwDhcpSimulateResultEntry 5 }                                            
+                                           
+      hwDhcpSimulatePrimaryDnsServerIp         
+           OBJECT-TYPE                     
+           SYNTAX        IpAddress                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the IP address of the primary DNS server in the DHCP simulation instance.              
+           "                               
+           ::= { hwDhcpSimulateResultEntry 6 }                                            
+                                           
+      hwDhcpSimulateSecondaryDnsServerIp       
+           OBJECT-TYPE                     
+           SYNTAX        IpAddress                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the IP address of the secondary DNS server in the DHCP simulation instance.                
+           "                               
+           ::= { hwDhcpSimulateResultEntry 7 }                                            
+                                           
+      hwDhcpSimulateGatewayIp                  
+           OBJECT-TYPE                     
+           SYNTAX        IpAddress                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the IP address of the gateway in the DHCP simulation instance.              
+           "                               
+           ::= { hwDhcpSimulateResultEntry 8 }                                            
+                                           
+      hwDhcpSimulateDefaultGatewayIp           
+           OBJECT-TYPE                     
+           SYNTAX        IpAddress                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the IP address of the default gateway in the DHCP simulation instance.               
+           "                               
+           ::= { hwDhcpSimulateResultEntry 9 }                                            
+                                           
+      hwDhcpSimulateDest1IpAddr                
+           OBJECT-TYPE                     
+           SYNTAX        IpAddress                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the destination IP address of the first route in the DHCP simulation instance.               
+           "                               
+           ::= { hwDhcpSimulateResultEntry 10 }                                           
+                                           
+      hwDhcpSimulateDest1MaskAddr              
+           OBJECT-TYPE                     
+           SYNTAX        IpAddress                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the mask corresponding to the destination IP address of the first route in the DHCP simulation instance.         
+           "                               
+           ::= { hwDhcpSimulateResultEntry 11 }   
+                                                   
+      hwDhcpSimulateDest1NextHop               
+           OBJECT-TYPE                     
+           SYNTAX        IpAddress                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the next hop IP address of the first route in the DHCP simulation instance.            
+           "                               
+           ::= { hwDhcpSimulateResultEntry 12 }
+                                           
+      hwDhcpSimulateDest2IpAddr                
+           OBJECT-TYPE                     
+           SYNTAX        IpAddress                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the destination IP address of the second route in the DHCP simulation instance.                 
+           "                               
+           ::= { hwDhcpSimulateResultEntry 13 }
+                                           
+      hwDhcpSimulateDest2MaskAddr              
+           OBJECT-TYPE                     
+           SYNTAX        IpAddress                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the mask corresponding to the destination IP address of the second route in the DHCP simulation instance.         
+           "                               
+           ::= { hwDhcpSimulateResultEntry 14 }
+                                           
+      hwDhcpSimulateDest2NextHop               
+           OBJECT-TYPE                     
+           SYNTAX        IpAddress                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the next hop IP address of the second route in the DHCP simulation instance.                                              
+           "                               
+           ::= { hwDhcpSimulateResultEntry 15 }
+                                           
+      hwDhcpSimulateDest3IpAddr                
+           OBJECT-TYPE                     
+           SYNTAX        IpAddress                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the destination IP address of the third route in the DHCP simulation instance.             
+           "                               
+           ::= { hwDhcpSimulateResultEntry 16 }
+                                           
+      hwDhcpSimulateDest3MaskAddr              
+           OBJECT-TYPE                     
+           SYNTAX        IpAddress                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the mask corresponding to the destination IP address of the third route in the DHCP simulation instance.                     
+           "                               
+           ::= { hwDhcpSimulateResultEntry 17 }
+                                           
+      hwDhcpSimulateDest3NextHop               
+           OBJECT-TYPE                     
+           SYNTAX        IpAddress                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the next hop IP address of the third route in the DHCP simulation instance.              
+           "                               
+           ::= { hwDhcpSimulateResultEntry 18 }
+                                           
+      hwDhcpSimulatePingHost1TotalCount        
+           OBJECT-TYPE                     
+           SYNTAX        Unsigned32                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the total times of pinging the first host IP address in the DHCP simulation instance.                 
+           "                               
+           ::= { hwDhcpSimulateResultEntry 19 }
+                                           
+      hwDhcpSimulatePingHost1OkCount           
+           OBJECT-TYPE                    
+           SYNTAX        Unsigned32                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the times of successfully pinging the first host IP address in the DHCP simulation instance.                
+           "                               
+           ::= { hwDhcpSimulateResultEntry 20 }
+                                           
+      hwDhcpSimulatePingHost2TotalCount        
+           OBJECT-TYPE                     
+           SYNTAX        Unsigned32                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+          "Indicates the total times of pinging the second host IP address in the DHCP simulation instance.              
+           "                               
+           ::= { hwDhcpSimulateResultEntry 21 }
+                                           
+      hwDhcpSimulatePingHost2OkCount           
+           OBJECT-TYPE                     
+           SYNTAX        Unsigned32                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the times of successfully pinging the second host IP address in the DHCP simulation instance.               
+           "                               
+           ::= { hwDhcpSimulateResultEntry 22 }
+                                           
+      hwDhcpSimulatePingHost3TotalCount        
+           OBJECT-TYPE                     
+           SYNTAX        Unsigned32                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the total times of pinging the third host IP address in the DHCP simulation instance.                
+           "                               
+           ::= { hwDhcpSimulateResultEntry 23 }
+                                           
+      hwDhcpSimulatePingHost3OkCount           
+           OBJECT-TYPE                     
+           SYNTAX        Unsigned32                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the times of successfully pinging the third host IP address in the DHCP simulation instance.               
+           "                               
+           ::= { hwDhcpSimulateResultEntry 24 }
+                                           
+      hwDhcpSimulatePingHost4TotalCount        
+           OBJECT-TYPE                     
+           SYNTAX        Unsigned32                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the total times of pinging the fourth host IP address in the DHCP simulation instance.              
+           "                               
+           ::= { hwDhcpSimulateResultEntry 25 }
+                                           
+      hwDhcpSimulatePingHost4OkCount           
+           OBJECT-TYPE                     
+           SYNTAX        Unsigned32                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the times of successfully pinging the fourth host IP address in the DHCP simulation instance.          
+           "                               
+           ::= { hwDhcpSimulateResultEntry 26 }
+                                           
+      hwDhcpSimulatePingHost5TotalCount        
+           OBJECT-TYPE                     
+           SYNTAX        Unsigned32                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the total times of pinging the fifth host IP address in the DHCP simulation instance.                    
+           "                               
+           ::= { hwDhcpSimulateResultEntry 27 }
+                                           
+      hwDhcpSimulatePingHost5OkCount           
+           OBJECT-TYPE                     
+           SYNTAX        Unsigned32                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the times of successfully pinging the fifth host IP address in the DHCP simulation instance.              
+           "                               
+           ::= { hwDhcpSimulateResultEntry 28 }
+           
+       hwDhcpSimulateTftpServer           
+           OBJECT-TYPE                     
+           SYNTAX        OCTET STRING (SIZE (0..256))                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the name of the Tftp server in the DHCP simulation instance. The length is 0-256 bytes.
+           "                               
+           ::= { hwDhcpSimulateResultEntry 29 }  
+           
+       hwDhcpSimulateBootFileName           
+           OBJECT-TYPE                     
+           SYNTAX        OCTET STRING (SIZE (0..256))                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the name of the boot file in the DHCP simulation instance. The length is 0-256 bytes.
+           "                               
+           ::= { hwDhcpSimulateResultEntry 30 }
+           
+       hwDhcpSimulateTimeServerIp              
+           OBJECT-TYPE                     
+           SYNTAX        IpAddress                
+           MAX-ACCESS    read-only            
+           STATUS        current                  
+           DESCRIPTION                     
+           "Indicates the IP address of the time server in the DHCP simulation instance.                     
+           "                               
+           ::= { hwDhcpSimulateResultEntry 31 }          
+
+      hwOntDhcpSimulateCfgTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwOntDhcpSimulateCfgEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+            "This table is mainly used to configure the ONT DHCP simulation.
+             You can use the set operation to set a leave in the table to start an ONT DHCP simulation instance and simulate an actual user.
+             You can use the get operation to query the existing ONT DHCP simulation instances in the current system.
+             The indexes of this table are hwOntDhcpSimulatePortindex and hwOntDhcpSimulateOntId.            
+            "
+            ::= { hwOntDhcpSimulateObject 1 }
+        
+      hwOntDhcpSimulateCfgEntry OBJECT-TYPE
+            SYNTAX HwOntDhcpSimulateCfgEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+            "This table is mainly used to configure the ONT DHCP simulation.
+             You can use the set operation to set a leave in the table to start an ONT DHCP simulation instance and simulate an actual user.
+             You can use the get operation to query the existing ONT DHCP simulation instances in the current system.
+             The indexes of this entry are hwOntDhcpSimulatePortindex and hwOntDhcpSimulateOntId.
+            "
+            INDEX { hwOntDhcpSimulatePortindex, hwOntDhcpSimulateOntId }
+            ::= { hwOntDhcpSimulateCfgTable 1 }
+        
+      HwOntDhcpSimulateCfgEntry ::=
+            SEQUENCE {
+                    hwOntDhcpSimulatePortindex
+                        Unsigned32,
+                    hwOntDhcpSimulateOntId
+                        Integer32,                                
+                    hwOntDhcpSimulateOntPortId
+                        Unsigned32,
+                    hwOntDhcpSimulateUserVlanTagNumber
+                        Unsigned32,
+                    hwOntDhcpSimulateUserOuterVlanId
+                        Unsigned32,
+                    hwOntDhcpSimulateUserOuterPriority
+                        Unsigned32,
+                    hwOntDhcpSimulateUserInnerVlanId
+                        Unsigned32,
+                    hwOntDhcpSimulateUserInnerPriority
+                        Unsigned32,
+                    hwOntDhcpSimulateMacAddress
+                        MacAddress,
+                    hwOntDhcpSimulateOption60  
+                        OCTET STRING,
+                    hwOntDhcpSimulateOption61Type
+                        Unsigned32,
+                    hwOntDhcpSimulateOption61ClientId
+                        OCTET STRING,
+                    hwOntDhcpSimulatePingHost1IPAddress
+                        IpAddress,
+                    hwOntDhcpSimulatePingHost2IPAddress
+                        IpAddress,
+                    hwOntDhcpSimulatePingHost3IPAddress
+                        IpAddress,
+                    hwOntDhcpSimulatePingHost4IPAddress
+                        IpAddress,
+                    hwOntDhcpSimulatePingHost5IPAddress
+                        IpAddress,
+                    hwOntDhcpSimulateRowStatus
+                        RowStatus
+                 }       
+                 
+        hwOntDhcpSimulatePortindex OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+            "Indicates the ptp index corresponding to the user to be simulated in the ONT DHCP simulation instance.
+            "
+            ::= { hwOntDhcpSimulateCfgEntry 1 } 
+         
+         hwOntDhcpSimulateOntId OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+            "Indicates the ONT ID of the user to be simulated in the ONT DHCP simulation instance.
+            "
+            ::= { hwOntDhcpSimulateCfgEntry 2 }           
+        
+        hwOntDhcpSimulateOntPortId OBJECT-TYPE
+            SYNTAX     Unsigned32
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+            "Indicates the ONT port ID. The values are 1-8 and all-Fs. All-Fs indicates that the port is a WAN port and non-all Fs indicates that the port is a user-side port.
+            "
+            ::= { hwOntDhcpSimulateCfgEntry 3 }     
+                    
+        hwOntDhcpSimulateUserVlanTagNumber OBJECT-TYPE
+            SYNTAX     Unsigned32 
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+            "Indicates the number of VLAN tags when user packets are sent to the ONT.
+             Range: 0-2.
+             0 - untag.
+             1 - simgle tag.
+             2 - double tag.
+            "
+            ::= { hwOntDhcpSimulateCfgEntry 4 }
+        
+        hwOntDhcpSimulateUserOuterVlanId OBJECT-TYPE
+            SYNTAX     Unsigned32 
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+            "Indicates the outer VLAN ID of user packets and is used with TagNumber.
+            This parameter can be ignored in the case of untag. It is valid in the case of single-tag or double-tag, and the range is 0-4095. All-Fs indicates invalid and no user input.
+             Range: 0-4095.
+             This leave is used when the number of VLAN tags is 1 or 2.	    
+            "
+            ::= { hwOntDhcpSimulateCfgEntry 5 }   
+   
+        hwOntDhcpSimulateUserOuterPriority OBJECT-TYPE
+            SYNTAX     Unsigned32 (0..7)
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+            "Indicates the outer VLAN priority of user packets and is used with TagNumber.
+            This parameter can be ignored in the case of untag. It is valid in the case of single-tag or double-tag, and the range is 0-7. All-Fs indicates invalid and no user input. The default value is 0 in the case of no user input.	
+            Range: 0-7.                
+            "
+            ::= { hwOntDhcpSimulateCfgEntry 6 } 
+            
+        hwOntDhcpSimulateUserInnerVlanId OBJECT-TYPE
+            SYNTAX     Unsigned32 
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+            "Indicates the inner VLAN ID of user packets and is used with TagNumber. This parameter is valid in the case of double-tag, and the range is 0-4095. All-Fs indicates invalid and no user input.
+             Range: 0-4095.            
+            "
+            ::= { hwOntDhcpSimulateCfgEntry 7 }
+        
+        hwOntDhcpSimulateUserInnerPriority OBJECT-TYPE
+          SYNTAX     Unsigned32 (0..7)
+          MAX-ACCESS read-write
+          STATUS current
+          DESCRIPTION
+          "Indicates the inner VLAN priority of user packets and is used with TagNumber.
+          This parameter is valid in the case of double-tag, and the range is 0-7. All-Fs indicates invalid and no user input. The default value is 0 in the case of no user input.
+          "
+          ::= { hwOntDhcpSimulateCfgEntry 8 }
+        
+        hwOntDhcpSimulateMacAddress OBJECT-TYPE
+            SYNTAX        MacAddress
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+            "Indicates the source MAC address used in the simulation.
+            "
+            ::= { hwOntDhcpSimulateCfgEntry 9 }    
+        
+        hwOntDhcpSimulateOption60 OBJECT-TYPE
+            SYNTAX        OCTET STRING (SIZE (0..64))
+            MAX-ACCESS    read-write
+            STATUS        current
+            DESCRIPTION
+            "Indicates the option 60 contents of the ONT DHCP simulation. Character string type, a string of 0-64 characters.
+            "
+            ::= { hwOntDhcpSimulateCfgEntry 10 } 
+                                            
+        hwOntDhcpSimulateOption61Type OBJECT-TYPE
+            SYNTAX         Unsigned32
+            MAX-ACCESS     read-write
+            STATUS         current
+            DESCRIPTION
+            "Indicates the option 61 type of the ONT DHCP simulation. Values: 0-1. 0 indicates character string type and 1 indicate MAC address type. 
+             Options:
+             1. string(0)             -Indicates that the option 61 contents are a string.
+             2. mac(1)                -Indicates that the option 61 contents are a hardware address.
+             3. invalid(4294967295)   -Invalid value, an invalid value is returned if the option61 type is not configured.
+            "
+            ::= { hwOntDhcpSimulateCfgEntry 11 }
+        
+        hwOntDhcpSimulateOption61ClientId OBJECT-TYPE
+		   	SYNTAX        OCTET STRING (SIZE (0..64))           
+		   	MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+		"Indicates the option 61 contents of the ONT DHCP simulation. Character string type, a string of 0-64 characters.
+		Optiontype = 0 and null in this field indicate no user input for option 61.
+		    "            
+		   ::= { hwOntDhcpSimulateCfgEntry 12 }
+        
+        hwOntDhcpSimulatePingHost1IPAddress OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+            "Indicates the first host IP address to be pinged in the ONT DHCP simulation instance. After an IP address is requested successfully in the DHCP simulation instance, this IP address is pinged to verify the connectivity to the host.
+            "            
+			::= { hwOntDhcpSimulateCfgEntry 13 }
+         
+         hwOntDhcpSimulatePingHost2IPAddress OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+            "Indicates the second host IP address to be pinged in the ONT DHCP simulation. After an IP address is requested successfully in the DHCP simulation instance, this IP address is pinged to verify the connectivity to the host.
+            "            
+			::= { hwOntDhcpSimulateCfgEntry 14 }
+        
+        hwOntDhcpSimulatePingHost3IPAddress OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+            "Indicates the third host IP address to be pinged in the ONT DHCP simulation instance. After an IP address is requested successfully in the DHCP simulation instance, this IP address is pinged to verify the connectivity to the host.
+            "            
+			::= { hwOntDhcpSimulateCfgEntry 15 }
+        
+        hwOntDhcpSimulatePingHost4IPAddress OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+			"Indicates the fourth host IP address to be pinged in the ONT DHCP simulation instance. After an IP address is requested successfully in the DHCP simulation instance, this IP address is pinged to verify the connectivity to the host.
+			"            
+			::= { hwOntDhcpSimulateCfgEntry 16 }
+        
+        hwOntDhcpSimulatePingHost5IPAddress OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+			"Indicates the fifth host IP address to be pinged in the ONT DHCP simulation instance. After an IP address is requested successfully in the DHCP simulation instance, this IP address is pinged to verify the connectivity to the host.
+			"            
+			::= { hwOntDhcpSimulateCfgEntry 17 }
+        
+        hwOntDhcpSimulateRowStatus OBJECT-TYPE
+           SYNTAX        RowStatus
+           MAX-ACCESS read-write
+           STATUS current
+           DESCRIPTION
+		   "Indicates the operation type and is mainly used to start or stop the ONT DHCP simulation. During query, if the corresponding simulation instance exists, the result is active. 
+            Options:
+            1. active(1)                   -indicates the query operation.
+            2. createAndGo(4)              -means to create a DHCP simulation.
+            3. destroy(6)                  -means to stop a DHCP simulation.
+           "         
+			::= { hwOntDhcpSimulateCfgEntry 18 }     
+		
+		hwOntDhcpSimulateResultTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwOntDhcpSimulateResultEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+            "Indicates the ONT simulation result. During simulation, you can perform the get operation to query the simulation result of the simulation instance.
+             The indexes of this table are hwOntDhcpSimulatePortindex and hwOntDhcpSimulateOntId.
+            "
+            ::= { hwOntDhcpSimulateObject 2 }
+        
+        hwOntDhcpSimulateResultEntry OBJECT-TYPE
+            SYNTAX HwOntDhcpSimulateResultEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+            "Indicates the ONT simulation result. During simulation, you can perform the get operation to query the simulation result of the simulation instance.
+             The indexes of this entry are hwOntDhcpSimulatePortindex and hwOntDhcpSimulateOntId.
+            "
+            INDEX { hwOntDhcpSimulatePortindex, hwOntDhcpSimulateOntId }
+            ::= { hwOntDhcpSimulateResultTable 1 }     
+
+       	HwOntDhcpSimulateResultEntry ::=
+            SEQUENCE {    
+            		hwOntDhcpSimulateStatus
+                        INTEGER,
+                    hwOntDhcpSimulateResult
+                        INTEGER,
+                    hwOntDhcpSimulateUserIp
+                        IpAddress,
+                    hwOntDhcpSimulateSubNetMask
+                        IpAddress,
+                    hwOntDhcpSimulateDhcpServerIp
+                        IpAddress,     
+                    hwOntDhcpSimulatePrimaryDnsServerIp
+                        IpAddress,
+                    hwOntDhcpSimulateSecondaryDnsServerIp
+                        IpAddress,
+                    hwOntDhcpSimulateGatewayIp
+                        IpAddress,
+                    hwOntDhcpSimulateDefaultGatewayIp
+                        IpAddress,
+                    hwOntDhcpSimulateDest1IpAddr
+                        IpAddress,
+                    hwOntDhcpSimulateDest1MaskAddr
+                        IpAddress,
+                    hwOntDhcpSimulateDest1NextHop
+                        IpAddress,
+                    hwOntDhcpSimulateDest2IpAddr
+                        IpAddress,
+                    hwOntDhcpSimulateDest2MaskAddr
+                        IpAddress,
+                    hwOntDhcpSimulateDest2NextHop
+                        IpAddress,
+                    hwOntDhcpSimulateDest3IpAddr
+                        IpAddress,
+                    hwOntDhcpSimulateDest3MaskAddr
+                        IpAddress,   
+                    hwOntDhcpSimulateDest3NextHop 
+                    	IpAddress, 
+                    hwOntDhcpSimulatePingHost1TotalCount
+                        Unsigned32,
+                    hwOntDhcpSimulatePingHost1OkCount
+                        Unsigned32,
+      				hwOntDhcpSimulatePingHost2TotalCount
+                        Unsigned32,
+                    hwOntDhcpSimulatePingHost2OkCount
+                        Unsigned32,
+      				hwOntDhcpSimulatePingHost3TotalCount
+                        Unsigned32,
+                    hwOntDhcpSimulatePingHost3OkCount
+                        Unsigned32,
+      				hwOntDhcpSimulatePingHost4TotalCount
+                        Unsigned32,
+                    hwOntDhcpSimulatePingHost4OkCount
+                        Unsigned32,
+      				hwOntDhcpSimulatePingHost5TotalCount
+                        Unsigned32,
+                    hwOntDhcpSimulatePingHost5OkCount
+                        Unsigned32
+                 
+                 }
+
+         hwOntDhcpSimulateStatus OBJECT-TYPE
+           	SYNTAX  INTEGER{
+                              dhcpProcessing(1),
+                              pingProcessing(2),
+                              finished(3),
+                              unknown(4)
+                            }
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+	        "Indicates the simulation status of the current simulation instance.
+	         Options:
+	         1. dhcpProcessing(1)                  -Indicates DHCP processing.
+             2. pingProcessing(2)                  -Indicates ping processing.
+             3. finished(3)                        -Indicates that the simulation is finished.   
+             4. unknown(4)                         -Indicates other status.
+	        "                          
+	        ::= { hwOntDhcpSimulateResultEntry 1 }
+           
+         hwOntDhcpSimulateResult OBJECT-TYPE
+           	SYNTAX  INTEGER{
+           	                 success(1),
+           	                 userStop(2),
+           	                 deviceNotSupport(3),
+           	                 ethPortNotFound(4),
+           	                 userMacError(5),
+           	                 pingDestIpError(6),
+           	                 vlanPriParaError(7),
+           	                 dhcpOptionError(8),
+           	                 wanNotFound(9),
+           	                 wanStateError(10),
+           	                 ethPortStateError(11),
+           	                 userVlanError(12),
+           	                 devResourceNotEnough(13),
+           	                 gemportError(14),
+           	                 sendPktError(15),
+           	                 dhcpServerNotFound(16),
+           	                 dhcpServerDeny(17),
+           	                 getIpTimeout(18),
+           	                 concurrentSmltForbidden(19),
+           	                 allPingFail(20),
+           	                 partialPingFail(21),
+           	                 unknown(22)                                                                                      
+                           }
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+	        "Indicates the simulation result of the current simulation instance.
+	         Options:
+	         1. success(1)                         -Indicates that ont dhcp simulation succeeds.
+	         2. userStop(2)                        -Indicates that user stopped the ont simulation.
+	         3. deviceNotSupport(3)                -Indicates that the device does not support simulation.
+	         4. ethPortNotFound(4)                 -Indicates that eth port is not found.
+	         5. userMacError(5)                    -Indicates that user mac is invalid.
+	         6. pingDestIpError(6)                 -Indicates that the destination ip(s) for ping is(are) invalid.   
+	         7. vlanPriParaError(7)                -Indicates that the VLAN or priority parameters are invalid.
+	         8. dhcpOptionError(8)                 -Indicates that dhcp options have some errors.       
+	         9. wanNotFound(9)                     -Indicates that WAN port is not found.                           
+	         10. wanStateError(10)                 -Indicates that WAN port is in error state.                              
+	         11. ethPortStateError(11)             -Indicates that eth port is in error state.                            
+	         12. userVlanError(12)                 -Indicates that user vlan has some error.                            
+	         13. devResourceNotEnough(13)          -Indicates that the resource for the device is not enough.                            
+	         14. gemportError(14)                  -Indicates that gemport has some error.                            
+	         15. sendPktError(15)                  -Indicates that the packet fails to be sent.                            
+	         16. dhcpServerNotFound(16)            -Indicates that the DHCP server cannot be found.
+	         17. dhcpServerDeny(17)                -Indicates that the DHCP server rejects the request.                            
+	         18. getIpTimeout(18)                  -Indicates that the request for IP address is overtime.                            
+	         19. concurrentSmltForbidden(19)       -Indicates that the specified ont does not support concurrent simulations.                            
+	         20. allPingFail(20)                   -Indicates that all ping operations fail.                            
+	         21. partialPingFail(21)               -Indicates that that parts of ping operations fail.                            
+	         22. unknown(22)                       -Indicates that the result is unknown.    
+	        "               
+           	::= { hwOntDhcpSimulateResultEntry 2 }
+          
+         hwOntDhcpSimulateUserIp OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+	        "Indicates the simulation user IP address that is obtained in the ONT DHCP simulation instance.                        
+	        "            
+	        ::= { hwOntDhcpSimulateResultEntry 3 }
+          
+         hwOntDhcpSimulateSubNetMask OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the mask of the simulation user IP address that is obtained in the ONT DHCP simulation instance.
+            "
+            ::= { hwOntDhcpSimulateResultEntry 4 }
+          
+         hwOntDhcpSimulateDhcpServerIp OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the DHCP server IP address in the ONT DHCP simulation instance.  
+            "
+            ::= { hwOntDhcpSimulateResultEntry 5 }
+         
+         hwOntDhcpSimulatePrimaryDnsServerIp OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the IP address of the primary DNS server in the ONT DHCP simulation instance.               
+            "
+            ::= { hwOntDhcpSimulateResultEntry 6 }
+         
+         hwOntDhcpSimulateSecondaryDnsServerIp OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the IP address of the secondary DNS server in the ONT DHCP simulation instance.            
+            "
+            ::= { hwOntDhcpSimulateResultEntry 7 }
+         
+         hwOntDhcpSimulateGatewayIp OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the IP address of the gateway in the ONT DHCP simulation instance.             
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 8 }
+         
+         hwOntDhcpSimulateDefaultGatewayIp OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the IP address of the default gateway in the ONT DHCP simulation instance.            
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 9 }
+         
+         hwOntDhcpSimulateDest1IpAddr OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the destination IP address of the first route in the ONT DHCP simulation instance.               
+            "
+            ::= { hwOntDhcpSimulateResultEntry 10 }
+         
+         hwOntDhcpSimulateDest1MaskAddr OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the mask corresponding to the destination IP address of the first route in the ONT DHCP simulation instance.                 
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 11 }
+         
+         hwOntDhcpSimulateDest1NextHop OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the next hop IP address of the first route in the ONT DHCP simulation instance.             
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 12 }
+         
+         hwOntDhcpSimulateDest2IpAddr OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the destination IP address of the second route in the ONT DHCP simulation instance.        
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 13 }
+         
+         hwOntDhcpSimulateDest2MaskAddr OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the mask corresponding to the destination IP address of the second route in the ONT DHCP simulation instance.           
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 14 }
+         
+         hwOntDhcpSimulateDest2NextHop OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the next hop IP address of the second route in the ONT DHCP simulation instance.                                             
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 15 }
+         
+         hwOntDhcpSimulateDest3IpAddr OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the destination IP address of the third route in the ONT DHCP simulation instance.            
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 16 }
+         
+         hwOntDhcpSimulateDest3MaskAddr OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the mask corresponding to the destination IP address of the third route in the ONT DHCP simulation instance.           
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 17 }
+         
+         hwOntDhcpSimulateDest3NextHop OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the next hop IP address of the third route in the ONT DHCP simulation instance.            
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 18 }
+         
+         hwOntDhcpSimulatePingHost1TotalCount OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the total times of pinging the first host IP address in the ONT DHCP simulation instance.                  
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 19 }
+         
+         hwOntDhcpSimulatePingHost1OkCount OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the times of successfully pinging the first host IP address in the ONT DHCP simulation instance.                  
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 20 }  
+         
+         hwOntDhcpSimulatePingHost2TotalCount OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the total times of pinging the second host IP address in the ONT DHCP simulation instance.      
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 21 }        
+         
+         hwOntDhcpSimulatePingHost2OkCount OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the times of successfully pinging the second host IP address in the ONT DHCP simulation instance.             
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 22 }  
+             
+         hwOntDhcpSimulatePingHost3TotalCount OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the total times of pinging the third host IP address in the ONT DHCP simulation instance.                 
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 23 }  
+         
+         hwOntDhcpSimulatePingHost3OkCount OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the times of successfully pinging the third host IP address in the ONT DHCP simulation instance.                    
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 24 }  
+               
+         hwOntDhcpSimulatePingHost4TotalCount OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the total times of pinging the fourth host IP address in the ONT DHCP simulation instance.                
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 25 }  
+         
+         hwOntDhcpSimulatePingHost4OkCount OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the times of successfully pinging the fourth host IP address in the ONT DHCP simulation instance.                     
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 26 }  
+             
+         hwOntDhcpSimulatePingHost5TotalCount OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the total times of pinging the fifth host IP address in the ONT DHCP simulation instance.               
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 27 }  
+         
+         hwOntDhcpSimulatePingHost5OkCount OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+            "Indicates the times of successfully pinging the fifth host IP address in the ONT DHCP simulation instance.                
+           	"
+            ::= { hwOntDhcpSimulateResultEntry 28 }  
+  
+      hwSimulationCommonTraps OBJECT IDENTIFIER
+           ::= { hwIpdslamSimulation 3 }  
+           
+      hwSimulationCommonTrapsPrefix OBJECT IDENTIFIER
+           ::= { hwSimulationCommonTraps 0 }  
+                 
+      hwDhcpSimulateExtStatusTrap NOTIFICATION-TYPE
+        OBJECTS      { 
+                       hwDhcpSimulateFlowId,
+                       hwDhcpSimulateMacAddress,
+                       hwDhcpSimulateStatus,
+                       hwDhcpSimulateResult 
+                     }
+        STATUS       current
+        DESCRIPTION
+        "This item is mainly used to notify the gateway of the simulation status and result when the simulation is finished. 
+         It mainly includes four items: flow ID, MAC address, simulation status, and simulation result.
+        "
+        ::= { hwSimulationCommonTraps 0 1 }       
+                
+      hwOntDhcpSimulateExtStatusTrap NOTIFICATION-TYPE
+        OBJECTS      { 
+                       hwOntDhcpSimulatePortindex,
+                       hwOntDhcpSimulateOntId,
+                       hwOntDhcpSimulateStatus,
+                       hwOntDhcpSimulateResult 
+                     }
+        STATUS       current
+        DESCRIPTION
+        "This item is mainly used to notify the gateway of the simulation status and result when the simulation is finished. 
+         It mainly includes four items: port ID, ONT ID, simulation status, and simulation result.
+        "
+        ::= { hwSimulationCommonTraps 0 2 }    
+
+
+END

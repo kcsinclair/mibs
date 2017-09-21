@@ -1,0 +1,866 @@
+-- extracted from draft-ietf-adslmib-adsl2-03.txt
+-- at Tue Feb 22 07:10:45 2000
+
+      ADSL2-LINE-MIB DEFINITIONS ::= BEGIN
+
+      IMPORTS
+         BITS, Counter32,
+         Unsigned32,
+         NOTIFICATION-TYPE,
+         MODULE-IDENTITY, Gauge32,
+         OBJECT-TYPE, mib-2                FROM SNMPv2-SMI
+         MODULE-COMPLIANCE, OBJECT-GROUP,
+         NOTIFICATION-GROUP                FROM SNMPv2-CONF
+         TEXTUAL-CONVENTION                FROM SNMPv2-TC
+         PerfCurrentCount,
+         PerfIntervalCount                 FROM PerfHist-TC-MIB
+         AdslPerfCurrDayCount,
+         AdslPerfPrevDayCount,
+         AdslPerfTimeElapsed,
+         AdslLineCodingType			 FROM ADSL-TC-MIB
+         adslLineEntry,
+         adslAtucPerfDataEntry,
+         adslLineConfProfileEntry,
+         adslLineAlarmConfProfileEntry,
+         adslAturPerfDataEntry, adslMIB,
+                                FROM ADSL-LINE-MIB
+         ;
+
+      adsl2MIB MODULE-IDENTITY
+
+      LAST-UPDATED "9905141200Z"
+
+      ORGANIZATION "IETF ADSL MIB Working Group"
+
+      CONTACT-INFO
+            "
+             Faye Ly
+             Copper Mountain Networks
+             Norcal Office
+             2470 Embarcadero Way
+             Palo Alto, CA 94303
+             Tel: +1 650-687-3323
+             E-Mail: faye@coppermountain.com
+
+             Gregory Bathrick
+             AG Communication Systems
+             A Subsidiary of Lucent Technologies
+             2500 W Utopia Rd.
+             Phoenix, AZ 85027 USA
+             Tel: +1 602-582-7679
+             Fax: +1 602-582-7697
+             E-mail: bathricg@agcs.com"
+
+      DESCRIPTION
+             "This MIB Module is a supplement to the ADSL-LINE-MIB [1]."
+             ::= { adslMIB 3 }
+
+          adsl2MibObjects  OBJECT IDENTIFIER ::= { adsl2MIB 1 }
+
+          AdslTransmissionModeType ::= TEXTUAL-CONVENTION
+              STATUS       current
+              DESCRIPTION
+                  "This data type is used as the syntax ADSL line
+   transmission
+                  mode. The transmission mode is defined as:
+                     Bit 01 : Regional Std. (ANSI T1.413)
+                     Bit 02 : Regional Std. (ETSI DTS/TM06006)
+                     Bit 03 : G.992.1 POTS non-overlapped
+                     Bit 04 : G.992.1 POTS overlapped
+                     Bit 05 : G.992.1 ISDN non-overlapped
+                     Bit 06 : G.992.1 ISDN overlapped
+                     Bit 07 : G.992.1 TCM-ISDN non-overlapped
+                     Bit 08 : G.992.1 TCM-ISDN overlapped
+                     Bit 09 : G.992.2 POTS non-overlapped
+                     Bit 10 : G.992.2 POTS overlapped
+                     Bit 11 : G.992.2 with TCM-ISDN non-overlapped
+                     Bit 12 : G.992.2 with TCM-ISDN overlapped
+                  "
+              SYNTAX      BITS {
+                  ansit1413(0),
+                  etsi(1),
+                  a9921potsNonoverlapped(2),
+                  a9921potsoverlapped(3),
+                  a9921isdnnonoverlapped(4),
+                  a9921isdnoverlapped(5),
+                  a9921tcmIsdnNonoverlapped(6),
+                  a9921tcmIsdnOverlapped(7),
+                  a9922potsnonOverlapeed(8),
+                  a9922potsOverlapped(9),
+                  a9922tcmIsdnNonOverlapped(10),
+                  a9922tcmIsdnOverlapped(11)
+              }
+
+            adslLineExtTable   OBJECT-TYPE
+                SYNTAX          SEQUENCE OF AdslLineExtEntry
+                MAX-ACCESS      not-accessible
+                STATUS          current
+                DESCRIPTION
+                    "This table contains ADSL line configuration and
+   monitoring
+                     information not defined in the adslLineTable from
+   the
+                     ADSL-LINE-MIB [1].  This includes the capabilities
+   and
+                     actual ADSL transmission system."
+            ::= { adsl2MibObjects 17 }
+
+            adslLineExtEntry   OBJECT-TYPE
+                SYNTAX          AdslLineExtEntry
+                MAX-ACCESS      not-accessible
+                STATUS          current
+                DESCRIPTION
+                    "An entry extends the adslLineEntry defined in [1].
+   Each
+                     entry corresponds to an ADSL line."
+            AUGMENTS { adslLineEntry }
+            ::= { adslLineExtTable 1 }
+
+            AdslLineExtEntry ::=
+                SEQUENCE {
+                adslLineTransEnabled     INTEGER,
+                adslLineTransAtucCap     AdslTransmissionModeType,
+                adslLineTransAtucCapActual    AdslTransmissionModeType,
+                adslLineTransAturCapActual   AdslTransmissionModeType,
+                adslLineModeCap          INTEGER,
+                adslLineModeActual       INTEGER
+                }
+
+            adslLineTransEnabled OBJECT-TYPE
+                SYNTAX      INTEGER {
+                            yes(1),
+                            no(2)
+                            }
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "This object is used to enable or disable the ADSL
+   Line
+                     Transmission."
+            ::= { adslLineExtEntry 1 }
+
+            adslLineTransAtucCap OBJECT-TYPE
+                SYNTAX      AdslTransmissionModeType
+                MAX-ACCESS  read-write
+                STATUS      current
+                DESCRIPTION
+                    "Specifies the ATU-C Transmission system capability.
+                     This object is used to configure the ATU-C
+   transmission
+                     system capability."
+                REFERENCE "Section 7.3.2 ITU G.997.1 [8]"
+            ::= { adslLineExtEntry 2 }
+
+            adslLineTransAtucCapActual OBJECT-TYPE
+                SYNTAX      AdslTransmissionModeType
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Specifies the actual ATU-C Transmission system
+   capability."
+                REFERENCE "Section 7.3.2 ITU G.997.1 [8]"
+            ::= { adslLineExtEntry 3 }
+
+            adslLineTransAturCapActual OBJECT-TYPE
+                SYNTAX      AdslTransmissionModeType
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Specifies the actual ATU-R Transmission system
+   capability."
+                REFERENCE "Section 7.3.2 ITU G.997.1 [8]"
+            ::= { adslLineExtEntry 4 }
+
+            adslLineModeCap OBJECT-TYPE
+                SYNTAX      INTEGER {
+                            glite(1),          -- G.Lite only
+                            adsl(2),           -- G.DMT only
+                            dual(3)            -- provides both G.Lite
+                                               -- and G.DMT
+                            }
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Specifies the ADSL line operation mode. If the
+   value
+                     of the object is dual(3), this line is capable of
+   running
+                     both ADSL (G.DMT) and G.Lite."
+            ::= { adslLineExtEntry 5 }
+
+            adslLineModeActual OBJECT-TYPE
+                SYNTAX      INTEGER {
+                            glite(1),          -- G.Lite
+                            adsl(2)            -- G.DMT
+                            }
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Specifies the actual ADSL line operation mode."
+            ::= { adslLineExtEntry 6 }
+
+            adslAtucPerfDataExtTable   OBJECT-TYPE
+                SYNTAX          SEQUENCE OF AdslAtucPerfDataExtEntry
+                MAX-ACCESS      not-accessible
+                STATUS          current
+                DESCRIPTION
+                    "This table contains ADSL physical line counters
+   information not defined in the adslAtucPerfDataTable from the ADSL-
+   LINE-MIB [10]."
+            ::= { adsl2MibObjects 18 }
+
+            adslAtucPerfDataExtEntry   OBJECT-TYPE
+                SYNTAX          AdslAtucPerfDataExtEntry
+                MAX-ACCESS      not-accessible
+                STATUS          current
+                DESCRIPTION
+                    "An entry extends the adslAtucPerfDataEntry defined
+   in [10].  Each entry corresponds to an ADSL line."
+            AUGMENTS { adslAtucPerfDataEntry }
+            ::= { adslAtucPerfDataExtTable 1 }
+
+            AdslAtucPerfDataExtEntry ::=
+                SEQUENCE {
+                adslAtucPerfStatFastR            Counter32,
+                adslAtucPerfStatFailedFastR      Counter32,
+                adslAtucPerfStatSesL             Counter32,
+                adslAtucPerfStatUasL             Counter32,
+                adslAtucPerfCurr15MinFastR          PerfCurrentCount,
+                adslAtucPerfCurr15MinFailedFastR    PerfCurrentCount,
+                adslAtucPerfCurr15MinSesL        PerfCurrentCount,
+                adslAtucPerfCurr15MinUasL        PerfCurrentCount,
+                adslAtucPerfCurr1DayFastR        AdslPerfCurrDayCount,
+                adslAtucPerfCurr1DayFailedFastR  AdslPerfCurrDayCount,
+                adslAtucPerfCurr1DaySesL         AdslPerfCurrDayCount,
+                adslAtucPerfCurr1DayUasL         AdslPerfCurrDayCount,
+                adslAtucPerfPrev1DayFastR        AdslPerfPrevDayCount,
+                adslAtucPerfPrev1DayFailedFastR  AdslPerfPrevDayCount,
+                adslAtucPerfPrev1DaySesL         AdslPerfPrevDayCount,
+                adslAtucPerfPrev1DayUasL         AdslPerfPrevDayCount
+            }
+
+            adslAtucPerfStatFastR OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The value of this object indicates the count of
+   fast retrains."
+                REFERENCE "ITU G.997.1 Section 7.4.15.1 [8]"
+            ::= { adslAtucPerfDataExtEntry 1 }
+
+            adslAtucPerfStatFailedFastR OBJECT-TYPE
+                SYNTAX      Counter32
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The value of this object indicates the count of
+   failed fast retrains."
+                REFERENCE "ITU G.997.1 Section 7.4.15.2 [8]"
+            ::= { adslAtucPerfDataExtEntry 2 }
+
+            adslAtucPerfStatSesL OBJECT-TYPE
+                SYNTAX      Counter32
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The value of this object indicates the count of
+   severely errored second-line."
+                REFERENCE "ITU G.997.1 Section 7.2.1.1.7 [8]"
+            ::= { adslAtucPerfDataExtEntry 3 }
+
+            adslAtucPerfStatUasL OBJECT-TYPE
+                SYNTAX      Counter32
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The value of this object indicates the count of
+   unavailable second."
+                REFERENCE "ITU G.997.1 Section 7.2.1.1.9 [8]"
+            ::= { adslAtucPerfDataExtEntry 4 }
+
+            adslAtucPerfCurr15MinFastR OBJECT-TYPE
+                SYNTAX      PerfCurrentCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of seconds in the current 15 minute interval
+                    when there was fast retrains."
+                REFERENCE "ITU G.997.1 Section 7.4.15.1 [8]"
+            ::= { adslAtucPerfDataExtEntry 5 }
+
+            adslAtucPerfCurr15MinFailedFastR   OBJECT-TYPE
+                SYNTAX      PerfCurrentCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of seconds in the current 15 minute interval
+                    when there was failed fast retrains."
+
+                REFERENCE "ITU G.997.1 Section 7.4.15.2 [8]"
+            ::= { adslAtucPerfDataExtEntry 6 }
+
+            adslAtucPerfCurr15MinSesL OBJECT-TYPE
+                SYNTAX      PerfCurrentCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of seconds in the current 15 minute interval
+                    when there was fast retrains."
+                REFERENCE "ITU G.997.1 Section 7.2.1.1.7 [8]"
+            ::= { adslAtucPerfDataExtEntry 7 }
+
+            adslAtucPerfCurr15MinUasL   OBJECT-TYPE
+                SYNTAX      PerfCurrentCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of seconds in the current 15 minute interval
+                    when there was count for unavailable errored
+   seconds."
+                REFERENCE "ITU G.997.1 Section 7.2.1.1.9 [8]"
+            ::= { adslAtucPerfDataExtEntry 8 }
+
+            adslAtucPerfCurr1DayFastR    OBJECT-TYPE
+                SYNTAX      AdslPerfCurrDayCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of the number of seconds when there was fast
+                    retrains during the current day as measured by
+                    adslAtucPerfCurr1DayTimeElapsed."
+                REFERENCE "ITU G.997.1 Section 7.4.15.1 [8]"
+            ::= { adslAtucPerfDataExtEntry 9 }
+
+            adslAtucPerfCurr1DayFailedFastR    OBJECT-TYPE
+                SYNTAX      AdslPerfCurrDayCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of the number of seconds when there was
+   failed
+                    fast retrains during the current day as measured by
+                    adslAtucPerfCurr1DayTimeElapsed."
+
+                REFERENCE "ITU G.997.1 Section 7.4.15.2 [8]"
+            ::= { adslAtucPerfDataExtEntry 10 }
+
+            adslAtucPerfCurr1DaySesL    OBJECT-TYPE
+                SYNTAX      AdslPerfCurrDayCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of the number of seconds when there was
+   Severed
+                    Errored Seconds during the current day as measured
+   by
+                    adslAtucPerfCurr1DayTimeElapsed."
+                REFERENCE "ITU G.997.1 Section 7.2.1.1.7 [8]"
+            ::= { adslAtucPerfDataExtEntry 11 }
+
+            adslAtucPerfCurr1DayUasL    OBJECT-TYPE
+                SYNTAX      AdslPerfCurrDayCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of the number of seconds when there was
+   Unavailable
+                    Errored Seconds during the current day as measured
+   by
+                    adslAtucPerfCurr1DayTimeElapsed."
+                REFERENCE "ITU G.997.1 Section 7.2.1.1.9 [8]"
+            ::= { adslAtucPerfDataExtEntry 12 }
+
+            adslAtucPerfPrev1DayFastR     OBJECT-TYPE
+                SYNTAX      AdslPerfPrevDayCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of seconds in the interval when there was
+                    fast retrains within the most recent previous
+                    1-day period."
+                REFERENCE "ITU G.997.1 Section 7.4.15.1 [8]"
+            ::= { adslAtucPerfDataExtEntry 13 }
+
+            adslAtucPerfPrev1DayFailedFastR OBJECT-TYPE
+                SYNTAX      AdslPerfPrevDayCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of seconds in the interval when there was
+                    failed fast retrains within the most recent previous
+                    1-day period."
+                REFERENCE "ITU G.997.1 Section 7.4.15.2 [8]"
+            ::= { adslAtucPerfDataExtEntry 14 }
+
+            adslAtucPerfPrev1DaySesL     OBJECT-TYPE
+                SYNTAX      AdslPerfPrevDayCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of seconds in the interval when there was
+                    severed errored seconds within the most recent
+   previous
+                    1-day period."
+                REFERENCE "ITU G.997.1 Section 7.2.1.1.7 [8]"
+            ::= { adslAtucPerfDataExtEntry 15 }
+
+            adslAtucPerfPrev1DayUasL OBJECT-TYPE
+                SYNTAX      AdslPerfPrevDayCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of seconds in the interval when there was
+                    unavailable errored seconds within the most recent
+   previous
+                    1-day period."
+                REFERENCE "ITU G.997.1 Section 7.2.1.1.9 [8]"
+            ::= { adslAtucPerfDataExtEntry 16 }
+
+            adslAturPerfDataExtTable   OBJECT-TYPE
+                SYNTAX          SEQUENCE OF AdslAturPerfDataExtEntry
+                MAX-ACCESS      not-accessible
+                STATUS          current
+                DESCRIPTION
+                    "This table contains ADSL physical line counters
+   information not defined in the adslAturPerfDataTable from the ADSL-
+   LINE-MIB [10]."
+            ::= { adsl2MibObjects 19 }
+
+            adslAturPerfDataExtEntry   OBJECT-TYPE
+                SYNTAX          AdslAturPerfDataExtEntry
+                MAX-ACCESS      not-accessible
+                STATUS          current
+                DESCRIPTION
+                    "An entry extends the adslAturPerfDataEntry defined
+   in [10].  Each entry corresponds to an ADSL line."
+            AUGMENTS { adslAturPerfDataEntry }
+            ::= { adslAturPerfDataExtTable 1 }
+
+            AdslAturPerfDataExtEntry ::=
+                SEQUENCE {
+                adslAturPerfStatSesL             Counter32,
+                adslAturPerfStatUasL             Counter32,
+                adslAturPerfCurr15MinSesL        PerfCurrentCount,
+                adslAturPerfCurr15MinUasL        PerfCurrentCount,
+                adslAturPerfCurr1DaySesL         AdslPerfCurrDayCount,
+                adslAturPerfCurr1DayUasL         AdslPerfCurrDayCount,
+                adslAturPerfPrev1DaySesL         AdslPerfPrevDayCount,
+                adslAturPerfPrev1DayUasL         AdslPerfPrevDayCount
+            }
+
+            adslAturPerfStatSesL OBJECT-TYPE
+                SYNTAX      Counter32
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The value of this object indicates the count of
+   severely errored second-line."
+                REFERENCE "ITU G.997.1 Section 7.2.1.1.7 [8]"
+            ::= { adslAturPerfDataExtEntry 1 }
+
+            adslAturPerfStatUasL OBJECT-TYPE
+                SYNTAX      Counter32
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "The value of this object indicates the count of
+   unavailable second."
+                REFERENCE "ITU G.997.1 Section 7.2.1.2.9 [8]"
+            ::= { adslAturPerfDataExtEntry 2 }
+
+
+            adslAturPerfCurr15MinSesL OBJECT-TYPE
+                SYNTAX      PerfCurrentCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of seconds in the current 15 minute interval
+                    when there was Severed Errored Seconds-Line."
+
+                REFERENCE "ITU G.997.1 Section 7.2.1.2.7 [8]"
+            ::= { adslAturPerfDataExtEntry 3 }
+
+            adslAturPerfCurr15MinUasL   OBJECT-TYPE
+                SYNTAX      PerfCurrentCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of seconds in the current 15 minute interval
+                    when there was Unavailable Errored Seconds."
+                REFERENCE "ITU G.997.1 Section 7.2.1.2.9 [8]"
+            ::= { adslAturPerfDataExtEntry 4 }
+
+            adslAturPerfCurr1DaySesL    OBJECT-TYPE
+                SYNTAX      AdslPerfCurrDayCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of the number of seconds when there was
+   Severed
+                    Errored Seconds during the current day as measured
+   by
+                    adslAturPerfCurr1DayTimeElapsed."
+                REFERENCE "ITU G.997.1 Section 7.2.1.2.7 [8]"
+            ::= { adslAturPerfDataExtEntry 5 }
+
+            adslAturPerfCurr1DayUasL    OBJECT-TYPE
+                SYNTAX      AdslPerfCurrDayCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of the number of seconds when there was
+   Unavailable
+                    Errored Seconds during the current day as measured
+   by
+                    adslAturPerfCurr1DayTimeElapsed."
+                REFERENCE "ITU G.997.1 Section 7.2.1.2.9 [8]"
+            ::= { adslAturPerfDataExtEntry 6 }
+
+            adslAturPerfPrev1DaySesL     OBJECT-TYPE
+                SYNTAX      AdslPerfPrevDayCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of seconds in the interval when there was
+                    severed errored second within the most recent
+   previous
+                    1-day period."
+                REFERENCE "ITU G.997.1 Section 7.2.1.2.7 [8]"
+            ::= { adslAturPerfDataExtEntry 7 }
+
+            adslAturPerfPrev1DayUasL OBJECT-TYPE
+                SYNTAX      AdslPerfPrevDayCount
+                UNITS       "seconds"
+                MAX-ACCESS  read-only
+                STATUS      current
+                DESCRIPTION
+                    "Count of seconds in the interval when there was
+                    unavailable errored second within the most recent
+   previous
+                    1-day period."
+                REFERENCE "ITU G.997.1 Section 7.2.1.2.9 [8]"
+            ::= { adslAturPerfDataExtEntry 8 }
+
+            adslConfProfileExtTable   OBJECT-TYPE
+                SYNTAX          SEQUENCE OF AdslConfProfileExtEntry
+                MAX-ACCESS      not-accessible
+                STATUS          current
+                DESCRIPTION
+                    "This table contains ADSL line profile configuration
+                     information not defined in the
+   adslLineConfProfileTable
+                     from the ADSL-LINE-MIB [1].  This includes the line
+   mode."
+            ::= { adsl2MibObjects 20 }
+
+            adslConfProfileExtEntry   OBJECT-TYPE
+                SYNTAX          AdslConfProfileExtEntry
+                MAX-ACCESS      not-accessible
+                STATUS          current
+                DESCRIPTION
+                    "An entry extends the adslLineConfProfileEntry
+   defined in [1].
+                     Each entry corresponds to an ADSL line profile."
+            AUGMENTS { adslLineConfProfileEntry }
+            ::= { adslConfProfileExtTable 1 }
+
+            AdslConfProfileExtEntry ::=
+                SEQUENCE {
+                    adslConfProfileLineType  INTEGER
+                }
+
+            adslConfProfileLineType OBJECT-TYPE
+                SYNTAX      INTEGER {
+                    noChannel (1),        -- no channels exist
+                    fastOnly (2),         -- fast channel exists only
+                    interleavedOnly (3),  -- interleaved channel exists
+                                          -- only
+                    fastOrInterleaved (4),-- either fast or interleaved
+                                          -- channels can exist, but
+                                          -- only one at any time
+                    fastAndInterleaved (5)-- both fast or interleaved
+                                          -- channels exist
+                    }
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "
+                    This object is used to configure the ADSL physical
+   line
+                    mode.  "
+            ::= { adslConfProfileExtEntry 1 }
+
+            adslAlarmConfProfileExtTable   OBJECT-TYPE
+                SYNTAX          SEQUENCE OF AdslAlarmConfProfileExtEntry
+                MAX-ACCESS      not-accessible
+                STATUS          current
+                DESCRIPTION
+                    "This table extends the
+   adslLineAlarmConfProfileTable and
+                     provides threshold parameters for all the counters
+   defined
+                     in this MIB module."
+            ::= { adsl2MibObjects 21 }
+
+            adslAlarmConfProfileExtEntry   OBJECT-TYPE
+                SYNTAX          AdslAlarmConfProfileExtEntry
+                MAX-ACCESS      not-accessible
+                STATUS          current
+                DESCRIPTION
+                    "An entry extends the adslLineAlarmConfProfileTable
+   defined in [10].  Each entry corresponds to an ADSL alarm profile."
+            AUGMENTS { adslLineAlarmConfProfileEntry }
+            ::= { adslAlarmConfProfileExtTable 1 }
+
+            AdslAlarmConfProfileExtEntry ::=
+                SEQUENCE {
+                adslAtucThreshold15MinFailedFastR     Unsigned32,
+                adslAtucThreshold15MinSesL            Unsigned32,
+                adslAtucThreshold15MinUasL            Unsigned32
+
+            }
+
+            adslAtucThreshold15MinFailedFastR   OBJECT-TYPE
+                SYNTAX      Unsigned32
+                UNITS       "seconds"
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "The number of failed retrains encountered by an
+                     ADSL interface within any giving 15 minutes
+   performance
+                     data collection period, which cause the SNMP agent
+                     to send an adslAtucFailedFastRTrap.  One trap will
+   be
+                     sent per interval per interface.  A value '0' will
+                     disable the trap."
+            ::= { adslAlarmConfProfileExtEntry 1 }
+
+            adslAtucThreshold15MinSesL OBJECT-TYPE
+                SYNTAX      Unsigned32
+                UNITS       "seconds"
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "The number of Severed errored seconds encountered
+   by an
+                     ADSL interface withing any giving 15 minutes
+   performance
+                     data collection period, which cause the SNMP agent
+                     to send an adslAtucSesLTrap.  One trap will be
+                     sent per interval per interface.  A value '0' will
+                     disable the trap."
+            ::= { adslAlarmConfProfileExtEntry 2 }
+
+            adslAtucThreshold15MinUasL OBJECT-TYPE
+                SYNTAX      Unsigned32
+                UNITS       "seconds"
+                MAX-ACCESS  read-create
+                STATUS      current
+                DESCRIPTION
+                    "The number of unavailable errored seconds
+   encountered by an
+                     ADSL interface withing any giving 15 minutes
+   performance
+                     data collection period, which cause the SNMP agent
+                     to send an adslAtucUasLThreshTrap.  One trap will
+   be
+                     sent per interval per interface.  A value '0' will
+                     disable the trap."
+            ::= { adslAlarmConfProfileExtEntry 3 }
+
+      -- trap definitions
+
+      adsl2Traps OBJECT IDENTIFIER ::= { adsl2MibObjects 22 }
+
+      adsl2AtucTraps OBJECT IDENTIFIER ::= { adsl2Traps 1 }
+
+            adslAtucFailedFastRThreshTrap      NOTIFICATION-TYPE
+                OBJECTS { adslAtucPerfCurr15MinFailedFastR }
+                STATUS  current
+                DESCRIPTION
+                    "Failed Fast Retrains 15 minutes threshold reached."
+            ::= { adsl2AtucTraps 0 1 }
+
+            adslAtucSesLThreshTrap      NOTIFICATION-TYPE
+                OBJECTS { adslAtucPerfCurr15MinSesL }
+                STATUS  current
+                DESCRIPTION
+                    "Severed errored seconds 15 minutes threshold
+   reached."
+            ::= { adsl2AtucTraps 0 2 }
+
+            adslAtucUasLThreshTrap      NOTIFICATION-TYPE
+                OBJECTS { adslAtucPerfCurr15MinUasL }
+                STATUS  current
+                DESCRIPTION
+                    "Unavailable seconds 15 minutes threshold reached."
+            ::= { adsl2AtucTraps 0 3 }
+
+      -- conformance information
+
+      adsl2Conformance OBJECT IDENTIFIER ::= { adsl2MIB 2 }
+
+      adsl2Groups OBJECT IDENTIFIER ::= { adsl2Conformance 1 }
+      adsl2Compliances OBJECT IDENTIFIER ::= { adsl2Conformance 2 }
+
+            -- ATU-C agent compliance statements
+
+            adsl2LineMibAtucCompliance MODULE-COMPLIANCE
+                STATUS  current
+                DESCRIPTION
+                    "The compliance statement for SNMP entities which
+   manage ADSL ATU-C interfaces."
+
+                MODULE  -- this module
+                MANDATORY-GROUPS
+                   {
+                   adsl2LineGroup,
+                   adsl2LineConfProfileControlGroup,
+                   adsl2LineAlarmConfProfileGroup
+                   }
+
+                GROUP       adsl2AtucPhysPerfRawCounterGroup
+                DESCRIPTION
+                    "This group is optional.  Implementations which
+                     require continuous ATU-C physical event counters
+                     should implement this group."
+
+                GROUP       adsl2AturPhysPerfRawCounterGroup
+                DESCRIPTION
+                    "This group is optional.  Implementations which
+                     require continuous ATU-R physical event counters
+                     should implement this group."
+
+                OBJECT      adslAtucThreshold15MinFailedFastR
+                MIN-ACCESS  read-write
+                DESCRIPTION
+                    "Read-write access is applicable when
+                     static profiles are implemented."
+
+                OBJECT      adslAtucThreshold15MinSesL
+                MIN-ACCESS  read-write
+                DESCRIPTION
+                    "Read-write access is applicable when
+                     static profiles are implemented."
+
+                OBJECT      adslAtucThreshold15MinUasL
+                MIN-ACCESS  read-write
+                DESCRIPTION
+                    "Read-write access is applicable when
+                     static profiles are implemented."
+
+            ::= { adsl2Compliances 1 }
+
+            -- units of conformance
+            adsl2LineGroup    OBJECT-GROUP
+                OBJECTS {
+                    adslLineTransEnabled,
+                    adslLineTransAtucCap,
+                    adslLineTransAtucCapActual,
+                    adslLineTransAturCapActual,
+                    adslLineModeCap,
+                    adslLineModeActual
+                   }
+
+                STATUS     current
+                DESCRIPTION
+                    "A collection of objects providing configuration
+                    information about an ADSL Line."
+            ::= { adsl2Groups 1 }
+
+            adsl2AtucPhysPerfRawCounterGroup OBJECT-GROUP
+                OBJECTS {
+                    adslAtucPerfStatFastR, adslAtucPerfStatFailedFastR,
+                    adslAtucPerfCurr15MinFastR,
+                    adslAtucPerfCurr15MinFailedFastR,
+                    adslAtucPerfCurr1DayFastR,
+                    adslAtucPerfCurr1DayFailedFastR,
+                    adslAtucPerfPrev1DayFastR,
+                    adslAtucPerfPrev1DayFailedFastR,
+                    adslAtucPerfStatSesL, adslAtucPerfStatUasL,
+                    adslAtucPerfCurr15MinSesL,
+   adslAtucPerfCurr15MinUasL,
+                    adslAtucPerfCurr1DaySesL,  adslAtucPerfCurr1DayUasL,
+                    adslAtucPerfPrev1DaySesL,  adslAtucPerfPrev1DayUasL
+                   }
+                STATUS     current
+                DESCRIPTION
+                    "A collection of objects providing raw performance
+                    counts on an ADSL Line (ATU-C end)."
+            ::= { adsl2Groups 2 }
+
+            adsl2AturPhysPerfRawCounterGroup OBJECT-GROUP
+                OBJECTS {
+                    adslAturPerfStatSesL,
+                    adslAturPerfStatUasL,
+                    adslAturPerfCurr15MinSesL,
+                    adslAturPerfCurr15MinUasL,
+                    adslAturPerfCurr1DaySesL,
+                    adslAturPerfCurr1DayUasL,
+                    adslAturPerfPrev1DaySesL,
+                    adslAturPerfPrev1DayUasL
+                   }
+                STATUS     current
+                DESCRIPTION
+                    "A collection of objects providing raw performance
+                    counts on an ADSL Line (ATU-C end)."
+            ::= { adsl2Groups 3 }
+
+            adsl2LineConfProfileControlGroup OBJECT-GROUP
+                OBJECTS {
+                    adslConfProfileLineType
+                   }
+
+                STATUS     current
+                DESCRIPTION
+                    "A collection of objects providing profile
+                    control for the ADSL system."
+            ::= { adsl2Groups 4 }
+
+            adsl2LineAlarmConfProfileGroup OBJECT-GROUP
+                OBJECTS {
+                       adslAtucThreshold15MinFailedFastR,
+                       adslAtucThreshold15MinSesL,
+                       adslAtucThreshold15MinUasL
+                   }
+                STATUS     current
+                DESCRIPTION
+                    "A collection of objects providing alarm profile
+                    control for the ADSL system."
+            ::= { adsl2Groups 5 }
+
+            adsl2NotificationsGroup NOTIFICATION-GROUP
+                NOTIFICATIONS {
+                    adslAtucFailedFastRThreshTrap,
+                    adslAtucSesLThreshTrap,
+                    adslAtucUasLThreshTrap
+                }
+                STATUS        current
+                DESCRIPTION
+                    "The collection of ADSL 2 notifications."
+               ::= { adsl2Groups 6 }
+
+   END

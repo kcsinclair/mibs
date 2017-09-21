@@ -1,0 +1,176 @@
+CADANT-CMTS-NOTIFICATION-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+        OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE
+            FROM SNMPv2-SMI
+        DisplayString
+            FROM SNMPv2-TC
+        trapCounter, trapSeverity
+            FROM CADANT-CMTS-EQUIPMENT-MIB
+        cadNotification
+            FROM CADANT-PRODUCTS-MIB
+        ifIndex, ifAdminStatus, ifOperStatus, ifDescr
+            FROM IF-MIB;
+
+cadNotificationMib MODULE-IDENTITY
+        LAST-UPDATED "201509140000Z" -- Sept 14, 2015
+        ORGANIZATION "Cadant Inc"
+        CONTACT-INFO "Cadant Technical Support "
+
+        DESCRIPTION
+        "This MIB defines object which are NOTIFICATION-TYPE and used to define  
+          the SNMP Traps generated from C4 CMTS."
+
+        REVISION "201509140000Z"
+        DESCRIPTION  "Add cadLinkUp."
+
+        REVISION "200605030000Z"
+        DESCRIPTION  "Add cadIpdrNoPrimaryCollector, cadIpdrStreamingDisabled and
+           cadIpdrReportCycleMissed."
+
+        REVISION "200509280000Z"
+        DESCRIPTION  "Add RIP2 authentication failure."
+
+        REVISION "200303260000Z"
+        DESCRIPTION  "Renamed RADIUS traps so that they can also be used by TACACS+."
+
+        REVISION "200207240000Z"
+        DESCRIPTION  "Inital version. Add AAA/Security related traps."
+
+        ::= { cadNotification 1 }
+
+cadTrapMibObjects OBJECT IDENTIFIER   ::= { cadNotificationMib 1 } 
+cadTraps	   OBJECT IDENTIFIER   ::= { cadTrapMibObjects 0 }
+cadTrapsInfo   OBJECT IDENTIFIER   ::= { cadTrapMibObjects 1 }
+
+securityInfo OBJECT-TYPE
+	SYNTAX DisplayString
+	MAX-ACCESS accessible-for-notify
+	STATUS current
+	DESCRIPTION
+		"The detail security failure information"
+	::= { cadTrapsInfo 1 }
+
+ipdrInfo OBJECT-TYPE
+	SYNTAX DisplayString
+	MAX-ACCESS accessible-for-notify
+	STATUS current
+	DESCRIPTION
+		"The detail IPDR failure information"
+	::= { cadTrapsInfo 2 }
+
+aaaServerUnreachableTrap NOTIFICATION-TYPE
+			 OBJECTS {
+				trapCounter,
+				trapSeverity,
+				securityInfo
+			 }
+             STATUS  current
+             DESCRIPTION
+             "An event to report that the AAA (RADIUS or TACACS+) server is not responding"
+         ::= { cadTraps 1}
+
+aaaServerGroupUnreachableTrap NOTIFICATION-TYPE
+			 OBJECTS {
+				trapCounter,
+				trapSeverity,
+				securityInfo
+			 }
+             STATUS  current
+             DESCRIPTION
+             "An event to report that all the hosts in the AAA (RADIUS or TACACS+) server 
+			 group are not responding"
+         ::= { cadTraps 2}
+
+aaaServerAuthFailTrap NOTIFICATION-TYPE
+			 OBJECTS {
+				trapCounter,
+				trapSeverity,
+				securityInfo
+			 }
+             STATUS  current
+             DESCRIPTION
+             "An event to report that AAA (RADIUS or TACACS+) server rejected the authentication request"
+         ::= { cadTraps 3}
+
+secuLocalAuthFailTrap NOTIFICATION-TYPE
+			 OBJECTS {
+				trapCounter,
+				trapSeverity,
+				securityInfo
+			 }
+             STATUS  current
+             DESCRIPTION
+             "An event to report that local password authentication failed"
+         ::= { cadTraps 4}
+	
+secuLineAuthFailTrap NOTIFICATION-TYPE
+			 OBJECTS {
+				trapCounter,
+				trapSeverity,
+				securityInfo
+			 }
+             STATUS  current
+             DESCRIPTION
+             "An event to report that line password authentication failed"
+         ::= { cadTraps 5 }
+
+rip2AuthFailTrap NOTIFICATION-TYPE
+			 OBJECTS {
+				trapCounter,
+				trapSeverity,
+				securityInfo
+			 }
+             STATUS  current
+             DESCRIPTION
+             "An event to report rip2 authentication failed."
+         ::= { cadTraps 6 }
+
+cadIpdrNoPrimaryCollector NOTIFICATION-TYPE
+			 OBJECTS {
+				trapCounter,
+				trapSeverity,
+				ipdrInfo
+			 }
+             STATUS  current
+             DESCRIPTION
+             "An event to report IPDR Streaming is enabled but there is no primary collector connected."
+         ::= { cadTraps 7 }
+
+cadIpdrStreamingDisabled NOTIFICATION-TYPE
+			 OBJECTS {
+				trapCounter,
+				trapSeverity,
+				ipdrInfo
+			 }
+             STATUS  current
+             DESCRIPTION
+             "An event to report IPDR Streaming function has been turned off."
+         ::= { cadTraps 8 }
+
+cadIpdrReportCycleMissed NOTIFICATION-TYPE
+			 OBJECTS {
+				trapCounter,
+				trapSeverity,
+				ipdrInfo
+			 }
+             STATUS  current
+             DESCRIPTION
+             "An event to report CMTS was not able to start the scheduled IPDR report cycle session on time.
+	      This may be due to system or network load or the lack of primary collector connection."
+         ::= { cadTraps 9 }
+
+cadLinkUp NOTIFICATION-TYPE
+    OBJECTS { ifIndex, ifAdminStatus, ifOperStatus, ifDescr }
+    STATUS  current
+    DESCRIPTION
+            "This is to expand standard linkUp trap to include ifDescr.
+            A linkUp trap signifies that the SNMP entity, acting in an
+            agent role, has detected that the ifOperStatus object for
+            one of its communication links left the down state and
+            transitioned into some other state (but not into the
+            notPresent state).  This other state is indicated by the
+            included value of ifOperStatus."
+    ::= { cadTraps 10 }
+END
+

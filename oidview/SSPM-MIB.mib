@@ -1,0 +1,819 @@
+-- extracted from draft-kalbfleisch-sspmmib-00.txt
+-- at Thu Jul 20 07:08:05 2000
+
+   SSPM-MIB DEFINITIONS ::= BEGIN
+
+      IMPORTS
+
+          MODULE-IDENTITY, OBJECT-TYPE, mib-2,
+          Counter32, Counter64, Integer32, Unsigned32, TimeTicks
+              FROM SNMPv2-SMI
+          TEXTUAL-CONVENTION, DisplayString, DateAndTime, TimeInterval
+              FROM SNMPv2-TC
+          MODULE-COMPLIANCE, OBJECT-GROUP
+              FROM SNMPv2-CONF
+          InetAddressType, InetAddress FROM INET-ADDRESS-MIB
+          InterfaceIndex FROM IF-MIB
+          pmStudyClassID, protocolDirLocalIndex FROM PMCAPS-MIB;
+
+      sspmMIB MODULE-IDENTITY
+          LAST-UPDATED "0007041400Z"
+          ORGANIZATION "Individidual submission"
+          CONTACT-INFO
+              "        Carl W. Kalbfleisch
+
+               Postal: Verio, Inc.
+                       1950 Stemmons Freeway
+                       Suite 2026
+                       Dallas, TX 75207
+                       US
+
+                  Tel: +1 214 853-7339
+                  Fax: +1 214 744-0742
+               E-mail: cwk@verio.net"
+          DESCRIPTION
+              "This SSPM MIB module is applicable to probes
+               implementing Synthetic Source for Perfomance
+               Monitoring fucntions."
+
+             -- revision history
+
+             REVISION    "0007041400Z"
+             DESCRIPTION "Numerous updates."
+
+             REVISION    "0006141400Z"
+             DESCRIPTION "Initial version."
+
+             ::= { mib-2 777 }
+
+   --
+   -- Object Identifier Assignements
+   --
+   sspmMIBObjects       OBJECT IDENTIFIER ::= { sspmMIB 1 }
+   sspmMIBNotifications OBJECT IDENTIFIER ::= { sspmMIB 2 }
+   sspmMIBConformance   OBJECT IDENTIFIER ::= { sspmMIB 3 }
+
+   --
+   -- Textual Conventions
+   --
+   --
+   -- sspmGeneral
+   --
+   sspmGeneral           OBJECT IDENTIFIER ::= { sspmMIBObjects 1 }
+   sspmClockResolution OBJECT-TYPE
+       SYNTAX      Unsigned32
+       MAX-ACCESS  read-only
+       STATUS      current
+       -- UNITS       Microseconds
+       DESCRIPTION
+           "A read only variable indicating the resolution
+            of the measurements possible by this device.
+            Suggest making the units microseconds."
+       ::= { sspmGeneral 1 }
+
+   sspmClockSource OBJECT-TYPE
+       SYNTAX      INTEGER {
+                           other (1),
+                           manual (2),
+                           gps (3),
+                           ntp (4)
+                   }
+       MAX-ACCESS  read-only
+       STATUS      current
+       -- UNITS       MicroSeconds
+       DESCRIPTION
+           "A read only variable indicating the source of the clock.
+            This is provided to allow a user to determine how accurate
+            the timing mechanism is compared with other devices. This
+            is mostly needed for the co-ordination of time values
+            between probes for one-way measurements."
+       ::= { sspmGeneral 2 }
+
+   --
+   -- sspmSource
+   --
+   -- Contains the IP Layer configuration information used by
+   -- Synthetic Sources for Performance Monitoring algorithms.
+   --
+   sspmSource           OBJECT IDENTIFIER ::= { sspmMIBObjects 2 }
+
+   sspmSourceTable OBJECT-TYPE
+       SYNTAX       SEQUENCE OF SspmSourceEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+           ""
+       ::= { sspmSource 1 }
+
+   sspmSourceEntry OBJECT-TYPE
+       SYNTAX      SspmSourceEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+           ""
+       INDEX { pmStudyClassID, protocolDirLocalIndex, sspmSourceInstance }
+       ::= { sspmSourceTable 1}
+
+   SspmSourceEntry ::= SEQUENCE {
+       sspmSourceInstance Integer32,
+       sspmSourceSrc InterfaceIndex,
+       sspmSourceDestAddressType InetAddressType,
+       sspmSourceDestAddress InetAddress,
+       sspmSourcePacketSize UnsignedInteger32,
+       sspmSourcePacketFillType INTEGER,
+       sspmSourcePacketFillValue OCTET STRING,
+       sspmSourceControl TruthValue,
+       sspmSourceTimeOut MicroSeconds,
+       sspmSourceSamplingDistribution INTEGER,
+       sspmSourceFrequency MicroSeconds,
+       sspmSourceTOS BITS,
+       sspmSourceSrcRouteFill OCTET STRING,
+       sspmSourceSourceSrcRouteLength INTEGER,
+       sspmSourceTTL INTEGER,
+       sspmSourceNoFrag INTEGER,
+       sspmSourceOwner OwnerString,
+       sspmSourceStatus RowStatus
+   }
+
+
+   sspmSourceInstance OBJECT-TYPE
+       SYNTAX      Integer32
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "An arbitrary index to differentiate multiple
+            instantiations of the source for a given
+            application."
+        ::= { sspmSourceEntry 1 }
+
+   sspmSourceSrc OBJECT-TYPE
+       SYNTAX      InterfaceIndex
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "ifIndex where the packet should originate from the
+            probe (if it  matters). Zero value indicates it does
+            not matter and the device decides."
+       ::= { sspmSourceEntry 3 }
+
+   sspmSourceDestAddressType OBJECT-TYPE
+       SYNTAX      InetAddressType
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "The type of Internet address by which the destination
+            is accessed."
+       ::= { sspmSourceEntry 4 }
+
+   sspmSourceDestAddress OBJECT-TYPE
+       SYNTAX      InetAddress
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "The Internet address for the destination."
+       ::= { sspmSourceEntry 5 }
+
+   sspmSourcePacketSize OBJECT-TYPE
+       SYNTAX      UnsignedInteger32
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "The size of packet to be transmitted in bytes.
+            Should we bound to a max size?"
+       ::= { sspmSourceEntry 6 }
+
+   sspmSourcePacketFillType OBJECT-TYPE
+       SYNTAX      INTEGER {
+                           random (1),
+                           pattern (2),
+                           url(3)
+                   }
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "Indicates how the packet is filled. 'random' indicates
+            that the packet contains random data patterns. This
+            is probe and implementation dependent. 'pattern'
+            indicates that the pattern defined in the
+            sspmSourcePacketFillValue attribute is used to
+            fill the packet. 'url' indicates that the value
+            of sspmSourcePacketFillValue should contain a URL.
+            The contents of the document at that URL are retrieved
+            and utilized in the packet."
+       ::= { sspmSourceEntry 7 }
+
+   sspmSourcePacketFillValue OBJECT-TYPE
+       SYNTAX      OCTET STRING (0..255)
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "The string value to fill the packet with. If
+            sspmSourcePacketFillType is set to 'pattern' then this
+            pattern is repeated until the packet is
+            sspmSourcePacketSize in bytes. Note that if
+            length of the octet string specified for this
+            value does not divide evenly into the packet
+            size then an incomplete last copy of this data
+            may be copied into the packet. If the value of
+            sspmSourcePacketFillType is set to 'random' then
+            this attribute is unused. If the value of the
+            sspmSourcePacketFillType is set to 'url' then
+            the URL specified in this attribute is retrieved
+            and used by the probe."
+       ::= { sspmSourceEntry 8 }
+
+   sspmSourceControl OBJECT-TYPE
+       SYNTAX      TruthValue
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "When set to Yes this test is enabled. When set to
+            No, it is disabled."
+       ::= { sspmSourceEntry 9 }
+
+   sspmSourceTimeOut OBJECT-TYPE
+       SYNTAX      MicroSeconds
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "Timeout value for the measurement response. If no
+            response is received in the time specified then
+            the test fails."
+       ::= { sspmSourceEntry 10 }
+
+   sspmSourceSamplingDistribution OBJECT-TYPE
+       SYNTAX      INTEGER {
+                            deterministic(1),
+                            random(2)
+                   }
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "When this attbute is set to 'deterministic', then
+            packets are generated at sspmSourceFrequency rate.
+
+            When this attribute is set to 'random' then packets
+            are generated at sspmSourceFrequency rate with
+            interpacket injections times distributes
+            exponentially."
+       ::= { sspmSourceEntry 11 }
+
+   sspmSourceFrequency OBJECT-TYPE
+       SYNTAX      MicroSeconds
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "The inverse of this value is the rate at which packets
+            are generated. Refer to sspmSourceSamplingDistribution."
+       ::= { sspmSourceEntry 12 }
+
+   sspmSourceTOS OBJECT-TYPE
+       SYNTAX      BITS
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "(yes, the whole 8 bit field)"
+       ::= { sspmSourceEntry 13 }
+
+   sspmSourceSrcRouteFill OBJECT-TYPE
+       SYNTAX      OCTET STRING (7..39)
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "In the event that the test should run over a
+            specific route. Intent is to force the route.
+            Series of IP addresses along the path that would be
+            put into the source route option in the IP header.
+            Provide reference to IP Header RFC."
+       ::= { sspmSourceEntry 14 }
+
+   sspmSourceSourceSrcRouteLength OBJECT-TYPE
+       SYNTAX      INTEGER(7..39)
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "In the event that the test should run over a
+            specific route. Intent is to force the route.
+            This attribute specifies the length of data
+            to be copied from the sspmSourceSrcRouteFill."
+       ::= { sspmSourceEntry 15 }
+
+   sspmSourceTTL OBJECT-TYPE
+       SYNTAX      INTEGER(0..255)
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+            "If non-zero specifies the value to place into
+            the TTL field on transmission."
+       ::= { sspmSourceEntry 16 }
+
+
+   sspmSourceNoFrag OBJECT-TYPE
+       SYNTAX      INTEGER {
+                             fragment(1),
+                             noFragment(2)
+                   }
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "'noFragment' indicates that the Don't Fragment Bit should be
+            set on transmission"
+       ::= { sspmSourceEntry 17 }
+
+   sspmSourceOwner OBJECT-TYPE
+       SYNTAX      OwnerString
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "name of the mgmt station who set up the test."
+       ::= { sspmSourceEntry 18 }
+
+   sspmSourceStatus OBJECT-TYPE
+       SYNTAX      RowStatus
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "Status of this test."
+       ::= { sspmSourceEntry 19 }
+
+   --
+   -- sspmLinkLayerExtention
+   --
+   -- Contains additional detailed configuration used by
+   -- some Synthetic Sources for Performance Monitoring
+   -- algorithms at the link layer.
+   --
+   sspmLinkLayerExtention OBJECT IDENTIFIER ::= { sspmMIBObjects 3 }
+
+   sspmLinkLayerExtentionTable OBJECT-TYPE
+       SYNTAX      SEQUENCE OF SspmLinkLayerExtentionEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+           ""
+       ::= { sspmLinkLayerExtention 1 }
+
+   sspmLinkLayerExtentionEntry OBJECT-TYPE
+       SYNTAX      SspmLinkLayerExtentionEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+           ""
+       INDEX { pmStudyClassID, protocolDirLocalIndex, sspmSourceInstance }
+       ::= { sspmLinkLayerExtentionTable 1}
+
+   SspmLinkLayerExtentionEntry ::= SEQUENCE {
+       sspmLinkLayerExtension8021Tagging BITS,
+       sspmLinkLayerStatus RowStatus
+   }
+
+   sspmLinkLayerExtension8021Tagging OBJECT-TYPE
+       SYNTAX      BITS
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "802.1 queue tagging used in bridge environment.
+            16 bit string. 12 bit vlan, 3 bits priority, 1
+            bit may be unused."
+       ::= { sspmLinkLayerExtentionEntry 1 }
+
+   sspmLinkLayerStatus OBJECT-TYPE
+       SYNTAX      RowStatus
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "Status of this test."
+       ::= { sspmLinkLayerExtentionEntry 2 }
+
+   --
+   -- sspmApplLayerExtention
+   --
+   -- Contains additional detailed configuration used by
+   -- some Synthetic Sources for Performance Monitoring
+   -- algorithms at the application Layer.
+   --
+   sspmApplLayerExtention OBJECT IDENTIFIER ::= { sspmMIBObjects 4 }
+   sspmApplLayerExtentionTable OBJECT-TYPE
+       SYNTAX       SEQUENCE OF SspmApplLayerExtentionEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+           ""
+       ::= { sspmApplLayerExtention 1 }
+
+   sspmApplLayerExtentionEntry OBJECT-TYPE
+       SYNTAX      SspmApplLayerExtentionEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+           ""
+       INDEX { pmStudyClassID, protocolDirLocalIndex, sspmSourceInstance }
+       ::= { sspmApplLayerExtentionTable 1}
+
+   SspmApplLayerExtentionEntry ::= SEQUENCE {
+       sspmApplLayerExtentionUsername Utf8Sting,
+       sspmApplLayerExtentionPassword Utf8Sting,
+       sspmApplLayerExtentionParameter Utf8Sting,
+       sspmApplLayerExtentionStatus RowStatus
+   }
+
+   sspmApplLayerExtentionUsername OBJECT-TYPE
+       SYNTAX      Utf8String
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "An optional username used by the application protocol."
+       ::= { sspmApplLayerExtentionEntry 1 }
+
+   sspmApplLayerExtentionPassword OBJECT-TYPE
+       SYNTAX      Utf8String
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "An optional password used by the application protocol."
+       ::= { sspmApplLayerExtentionEntry 2 }
+
+   sspmApplLayerExtentionParameter OBJECT-TYPE
+       SYNTAX      Utf8String
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+            "An optional parameter used by the application protocol.
+            For DNS this would be the hostname or IP. For HTTP,
+            this would be the URL. For nntp this would be the
+            news group. For TCP this would be the port number.
+            For SMTP this would be the recipient (and could
+            assume the message is predefined)."
+       ::= { sspmApplLayerExtentionEntry 3 }
+
+   sspmApplLayerExtentionStatus OBJECT-TYPE
+       SYNTAX      RowStatus
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "Status of this test."
+       ::= { sspmApplLayerExtentionEntry 17 }
+
+   --
+   -- sspmSinkTable
+   --
+   -- Contains attributes for configuration of Synthetic
+   -- Sources for Performance Monitoring sinks. IE
+   -- sinks for receipt of one-way delay measurements.
+   --
+   sspmSink           OBJECT IDENTIFIER ::= { sspmMIBObjects 5 }
+
+   sspmSinkTable OBJECT-TYPE
+       SYNTAX       SEQUENCE OF SspmSinkEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+           ""
+       ::= { sspmSink 1 }
+
+   sspmSinkEntry OBJECT-TYPE
+       SYNTAX      SspmSinkEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+           "NOTE: The index to this table probably needs to be adjusted."
+       INDEX { pmStudyClassID, protocolDirLocalIndex }
+       ::= { sspmSinkTable 1}
+
+   SspmSinkEntry ::= SEQUENCE {
+       sspmSinkSourceAddressType InetAddressType,
+       sspmSinkSourceAddress InetAddress,
+       sspmSinkExpectationRate MicroSeconds,
+       sspmSinkEnable TruthValue,
+       sspmSinkFirstSequenceNumber Integer32,
+       sspmSinkLastSequenceNumber Integer32,
+       sspmSinkLastSequenceInvalid Counter32,
+       sspmSinkStatus RowStatus
+
+   }
+
+   sspmSinkSourceAddressType OBJECT-TYPE
+       SYNTAX      InetAddressType
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "The type of Internet address of the source."
+       ::= { sspmSinkEntry 1 }
+
+   sspmSinkSourceAddress OBJECT-TYPE
+       SYNTAX      InetAddress
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "The Internet address of the source."
+       ::= { sspmSinkEntry 2 }
+
+   sspmSinkExpectationRate OBJECT-TYPE
+       SYNTAX      MicroSeconds
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "The expected rate of packets to arrive."
+       ::= { sspmSinkEntry 3 }
+
+   sspmSinkEnable OBJECT-TYPE
+       SYNTAX      TruthValue
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "Indicates if the sink is enabled or not."
+       ::= { sspmSinkEntry 4 }
+
+   sspmSinkFirstSequenceNumber OBJECT-TYPE
+       SYNTAX      Integer32
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+           "The expected first sequence number of packets."
+       ::= { sspmSinkEntry 5 }
+
+   sspmSinkLastSequenceNumber OBJECT-TYPE
+       SYNTAX      Integer32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "The last sequence number received."
+       ::= { sspmSinkEntry 6 }
+
+   sspmSinkLastSequenceInvalid OBJECT-TYPE
+       SYNTAX      Counter32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "The number of packets that arrived where their
+            sequence number was not one plus the value of
+            sspmSinkLastSequenceNumber."
+       ::= { sspmSinkEntry 7 }
+
+   sspmSinkStatus OBJECT-TYPE
+       SYNTAX       RowStatus
+       MAX-ACCESS  read-create
+       STATUS      current
+       DESCRIPTION
+            "Status of this conceptual row."
+       ::= { sspmSinkEntry 8 }
+
+
+   --
+   -- sspmHistory
+   --
+   -- Defines attributes for capturing raw data history
+   -- statistics.
+   --
+   sspmHistory           OBJECT IDENTIFIER ::= { sspmMIBObjects 6 }
+
+   sspmHistoryMaxSize OBJECT-TYPE
+       SYNTAX      Integer32
+       MAX-ACCESS  read-write
+       STATUS      current
+       -- DEFVAL      1000
+       DESCRIPTION
+           "The maximum size of the sspmHistoryTable. Configuration
+            of what happens when the sspmHistoryTable reaches this
+            number of entries is controlled by the sspmHistoryControl
+            attribute."
+       ::= { sspmHistory 1}
+
+   sspmHistoryControl OBJECT-TYPE
+       SYNTAX      INTEGER {
+                             wrap(1),
+                             stop(2)
+                   }
+       MAX-ACCESS  read-write
+       STATUS      current
+       DESCRIPTION
+           "Controls what happens to the sspmHistoryTable when the
+            sspmHistoryMaxSize number of rows are in that table.
+            Wrap - indicates that the table wraps and old entries
+            are overwritten. Stop - indicates that the entries
+            stop being written to that table."
+       ::= { sspmHistory 2}
+
+   sspmHistoryLastIndex OBJECT-TYPE
+       SYNTAX  OBJECT IDENTIFIER
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+           "The index clause of the last entry written to the
+            sspmHistoryTable."
+       ::= { sspmHistory 3 }
+
+   sspmHistoryTable OBJECT-TYPE
+       SYNTAX       SEQUENCE OF SspmHistoryEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+           ""
+       ::= { sspmHistory 4 }
+
+   sspmHistoryEntry OBJECT-TYPE
+       SYNTAX      SspmHistoryEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+           ""
+       INDEX { sspmHistoryIndex }
+       ::= { sspmHistoryTable 1}
+
+   SspmHistoryEntry ::= SEQUENCE {
+       sspmHistoryIndex Integer32,
+       sspmHistorySrcAddressType  InetAddressType,
+       sspmHistorySrcAddress  InetAddress,
+       sspmHistoryTimeFrame DateAndTime,
+       sspmHistorySendTimeOffset MicroSeconds,
+       sspmHistoryReceiveTimeOffset MicroSeconds,
+       sspmHistorySequenceNumber Integer32
+   }
+
+   sspmHistoryIndex OBJECT-TYPE
+       SYNTAX      Integer32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Aribtrary monotonically increasing index value."
+       ::= { sspmHistoryEntry 1 }
+
+   sspmHistorySrcAddressType OBJECT-TYPE
+       SYNTAX      InetAddressType
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "The type of Internet address where the packet originated from."
+       ::= { sspmHistoryEntry 2 }
+
+   sspmHistorySrcAddress OBJECT-TYPE
+       SYNTAX      InetAddress
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "The Internet address where the packet originated from."
+       ::= { sspmHistoryEntry 3 }
+
+   sspmHistoryTimeFrame OBJECT-TYPE
+       SYNTAX      DateAndTime
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Give a base time for time stamps."
+       ::= { sspmHistoryEntry 4 }
+
+   sspmHistorySendTimeOffset OBJECT-TYPE
+       SYNTAX      MicroSeconds
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "The time offset from sspmHistoryTimeFrame when the packet
+            was transmitted."
+       ::= { sspmHistoryEntry 5 }
+
+   sspmHistoryReceiveTimeOffset OBJECT-TYPE
+       SYNTAX      MicroSeconds
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "Time offset from sspmHistoryTimeFrame when the packet was
+            received at the sink."
+       ::= { sspmHistoryEntry 6 }
+
+   sspmHistorySequenceNumber OBJECT-TYPE
+       SYNTAX      Integer32
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "The sequence number of the packet received."
+       ::= { sspmHistoryEntry 7 }
+
+   --
+   -- Notifications
+   --
+
+
+   --
+   -- Conformance
+   --
+   sspmMIBCompliances OBJECT IDENTIFIER ::= { sspmMIBConformance 1 }
+   sspmMIBGroups      OBJECT IDENTIFIER ::= { sspmMIBConformance 2 }
+
+   --
+   -- Compliance
+   --
+   -- Envision the following:
+   --
+   --  - just SourceGroup
+   --  - Source plus Extention
+   --  - Source, Extention plus History
+   --  - Source, Extention plus Sink
+   --  - Source, Extention, Sink, History
+   --
+
+   --
+   -- Groups
+   --
+   sspmGeneralGroup OBJECT-GROUP
+       OBJECTS {
+       sspmClockResolution,
+       sspmClockSource
+       }
+       STATUS      current
+       DESCRIPTION
+           ""
+       ::= { sspmMIBGroups 1 }
+
+   sspmSourceGroup OBJECT-GROUP
+       OBJECTS {
+       sspmSourceInstance
+       }
+       STATUS      current
+       DESCRIPTION
+           ""
+       ::= { sspmMIBGroups 2 }
+
+   sspmLinkLayerExtentionGroup OBJECT-GROUP
+       OBJECTS {
+       sspmLinkLayerExtension8021Tagging
+       }
+       STATUS      current
+       DESCRIPTION
+           ""
+       ::= { sspmMIBGroups 3 }
+
+   sspmApplLayerExtentionGroup OBJECT-GROUP
+       OBJECTS {
+       sspmApplLayerExtentionUsername,
+       sspmApplLayerExtentionPassword,
+       sspmApplLayerExtentionParameter,
+       sspmApplLayerExtentionStatus
+       }
+       STATUS      current
+       DESCRIPTION
+           ""
+       ::= { sspmMIBGroups 4 }
+
+   sspmSinkGroup OBJECT-GROUP
+       OBJECTS {
+       sspmSinkSourceAddressType,
+       sspmSinkSourceAddress,
+       sspmSinkExpectationRate,
+       sspmSinkEnable,
+       sspmSinkFirstSequenceNumber,
+       sspmSinkLastSequenceNumber,
+       sspmSinkLastSequenceInvalid,
+       sspmSinkStatus
+       }
+       STATUS      current
+       DESCRIPTION
+           ""
+       ::= { sspmMIBGroups 5 }
+
+   sspmHistoryGroup OBJECT-GROUP
+       OBJECTS {
+       sspmHistoryMaxSize,
+       sspmHistoryControl,
+       sspmHistoryLastIndex,
+       sspmHistoryIndex,
+       sspmHistorySrcAddressType,
+       sspmHistorySrcAddress,
+       sspmHistoryTimeFrame,
+       sspmHistorySendTimeOffset,
+       sspmHistoryReceiveTimeOffset,
+       sspmHistorySequenceNumber
+       }
+       STATUS      current
+       DESCRIPTION
+           ""
+       ::= { sspmMIBGroups 6 }
+
+   END
+
+-- 
+--    This document and translations of it may be copied and furnished to
+--    others, and derivative works that comment on or otherwise explain it
+--    or assist in its implementation may be prepared, copied, published
+--    and distributed, in whole or in part, without restriction of any
+--    kind, provided that the above copyright notice and this paragraph are
+--    included on all such copies and derivative works.  However, this
+--    document itself may not be modified in any way, such as by removing
+--    the copyright notice or references to the Internet Society or other
+--    Internet organizations, except as needed for the purpose of
+--    developing Internet standards in which case the procedures for
+--    copyrights defined in the Internet Standards process must be
+--    followed, or as required to translate it into languages other than
+--    English.
+-- 
+--    The limited permissions granted above are perpetual and will not be
+--    revoked by the Internet Society or its successors or assigns.
+-- 
+--    This document and the information contained herein is provided on an
+--    "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING
+--    TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING
+--    BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION
+--    HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
+--    MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+-- 
+-- 
+

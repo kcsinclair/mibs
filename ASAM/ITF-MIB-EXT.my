@@ -1,0 +1,503 @@
+
+-- orig ITF_MIB_EXT
+
+ITF-MIB-EXT DEFINITIONS ::= BEGIN
+
+   IMPORTS OBJECT-TYPE               FROM RFC-1212
+           DisplayString             FROM RFC1213-MIB
+           Counter                   FROM RFC1155-SMI
+           asam                      FROM SYSTEM-MIB
+           ifIndex, InterfaceIndex   FROM ITF-MIB
+           IANAifType                FROM IANAifType-MIB
+           AsamAlarmSeverityType     FROM ALARM-MIB
+           eqptHolderId              FROM ASAM-EQUIP-MIB;
+ 
+   AsamItfSeverityFilterType ::= INTEGER {
+         indeterminate (1), 
+         warning (2),       
+         minor (3),         
+         major (4),         
+         critical (5),      
+         noAlarms (254),    
+         default (255)      
+                            
+      }
+
+   asamItfMIB OBJECT IDENTIFIER ::= { asam 6 }  
+   
+   asamPhyItfOperStatus OBJECT-TYPE
+      SYNTAX OCTET STRING
+      ACCESS read-only
+      STATUS obsolete
+      DESCRIPTION
+         "The bitmap for the operational status of the physical interfaces.
+
+          MAX_PIF: the maximum number of interface per board
+          SLOTS: the number of slots in the system
+
+          Layout: 1..MAX_PIF 1..MAX_PIF ... 1..MAX_PIF
+                  ---------- ----------     ----------
+                       0          1     ...   SLOTS-1
+
+          Up = 1, Down = 0
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     NA           INSRVMOD:    NA
+              RANGE:       NA           DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       This object is not supported."
+      ::= {asamItfMIB 1}
+
+   asamPhyItfBitmap OBJECT-TYPE
+      SYNTAX OCTET STRING
+      ACCESS read-only
+      STATUS obsolete
+      DESCRIPTION
+         "The bitmap for the physical interfaces.
+
+          MAX_PIF: the maximum number of interface per board
+          SLOTS: the number of slots in the system
+
+          Layout: 1..MAX_PIF 1..MAX_PIF ... 1..MAX_PIF
+                  ---------- ----------     ----------
+                       0          1     ...   SLOTS-1
+
+          Present = 1, Not present = 0
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     NA           INSRVMOD:    NA
+              RANGE:       NA           DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       This object is not supported."
+      ::= {asamItfMIB 2}
+
+   asamPhyItfChangeOccurredTrapEnable OBJECT-TYPE
+      SYNTAX INTEGER {
+                enabled(1),
+                disabled(2)
+             }
+      ACCESS read-write
+      STATUS obsolete
+      DESCRIPTION
+         "Boolean indicating wether the changeOccurredTrap should be sent
+          or not. The trap will not be sent if the linkUpDownTrap was already
+          sent (regardless of the value asamChangeOccurredTrapEnable).
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     NA           INSRVMOD:    NA
+              RANGE:       NA           DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       This object is not supported."
+      ::= {asamItfMIB 3}
+
+   asamPhyItfNumberChangeOccurred OBJECT-TYPE
+      SYNTAX Counter
+      ACCESS read-only
+      STATUS mandatory
+      DESCRIPTION
+         "This is a counter indicating the number of state changes of the
+          physical line.
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     NO           INSRVMOD:    NA
+              RANGE:       NA           DEFVALUE:    0
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       NA"
+      ::= {asamItfMIB 4}
+   
+   asamIfExtTable OBJECT-TYPE
+      SYNTAX SEQUENCE OF AsamIfExtEntry
+      ACCESS not-accessible
+      STATUS mandatory
+      DESCRIPTION
+         "An extension to the ifTable defined in ITF-MIB.
+
+          ALCATEL NOTE:
+             TABLESIZE: DEP same size as the ifTable."
+      ::= {asamItfMIB 5}
+   
+   asamIfExtEntry OBJECT-TYPE
+      SYNTAX AsamIfExtEntry
+      ACCESS not-accessible
+      STATUS mandatory
+      DESCRIPTION
+         "An entry containing management information applicable to a
+          particular interface."
+      INDEX { ifIndex }
+      ::= {asamIfExtTable 1}
+   
+   AsamIfExtEntry ::= SEQUENCE {
+      asamIfExtCustomerId             DisplayString,
+      asamIfExtAlmReportingSeverity   AsamItfSeverityFilterType,
+      asamIfExtIfSpecific             OBJECT IDENTIFIER
+   }
+   
+   asamIfExtCustomerId OBJECT-TYPE
+      SYNTAX DisplayString (SIZE (0..64))
+      ACCESS read-write
+      STATUS mandatory
+      DESCRIPTION
+         "A textual string identifying the customer assigned to this
+          interface.  Following strings have a special meaning:
+             'reserved' : the interface is reserved by an operator;
+             'faulty'   : the interface is indicated by an operator
+                          as being faulty;
+             'available': the interface has no customer assigned to it.
+          This object is only supported for physical interfaces.
+
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     YES          INSRVMOD:    YES
+              RANGE:       NA           DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       NA"
+      DEFVAL {"available"}
+      ::= {asamIfExtEntry 1}
+   
+   asamIfExtAlmReportingSeverity OBJECT-TYPE
+      SYNTAX AsamItfSeverityFilterType
+      ACCESS read-write
+      STATUS mandatory
+      DESCRIPTION
+         "This objects specifies for a certain physical interface and all
+          interface above in the interface hierarchy the minimal severity for
+          an alarm to be reported.  If no value is provided for this object,
+          it will obtain the value 'default', which means the actual value is
+          as specified in the asamIfExtAlmReportingSeverityDefaultTable.
+
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     YES          INSRVMOD:    YES
+              RANGE:       NA           DEFVALUE:    'default'
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       NA"
+      ::= {asamIfExtEntry 2}
+
+   asamIfExtIfSpecific OBJECT-TYPE
+      SYNTAX OBJECT IDENTIFIER
+      ACCESS read-only
+      STATUS mandatory
+      DESCRIPTION
+         "A reference to MIB definitions specific to the particular media
+          being used to realize the interface.
+          If no MIB definitions specific to the particular media are
+          available, the value should be set to the OBJECT IDENTIFIER { 0 0 }.
+
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     NO           INSRVMOD:    NA
+              RANGE:       NA           DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       NA"
+      ::= {asamIfExtEntry 3}
+   
+   asamNextAvailablePortType OBJECT-TYPE
+      SYNTAX IANAifType
+      ACCESS read-write
+      STATUS mandatory
+      DESCRIPTION
+         "This object contains the ifType for which the next available
+          physical interface can be retrieved.  Only values of ifType that
+          represent physical interfaces are allowed.
+
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     NO           INSRVMOD:    YES
+              RANGE:       NA           DEFVALUE:    xdslLine
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       NA"
+      ::= {asamItfMIB 6}
+   
+   asamNextAvailablePort OBJECT-TYPE
+      SYNTAX InterfaceIndex
+      ACCESS read-only
+      STATUS mandatory
+      DESCRIPTION
+         "This object gives the next available physical interface for which
+          the ifType is as specified in asamNextAvailablePortType. A physical
+          interface is considered available if its asamIfExtCustomerId has
+          the value 'available' and its internal ASAM state is 'reachable'.
+          If no interface of the desired type is available an error (genErr)
+          is returned when a get-request is issued for this object.
+
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     NO           INSRVMOD:    NA
+              RANGE:       NA           DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       NA"
+      ::= {asamItfMIB 7}
+   
+   asamIfExtAlmReportingSeverityDefaultTable OBJECT-TYPE
+      SYNTAX SEQUENCE OF AsamIfExtAlmReportingSeverityDefaultEntry
+      ACCESS not-accessible
+      STATUS mandatory
+      DESCRIPTION
+         "A table specifying for each of the supported interface types
+          for asamIfExtAlmReportingSeverity its default minimal severity.
+
+          ALCATEL NOTE:
+             TABLESIZE: DEP number of supported interface types."
+      ::= {asamItfMIB 8}
+   
+   asamIfExtAlmReportingSeverityDefaultEntry OBJECT-TYPE
+      SYNTAX AsamIfExtAlmReportingSeverityDefaultEntry
+      ACCESS not-accessible
+      STATUS mandatory
+      DESCRIPTION
+         "An entry of the asamIfExtAlmReportingSeverityDefaultTable. "
+      INDEX { asamIfExtIfType }
+      ::= {asamIfExtAlmReportingSeverityDefaultTable  1}
+   
+   AsamIfExtAlmReportingSeverityDefaultEntry ::= SEQUENCE {
+      asamIfExtIfType                         IANAifType,
+      asamIfExtAlmReportingSeverityDefault    AsamAlarmSeverityType
+   }
+   
+   asamIfExtIfType OBJECT-TYPE
+      SYNTAX IANAifType 
+      ACCESS read-only  
+      STATUS mandatory  
+      DESCRIPTION
+         "The type of the interface.
+
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     NO           INSRVMOD:    NA
+              RANGE:       NA           DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       NA"
+      ::= { asamIfExtAlmReportingSeverityDefaultEntry  1 }
+                   
+   asamIfExtAlmReportingSeverityDefault OBJECT-TYPE
+      SYNTAX AsamAlarmSeverityType
+      ACCESS read-write
+      STATUS mandatory 
+      DESCRIPTION
+         "The default minimal severity for an alarm to be reported that will
+          be used for interfaces of the type specified in asamIfExtIfType.
+
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     NO           INSRVMOD:    YES
+              RANGE:       NA           DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       NA"
+      DEFVAL {major}
+      ::= { asamIfExtAlmReportingSeverityDefaultEntry  2 }
+   
+   asamItfTest OBJECT IDENTIFIER ::= {asamItfMIB 9}
+   
+   asamItfMetallicTestGroup OBJECT IDENTIFIER ::= {asamItfTest 1}
+   
+   asamItfMetallicTestTypes OBJECT IDENTIFIER ::= {asamItfMetallicTestGroup 1}
+   
+   asamItfMetallicTestLimited OBJECT IDENTIFIER ::=
+      {asamItfMetallicTestTypes 1}
+   
+   asamItfMetallicTestTapLooped OBJECT IDENTIFIER ::=
+      {asamItfMetallicTestTypes 2}
+   
+   asamItfMetallicTestMonitor OBJECT IDENTIFIER ::=
+      {asamItfMetallicTestTypes 3}
+   
+   asamItfMetallicTestSplitAccess OBJECT IDENTIFIER ::=
+      {asamItfMetallicTestTypes 4}
+
+   asamItfMetallicTestInwardOnly OBJECT IDENTIFIER ::=
+      {asamItfMetallicTestTypes 5}
+
+   asamItfMetallicTestOutwardOnly OBJECT IDENTIFIER ::=
+      {asamItfMetallicTestTypes 6}
+
+   asamItfMetallicTestResetTimer OBJECT IDENTIFIER ::=
+      {asamItfMetallicTestTypes 7}
+
+   asamItfMetallicTestCodes OBJECT IDENTIFIER ::= {asamItfMetallicTestGroup 2}
+   
+   asamItfLineNotReachable OBJECT IDENTIFIER ::=
+      {asamItfMetallicTestCodes 1}
+   
+   asamItfPreparingMetallicTest OBJECT IDENTIFIER ::=
+      {asamItfMetallicTestCodes 2}
+   
+   asamItfAnotherMetallicTestInProgress OBJECT IDENTIFIER ::=
+      {asamItfMetallicTestCodes 3}
+   
+   asamItfTestAppliqueNotReachable OBJECT IDENTIFIER ::=
+      {asamItfMetallicTestCodes 4}
+   
+   asamItfPotsSplitterNotReachable OBJECT IDENTIFIER ::=
+      {asamItfMetallicTestCodes 5}
+
+   asamItfWcapNotReachable OBJECT IDENTIFIER ::=
+      {asamItfMetallicTestCodes 6}
+
+   asamItfLineBusy OBJECT IDENTIFIER ::=
+      {asamItfMetallicTestCodes 7}
+
+   asamItfLineAdminOperAbnormal OBJECT IDENTIFIER ::=
+      {asamItfMetallicTestCodes 8}
+
+   asamItfLineAnotherLineTestInProgress OBJECT IDENTIFIER ::=
+      {asamItfMetallicTestCodes 9}
+   
+   asamItfTestNotPossible OBJECT IDENTIFIER ::=
+      {asamItfMetallicTestCodes 10}
+
+   asamShelfPhyItfSummaryTable OBJECT-TYPE
+      SYNTAX SEQUENCE OF AsamShelfPhyItfSummaryEntry
+      ACCESS not-accessible
+      STATUS mandatory
+      DESCRIPTION
+         "Shelf summary table, summarizing status information of physical
+          interfaces of boards which can be equipped within the
+          corresponding shelf.
+
+          ALCATEL NOTE:
+             TABLESIZE: DEP number of shelves."
+      ::= { asamItfMIB 10 }
+   
+   asamShelfPhyItfSummaryEntry OBJECT-TYPE
+      SYNTAX AsamShelfPhyItfSummaryEntry
+      ACCESS not-accessible
+      STATUS mandatory
+      DESCRIPTION
+         "An entry of the shelf physical interface summary table. "
+      INDEX { eqptHolderId }
+      ::= { asamShelfPhyItfSummaryTable 1 }
+   
+   AsamShelfPhyItfSummaryEntry ::= SEQUENCE {
+      asamShelfPhyItfNumberChangeOccurred Counter,
+      asamShelfPhyItfOperStatus           OCTET STRING,
+      asamShelfPhyItfBitmap               OCTET STRING
+   }
+   
+   asamShelfPhyItfNumberChangeOccurred OBJECT-TYPE
+      SYNTAX Counter
+      ACCESS read-only
+      STATUS mandatory
+      DESCRIPTION
+         "This is a counter indicating the number of state changes
+          of physical lines, equipped on boards within this shelf.
+
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     NO           INSRVMOD:    NA
+              RANGE:       NA           DEFVALUE:    0
+              UNITS:       state change SPARSE:      NA
+              DESCR:       NA"
+      ::= { asamShelfPhyItfSummaryEntry 1 }
+   
+   asamShelfPhyItfOperStatus OBJECT-TYPE
+      SYNTAX OCTET STRING
+      ACCESS read-only
+      STATUS mandatory
+      DESCRIPTION
+         "The bitmap for the operational status of the physical interfaces
+          of boards which can be equipped within this shelf.
+
+          MAX_PIF: the maximum number of physical interfaces per board
+                   (lines + IMA).
+          SLOTS: the maximum number of slots within a shelf
+
+          Layout: 1..MAX_PIF 1..MAX_PIF ... 1..MAX_PIF
+                  ---------- ----------     ----------
+                       0          1     ...   SLOTS-1
+
+          Up = 1, Down = 0.
+
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     NO           INSRVMOD:    NA
+              RANGE:       DEP: #slots*#interfaces per board
+              DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       NA"
+      ::= { asamShelfPhyItfSummaryEntry 2 }
+   
+   asamShelfPhyItfBitmap OBJECT-TYPE
+      SYNTAX OCTET STRING
+      ACCESS read-only
+      STATUS mandatory
+      DESCRIPTION
+         "The bitmap for the presence of the physical interfaces of boards
+          which can be equipped within this shelf.
+
+          MAX_PIF: the maximum number of physical interfaces per board
+                   (lines + IMA).
+          SLOTS: the maximum number of slots within a shelf
+
+          Layout: 1..MAX_PIF 1..MAX_PIF ... 1..MAX_PIF
+                  ---------- ----------     ----------
+                       0          1     ...   SLOTS-1
+
+          Present = 1, Not present = 0.
+
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     NO           INSRVMOD:    NA
+              RANGE:       DEP: #slots*#interfaces per board
+              DEFVALUE:    NA
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       NA"
+      ::= { asamShelfPhyItfSummaryEntry 3 }
+
+   asamLluTable OBJECT-TYPE
+      SYNTAX SEQUENCE OF AsamLluEntry
+      ACCESS not-accessible
+      STATUS mandatory
+      DESCRIPTION  
+         "The Local Loop Unbundling Table.
+
+          ALCATEL NOTE:
+              TABLESIZE: DEP same size as the ifTable"
+     ::= {asamItfMIB 11}
+
+   asamLluEntry OBJECT-TYPE
+      SYNTAX AsamLluEntry
+      ACCESS not-accessible
+      STATUS mandatory
+      DESCRIPTION  
+            "An entry in the asamLluTable.There will be an entry
+             for each physical interface line if the corresponding 
+             board is configured/planned.Operator cannot create an 
+             entry nor delete an entry in this table"
+
+      INDEX { ifIndex }
+      ::= { asamLluTable 1}
+
+   AsamLluEntry ::= SEQUENCE { 
+            asamLluRelayStatus INTEGER
+   }
+
+   asamLluRelayStatus OBJECT-TYPE
+      SYNTAX INTEGER {
+                       enabled (1),
+                       disabled (2) 
+                     }
+      ACCESS read-write
+      STATUS mandatory
+      DESCRIPTION
+           " Handling of relay for Local Loop Unbundling.
+              enable (1), -- enabling LLU relay on the 
+                             particular physical line mentioned 
+                             by Valid physical interface ifIndex.
+                             If LLURelay is enabled, then local 
+                             loop services POTS only. DSL service 
+                             will not be there.
+              disable(2), -- disabling LLU relay on the 
+                             particular physical line mentioned 
+                             by Valid physical interface ifIndex.
+                             If LLURelay  state of a particular 
+                             line is disabled then both POTS and
+                             DSL service are provided.
+          ALCATEL NOTE:
+              ACCESS:      NA           USAGE:       NA
+              PERSIST:     YES          INSRVMOD:    NA
+              RANGE:       NA           DEFVALUE:    disabled
+              UNITS:       NA           SPARSE:      NA
+              DESCR:       NA"
+     ::= {asamLluEntry 1}
+
+END

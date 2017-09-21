@@ -1,0 +1,485 @@
+-- ============================================================================
+-- Copyright (C) 2012 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description:  This mib is used for defining VSQM statistic objects.
+-- Reference:  
+-- Version: V1.04
+-- ============================================================================
+
+
+ HUAWEI-VSQMCBB-MIB DEFINITIONS ::= BEGIN
+      IMPORTS               
+        	MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE, private
+        		FROM SNMPv2-SMI
+        	MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+        		FROM SNMPv2-CONF
+        	TEXTUAL-CONVENTION
+        		FROM SNMPv2-TC
+        	IpAddress,TimeTicks,Counter32,Integer32, Unsigned32
+        		FROM SNMPv2-SMI
+        	RowStatus,DisplayString
+        		FROM SNMPv2-TC
+        	huaweiUtility
+        		FROM HUAWEI-MIB;
+        
+         hwVsqm MODULE-IDENTITY
+                LAST-UPDATED "201201190000Z"
+                ORGANIZATION "Huawei Technologies Co., Ltd."
+                CONTACT-INFO                                        
+                             "Huawei Industrial Base                
+    	                      Bantian, Longgang                     
+    	                      Shenzhen 518129                       
+    	                      People's Republic of China            
+    	                      Website: http://www.huawei.com        
+    	                      Email: support@huawei.com             
+    	                     "                                      
+                DESCRIPTION 
+    	            "
+    	            This mib is used for defining VSQM statistic objects.
+    	            "
+    	            
+                --  Revision history
+                REVISION     "201207200000Z"
+                DESCRIPTION  "V1.04, delete the redundant comments"
+            
+                REVISION     "201201190000Z"
+                DESCRIPTION  "V1.03, revise the description errors"
+                
+                REVISION     "201009010000Z"
+                DESCRIPTION  "V1.02, revise the description errors"
+            
+                REVISION     "201006170000Z"
+                DESCRIPTION  "V1.01, DT MIB standard, modified and fixed spell error"
+                            	            
+                        ::= { huaweiUtility 160 }
+               
+hwVsqmObjects OBJECT IDENTIFIER ::= { hwVsqm 1 }
+
+ --/*hwMonitorThresholdCfgTable*/
+ hwMonitorThresholdCfgTable OBJECT IDENTIFIER ::= {  hwVsqmObjects 1  }
+ 
+   hwMosThreshold OBJECT-TYPE
+     SYNTAX      Integer32(0..50|127)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates Mos Threshold. 
+         0~50 indicate the voice quality. The Mos value is more, the voice quality is better.
+         127 indicate the invalid value.
+         Default: 35
+         Unit: 1/10
+         "
+         -- DEFVAL      { 35 }
+     ::= { hwMonitorThresholdCfgTable 1 }
+ 
+   hwJitterThreshold OBJECT-TYPE
+     SYNTAX      Unsigned32(0..500)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the threshold of network jitter. 
+         Default: 60
+         Unit: millisecond
+         "
+         -- DEFVAL      { 60 }
+     ::= { hwMonitorThresholdCfgTable 2 }
+         
+   hwPacketLossThreshold OBJECT-TYPE
+     SYNTAX      Unsigned32(0..1000)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the threshold of packet loss rate in the network.
+         Default: 50
+         Unit: 1/1000
+         "
+          -- DEFVAL      { 50 }
+     ::= { hwMonitorThresholdCfgTable 3 }
+          
+   hwLoopDelayThreshold OBJECT-TYPE
+     SYNTAX      Unsigned32(0..2000)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the threshold of loop delay.
+         Default: 400 
+         Unit: millisecond
+         "
+         -- DEFVAL      { 400 }
+     ::= { hwMonitorThresholdCfgTable 4 }
+     
+   hwPacketDiscardThreshold OBJECT-TYPE
+     SYNTAX      Unsigned32(0..1000)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates  the threshold of discard packets by JitterBuffer.
+         Default: 1
+         Unit: 1/1000
+         "
+         -- DEFVAL      { 1 }
+     ::= { hwMonitorThresholdCfgTable 5 }
+--/*hwThresholdMonitorCtrlTable*/
+hwThresholdMonitorCtrlTable OBJECT IDENTIFIER ::= {  hwVsqmObjects 2  }
+ 
+   hwThresholdMonitorTime OBJECT-TYPE
+     SYNTAX      Unsigned32(0..10080)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates Threshold Monitor Time. 0 means never time out.
+         Default: 1440
+         Unit: minute
+         "
+       --  DEFVAL      { 1440 }
+     ::= { hwThresholdMonitorCtrlTable 1 }
+ 
+   hwThresholdMonitorResidualTime OBJECT-TYPE
+     SYNTAX      Integer32(-1 | 0..604800)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the residual time of the Threshold Monitor.
+         -1 means the Threshold Monitor is disable.
+         0 means never time out.
+         1~604800: the residual time of the Threshold Monitor. When show, need to change to hour/minute/second.
+         Unit: s
+         "
+     ::= { hwThresholdMonitorCtrlTable 2 }
+     
+   hwThresholdMonitorWorstHistoryAgingTime OBJECT-TYPE
+     SYNTAX      Unsigned32(1..90)
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the aging time of the Threshold Monitor.
+         1~90: the aging time of the Threshold Monitor.
+         Default: 30
+         Unit: day
+         "
+        -- DEFVAL      { 30 }
+     ::= { hwThresholdMonitorCtrlTable 3 }
+         
+   hwThresholdMonitorSwitch OBJECT-TYPE
+     SYNTAX      INTEGER{enable(1), disbale(2)}
+     MAX-ACCESS  read-write
+     STATUS      current
+     DESCRIPTION
+         "
+          Indicates the Threshold Monitor Switch.     
+          Options:      
+          1. enable(1) -enable the Threshold Monitor
+          2. disbale(2) -disable the Threshold Monitor
+         "
+         --DEFVAL      { disable }
+     ::= { hwThresholdMonitorCtrlTable 4 }
+
+--/*hwVsqmWorstHistoryStatisticQueryTable*/
+hwVsqmWorstHistoryStatisticQueryTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF HwVsqmWorstHistoryStatisticQueryEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "
+       This table is used to query VSQM worst history statistic.
+       The indexes of this table are hwVsqmWorstHistoryStatisIfIndex, hwVsqmWorstHistoryStatisSeqNo.
+       "
+     ::= { hwVsqmObjects 3 }
+ 
+   hwVsqmWorstHistoryStatisticQueryEntry OBJECT-TYPE
+     SYNTAX      HwVsqmWorstHistoryStatisticQueryEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "
+       This table is used to query VSQM worst history statistic.
+       The indexes of this entry are hwVsqmWorstHistoryStatisIfIndex, hwVsqmWorstHistoryStatisSeqNo.
+       "
+     INDEX    {  
+               hwVsqmWorstHistoryStatisIfIndex,
+               hwVsqmWorstHistoryStatisSeqNo
+              }
+     ::= { hwVsqmWorstHistoryStatisticQueryTable 1 }
+ 
+     HwVsqmWorstHistoryStatisticQueryEntry ::=
+     SEQUENCE
+     {
+       hwVsqmWorstHistoryStatisIfIndex	Unsigned32,
+       hwVsqmWorstHistoryStatisSeqNo	Unsigned32,
+       hwVsqmWorstHistoryStatisMonitorSecHighSince1970	Unsigned32,
+       hwVsqmWorstHistoryStatisMonitorSecLowSince1970	Unsigned32,
+       hwVsqmWorstHistoryStatisLocalIPAddress	IpAddress,
+       hwVsqmWorstHistoryStatisLocalUdpPort	Unsigned32,
+       hwVsqmWorstHistoryStatisRemoteIPAddress	IpAddress,
+       hwVsqmWorstHistoryStatisRemoteUdpPort	Unsigned32,
+       hwVsqmWorstHistoryStatisTotalRecivePacketNum	Integer32,
+       hwVsqmWorstHistoryStatisTotalSendPacketNum	Integer32,
+       hwVsqmWorstHistoryStatisCurrentLoopDelay	Integer32,
+       hwVsqmWorstHistoryStatisMeanLoopDelay	Integer32,
+       hwVsqmWorstHistoryStatisCurrentJitter	Integer32,
+       hwVsqmWorstHistoryStatisMeanJitter	Integer32,
+       hwVsqmWorstHistoryStatisTotalPacketLossNum	Integer32,
+       hwVsqmWorstHistoryStatisPacketLossRate	Integer32,
+       hwVsqmWorstHistoryStatisLocSysDiscardPktNum     Integer32,
+       hwVsqmWorstHistoryStatisLocDiscardRate          Integer32,
+       hwVsqmWorstHistoryStatisCurrentMosLq	Integer32,
+       hwVsqmWorstHistoryStatisCurrentMosCq	Integer32,
+       hwVsqmWorstHistoryStatisMeanMosCq	Integer32,
+       hwVsqmWorstHistoryStatisRowStatus        RowStatus
+     }
+
+      
+   hwVsqmWorstHistoryStatisIfIndex OBJECT-TYPE
+     SYNTAX      Unsigned32(0..4294967295)
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the shelf/slot/port index.
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 1 }    
+     
+   hwVsqmWorstHistoryStatisSeqNo OBJECT-TYPE
+     SYNTAX      Unsigned32(0..9)
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the VSQM satatistic sequence num.
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 2 }
+
+   hwVsqmWorstHistoryStatisMonitorSecHighSince1970 OBJECT-TYPE
+     SYNTAX      Unsigned32(0..4294967295)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the hight 32 bits of secconds since 1970.
+         MonitorSecHighSince1970 and MonitorSecLowSince1970 all are 0xFFFFFFFF means invalid.         
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 3 }
+
+   hwVsqmWorstHistoryStatisMonitorSecLowSince1970 OBJECT-TYPE
+     SYNTAX      Unsigned32(0..4294967295)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the low 32 bits of secconds since 1970.
+         MonitorSecHighSince1970 and MonitorSecLowSince1970 all are 0xFFFFFFFF means invalid.
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 4 }     
+     
+   hwVsqmWorstHistoryStatisLocalIPAddress OBJECT-TYPE
+     SYNTAX      IpAddress
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the local IP address.
+         255.255.255.255 indicates invalid ip address.
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 5 }
+   hwVsqmWorstHistoryStatisLocalUdpPort OBJECT-TYPE
+     SYNTAX      Unsigned32(0..65535)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the local UDP Port.
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 6 }
+
+   hwVsqmWorstHistoryStatisRemoteIPAddress OBJECT-TYPE
+     SYNTAX      IpAddress
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the remote IP address.
+         255.255.255.255 indicates invalid IP address.
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 7 }
+   hwVsqmWorstHistoryStatisRemoteUdpPort OBJECT-TYPE
+     SYNTAX      Unsigned32(0..65535)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the remote UDP Port.
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 8 }     
+
+   hwVsqmWorstHistoryStatisTotalRecivePacketNum OBJECT-TYPE
+     SYNTAX      Integer32(-1|0..2147483647)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the total receive packet number.
+         -1 indicates the invalid value.
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 9 }
+   hwVsqmWorstHistoryStatisTotalSendPacketNum OBJECT-TYPE
+     SYNTAX      Integer32(-1|0..2147483647)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the total send packet number.
+         -1 indicates the invalid value.
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 10 }
+   hwVsqmWorstHistoryStatisCurrentLoopDelay OBJECT-TYPE
+     SYNTAX      Integer32(-1|0..2147483647)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the current Loop Delay.
+         -1  indicates the invalid value.
+         Unit: millisecond
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 11 } 
+     
+   hwVsqmWorstHistoryStatisMeanLoopDelay OBJECT-TYPE
+     SYNTAX      Integer32(-1|0..2147483647)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the current Loop Delay.
+         -1 indicates the invalid value.
+         Unit: millisecond
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 12 }           
+   hwVsqmWorstHistoryStatisCurrentJitter OBJECT-TYPE
+     SYNTAX      Integer32(-1|0..2147483647)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the current Network Jitter.
+         -1 indicates the invalid value.
+         Unit: millisecond
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 13 }
+
+   hwVsqmWorstHistoryStatisMeanJitter OBJECT-TYPE
+     SYNTAX      Integer32(-1|0..2147483647)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the Mean Network Jitter.
+         -1 indicates the invalid value.
+         Unit: millisecond
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 14 }
+     
+   hwVsqmWorstHistoryStatisTotalPacketLossNum OBJECT-TYPE
+     SYNTAX      Integer32(-1|0..2147483647)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the total Packet Loss Number.
+         -1 indicates the invalid value.
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 15 }
+   hwVsqmWorstHistoryStatisPacketLossRate OBJECT-TYPE
+     SYNTAX      Integer32(-1|0..1000)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the Packet Loss Rate in the interval.
+         -1 indicates the invalid value.
+         Unit: 1/1000
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 16 }
+     
+     hwVsqmWorstHistoryStatisLocSysDiscardPktNum OBJECT-TYPE
+     SYNTAX      Integer32(-1|0..2147483647)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the total discard Packet Loss Number.
+         -1 indicates the invalid value.
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 17 }
+     
+   hwVsqmWorstHistoryStatisLocDiscardRate OBJECT-TYPE
+     SYNTAX      Integer32(-1|0..1000)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the discard Packet Loss Rate in the interval.
+         -1 indicates the invalid value.
+         Unit: 1/1000
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 18 }
+
+   hwVsqmWorstHistoryStatisCurrentMosLq OBJECT-TYPE
+     SYNTAX      Integer32(-1|0..50)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the Mos of listening quality in the interval.
+         -1 indicates the invalid value.
+         Unit: 1/10
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 19 }
+   hwVsqmWorstHistoryStatisCurrentMosCq OBJECT-TYPE
+     SYNTAX      Integer32(-1|0..50)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the Mos of conversational quality in the interval.
+         -1: indicate the invalid value.
+         Unit: 1/10
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 20 }
+
+   hwVsqmWorstHistoryStatisMeanMosCq OBJECT-TYPE
+     SYNTAX      Integer32(-1|0..50)
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "
+         Indicates the Mean Mos of conversational quality in the whole talk.
+         -1: indicate the invalid value.
+         Unit: 1/10
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 21 }  
+     
+   hwVsqmWorstHistoryStatisRowStatus OBJECT-TYPE
+     SYNTAX      RowStatus(-1|1..6)
+     MAX-ACCESS   read-write
+     STATUS      current
+     DESCRIPTION
+         "
+         Currently only destory(6) is valid.
+         1 -active(1)
+         2 -notInService(2)
+         3 -notReady(3)
+         4 -createAndGo(4)
+         5 -createAndWait(5)
+         6 -destory(6)
+         "
+     ::= { hwVsqmWorstHistoryStatisticQueryEntry 22 }           
+--
+
+END

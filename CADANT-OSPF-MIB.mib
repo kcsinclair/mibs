@@ -1,0 +1,181 @@
+CADANT-OSPF-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, Counter32,
+    Gauge32,Integer32, IpAddress                 FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION, TruthValue, RowStatus    FROM SNMPv2-TC
+    MODULE-COMPLIANCE, OBJECT-GROUP              FROM SNMPv2-CONF
+    AreaID, RouterID, Metric, BigMetric, Status,
+    PositiveInteger, HelloRange, UpToMaxAge,
+    DesignatedRouterPriority, TOSType            FROM OSPF-MIB
+    InterfaceIndexOrZero                         FROM IF-MIB
+    cadLayer3                                    FROM CADANT-PRODUCTS-MIB
+    cadVrIndex                                   FROM CADANT-VIRTUAL-ROUTER-MIB;
+
+--  This MIB module uses the extended OBJECT-TYPE macro as
+--  defined in [9].
+
+cadOspf MODULE-IDENTITY
+    LAST-UPDATED "200411180000Z"
+    ORGANIZATION "Arris International"
+    CONTACT-INFO
+        "       Support
+        Postal: Arris International
+                4343 Commerce Ct.
+                Lisle, IL 60532
+        Tel:    +1 630 281 3200
+        E-Mail: support@arrisi.com"
+
+    DESCRIPTION
+        "The MIB module to control and report on the Cadant Virtual Router
+         implementation of the OSPF Version 2 Protocol. This MIB mirrors
+         draft-ietf-ospf-mib-update-05."
+    REVISION "200303010000Z"
+    DESCRIPTION
+      "Updated for latest changes to OSPF Version 2"
+    REVISION "200306250000Z"
+    DESCRIPTION
+      "Updated default value of PE router"
+    REVISION "200402130000Z"
+    DESCRIPTION
+      "Updated for OSPF Gracefule Restart"
+    REVISION "200404120000Z"
+    DESCRIPTION
+	"Update some of the default values for graceful restart"
+    REVISION "200406300000Z"
+    DESCRIPTION
+	"Change default value for Grace period"
+    REVISION "200411180000Z"
+    DESCRIPTION
+	"Remove MIB objects that have been replaced by DCL MIB"
+    ::= { cadLayer3 5 }
+
+
+
+--  OSPF Use of the CIDR Route Table
+
+cadOspfRouteGroup           OBJECT IDENTIFIER ::= { cadOspf 13 }
+
+-- The IP Forwarding Table defines a number of objects for use by
+-- the routing protocol to externalize its information.  Most of
+-- the variables (ipForwardDest, ipForwardMask, ipForwardPolicy,
+-- ipForwardNextHop, ipForwardIfIndex, ipForwardType,
+-- ipForwardProto, ipForwardAge, and ipForwardNextHopAS) are
+-- defined there.
+
+-- Those that leave some discretion are defined here.
+
+-- ipCidrRouteProto is, of course, cadOspf (13).
+
+-- ipCidrRouteAge is the time since the route was first calculated,
+-- as opposed to the time since the last SPF run.
+
+-- ipCidrRouteInfo is an OBJECT IDENTIFIER for use by the routing
+-- protocol.  The following values shall be found there depending
+-- on the way the route was calculated.
+
+cadOspfIntraArea      OBJECT IDENTIFIER ::= { cadOspfRouteGroup 1 }
+cadOspfInterArea      OBJECT IDENTIFIER ::= { cadOspfRouteGroup 2 }
+cadOspfExternalType1  OBJECT IDENTIFIER ::= { cadOspfRouteGroup 3 }
+cadOspfExternalType2  OBJECT IDENTIFIER ::= { cadOspfRouteGroup 4 }
+
+-- ipCidrRouteMetric1 is, by definition, the primary routing
+-- metric.  Therefore, it should be the metric that route
+-- selection is based on.  For intra-area and inter-area routes,
+-- it is an OSPF metric.  For External Type 1 (comparable value)
+-- routes, it is an OSPF metric plus the External Metric.  For
+-- external Type 2 (non-comparable value) routes, it is the
+-- external metric.
+
+-- ipCidrRouteMetric2 is, by definition, a secondary routing
+-- metric.  Therefore, it should be the metric that breaks a tie
+-- among routes having equal metric1 values and the same
+-- calculation rule.  For intra-area, inter-area routes, and
+-- External Type 1 (comparable value) routes, it is unused.  For
+-- external Type 2 (non-comparable value) routes, it is the metric
+-- to the AS border router.
+
+-- ipCidrRouteMetric3, ipCidrRouteMetric4, and ipCidrRouteMetric5 are
+-- unused.
+
+------------------------------------------------------------------------
+-- cadOspfNetworkEnableTable 
+-- This table is used so that the config information can be persistant
+--
+cadOspfNetworkEnableTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CadOspfNetworkEnableEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+           ""
+    ::= { cadOspf 20 }
+
+cadOspfNetworkEnableEntry OBJECT-TYPE
+    SYNTAX      CadOspfNetworkEnableEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+           ""
+    INDEX { cadVrIndex, cadOspfNetworkEnableIpaddress, cadOspfNetworkEnableWildcard }
+    ::= { cadOspfNetworkEnableTable  1 }
+
+CadOspfNetworkEnableEntry ::=
+    SEQUENCE {
+        cadOspfNetworkEnableIpaddress           IpAddress,
+        cadOspfNetworkEnableWildcard        	IpAddress,
+        cadOspfNetworkEnableAreaId      	AreaID,
+        cadOspfNetworkEnableRowStatus      	RowStatus
+    }
+
+cadOspfNetworkEnableIpaddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           ""
+    REFERENCE
+          ""
+    ::= { cadOspfNetworkEnableEntry 1 }
+
+cadOspfNetworkEnableWildcard OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           ""
+    REFERENCE
+          ""
+    ::= { cadOspfNetworkEnableEntry 2 }
+
+cadOspfNetworkEnableAreaId OBJECT-TYPE
+    SYNTAX      AreaID
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+           ""
+    REFERENCE
+          ""
+    ::= { cadOspfNetworkEnableEntry 3 }
+
+cadOspfNetworkEnableRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+           ""
+    REFERENCE
+          ""
+    ::= { cadOspfNetworkEnableEntry 4 }
+
+-- conformance information
+
+cadOspfConformance OBJECT IDENTIFIER ::= { cadOspf 15 }
+
+cadOspfGroups      OBJECT IDENTIFIER ::= { cadOspfConformance 1 }
+cadOspfCompliances OBJECT IDENTIFIER ::= { cadOspfConformance 2 }
+
+-- compliance statements
+
+-- units of conformance
+
+END

@@ -1,0 +1,2464 @@
+-- ============================================================================
+-- Copyright (C) 2012 by  HUAWEI TECHNOLOGIES. All rights reserved. 
+-- Description: The MIB is used for configuring ACL rules.An access control list (ACL) 
+--              is used to filter the specified data packets according to a series of 
+--              matching rules configured in the ACL packets so that undesired data 
+--              packets can be identified. By using the matching rules, network devices 
+--              can permit or deny the matching data packets to pass. 
+-- Reference:   
+-- Version:     V3.25
+-- ============================================================================
+
+
+    HUAWEI-ACL-MIB DEFINITIONS ::= BEGIN
+ 
+        IMPORTS
+            huaweiMgmt            
+                FROM HUAWEI-MIB            
+            IpAddress, Integer32, Unsigned32, Counter32, OBJECT-TYPE, MODULE-IDENTITY,NOTIFICATION-TYPE            
+                FROM SNMPv2-SMI          
+            RowStatus, TruthValue, MacAddress            
+                FROM SNMPv2-TC;
+    
+            hwAcl MODULE-IDENTITY 
+            LAST-UPDATED "201202100000Z"        
+            ORGANIZATION 
+                "Huawei Technologies Co., Ltd."
+            CONTACT-INFO 
+                "Huawei Industrial Base
+                 Bantian, Longgang
+                 Shenzhen 518129
+                 People's Republic of China
+                 Website: http://www.huawei.com
+                 Email: support@huawei.com
+                "
+            DESCRIPTION 
+                "The MIB is used for configuring ACL rules. An access control list (ACL)
+                 is used to filter the specified data packets according to a series of 
+                 matching rules configured in the ACL packets so that undesired data 
+                 packets can be identified. By using the matching rules, network devices 
+                 can permit or deny the matching data packets to pass." 
+            
+            -- Revision history            
+            REVISION    "201202100000Z"
+            DESCRIPTION "V3.25, modified the description of some leaves of hwAclNumGroupTable, hwAclAdvancedRuleTable,
+                         hwAclLinkTable, hwAclUserTable, hwAclActiveTable." 
+
+            REVISION    "201109301200Z"         
+            DESCRIPTION "V3.24, modified the description of hwAclActiveAclIndex."   
+            
+            REVISION    "201109101200Z"         
+            DESCRIPTION "V3.23, modified the description of hwAclActiveTable."     
+                                       
+            REVISION    "201107211200Z"         
+            DESCRIPTION "V3.22, added hwAclNumGroupAclType and hwAclNumGroupAclNumAllocMethod in hwAclNumGroupTable
+                         to allocate the ACL group index automatically."
+
+            REVISION     "201101170000Z"
+            DESCRIPTION  "V3.21, added hwAclActiveIpv6AclNum and hwAclActiveIpv6AclSubitem in hwAclActiveTable, 
+                          modified data type definition and description of hwAclUserFrameType in hwAclUserEntry."
+            
+            REVISION     "201011200000Z"
+            DESCRIPTION  "V3.20, modified the description of hwAclLinkVlanPri and hwAclLinkInnerVlanPri."
+                        
+            REVISION     "201011090000Z"
+            DESCRIPTION  "V3.19, modified the description of some leaves of hwAclNumGroupTable, hwAclBasicRuleTable 
+                          hwAclAdvancedRuleTable, hwAclLinkTable, hwAclUserTable, hwAclActiveTable."
+            
+            REVISION     "201007130000Z"
+            DESCRIPTION  "V3.18, modified description."
+                          
+            REVISION     "201004250000Z"
+            DESCRIPTION  "V3.17, modified the description of all leaves."
+            
+            REVISION     "201003250000Z"
+            DESCRIPTION  "V3.16, modified the description of all leaves."
+                 
+            REVISION     "201002101100Z"
+            DESCRIPTION  "V3.15, modified format of enumerations."     
+               
+            REVISION     "201001181100Z"
+            DESCRIPTION  "V3.14, added hwAclLinkInnerVlanPri and hwAclLinkSrcInnerVlanId in hwAclLinkTable. 
+                         Modified the description of hwAclUserFrameType's value."
+            
+            REVISION     "201001211500Z"
+            DESCRIPTION  "V3.13, cleared compiling warning."
+               
+            REVISION     "200912241100Z"
+            DESCRIPTION  "V3.12, modified datatype definition and description of objects."
+            
+            REVISION     "200912020000Z"
+            DESCRIPTION  "V3.11, added hwAclUserPriority in hwAclUserTable, add hwAclLinkPriority in hwAclLinkTable, 
+                          added hwAclAdvancedPriority in hwAclAdvancedRuleTable, and added hwAclBasicPriority in hwAclBasicRuleTable."   
+                
+            REVISION     "200810230000Z"     
+            DESCRIPTION  "V3.04, added hwAclUserFrameType in hwAclUserEntry."   
+                
+            REVISION     "200803290000Z"
+            DESCRIPTION  "V2.03, modified description of hwAclActiveIfIndex."  
+                 
+            REVISION     "200512130000Z"
+            DESCRIPTION  "V2.00, initial revision."     
+                
+            ::= { huaweiMgmt 1 }
+        
+    
+        -- 1.3.6.1.4.1.2011.5.1.1
+        hwAclMibObjects OBJECT IDENTIFIER ::= { hwAcl 1 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.2
+        hwAclNumGroupTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwAclNumGroupEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Describes the configured ACL rule groups in the system and basic information about each group, 
+                 such as the number of rules, steps, and ACL rule descriptions. 
+                 The index of this table is hwAclNumGroupAclNum.
+                "
+            ::= { hwAclMibObjects 2 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.2.1
+        hwAclNumGroupEntry OBJECT-TYPE
+            SYNTAX HwAclNumGroupEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+               "Describes the configured ACL rule groups in the system and basic information about each group, 
+                such as the number of rules, steps, and ACL rule descriptions. 
+                The index of this entry is hwAclNumGroupAclNum.
+               "
+            INDEX { hwAclNumGroupAclNum }
+            ::= { hwAclNumGroupTable 1 }
+        
+        HwAclNumGroupEntry ::=
+            SEQUENCE { 
+                hwAclNumGroupAclNum
+                    Integer32,
+                hwAclNumGroupMatchOrder
+                    INTEGER,
+                hwAclNumGroupSubitemNum
+                    Counter32,
+                hwAclNumGroupStep
+                    Integer32,
+                hwAclNumGroupDescription
+                    OCTET STRING,
+                hwAclNumGroupCountClear
+                    INTEGER,
+                hwAclNumGroupRowStatus
+                    RowStatus,
+                hwAclNumGroupAclType
+                    INTEGER,
+                hwAclNumGroupAclNumAllocMethod
+                    INTEGER
+             }
+
+        -- 1.3.6.1.4.1.2011.5.1.1.2.1.1
+        hwAclNumGroupAclNum OBJECT-TYPE
+            SYNTAX Integer32 (-1|2000..5999)
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Uniquely identifies an ACL rule group.
+                 Range: 2000-5999, -1 
+                
+                 The ACL rule groups with indexes ranging from 2000 to 2999 are basic ACL rule groups. 
+                 When hwAclBasicRuleTable is used to create basic ACL rules, 
+                 a basic ACL rule group with an index of the specified hwAclBasicAclNum value must be created through hwAclNumGroupTable. 
+                
+                 The ACL rule groups with indexes ranging from 3000 to 3999 are advanced ACL rule groups. 
+                 When hwAclAdvancedRuleTable is used to create advanced ACL rule, 
+                 an advanced ACL rule group with an index of the specified hwAclAdvancedAclNum value must be created through hwAclNumGroupTable. 
+                
+                 The ACL rule groups with indexes ranging from 4000 to 4999 are L2 ACL rule groups.
+                 When hwAclLinkTable is used to create layer 2 ACL rules, 
+                 layer 2 ACL rule group with an index of the specified hwAclLinkAclNum value must be created through hwAclNumGroupTable. 
+                
+                 The ACL rule groups with indexes ranging from 5000 to 5999 are user-defined ACL rule groups.
+                 When hwAclUserTable is used to create user-defined ACL rules, 
+                 a user-defined ACL rule group with an index of the specified hwAclUserAclNum value must be created through hwAclNumGroupTable. 
+                 
+                 The value -1 means to allocate the group index automatically, which is only valid in the set operation.
+                "                
+            ::= { hwAclNumGroupEntry 1 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.2.1.2
+        hwAclNumGroupMatchOrder OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                config(1),
+                auto(2)
+                }
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION                
+                "Indicates the priority order of an ACL rule group. 
+                 Options: 
+                 1. config(1) -the priority order of an ACL rule group is configuration order
+                 2. auto(2)   -the priority order of an ACL rule group is auto
+                 Currently, this leaf is read-only. The value is fixed to config(1), that is, the configuration order. 
+                "
+                ::= { hwAclNumGroupEntry 2 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.2.1.3
+        hwAclNumGroupSubitemNum OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Indicates the number of ACL rules in an ACL rule group. This leaf is read-only. 
+                 The value increases by one when an ACL rule is added to the ACL rule group.
+                "
+            ::= { hwAclNumGroupEntry 3 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.2.1.4
+        hwAclNumGroupStep OBJECT-TYPE
+            SYNTAX Integer32 (1..20)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the step of adding ACL rules to an ACL rule group.
+                 Range: 1-20
+                 When an ACL rule is added and its ID is not specified, the ID of the ACL rule is: step+last ACL rule ID. 
+                 If a user does not enter a value for hwAclNumGroupStep, the system uses the value 5 by default. 
+                "
+            DEFVAL { 5 }
+            ::= { hwAclNumGroupEntry 4 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.2.1.5
+        hwAclNumGroupDescription OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..127))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the description of an ACL rule group. It is used for users to identify different ACL rule groups. 
+                 Up to 127 characters are supported. If hwAclNumGroupDescription is not set, the description is null by default.
+                "
+            ::= { hwAclNumGroupEntry 5 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.2.1.6
+        hwAclNumGroupCountClear OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                cleared(1),
+                nouse(2)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Used for clearing the software statistics of an ACL rule group. 
+                 Options: 
+                 1. cleared(1) -clear the software statistics of an ACL rule group
+                 2. nouse(2)   -indicates no operation           
+                 To clear the software statistics of an ACL rule group, 
+                 set hwAclNumGroupCountClear to cleared(1) and hwAclNumGroupRowStatus to createAndGo(4). 
+                 When this leaf is queried, the value is fixed to cleared(1). 
+                "
+            ::= { hwAclNumGroupEntry 6 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.2.1.7
+        hwAclNumGroupRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the row status. 
+                 Options: 
+                 1. active(1)      -when this leaf is queried, the value is fixed to active(1).
+                 2. createAndGo(4) -create an ACL rule group
+                 3. destroy(6)     -delete an ACL rule group
+                 It is used for creating or deleting an ACL rule group, and clearing the software statistics of an ACL rule group. 
+               
+                 To create an ACL rule group, set hwAclNumGroupRowStatus to createAndGo(4). 
+                 The hwAclNumGroupStep and hwAclNumGroupDescription parameters are optional. 
+                
+                 To delete an ACL rule group, set hwAclNumGroupRowStatus to destroy(6).             
+                 
+                 To clear the software statistics of an ACL rule group, 
+                 set hwAclNumGroupCountClear to cleared(1) and hwAclNumGroupRowStatus to createAndGo(4). 
+                
+                 When this leaf is queried, the value is fixed to active(1). 
+                "
+            ::= { hwAclNumGroupEntry 7 }    
+                 
+       -- 1.3.6.1.4.1.2011.5.1.1.2.1.8
+       hwAclNumGroupAclType OBJECT-TYPE
+           SYNTAX INTEGER
+               {
+               basicAcl(2),
+               advAcl(3),
+               linkAcl(4),
+               userAcl(5)
+               }
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "indicates the type of the ACL group. 
+                Options: 
+                1. basicAcl(2) -Indicates that the type of the ACL group is basic.
+                2. advAcl(3)   -Indicates that the type of the ACL group is advanced. 
+                3. linkAcl(4)  -Indicates that the type of the ACL group is link.
+                4. userAcl(5)  -Indicates that the type of the ACL group is user-defined.   
+               "
+           ::= { hwAclNumGroupEntry 8 }
+           
+       -- 1.3.6.1.4.1.2011.5.1.1.2.1.9
+       hwAclNumGroupAclNumAllocMethod OBJECT-TYPE
+           SYNTAX INTEGER
+               {
+               minFreeId(1),
+               maxFreeId(2)
+               }
+           MAX-ACCESS read-create
+           STATUS current
+           DESCRIPTION
+               "indicates the method of allocating the ACL group index automatically.
+                When this leaf is queried, the value is fixed to minFreeId(1). 
+                Options: 
+                1. minFreeId(1) -means to allocate the ACL group index from the minimal free index.
+                2. maxFreeId(2) -means to allocate the ACL group index from the maximal free index.
+                
+                Default: minFreeId(1)  
+               "
+           ::= { hwAclNumGroupEntry 9 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.4
+        hwAclBasicRuleTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwAclBasicRuleEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Describes the details about a basic ACL rule in a basic ACL rule group, 
+                 including the source IP address, mask, and other attributes of the rule. 
+                
+                 The indexes of this table are hwAclBasicAclNum and hwAclBasicSubitem. 
+                 hwAclBasicAclNum is the ID of a basic ACL rule group. Make sure that the ID is already created in hwAclNumGroupTable.
+                 hwAclBasicSubitem is the ID of a basic ACL rule in the basic ACL rule group. 
+                "
+            ::= { hwAclMibObjects 4 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.4.1
+        hwAclBasicRuleEntry OBJECT-TYPE
+            SYNTAX HwAclBasicRuleEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION                
+                "Describes the details about a basic ACL rule in a basic ACL rule group, 
+                 including the source IP address, mask, and other attributes of the rule. 
+                
+                 The indexes of this entry are hwAclBasicAclNum and hwAclBasicSubitem. 
+                 hwAclBasicAclNum is the ID of a basic ACL rule group. Make sure that the ID is already created in hwAclNumGroupTable.
+                 hwAclBasicSubitem is the ID of a basic ACL rule in the basic ACL rule group. 
+                "
+            INDEX { hwAclBasicAclNum, hwAclBasicSubitem }
+            ::= { hwAclBasicRuleTable 1 }
+                
+        HwAclBasicRuleEntry ::=
+            SEQUENCE { 
+                hwAclBasicAclNum
+                    Integer32,
+                hwAclBasicSubitem
+                    Unsigned32,
+                hwAclBasicAct
+                    INTEGER,
+                hwAclBasicSrcIp
+                    IpAddress,
+                hwAclBasicSrcWild
+                    IpAddress,
+                hwAclBasicTimeRangeIndex
+                    Integer32,
+                hwAclBasicFragments
+                    TruthValue,
+                hwAclBasicLog
+                    TruthValue,
+                hwAclBasicEnable
+                    TruthValue,
+                hwAclBasicCount
+                    Counter32,
+                hwAclBasicCountClear
+                    INTEGER,
+                hwAclBasicRowStatus
+                    RowStatus,  
+                hwAclBasicPriority  
+                    Integer32
+             }
+
+        -- 1.3.6.1.4.1.2011.5.1.1.4.1.1
+        hwAclBasicAclNum OBJECT-TYPE
+            SYNTAX Integer32 (2000..2999)
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Uniquely identifies a basic ACL rule group.
+                 Range: 2000-2999
+                 Make sure that the ID of the ACL rule group is already created in hwAclNumGroupTable. 
+                "
+            ::= { hwAclBasicRuleEntry 1 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.4.1.2
+        hwAclBasicSubitem OBJECT-TYPE
+            SYNTAX Unsigned32 (0..4294967295)
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Describes the ID of a basic ACL rule in the basic ACL rule group, uniquely identifying a basic ACL rule. 
+                 Range: 0-4294967295
+                
+                 In the create operation, if the value is 4294967295, the ID of a basic ACL rule is generated automatically. 
+                 Otherwise, the ID of a basic ACL rule is already created according to the specified value. 
+                 The automatically generated ID of an ACL rule depends on the value of hwAclNumGroupStep, 
+                 which corresponds to a basic ACL rule group in hwAclNumGroupTable. 
+                 The generated ID of an ACL rule equals the last basic ACL rule ID plus the value of hwAclNumGroupStep. 
+                "
+            ::= { hwAclBasicRuleEntry 2 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.4.1.3
+        hwAclBasicAct OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                permit(1),
+                deny(2)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the action of an ACL rule. 
+                 Options: 
+                 1. permit(1) -indicates that the data packets that meet the conditions can pass
+                 2. deny(2)   -indicates that the data packets that meet the conditions are discarded  
+                "
+            ::= { hwAclBasicRuleEntry 3 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.4.1.4
+        hwAclBasicSrcIp OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the source IP address or network segment of data frames that needs to match a basic ACL rule. 
+                 You can set or not set it. If you do not set it, any source IP address matches the basic ACL rule. 
+                "
+            ::= { hwAclBasicRuleEntry 4 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.4.1.5
+        hwAclBasicSrcWild OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION                
+                "Describes the mask of the source IP address or network segment of data frames that needs to match a basic ACL rule. 
+                
+                 To match the basic ACL rule with a subnet, use this parameter. 
+                 The value of this parameter is the inverse mask of the source IP address. 
+                 For example, 0.0.0.255 indicates that the first three bytes of the source IP address are the same as the value of hwAclBasicSrcIp. 
+                
+                 This leaf can be specified or not specified together with hwAclBasicSrcIp. 
+                 If hwAclBasicSrcIp is configured, hwAclBasicSrcWild must be configured. 
+                 This leaf, in the inverse mask mode, together with hwAclBasicSrcIp determines the source IP address segment to be matched. 
+                "
+            ::= { hwAclBasicRuleEntry 5 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.4.1.6
+        hwAclBasicTimeRangeIndex OBJECT-TYPE
+            SYNTAX Integer32 (0..256)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the time range index of a basic ACL rule. 
+                 It is used when the effective time of a basic ACL rule needs to be configured. 
+                 By default, the value is 0, which indicates invalid time. 
+                 The index depends on hwTrngIndex in hwTrngCreateTimerangeTable. 
+                 The value of hwAclBasicTimeRangeIndex must be created in hwTrngCreateTimerangeTable.
+                "
+            DEFVAL { 0 }
+            ::= { hwAclBasicRuleEntry 6 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.4.1.7
+        hwAclBasicFragments OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes whether a basic ACL rule is effective on only non-tail fragment packets.
+                 Options:            
+                 1. true(1)  -indicates that a basic ACL rule is effective on only non-tail fragment packets           
+                 2. false(2) -indicates that a basic ACL rule is effective on only non-fragment packets or tail packets of fragment packets           
+                 Default: false(2)                                     
+                "
+            ::= { hwAclBasicRuleEntry 7 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.4.1.8
+        hwAclBasicLog OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes whether to record the log of a basic ACL rule.
+                 Options:
+                 1. true(1)  -records the log of a basic ACL rule
+                 2. false(2) -does not record the log of a basic ACL rule
+                 Currently, the log record function is not supported, and thus the value of this leaf does not take effect. 
+                "
+            ::= { hwAclBasicRuleEntry 8 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.4.1.9
+        hwAclBasicEnable OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Describes whether a basic ACL rule is valid. 
+                 Options:
+                 1. true(1)  -a basic ACL rule is valid
+                 2. false(2) -a basic ACL rule is invalid
+                 If the basic ACL rule is associated with a time range parameter through hwAclBasicTimeRangeIndex 
+                 and the current time is within the defined time range, the value is true(1), which indicates that the basic ACL rule is valid.                
+                 If the current time is not within the defined time range, the value is false(2), which indicates that the basic ACL rule is invalid. 
+                 If the basic ACL rule is not associated with a time range parameter, the basic ACL rule is valid all the time. 
+                "
+            ::= { hwAclBasicRuleEntry 9 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.4.1.10
+        hwAclBasicCount OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION            
+                "Describes the statistics of packets that match the basic ACL rule.
+                "
+            ::= { hwAclBasicRuleEntry 10 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.4.1.11
+        hwAclBasicCountClear OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                cleared(1),
+                nouse(2)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Clears the statistics of packets that match the basic ACL rule.
+                 Options:
+                 1. cleared(1) -clear the statistics of packets that match the basic ACL rules
+                 2. nouse(2)   -indicates no operation
+                 To clear the statistics of packets that match the basic ACL rules, 
+                 set hwAclBasicCountClear to cleared(1) and hwAclBasicRowStatus to createAndGo(4). 
+                
+                 When this leaf is queried, the value is fixed to cleared(1).
+                "
+            ::= { hwAclBasicRuleEntry 11 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.4.1.12
+        hwAclBasicRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the row status.
+                 Options:
+                 1. active(1)      -when this leaf is queried, the value is fixed to active(1).
+                 2. createAndGo(4) -create a basic ACL rule
+                 3. destroy(6)     -delete a basic ACL rule and clear the packet statistics of a basic ACL rule
+                
+                 It is used for creating or deleting a basic ACL rule and clearing the packet statistics of a basic ACL rule. 
+                 
+                 To create a basic ACL rule, enter hwAclBasicAct and set hwAclBasicRowStatus to createAndGo(4). 
+                 hwAclBasicSrcIp, hwAclBasicSrcWild, hwAclBasicTimeRangeIndex and hwAclBasicFragments are optional.
+                  
+                 To delete a basic ACL rule, set hwAclBasicRowStatus to destroy(6). 
+                 
+                 To clear the packet statistics of a basic ACL rule, you must set hwAclBasicCountClear to cleared(1) 
+                 and hwAclBasicRowStatus to createAndGo(4). 
+                
+                 When this leaf is queried, the value is fixed to active(1).
+                "
+            ::= { hwAclBasicRuleEntry 12 }     
+            
+        -- 1.3.6.1.4.1.2011.5.1.1.4.1.13
+        hwAclBasicPriority OBJECT-TYPE
+            SYNTAX  Integer32 (0..9)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the priority of a basic ACL rule.
+                 Range: 0-9
+                 Default: 0
+                
+                 The priority ascends with the value. 
+                 When multiple rules are matched at the same time, the rule with the highest priority prevails. 
+                
+                 If multiple rules are matched and the priorities are the same, 
+                 software does not manage the rules and the hardware logic determines which priority prevails. 
+                 To prevent such a case, you can set different priorities for the rules. 
+                "
+            ::= { hwAclBasicRuleEntry 13 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5
+        hwAclAdvancedRuleTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwAclAdvancedRuleEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Describes the details about an advanced ACL rule in an advanced ACL rule group.
+                
+                 The indexes of this table are hwAclAdvancedAclNum and hwAclAdvancedSubitem. 
+                 hwAclAdvancedAclNum is the ID of an advanced ACL rule group. Make sure that the ID is already created in hwAclNumGroupTable. 
+                 hwAclAdvancedSubitem is the ID of an advanced ACL rule in the advance ACL rule group.
+                "
+            ::= { hwAclMibObjects 5 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1
+        hwAclAdvancedRuleEntry OBJECT-TYPE
+            SYNTAX HwAclAdvancedRuleEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION                
+                "Describes the details about an advanced ACL rule in an advanced ACL rule group.
+                
+                 The indexes of this entry are hwAclAdvancedAclNum and hwAclAdvancedSubitem. 
+                 hwAclAdvancedAclNum is the ID of an advanced ACL rule group. Make sure that the ID is already created in hwAclNumGroupTable. 
+                 hwAclAdvancedSubitem is the ID of an advanced ACL rule in the advance ACL rule group.
+                "
+            INDEX { hwAclAdvancedAclNum, hwAclAdvancedSubitem }
+            ::= { hwAclAdvancedRuleTable 1 }
+        
+        HwAclAdvancedRuleEntry ::=
+            SEQUENCE { 
+                hwAclAdvancedAclNum
+                    Integer32,
+                hwAclAdvancedSubitem
+                    Unsigned32,
+                hwAclAdvancedAct
+                    INTEGER,
+                hwAclAdvancedProtocol
+                    Integer32,
+                hwAclAdvancedSrcIp
+                    IpAddress,
+                hwAclAdvancedSrcWild
+                    IpAddress,
+                hwAclAdvancedSrcOp
+                    INTEGER,
+                hwAclAdvancedSrcPort1
+                    Integer32,
+                hwAclAdvancedSrcPort2
+                    Integer32,
+                hwAclAdvancedDestIp
+                    IpAddress,
+                hwAclAdvancedDestWild
+                    IpAddress,
+                hwAclAdvancedDestOp
+                    INTEGER,
+                hwAclAdvancedDestPort1
+                    Integer32,
+                hwAclAdvancedDestPort2
+                    Integer32,
+                hwAclAdvancedPrecedence
+                    INTEGER,
+                hwAclAdvancedTos
+                    Integer32,
+                hwAclAdvancedDscp
+                    Integer32,
+                hwAclAdvancedEstablish
+                    TruthValue,
+                hwAclAdvancedTimeRangeIndex
+                    Integer32,
+                hwAclAdvancedIcmpType
+                    Integer32,
+                hwAclAdvancedIcmpCode
+                    Integer32,
+                hwAclAdvancedFragments
+                    TruthValue,
+                hwAclAdvancedLog
+                    TruthValue,
+                hwAclAdvancedEnable
+                    TruthValue,
+                hwAclAdvancedCount
+                    Counter32,
+                hwAclAdvancedCountClear
+                    INTEGER,
+                hwAclAdvancedRowStatus
+                    RowStatus,
+                hwAclAdvancedPriority  
+                    Integer32
+             }
+
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.1
+        hwAclAdvancedAclNum OBJECT-TYPE
+            SYNTAX Integer32 (3000..3999)
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Uniquely identifies an advanced ACL rule group.
+	         Range: 3000-3999
+	         Make sure that the ID of the ACL rule group is already created in hwAclNumGroupTable.
+                "
+            ::= { hwAclAdvancedRuleEntry 1 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.2
+        hwAclAdvancedSubitem OBJECT-TYPE
+            SYNTAX Unsigned32 (0..4294967295)
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Describes the ID of an advanced ACL rule in an advanced ACL rule group, uniquely identifying an advanced ACL rule. 
+                 Range: 0-4294967295
+                
+                 In the create operation, if the value is 4294967295, the ID of an advanced ACL rule is generated automatically.
+                 Otherwise, the ID of an advanced ACL rule is already created according to the specified value. 
+                 The automatically generated ID of an advanced ACL rule depends on the value of hwAclNumGroupStep, 
+                 which corresponds to an advanced ACL rule group in hwAclNumGroupTable. 
+                 The generated ID of an ACL rule last basic ACL rule ID plus the value of hwAclNumGroupStep.
+                "
+            ::= { hwAclAdvancedRuleEntry 2 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.3
+        hwAclAdvancedAct OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                permit(1),
+                deny(2)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the action of an advanced ACL rule. 
+                 Options:
+                 1. permit(1) -indicates that the data packets that meet the conditions can pass
+                 2. deny(2)   -indicates that the data packets that meet the conditions are discarded
+                "
+            ::= { hwAclAdvancedRuleEntry 3 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.4
+        hwAclAdvancedProtocol OBJECT-TYPE
+            SYNTAX Integer32 (0..255)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the protocol of IP packets that matches an advanced ACL rule.
+                 Range: 0-255
+                 Default: 0
+                
+                 If the value is not specified for an advanced ACL rule, the invalid value 0 is obtained in the query operation. 
+                
+                 The common types include: 
+                 TCP: indicates the Transmission Control Protocol with protocol ID 6
+                 UDP: indicates the User Datagram Protocol with protocol ID 17 
+                 ICMP: indicates the Internet Control Message Protocol with protocol ID 1 
+                 GRE: indicates the Generic Routing Encapsulation with protocol ID 47 
+                 IPinIP: indicates the IP in IP Encapsulation with protocol ID 4 
+                "
+            DEFVAL { 0 }
+            ::= { hwAclAdvancedRuleEntry 4 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.5
+        hwAclAdvancedSrcIp OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the source IP address or network segment of data frames that needs to match an advanced ACL rule. 
+                 You can set or not set it. If you do not set it, any source IP address matches the basic ACL rule.
+                "
+            ::= { hwAclAdvancedRuleEntry 5 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.6
+        hwAclAdvancedSrcWild OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the mask of the source IP address or network segment of data frames that needs to match an advanced ACL rule. 
+                
+                 To match an advanced ACL rule with a subnet, use this parameter. 
+                 The value of this parameter is the inverse mask of the source IP address. 
+                 For example, 0.0.0.255 indicates that the first three bytes of the source IP address are the same as the value of hwAclAdvancedSrcIp. 
+                
+                 This leaf can be specified or not specified together with hwAclAdvancedSrcIp. 
+                 If hwAclAdvancedSrcIp is configured, hwAclAdvancedSrcWild must be configured. 
+                 This leaf, in the inverse mask mode, together with hwAclAdvancedSrcIp determines the source IP address segment to be matched.
+                "
+            ::= { hwAclAdvancedRuleEntry 6 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.7
+        hwAclAdvancedSrcOp OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                invalid(0),
+                lt(1),
+                eq(2),
+                gt(3),
+                neq(4),               
+                range(5)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the operation types of comparing packet source ports when the type of hwAclAdvancedProtocol is set to TCP or UDP.
+                 Range: 0-5
+                 Options: 
+                 1. invalid(0) -indicates an invalid field.
+                 2. lt(1)      -indicates '<'
+                 3. eq(2)      -indicates '='
+                 4. gt(3)      -indicates '>'
+                 5. neq(4)     -indicates '!='
+                 6. range(5)   -indicates within the range
+                
+                 Enter hwAclAdvancedSrcPort1 and hwAclAdvancedSrcPort2 for the comparison operation only when range(5) is entered. 
+                 For other values, enter only hwAclAdvancedSrcPort1. 
+                "
+            ::= { hwAclAdvancedRuleEntry 7 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.8
+        hwAclAdvancedSrcPort1 OBJECT-TYPE
+            SYNTAX Integer32 (0..65535|65536)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the operation value of port 1 in the comparison operation types of the source port in hwAclAdvancedSrcOp 
+                 when hwAclAdvancedProtocol is set to TCP or UDP. 
+                 Range: 0-65535, 65536
+                           
+                 For example, when hwAclAdvancedSrcOp is set to eq(2) (=), 
+                 it indicates that the source port ID of matched packets equals to the value of hwAclAdvancedSrcPort1. 
+                
+                 If the value is not specified for an advanced ACL rule, the invalid value 65536 is obtained in the query operation. 
+                
+                 The number in the brackets is the port IDs that are commonly used. 
+                 The port names and meanings of different port names are as follows: 
+                 bgp: Border Gateway Protocol(179) 
+                 chargen: Character generator (19) 
+                 cmd: Remote commands (514) 
+                 daytime: Daytime (13) 
+                 discard: Discard (9) 
+                 domain: Domain Name Service (53) 
+                 echo: Echo (7) 
+                 exec: Exec (512) 
+                 finger: Finger (79) 
+                 ftp: File Transfer Protocol (21) 
+                 ftp-data: FTP data connections (20) 
+                 gopher: Gopher (70) 
+                 hostname: NIC hostname server (101) 
+                 irc: Internet Relay Chat (194) 
+                 klogin: Kerberos login (543) 
+                 kshell: Kerberos shell (544) 
+                 login: Login (rlogin, 513) 
+                 lpd: Printer service (515) 
+                 nntp: Network News Transport Protocol (119) 
+                 pop2: Post Office Protocol v2 (109) 
+                 pop3: Post Office Protocol v3 (110) 
+                 smtp: Simple Mail Transport Protocol (25) 
+                 sunrpc: SUN Remote Procedure Call (111) 
+                 tacacs: TAC Access Control System (49) 
+                 talk: Talk (517) 
+                 telnet: Telnet (23) 
+                 time: Time (37) 
+                 uucp: Unix-to-Unix Copy Program (540) 
+                 whois: Nicname (43) 
+                 www: World Wide Web (HTTP, 80) 
+                "
+            ::= { hwAclAdvancedRuleEntry 8 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.9
+        hwAclAdvancedSrcPort2 OBJECT-TYPE
+            SYNTAX Integer32 (0..65535|65536)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the operation value of port 2 in the comparison operation types of the source port in hwAclAdvancedSrcOp 
+                 when hwAclAdvancedProtocol is set to TCP or UDP. 
+                 Range: 0-65535, 65536
+                
+                 The operation value of port 2 is needed only when hwAclAdvancedSrcOp is set to range(5). 
+                 It is dedicated to describe the upper threshold of ports. 
+                
+                 If the value is not specified for an advanced ACL rule , the invalid value 65536 is obtained in the query operation. 
+                
+                 For the port IDs that are commonly used, port names and meanings of different port names, see the descriptions in hwAclAdvancedSrcPort1. 
+                "
+            ::= { hwAclAdvancedRuleEntry 9 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.10
+        hwAclAdvancedDestIp OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the destination IP address or network segment of data frames that an advanced ACL rule needs to match. 
+                 You can set or not set it. If you do not set it, any destination IP address matches the advanced ACL rule.
+                "
+            ::= { hwAclAdvancedRuleEntry 10 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.11
+        hwAclAdvancedDestWild OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the mask of the destination IP address or network segment of data frames that an advanced ACL rule needs to match. 
+                
+                 To match an advanced ACL rule with a subnet, use this parameter. 
+                 The value of this parameter is the inverse mask of the destination IP address. 
+                 For example, 0.0.0.255 indicates that the first three bytes of the source IP address are the same as the value of hwAclAdvancedDestIp. 
+                
+                 This leaf can be specified or not specified together with hwAclAdvancedDestIp. 
+                 If hwAclAdvancedDestIp is configured, hwAclAdvancedDestWild must be configured. 
+                 This leaf, in the inverse mask mode, together with hwAclAdvancedDestIp, determines the destination IP address segment to be matched. 
+                "
+            ::= { hwAclAdvancedRuleEntry 11 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.12
+        hwAclAdvancedDestOp OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                invalid(0),
+                lt(1),
+                eq(2),
+                gt(3),
+                neq(4),
+                range(5)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the operation type of comparing protocol destination ports when hwAclAdvancedProtocol is set to TCP or UDP.
+                 Ranges: 0-5
+                 Options: 
+                 1. invalid(0) -indicates an invalid field
+                 2. lt(1)      -indicates '<'
+                 3. eq(2)      -indicates '='
+                 4. gt(3)      -indicates '>'
+                 5. neq(4)     -indicates '!='
+                 6. range(5)   -indicates within the range
+                
+                 Enter hwAclAdvancedDestPort1 and hwAclAdvancedDestPort2 for the comparison operation only when range(5) is entered. 
+                 For other values, enter only hwAclAdvancedDestPort1.
+                "
+            ::= { hwAclAdvancedRuleEntry 12 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.13
+        hwAclAdvancedDestPort1 OBJECT-TYPE
+            SYNTAX Integer32 (0..65535|65536)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the operation value of port 1 in the comparison operation types of the destination port in hwAclAdvancedDestOp 
+                 when hwAclAdvancedProtocol is set to TCP or UDP. 
+                 Range: 0-65535, 65536
+                
+                 For example, when hwAclAdvancedDestOp is set to eq(2) (=), 
+                 it indicates that the ID of the destination port that match packets equals to the value of hwAclAdvancedSrcPort1. 
+                
+                 If the value is not specified for an advanced ACL rule, the invalid value 65536 is obtained in the query operation. 
+                 For the port IDs that are commonly used, port names and meanings of different port names, see the descriptions in hwAclAdvancedSrcPort1.
+                "
+            ::= { hwAclAdvancedRuleEntry 13 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.14
+        hwAclAdvancedDestPort2 OBJECT-TYPE
+            SYNTAX Integer32 (0..65535|65536)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the operation value of port 2 in the comparison operation types of the destination port in hwAclAdvancedDestOp 
+                 when hwAclAdvancedProtocol is set to TCP or UDP. 
+                 Range: 0-65535, 65536
+                
+                 The operation value of port 2 is needed only when hwAclAdvancedDestOp is set to range(5). 
+                 It is dedicated to describe the upper threshold of ports. 
+                
+                 If the value is not specified for an advanced ACL rule, the invalid value 65536 is obtained in the query operation. 
+                 For the port IDs that are commonly used, port names and meanings of different port names, see the descriptions in hwAclAdvancedSrcPort1. 
+                "
+            ::= { hwAclAdvancedRuleEntry 14 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.15
+        hwAclAdvancedPrecedence OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                routine(0),
+                priority(1),
+                immediate(2),
+                flash(3),
+                flashOverride(4),
+                critical(5),
+                internet(6),
+                network(7),
+                invalid(255)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION    
+                "Describes the priority field of data frames that an advanced ACL rule needs to match. 
+                 If the value is not specified for an advanced ACL rule, the invalid value 255 is obtained in the query operation. 
+                
+                 The meanings of the values are as follows:
+                 Options: 
+                 1. routine(0)       -routine priority
+                 2. priority(1)      -priority 
+                 3. immediate(2)     -immediate priority
+                 4. flash(3)         -flash priority
+                 5. flashOverride(4) -flash-override priority
+                 6. critical(5)      -critical priority
+                 7. internet(6)      -internetwork control priority
+                 8. network(7)       -network control priority
+                 9. invalid(255)     -invalid field
+                "
+            ::= { hwAclAdvancedRuleEntry 15 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.16
+        hwAclAdvancedTos OBJECT-TYPE
+            SYNTAX Integer32 (0..15|255)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the type of service (ToS) field of data frames that an advanced ACL rule needs to match. 
+                 Range: 0-15, 255
+                
+                 If the value is not specified for an advanced ACL rule, the invalid value 255 is obtained in the query operation. 
+                
+                 The number in the brackets is the ToS value. The meanings of ToS names are as follows: 
+                 normal Normal service (0)
+                 min-monetary-cost: the service with minimum monetary cost (1)
+                 max-reliability: the service with maximum reliability (2)
+                 max-throughput: the service with maximum throughput (4)
+                 min-delay: the service with minimum delay (8)
+                "
+            ::= { hwAclAdvancedRuleEntry 16 }        
+
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.17
+        hwAclAdvancedDscp OBJECT-TYPE
+            SYNTAX Integer32 (0..63|255)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the differentiated services code point (DSCP) value of data frames that an advanced ACL rule needs to match. 
+                 Range: 0-63, 255 
+                
+                 If the value is not specified for an advanced ACL rule, the invalid value 255 is obtained in the query operation. 
+                
+                 The number in the brackets is the DSCP value. The names and meanings of the DSCP names are as follows: 
+                 af1: service of Assured Forwarding 1 (10) 
+                 af2: service of Assured Forwarding 2 (18) 
+                 af3: service of Assured Forwarding 3 (26) 
+                 af4: service of Assured Forwarding 4 (34) 
+                 be: Best Effort service (0) 
+                 cs1: service of Class Seletor 1 (8) 
+                 cs2: service of Class Seletor 2 (16) 
+                 cs3: service of Class Seletor 3 (24) 
+                 cs4: service of Class Seletor 4 (32) 
+                 cs5: service of Class Seletor 5 (40) 
+                 cs6: service of Class Seletor 6 (48) 
+                 cs7: service of Class Seletor 7 (56) 
+                 ef: Expedited Forwarding service (46)
+                "
+            ::= { hwAclAdvancedRuleEntry 17 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.18
+        hwAclAdvancedEstablish OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes whether to match the first SYN packet for TCP connection establishment when hwAclAdvancedProtocol is set to TCP. 
+                 When filter the packets for TCP connection establishment, use this parameter.
+                 Options:
+                 1. true(1)  -indicates matching the first SYN packet for TCP connection establishment
+                 2. false(2) -indicates not matching the first SYN packet for TCP connection establishment
+                 Default: false(2) 
+                "
+            ::= { hwAclAdvancedRuleEntry 18 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.19
+        hwAclAdvancedTimeRangeIndex OBJECT-TYPE
+            SYNTAX Integer32 (0..256)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the time range index of an advanced ACL rule. 
+                 It is used when the effective time of an advanced ACL rule needs to be configured. 
+                
+                 By default, the value is 0, which indicates invalid time. The index depends on hwTrngIndex in hwTrngCreateTimerangeTable. 
+                 The value of hwAclAdvancedTimeRangeIndex must be created in hwTrngCreateTimerangeTable. 
+                "
+            ::= { hwAclAdvancedRuleEntry 19 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.20
+        hwAclAdvancedIcmpType OBJECT-TYPE
+            SYNTAX Integer32 (0..255|256)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the ICMP type when packets are filtered by ICMP type and when hwAclAdvancedProtocol is set to ICMP.
+                 Range: 0-255, 256
+                
+                 If the value is not specified for an advanced ACL rule, the invalid value 256 is obtained in the query operation. 
+                
+                 Type: Indicates the ICMP packet type
+                 Code: Indicates the ICMP code.
+                 The meanings are as follows: 
+                 echo: Type=8, Code=0 
+                 echo-reply: Type=0, Code=0 
+                 fragmentneed-DFset: Type=3, Code=4 
+                 host-redirect: Type=5, Code=1 
+                 host-tos-redirect: Type=5, Code=3 
+                 host-unreachable: Type=3, Code=1
+                 information-reply: Type=16, Code=0 
+                 information-request: Type=15, Code=0
+                 net-redirect: Type=5, Code=0 
+                 net-tos-redirect: Type=5, Code=2 
+                 net-unreachable: Type=3, Code=0
+                 parameter-problem: Type=12, Code=0
+                 port-unreachable: Type=3, Code=3
+                 protocol-unreachable: Type=3, Code=2
+                 reassembly-timeout: Type=11, Code=1
+                 source-quench: Type=4, Code=0 
+                 source-route-failed: Type=3, Code=5
+                 timestamp-reply: Type=14, Code=0
+                 timestamp-request: Type=13, Code=0 
+                 ttl-exceeded: Type=11, Code=0
+                "
+            ::= { hwAclAdvancedRuleEntry 20 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.21
+        hwAclAdvancedIcmpCode OBJECT-TYPE
+            SYNTAX Integer32 (0..255|256)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes ICMP codes that the ICMP packets are filtered both by ICMP type and ICMP code when hwAclAdvancedProtocol is set to ICMP. 
+                 Range: 0-255, 256
+                 If the value is not specified for an advanced ACL rule, the invalid value 256 is obtained in the query operation. 
+                 For the definition and meanings of ICMP codes, see the description in hwAclAdvancedIcmpType.
+                "
+            ::= { hwAclAdvancedRuleEntry 21 }        
+
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.22
+        hwAclAdvancedFragments OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes whether an advanced ACL rule is effective on only non-tail fragment packets.
+                 Options:
+                 1. true(1)  -indicates that an advanced ACL rule is effective on only non-tail fragment packets
+                 2. false(2) -indicates that an advanced ACL rule is effective on only non-fragment packets or tail packets of fragment packets
+                 Default: false(2)
+                "
+            ::= { hwAclAdvancedRuleEntry 22 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.23
+        hwAclAdvancedLog OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes whether to record the log flag byte of an advanced ACL rule.
+                 Options: 
+                 1. true(1)  -records the log flag byte of an advanced ACL rule
+                 2. false(2) -does not recording the log flag byte of an advanced ACL rule
+                 Currently, the log record function is not supported, and thus the values of this leaf is meaningless.
+                "
+            ::= { hwAclAdvancedRuleEntry 23 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.24
+        hwAclAdvancedEnable OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Describes whether an advanced ACL rule is valid. 
+                 Options:
+                 1. true(1)  -indicates that an advanced ACL rule is valid
+                 2. false(2) -indicates that an advanced ACL rule is invalid
+                 
+                 If the advanced ACL rule is associated with a time range parameter through hwAclBasicTimeRangeIndex
+                 and the current time is within the defined time range, the value is true(1), which indicates validity.
+                 If the current time is not within the defined time range, the value is false(2), which indicates invalidity.
+                 If the advanced ACL rule is not associated with a time range parameter, the advanced ACL rule is valid all the time.
+                "
+            ::= { hwAclAdvancedRuleEntry 24 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.25
+        hwAclAdvancedCount OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Describes the statistics of packets that match the advanced ACL rule.
+                "
+            ::= { hwAclAdvancedRuleEntry 25 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.26
+        hwAclAdvancedCountClear OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                cleared(1),
+                nouse(2)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Clears the statistics of packets that match the advanced ACL rule.
+                 Options:
+                 1. cleared(1) -clear the statistics of packets that match the advanced ACL rule
+                 2. nouse(2)   -indicates no operation
+                 To clear the statistics of packets that match the advanced ACL rules, 
+                 hwAclAdvancedCountClear must be set to cleared(1) and hwAclAdvancedRowStatus must be set to createAndGo(4). 
+                
+                 When this leaf is queried, the value is fixed to cleared(1). 
+                "
+            ::= { hwAclAdvancedRuleEntry 26 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.27
+        hwAclAdvancedRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the row status.
+                 Options:
+                 1. active(1)      -when this leaf is queried, the value is fixed to active(1).
+                 2. createAndGo(4) -create an advanced ACL rule
+                 3. destroy(6)     -delete an advanced ACL rule and clear the packet statistics of an advanced ACL rule
+                
+                 It is used for creating or deleting an advanced ACL rule and clearing the packet statistics of an advanced ACL rule. 
+                
+                 To create an advanced ACL rule, enter hwAclAdvancedAct and set hwAclAdvancedRowStatus to createAndGo(4). 
+                 Other parameters are optional. The operator of the source port and destination port and port 1 and port 2 take effect only 
+                 when the protocol type is specified as TCP or UDP. 
+                 Port 2 needs to be specified only when the port operator character is specified as a value range. 
+                 The IDs of the two ports are not differentiated, which are automatically adjusted after delivery.
+                 hwAclAdvancedIcmpType and hwAclAdvancedIcmpCode are specified only when the protocol type is ICMP. 
+                
+                 To delete an advanced ACL rule, set hwAclAdvancedRowStatus to destroy(6). 
+                
+                 To clear the statistics of packets that match the advanced ACL rules, 
+                 set hwAclAdvancedCountClear to cleared(1) and hwAclAdvancedRowStatus to createAndGo(4). 
+                
+                 When this leaf is queried, the value is fixed to active(1). 
+                "
+            ::= { hwAclAdvancedRuleEntry 27 }   
+            
+        -- 1.3.6.1.4.1.2011.5.1.1.5.1.28
+        hwAclAdvancedPriority OBJECT-TYPE
+            SYNTAX Integer32 (0..9)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the priority of advanced ACL rules. 
+                 Range: 0-9
+                 Default: 0 
+                
+                 The priority ascends with the value. 
+                 When multiple rules are matched at the same time, the rule with the highest priority prevails. 
+                 If multiple rules are matched and their priorities are the same, 
+                 software does not manage the rules and the hardware logic determines which priority prevails. 
+                 To prevent such a case, you can set different priorities for the rules. 
+                "
+            ::= { hwAclAdvancedRuleEntry 28 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7
+        hwAclLinkTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwAclLinkEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Describes the details about an L2 ACL rule in an L2 ACL rule group, including the MAC address and VLAN. 
+                
+                 The indexes of this table are hwAclLinkAclNum and hwAclLinkSubitem. 
+                 hwAclLinkAclNum is the ID of an L2 ACL rule group. Make sure that the ID is already created in hwAclNumGroupTable. 
+                 hwAclLinkSubitem is the ID of an L2 ACL rule in an L2 ACL rule group. 
+                "
+            ::= { hwAclMibObjects 7 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1
+        hwAclLinkEntry OBJECT-TYPE
+            SYNTAX HwAclLinkEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Describes the details about an L2 ACL rule in an L2 ACL rule group, including the MAC address and VLAN. 
+                
+                 The indexes of this entry are hwAclLinkAclNum and hwAclLinkSubitem. 
+                 hwAclLinkAclNum is the ID of an L2 ACL rule group. Make sure that the ID is already created in hwAclNumGroupTable. 
+                 hwAclLinkSubitem is the ID of an L2 ACL rule in an L2 ACL rule group. 
+                "
+            INDEX { hwAclLinkAclNum, hwAclLinkSubitem }
+            ::= { hwAclLinkTable 1 }
+        
+        HwAclLinkEntry ::=
+            SEQUENCE { 
+                hwAclLinkAclNum
+                    Integer32,
+                hwAclLinkSubitem
+                    Unsigned32,
+                hwAclLinkAct
+                    INTEGER,
+                hwAclLinkProtocol
+                    Integer32,
+                hwAclLinkFormatType
+                    INTEGER,
+                hwAclLinkVlanTag
+                    INTEGER,
+                hwAclLinkVlanPri
+                    INTEGER,
+                hwAclLinkSrcVlanId
+                    Integer32,
+                hwAclLinkSrcMac
+                    MacAddress,
+                hwAclLinkSrcMacWild
+                    MacAddress,
+                hwAclLinkSrcIfIndex
+                    Unsigned32,
+                hwAclLinkSrcAny
+                    TruthValue,
+                hwAclLinkDestVlanId
+                    Integer32,
+                hwAclLinkDestMac
+                    MacAddress,
+                hwAclLinkDestMacWild
+                    MacAddress,
+                hwAclLinkDestIfIndex
+                    Unsigned32,
+                hwAclLinkDestAny
+                    TruthValue,
+                hwAclLinkTimeRangeIndex
+                    Integer32,
+                hwAclLinkEnable
+                    TruthValue,
+                hwAclLinkRowStatus
+                    RowStatus,
+                hwAclLinkPriority
+                    Integer32,
+                hwAclLinkInnerVlanPri
+                    INTEGER,
+                hwAclLinkSrcInnerVlanId
+                    Integer32
+             }
+
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.1
+        hwAclLinkAclNum OBJECT-TYPE
+            SYNTAX Integer32 (4000..4999)
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Uniquely identifies an L2 ACL rule group. 
+                 Range: 4000-4999
+                 Make sure that the ID of the L2 ACL rule group is already created in hwAclNumGroupTable.
+                "
+            ::= { hwAclLinkEntry 1 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.2
+        hwAclLinkSubitem OBJECT-TYPE
+            SYNTAX Unsigned32 (0..4294967295)
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Describes the ID of an L2 ACL rule, uniquely identifying an L2 ACL rule in an L2 ACL rule group. 
+                 Range: 0-4294967295
+                
+                 In the create operation, if the value is 4294967295, the ID of an L2 ACL rule is generated automatically. 
+                 Otherwise, the ID of an L2 ACL rule is already created according to the specified value. 
+                 The automatically generated ID of an L2 ACL rule depends on the value of hwAclNumGroupStep, 
+                 which corresponds to L2 ACL rule groups in hwAclNumGroupTable. 
+                 The generated ID of an L2 ACL rule last basic ACL rule ID plus the value of hwAclNumGroupStep.
+                "
+            ::= { hwAclLinkEntry 2 }
+        
+
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.3
+        hwAclLinkAct OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                permit(1),
+                deny(2)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the value of an L2 ACL rule.
+                 Options:
+                 1. permit(1) -indicates that the data packets that meet the conditions can pass. 
+                               When you need to configure an L2 ACL rule for data packets that meet 
+                               the conditions to pass, user this value.
+                 2. deny(2)   -indicates that the data packets that meet the conditions are discarded. 
+                               When you need to configure an L2 ACL rule to discard data packets that meet the conditions 
+                               to pass, user this value.
+                "
+            ::= { hwAclLinkEntry 3 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.4
+        hwAclLinkProtocol OBJECT-TYPE
+        SYNTAX Integer32 (1..65535|65536)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the protocol types of Ethernet packets that the L2 ACL rules need to match.
+                 Range:1-65536
+                
+                 If the value of an L2 ACL rule is not specified, the invalid value 65536 is obtained in the query operation. 
+                
+                 Common protocol types are as follows: 
+                 ip: 0x0800 
+                 arp: 0x0806 
+                 rarp: 0x8035 
+                 pppoe-control: 0x8863 
+                 pppoe-data: 0x8864
+                "
+            DEFVAL { 65536 }
+            ::= { hwAclLinkEntry 4 } 
+                    
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.5
+        hwAclLinkFormatType OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                invalid(0),
+                ethernetII(1),
+                snap(2),
+                ieee802Dot3And2(3),
+                ieee802Dot4(4)   
+                }
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Describes the types of packets that the L2 ACL rules need to match.
+                 Options:
+                 1. invalid(0)         -in the query operation, invalid(0) is always returned.
+                 2. ethernetII(1)      -indicates the type of packets that the L2 ACL rules need to match is ethernetII
+                 3. snap(2)            -indicates the type of packets that the L2 ACL rules need to match is snap
+                 4. ieee802Dot3And2(3) -indicates the type of packets that the L2 ACL rules need to match is ieee802Dot3And2
+                 5. ieee802Dot4(4)     -indicates the type of packets that the L2 ACL rules need to match is ieee802Dot4
+                
+                 Currently, only ethernetII(1) is supported. Therefore, this leaf cannot be modified. 
+                 In the query operation, invalid(0) is always returned. 
+                "
+            ::= { hwAclLinkEntry 5 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.6
+        hwAclLinkVlanTag OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                invalid(0),
+                tagged(1),
+                untagged(2)               
+                }
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Describes whether a VLAN tag is carried in the packets that the L2 ACL rules need to match.
+                 Options: 
+                 1. invalid(0)  -in the query operation, invalid(0) is always returned.
+                 2. tagged(1)   -indicates the VLAN tag is carried in the packets that
+                                 the L2 ACL rules need to match
+                 3. untagged(2) -indicates no VLAN tag is carried in the packets that
+                                 the L2 ACL rules need to match
+                
+                 Currently, packets always carry VLAN tags. Therefore, this leaf cannot be modified. 
+                 In the query operation, invalid(0) is always returned. 
+                "
+            ::= { hwAclLinkEntry 6 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.7
+        hwAclLinkVlanPri OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                bestEffort(0),
+                background(1),
+                spare(2),
+                excellentEffort(3),
+                controlledLoad(4),
+                video(5),
+                voice(6),
+                networkManagement(7),
+                invalid(255)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the 802.1p priority of data frames that an L2 ACL rule needs to match. 
+                 Options: 
+                 1. bestEffort(0)        -indicates best-effort priority
+                 2. background(1)        -indicates background priority
+                 3. spare(2)             -indicates spare priority
+                 4. excellentEffort(3)   -indicates excellent-effort priority
+                 5. controlledLoad(4)    -indicates controlled-load priority
+                 6. video(5)             -indicates video priority
+                 7. voice(6)             -indicates voice priority
+                 8. networkManagement(7) -indicates network-management priority
+                 9. invalid(255)         -indicates invalid priority
+                 If the value of an L2 ACL rule is not specified, the invalid value 255 is obtained in the query operation.
+                "
+            ::= { hwAclLinkEntry 7 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.8
+        hwAclLinkSrcVlanId OBJECT-TYPE
+            SYNTAX Integer32 (0..4093)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the VLAN ID of data frames that an L2 ACL rule needs to match.
+                 Range: 0-4093
+                 If the value of an L2 ACL rule is not specified, the invalid value 0 is obtained in the query operation.
+                "
+            ::= { hwAclLinkEntry 8 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.9
+        hwAclLinkSrcMac OBJECT-TYPE
+            SYNTAX MacAddress
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the source MAC address of data frames that an L2 ACL rule needs to match.
+                 Default: 0x00 0x00 0x00 0x00 0x00 0x00 
+                 It is a 6-byte hexadecimal string, for example, 0x00 0xe0 0xfc 0x11 0x00 0x00. 
+                "
+            ::= { hwAclLinkEntry 9 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.10
+        hwAclLinkSrcMacWild OBJECT-TYPE
+            SYNTAX MacAddress
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the source MAC address wildcard of data frames that an L2 ACL rule needs to match. It is the inverse mask of the source MAC address.
+                 Default: 0xff 0xff 0xff 0xff 0xff 0xff 
+                
+                 It together with hwAclLinkSrcMac sets the range of a source MAC address.
+                
+                 If the corresponding bytes of hwAclLinkSrcMacWild are 0, it indicates that hwAclLinkSrcMacWild determines 
+                 whether the corresponding bytes of source MAC address of packets are the same as those in hwAclLinkSrcMac.
+                 For example, the value of hwAclLinkSrcMacWild is 0x00 0x00 0x00 0x00 0xff 0xff, 
+                 which indicates that packets are filtered by the first 32 bytes of the source MAC address. 
+                
+                 It is a 6-byte hexadecimal string, for example, 0x00 0x00 0x00 0x00 0xff 0xff.
+                "
+            ::= { hwAclLinkEntry 10 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.11
+        hwAclLinkSrcIfIndex OBJECT-TYPE
+            SYNTAX Unsigned32 (0..4294967295)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This leaf is not used. The value 0 is always returned in the query operation, which indicates invalidity.
+                "
+            ::= { hwAclLinkEntry 11 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.12
+        hwAclLinkSrcAny OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes whether an L2 ACL rule matches a source MAC address. 
+                 Options: 
+                 1. true(1)  -indicates that the source MAC address of data frames can be any address
+                 2. false(2) -indicates that the source MAC address of data frames should be the value of hwAclLinkSrcMac
+                 Default: true(1) 
+                
+                 In the set operation, this leaf and hwAclLinkSrcMac cannot be delivered at the same time. 
+                 When this leaf and hwAclLinkSrcMac are delivered at the same time, the value of hwAclLinkSrcMac prevails.
+                "
+            ::= { hwAclLinkEntry 12 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.13
+        hwAclLinkDestVlanId OBJECT-TYPE
+            SYNTAX Integer32 (0..4093)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This leaf is not used. The value 0 is always returned in the query operation, which indicates invalidity.
+                "
+            ::= { hwAclLinkEntry 13 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.14
+        hwAclLinkDestMac OBJECT-TYPE
+            SYNTAX MacAddress
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the inner VLAN ID of the packets that an L2 ACL rule needs to match.
+                 Default: 0x00 0x00 0x00 0x00 0x00 0x00 
+                 It is a 6-byte hexadecimal string, for example, 0x00 0xe0 0xfc 0x11 0x00 0x00. 
+                "
+            ::= { hwAclLinkEntry 14 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.15
+        hwAclLinkDestMacWild OBJECT-TYPE
+            SYNTAX MacAddress
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the destination MAC address wildcard of data frames that an L2 ACL rule needs to match. 
+                 It is the inverse mask of the destination MAC address.
+                 Default: 0xff 0xff 0xff 0xff 0xff 0xff
+                
+                 It together with hwAclLinkDestMac sets the range of a destination MAC address.
+                
+                 If the corresponding bytes of hwAclLinkDestMacWild are 0, it indicates that it determines 
+                 whether the corresponding bytes of destination MAC address of packets are the same as those in hwAclLinkSrcMac.
+                 For example: The value of wAclLinkDestMacWild is 0000-0000-ffff, 
+                 which indicates that packets are filtered by the first 32 bytes of the destination MAC address. 
+                
+                 It is a 6-byte hexadecimal string, for example, 0x00 0x00 0x00 0x00 0xff 0xff.
+                "
+            ::= { hwAclLinkEntry 15 }        
+
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.16
+        hwAclLinkDestIfIndex OBJECT-TYPE
+            SYNTAX Unsigned32 (0..4294967295)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This leaf is not used. The value 0 is always returned in the query operation, which indicates invalidity.
+                "
+            ::= { hwAclLinkEntry 16 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.17
+        hwAclLinkDestAny OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes whether an L2 ACL rule matches a destination MAC address. 
+                 Options: 
+                 1. true(1)  -indicates that the destination MAC address of data frames can be any address
+                 2. false(2) -indicates that the destination MAC address of data frames should be the value of hwAclLinkDestMac
+                 Default: true(1)
+                
+                 In the set operation, this leaf and hwAclLinkDestMac cannot be delivered at the same time. 
+                 When this leaf and hwAclLinkDestMac are delivered at the same time, the value of hwAclLinkDestMac prevails.
+                "
+            ::= { hwAclLinkEntry 17 }        
+
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.18
+        hwAclLinkTimeRangeIndex OBJECT-TYPE
+            SYNTAX Integer32 (0..256)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the time range index of an L2 ACL rule. It is used when the effective time of an L2 ACL rule needs to be configured. 
+                
+                 By default, the value is 0, which indicates an invalid index. The index depends on hwTrngIndex in hwTrngCreateTimerangeTable. 
+                 The value of hwAclLinkTimeRangeIndex must be created in hwTrngCreateTimerangeTable.
+                "
+            ::= { hwAclLinkEntry 18 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.19
+        hwAclLinkEnable OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Describes whether an L2 ACL rule is valid. 
+                 Options:     
+                 1. true(1)  -indicates validity
+                 2. false(2) -indicates invalidity
+                
+                 If the L2 ACL rule is associated with a time range parameter through hwAclLinkTimeRangeIndex 
+                 and the current time is within the defined time range, the value is true(1), which indicates validity.                
+                 If the current time is not within the defined time range, the value is false(2), which indicates invalidity.                 
+                 If the L2 ACL rule is not associated with a time range parameter, the L2 ACL rule is valid all the time. 
+                "
+            ::= { hwAclLinkEntry 19 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.20
+        hwAclLinkRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the row status. 
+                 Options: 
+                 1. active(1)      -when this leaf is queried, the value is fixed to active(1).
+                 2. createAndGo(4) -create an L2 ACL rule
+                 3. destroy(6)     -delete an L2 ACL rule
+                
+                 It is used for creating or deleting an L2 ACL rule. 
+                 To create an L2 ACL rule, enter hwAcLinkAct and set hwAclLinkRowStatus to createAndGo(4). Other parameters are optional. 
+                 To delete an L2 ACL rule, set hwAclLinkRowStatus to destroy(6). 
+                 When this leaf is queried, the value is fixed to active(1).
+                "
+            ::= { hwAclLinkEntry 20 }   
+            
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.21
+        hwAclLinkPriority OBJECT-TYPE
+            SYNTAX Integer32 (0..9)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the priority of L2 ACL rules.
+                 Range: 0-9
+                 Default: 0
+                
+                 The priority ascends with the value. 
+                 When multiple rules are matched at the same time, the rule with the highest priority prevails. 
+                
+                 If multiple rules are matched and their priorities are the same, 
+                 software does not manage the rules and the hardware logic determines which priority prevails. 
+                 To prevent such a case, you can set different priorities for the rules. 
+                "
+            ::= { hwAclLinkEntry 21 }     
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.22
+        hwAclLinkInnerVlanPri OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                bestEffort(0),
+                background(1),
+                spare(2),
+                excellentEffort(3),
+                controlledLoad(4),
+                video(5),
+                voice(6),
+                networkManagement(7),
+                invalid(255)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the 802.1p priority in the inner VLAN of the packet that an L2 ACL rules needs to match.
+                 Range: 0-7, 255
+                 The priority ascends with the value.
+                 Options:
+                 1. bestEffort(0)        -indicates best-effort priority
+                 2. background(1)        -indicates background priority
+                 3. spare(2)             -indicates spare priority
+                 4. excellentEffort(3)   -indicates excellent-effort priority
+                 5. controlledLoad(4)    -indicates controlled-load priority
+                 6. video(5)             -indicates video priority
+                 7. voice(6)             -indicates voice priority
+                 8. networkManagement(7) -indicates network-management priority
+                 9. invalid(255)         -indicates invalid priority
+                 If the value of an L2 ACL rule is not specified, the invalid value 255 is obtained in the query operation. 
+                "
+            ::= { hwAclLinkEntry 22 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.7.1.23
+        hwAclLinkSrcInnerVlanId OBJECT-TYPE
+            SYNTAX Integer32 (0..4093)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "The source inner VLAN ID of the packet.
+                 Value range: 0-4093
+                 0 indicates the hwAclLinkSrcVlanId is invalid.
+                "
+            ::= { hwAclLinkEntry 23 }        
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.8
+        hwAclUserTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwAclUserEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Describes the details about a user-defined ACL rule in a user-defined ACL rule group, 
+                 including the matched character string and mask. The two fields are a binary character string of 80 bytes each. 
+                
+                 The index of this table is a combination of hwAclUserAclNum and hwAclUserSubitem. 
+                 hwAclUserAclNum is the ID of a user-defined ACL rule group. Make sure that the ID is already created in hwAclNumGroupTable. 
+                 hwAclUserSubitem is the ID of a user-defined ACL rule.                 
+                "
+            ::= { hwAclMibObjects 8 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.8.1
+        hwAclUserEntry OBJECT-TYPE
+            SYNTAX HwAclUserEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION                
+                "Describes the details about a user-defined ACL rule in a user-defined ACL rule group, 
+                 including the matched character string and mask. The two fields are a binary character string of 80 bytes each. 
+                
+                 The index of this entry is a combination of hwAclUserAclNum and hwAclUserSubitem. 
+                 hwAclUserAclNum is the ID of a user-defined ACL rule group. Make sure that the ID is already created in hwAclNumGroupTable. 
+                 hwAclUserSubitem is the ID of a user-defined ACL rule.                 
+                "
+            INDEX { hwAclUserAclNum, hwAclUserSubitem }
+            ::= { hwAclUserTable 1 }
+        
+        HwAclUserEntry ::=
+            SEQUENCE { 
+                hwAclUserAclNum
+                    Integer32,
+                hwAclUserSubitem
+                    Unsigned32,
+                hwAclUserAct
+                    INTEGER,
+                hwAclUserFormatType
+                    INTEGER,
+                hwAclUserVlanTag
+                    INTEGER,
+                hwAclUserRuleStr
+                    OCTET STRING,
+                hwAclUserRuleMask
+                    OCTET STRING,
+                hwAclUserRowOffset
+                    Integer32,
+                hwAclUserTimeRangeIndex
+                    Integer32,
+                hwAclUserEnable
+                    TruthValue,
+                hwAclUserRowStatus
+                    RowStatus,
+                hwAclUserFrameType
+                    INTEGER,
+                hwAclUserPriority 
+                    Integer32
+             }
+
+        -- 1.3.6.1.4.1.2011.5.1.1.8.1.1
+        hwAclUserAclNum OBJECT-TYPE
+            SYNTAX Integer32 (5000..5999)
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Uniquely identifies a user-defined ACL rule group.
+                 Range: 5000-5999
+                 Make sure that the ID of a user-defined ACL rule group is already created in hwAclNumGroupTable.
+                "
+            ::= { hwAclUserEntry 1 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.8.1.2
+        hwAclUserSubitem OBJECT-TYPE
+            SYNTAX Unsigned32 (0..4294967295)
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Describes the ID of a user-defined ACL rule, uniquely identifying a user-defined ACL rule in a user-defined ACL rule group. 
+                 Range: 0-4294967295
+                
+                 In the create operation, if the value is 4294967295, the ID of a user-defined ACL rule is generated automatically. 
+                 Otherwise, it indicates that the ID of an ACL rule is already created according to the specified value.
+                 The automatically generated ID of a user-defined ACL rule depends on the value of hwAclNumGroupStep, 
+                 which corresponds to a user-defined ACL rule group in hwAclNumGroupTable. 
+                 The generated ID of a user-defined ACL rule last basic ACL rule ID plus the value of hwAclNumGroupStep.
+                "
+            ::= { hwAclUserEntry 2 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.8.1.3
+        hwAclUserAct OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                permit(1),
+                deny(2)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the value of a user-defined ACL rule. 
+                 Options:
+                 1. permit(1) -indicates that the data packets that meet the conditions can pass.                
+                               When you need to configure a user-defined ACL rule for data packets 
+                               that meet the conditions to pass, use this value.
+                 2. deny(2)   -indicates that the data packets that meet the conditions are discarded. 
+                               When you need to configure a user-defined ACL rule to discard data packets 
+                               that meet the conditions to pass, use this value.
+                "
+            ::= { hwAclUserEntry 3 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.8.1.4
+        hwAclUserFormatType OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                invalid(0),
+                ethernetII(1),
+                snap(2),
+                ieee802Dot2And3(3),
+                ieee802Dot4(4)
+                }
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This leaf is not used. The value 0 is always returned in the query operation, which indicates invalidity. 
+                 Options:
+                 1. invalid(0)         -invalid value
+                 2. ethernetII(1)      -ethernetII
+                 3. snap(2)            -smart notification and alarm protocol
+                 4. ieee802Dot2And3(3) -IEEE 802.2 and 802.3
+                 5. ieee802Dot4(4)     -IEEE 802.4
+                "
+                ::= { hwAclUserEntry 4 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.8.1.5
+        hwAclUserVlanTag OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                invalid(0),
+                tagged(1),
+                untagged(2)                
+                }
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This leaf is not used. The value 0 is always returned in the query operation, which indicates invalidity. 
+                 Options:
+                 1. invalid(0)  -invalid value
+                 2. tagged(1)   -tagged packet
+                 3. untagged(2) -untagged packet
+                "
+                ::= { hwAclUserEntry 5 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.8.1.6
+        hwAclUserRuleStr OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (1..80))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the character string of a user-defined ACL rule. It is used to match the first bytes of packets. 
+                 The character string must be hexadecimal and bytes. 
+                 For example:
+                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 
+                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 
+                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 
+                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 
+                 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0xAA
+                "
+            ::= { hwAclUserEntry 6 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.8.1.7
+        hwAclUserRuleMask OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (1..80))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the mask of the user-defined ACL rule. It is a positive mask. 
+                
+                 When it is 1, it indicates that matching is required. 
+                 The device determines the field value of a packet that needs to match based on the mask, 
+                 and then matches the corresponding field in hwAclUserRuleStr. 
+                 If they are consistent, it indicates that matching is successful. 
+                
+                 The character string must be hexadecimal and bytes. 
+                 The valid length, that is, the length of corresponding bytes whose value are 1, cannot exceed 32 bytes. 
+                
+                 Whether this leaf is delivered successfully also depends on the hardware chip.
+                "
+            ::= { hwAclUserEntry 7 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.8.1.8
+        hwAclUserRowOffset OBJECT-TYPE
+            SYNTAX Integer32 (0..79)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This leaf is not used. The value 0 is always returned in the query operation, which indicates invalidity.
+                "
+            ::= { hwAclUserEntry 8 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.8.1.9
+        hwAclUserTimeRangeIndex OBJECT-TYPE
+            SYNTAX Integer32 (0..256)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the time range index of a user-defined ACL rule. 
+                 It is used when the effective time of a user-defined ACL rule needs to be configured. 
+                
+                 By default, the value is 0, which indicates invalid time. The index depends on hwTrngIndex in hwTrngCreateTimerangeTable. 
+                 The time range that corresponds to the value of this leaf must be created in hwTrngCreateTimerangeTable.
+                "
+            ::= { hwAclUserEntry 9 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.8.1.10
+        hwAclUserEnable OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Describes whether a user-defined ACL rule is valid. 
+                 Options:     
+                 1. true(1)  -indicates the user-defined ACL rule is valid
+                 2. false(2) -indicates the user-defined ACL rule is invalid
+
+                 If the user-defined ACL rule is associated with a time range parameter through hwAclLinkTimeRangeIndex 
+                 and the current time is within the defined time range, the value is true(1), which indicates validity.                
+                 If the current time is not within the defined time range, the value is false(2), which indicates invalidity.                 
+                 If the user-defined ACL rule is not associated with a time range parameter, the user-defined ACL rule is valid 
+                 all the time.
+                "
+            ::= { hwAclUserEntry 10 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.8.1.11
+        hwAclUserRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the row status.
+                 Options:
+                 1. active(1)      -when this leaf is queried, the value is fixed to active(1).
+                 2. createAndGo(4) -create a user-defined ACL rule
+                 3. destroy(6)     -delete a user-defined ACL rule
+                
+                 It is used for creating or deleting a user-defined ACL rule. 
+                
+                 To create a user-defined ACL rule, enter hwAclUserAct, hwAclUserRuleStr, 
+                 and hwAclUserRuleMask and set hwAclUserRowStatus to createAndGo(4). 
+                 Other parameters are optional. 
+                
+                 To delete a user-defined ACL rule, set hwAclUserRowStatus to destroy(6). 
+                 
+                 When this leaf is queried, the value is fixed to active(1).
+                "
+            ::= { hwAclUserEntry 11 }    
+            
+        -- 1.3.6.1.4.1.2011.5.1.1.8.1.12
+        hwAclUserFrameType OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                ipoe(0),                                
+                nonIpoe(1),
+                ipv6oe(2)
+                }
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Describes the type of a VLAN tag in the packet that matches the user-defined ACL rule. 
+                 Options:
+                 1. ipoe(0)    -indicates that IP packets carrying no VLAN tags and 
+                                IP packets that carrying one VLAN tag are matched
+                 2. nonIpoe(1) -indicates that other packets, including non-IP packets 
+                                carrying one VLAN tag are matched 
+                 3. ipv6oe(2)  -indicates that IPv6 packets carrying no VLAN tags and 
+                                IPv6 packets that carrying one VLAN tag are matched
+                 Currently, two types are supported.                 
+                 If this leaf is not specified, the default value is ipoe(0).
+                "
+                ::= { hwAclUserEntry 12 }
+
+        -- 1.3.6.1.4.1.2011.5.1.1.8.1.13
+        hwAclUserPriority OBJECT-TYPE
+            SYNTAX Integer32 (0..9)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the priority of user-defined ACL rules.
+                 Range: 0-9
+                 Default: 0
+                
+                 The priority ascends with the value. 
+                 When multiple rules are matched at the same time, the rule with the highest priority prevails. 
+                
+                 If multiple rules are matched and their priorities are the same, 
+                 software does not manage the rules and the hardware logic determines which priory prevails. 
+                 To prevent such a case, you can set different priorities for the rules. 
+                "
+            ::= { hwAclUserEntry 13 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.9
+        hwAclActiveTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwAclActiveEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Describes the relationships between an ACL rule and a port or a slot. 
+                 You can deliver an ACL rule to a port or a slot and make it take effect on the port or a slot through hwAclActiveTable. 
+                 In addition, You can query the relationships between an ACL rule and a port or a slot. 
+                
+                 The indexes of this table are hwAclActiveAclIndex, hwAclActiveIfIndex, and hwAclActiveDirection, 
+                 indicating the ACL index, the port index or the slot index, and direction respectively. 
+                
+                 Make sure that an ACL rule to be delivered through hwAclActiveTable is already created in hwAclBasicRuleTable, 
+                 hwAclAdvancedRuleTable, hwAclLinkTable or hwAclUserTable.
+                "
+            ::= { hwAclMibObjects 9 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.9.1
+        hwAclActiveEntry OBJECT-TYPE
+            SYNTAX HwAclActiveEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Describes the relationships between an ACL rule and a port or a slot. 
+                 You can deliver an ACL rule to a port or a slot and make it take effect on the port or a slot through hwAclActiveTable. 
+                 In addition, You can query the relationships between an ACL rule and a port or a slot. 
+                
+                 The indexes of this entry are hwAclActiveAclIndex, hwAclActiveIfIndex, and hwAclActiveDirection, 
+                 indicating the ACL index, the port index or the slot index, and direction respectively. 
+                
+                 Make sure that an ACL rule to be delivered through hwAclActiveTable is already created in hwAclBasicRuleTable, 
+                 hwAclAdvancedRuleTable, hwAclLinkTable or hwAclUserTable. 
+                "
+            INDEX { hwAclActiveAclIndex, hwAclActiveIfIndex, hwAclActiveDirection }
+            ::= { hwAclActiveTable 1 }
+        
+        HwAclActiveEntry ::=
+            SEQUENCE { 
+                hwAclActiveAclIndex
+                    Integer32,
+                hwAclActiveIfIndex
+                    Integer32,
+                hwAclActiveDirection
+                    INTEGER,
+                hwAclActiveUserAclNum
+                    Integer32,
+                hwAclActiveUserAclSubitem
+                    Unsigned32,
+                hwAclActiveIpAclNum
+                    Integer32,
+                hwAclActiveIpAclSubitem
+                    Unsigned32,
+                hwAclActiveLinkAclNum
+                    Integer32,
+                hwAclActiveLinkAclSubitem
+                    Unsigned32,
+                hwAclActiveRuntime
+                    TruthValue,
+                hwAclActiveRowStatus
+                    RowStatus,
+                hwAclActiveIpv6AclNum
+                    Integer32,
+                hwAclActiveIpv6AclSubitem
+                    Unsigned32
+             }
+
+        -- 1.3.6.1.4.1.2011.5.1.1.9.1.1
+        hwAclActiveAclIndex OBJECT-TYPE
+            SYNTAX Integer32 (0..2999)
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "The delivery entry index of an ACL rule is a delivery record entry index used by software, which is meaningless to users. 
+                 The index of is used in hwAclActiveTable to search the delivery entries fast. 
+                 Range: 0-2999
+                 In the create operation, the device automatically allocates a delivery entry index. There is a suggestion that users can always input 0.
+                 In the destroy operation, this index must be input with the value that the device automatically allocates.
+                "
+            ::= { hwAclActiveEntry 1 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.9.1.2
+        hwAclActiveIfIndex OBJECT-TYPE
+            SYNTAX Integer32 
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Indicates the port index or the slot index when the device delivers an ACL rule to a specified port or a specified slot. 
+                 The index uniquely identifies a port or a slot. The value and algorithm are the same as those of ifIndex.
+                 
+                 If the configuration based on a slot, the bits map is shown as follows:
+                 ---------------------------------------------------------------------------------------------------------------
+                 | 31-25 bits          | 24-19 bits         | 18-13 bits         | 12-6 bits            | 5-0 bits is reserved |
+                 | indicate iftype     | indicate frame ID  | indicate slot ID   | indicate port ID     |                      |               
+                 --------------------------------------------------------------------------------------------------------------- 
+                 | the value of iftype | frame ID           | slot ID            | the value of port ID | the reserved value   |
+                 | is always 0x68      |                    |                    | is always 0          | is always 0          |
+                 ---------------------------------------------------------------------------------------------------------------
+                "
+            ::= { hwAclActiveEntry 2 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.9.1.3
+        hwAclActiveDirection OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                invalid(0),
+                inbound(1),
+                outbound(2)               
+                }
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Indicates the direction where an ALC rule takes effect when the device delivers an ACL rule to a specified port or a specified slot. 
+                 Options:
+                 1. invalid(0)  -indicates an invalid parameter
+                 2. inbound(1)  -indicates the inbound direction of a port or a slot. It is used 
+                                 when inbound packets are filtered based on the ACL rule.
+                 3. outbound(2) -indicates the outbound direction of a port or a slot. It is used when outbound 
+                                 packets are filtered based on the ACL rule.
+                "
+            ::= { hwAclActiveEntry 3 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.9.1.4
+        hwAclActiveUserAclNum OBJECT-TYPE
+            SYNTAX Integer32 (0|5000..5999)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the user-defined ACL rule group that are used when a user-defined ACL rule is delivered to a specified port or a specified slot
+                 and the inbound or outbound packets are filtered based on the user-defined ACL rule.
+                 Range: 0, 5000-5999
+                
+                 Make sure that the user-defined ACL rule group is already created.                
+                 In the query operation, if the user-defined ACL rule group is not used, the value obtained is 0. 
+                "
+            ::= { hwAclActiveEntry 4 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.9.1.5
+        hwAclActiveUserAclSubitem OBJECT-TYPE
+            SYNTAX Unsigned32 (0..4294967295)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the user-defined ACL rule that is used when a user-defined ACL rule is delivered to a specified port or a specified slot
+                 and the inbound or outbound packets are filtered based on the user-defined ACL rule. 
+                 This leaf must be used together with hwAclActiveUserAclNum, uniquely identifying an ACL rule.
+                 Range: 0-4294967295
+
+                 Make sure that the user-defined ACL rule is already created. 
+                 In the query operation, if the user-defined ACL rule is not used, the value obtained is 4294967295.
+                "
+            ::= { hwAclActiveEntry 5 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.9.1.6
+        hwAclActiveIpAclNum OBJECT-TYPE
+            SYNTAX Integer32 (0|2000..3999)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the basic or advanced ACL rule group that are used when an ACL rule is delivered to a specified port or a specified slot
+                 and the inbound or outbound packets are filtered based on the ACL rule.
+                 Range: 0, 2000-3999
+                
+                 Make sure that the basic or advanced ACL rule group is already created. 
+                 In the query operation, if the basic or advanced ACL rule group is not used, the value obtained is 0.
+                "
+            ::= { hwAclActiveEntry 6 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.9.1.7
+        hwAclActiveIpAclSubitem OBJECT-TYPE
+            SYNTAX Unsigned32 (0..4294967295)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the basic or advanced ACL rule that is used when an ACL rule is delivered to a specified port or a specified slot
+                 and the inbound or outbound packets are filtered based on the ACL rule. This leaf must be used 
+                 together with hwAclActiveIpAclNum, uniquely identifying an ACL rule.
+                 Range: 0-4294967295
+                
+                 Make sure that the basic or advanced ACL rule is already created. 
+                 In the query operation, if the basic or advanced ACL rule is not used, the value obtained is 4294967295.
+                "
+            ::= { hwAclActiveEntry 7 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.9.1.8
+        hwAclActiveLinkAclNum OBJECT-TYPE
+            SYNTAX Integer32 (0|4000..4999)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the L2 ACL rule group that are used when an L2 ACL rule is delivered to a specified port or a specified slot
+                 and the inbound or outbound packets are filtered based on the L2 ACL rule.
+                 Range: 0, 4000-4999 
+                
+                 Make sure that the L2 ACL rule group is already created. 
+                 In the query operation, if the L2 ACL rule group is not used, the value obtained is 0. 
+                "
+            ::= { hwAclActiveEntry 8 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.9.1.9
+        hwAclActiveLinkAclSubitem OBJECT-TYPE
+            SYNTAX Unsigned32 (0..4294967295)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the L2 ACL rule that is used when an L2 ACL rule is delivered to a specified port or a specified slot
+                 and the inbound or outbound packets are filtered based on the L2 ACL rule. 
+                 This leaf must be used together with hwAclActiveLinkAclNum, uniquely identifying an ACL rule.
+                 Range: 0-4294967295
+                
+                 Make sure that the L2 ACL rule is already created.
+                 In the query operation, if the L2 ACL rule is not used, the value obtained is 4294967295.
+                "
+            ::= { hwAclActiveEntry 9 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.9.1.10
+        hwAclActiveRuntime OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Describes whether the ACL rule delivered to a specified port or a specified slot takes effect. 
+                 Options:     
+                 1. true(1)  -indicates that the ACL rule delivered to a specified port or a specified slot is effective
+                 2. false(2) -indicates that the ACL rule delivered to a specified port or a specified slot is invalid
+
+                 If the ACL rule is associated with a time range parameter through and the current time is within the defined time range, 
+                 the value is true(1), which indicates validity. 
+                 If the current time is not within the defined time range, the value is false(2), which indicates invalidity. 
+                 If the ACL rule is not associated with a time range parameter, the value is always true(1).
+                "                
+            ::= { hwAclActiveEntry 10 }
+        
+        -- 1.3.6.1.4.1.2011.5.1.1.9.1.11
+        hwAclActiveRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Indicates the row status. It is used for delivering an ACL rule to a specified port or a specified slot and deleting the delivered ACL rule in a port or a slot.
+                 Options: 
+                 1. active(1)      -when this leaf is queried, the value is fixed to active(1)
+                 2. createAndGo(4) -deliver an ACL rule to a specified port or a specified slot
+                 3. destroy(6)     -delete a delivered ACL rule in a port or a specified slot
+                
+                 When an ACL rule is delivered to a specified port or a specified slot, make sure that at least one of the following group is configured. 
+                 (1)hwAclActiveUserAclNum and hwAclActiveUserAclSubitem
+                 (2)hwAclActiveIpAclNum and hwAclActiveIpAclSubitem
+                 (3)hwAclActiveLinkAclNum and hwAclActiveLinkAclSubitem               
+                 In addition to independent configuration of each group, the combined configuration of group (2) and (3) is permitted. 
+                 The combined configuration of group (1) and (2) or combining group (1) and (3) is prohibited. 
+                
+                 In addition, hwAclActiveRowStatus must be set to createAndGo(4). 
+                 To delete the ACL rule delivered to a port or a slot, set hwAclActiveRowStatus to destroy(6). 
+                 When this leaf is queried, the value is fixed to active(1).
+                "
+            ::= { hwAclActiveEntry 11 }
+ 
+        -- 1.3.6.1.4.1.2011.5.1.1.9.1.12
+        hwAclActiveIpv6AclNum OBJECT-TYPE
+            SYNTAX Integer32 (0 | 2000..3999)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the basic or advanced ACLv6 rule group that are used when an ACLv6 rule is delivered to a specified port or a specified slot
+                 and the inbound or outbound packets are filtered based on the ACLv6 rule.
+                 Range: 0, 2000-3999
+                
+                 Make sure that the basic or advanced ACLv6 rule group is already created. 
+                 In the query operation, if the basic or advanced ACLv6 rule group is not used, the value obtained is 0.
+                "
+            ::= { hwAclActiveEntry 12 }
+
+        -- 1.3.6.1.4.1.2011.5.1.1.9.1.13
+        hwAclActiveIpv6AclSubitem OBJECT-TYPE
+            SYNTAX Unsigned32 (0..4294967295)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "Describes the basic or advanced ACLv6 rule that is used when an ACLv6 rule is delivered to a specified port or a specified slot
+                 and the inbound or outbound packets are filtered based on the ACLv6 rule. This leaf must be used 
+                 together with hwAclActiveIpAclNum, uniquely identifying an ACLv6 rule.
+                 Range: 0-4294967295
+                
+                 Make sure that the basic or advanced ACLv6 rule is already created. 
+                 In the query operation, if the basic or advanced ACLv6 rule is not used, the value obtained is 4294967295.
+                "
+            ::= { hwAclActiveEntry 13 }     
+                    
+        -- add trap 
+        hwAclTraps OBJECT IDENTIFIER ::= { hwAcl 2}     
+         
+        hwAclCommonTraps OBJECT IDENTIFIER ::= { hwAclTraps 1 }   
+        
+        hwAclCommonTrapsPrefix OBJECT IDENTIFIER ::= { hwAclCommonTraps 0 }   
+         
+        hwAclAlarmTraps OBJECT IDENTIFIER ::= { hwAclTraps 2 }    
+         
+        -- add basic acl
+        hwAclAddBasicAclTrap NOTIFICATION-TYPE
+             OBJECTS {
+                      hwAclBasicAclNum ,
+                      hwAclBasicSubitem
+                     }
+             STATUS    current
+             DESCRIPTION
+                 "The hwAclAddBasicAclTrap will be sent when the basic acl is added."
+             ::= { hwAclCommonTraps 0 1 }   
+             
+        -- delete basic acl
+        hwAclDeleteBasicAclTrap NOTIFICATION-TYPE
+             OBJECTS {
+                      hwAclBasicAclNum ,
+                      hwAclBasicSubitem
+                     }
+             STATUS    current
+             DESCRIPTION
+                 "The hwAclDeleteBasicAclTrap will be sent when the basic acl is deleted."
+             ::= { hwAclCommonTraps 0 2 }  
+             
+        -- add adv acl
+        hwAclAddAdvancedAclTrap NOTIFICATION-TYPE
+             OBJECTS {
+                      hwAclAdvancedAclNum ,
+                      hwAclAdvancedSubitem
+                     }
+             STATUS    current
+             DESCRIPTION
+                 "The hwAclAddAdvancedAclTrap will be sent when the advanced acl is added."
+             ::= { hwAclCommonTraps 0 3 }   
+             
+        -- delete adv acl
+        hwAclDeleteAdvancedAclTrap NOTIFICATION-TYPE
+             OBJECTS {
+                      hwAclAdvancedAclNum ,
+                      hwAclAdvancedSubitem
+                     }
+             STATUS    current
+             DESCRIPTION
+                 "The hwAclDeleteAdvancedAclTrap will be sent when the advanced acl is deleted."
+             ::= { hwAclCommonTraps 0 4 }  
+             
+        -- add link acl
+        hwAclAddLinkAclTrap NOTIFICATION-TYPE
+             OBJECTS {
+                      hwAclLinkAclNum ,
+                      hwAclLinkSubitem
+                     }
+             STATUS    current
+             DESCRIPTION
+                 "The hwAclAddLinkAclTrap will be sent when the link acl is added."
+             ::= { hwAclCommonTraps 0 5 }   
+             
+        -- delete link acl
+        hwAclDeleteLinkAclTrap NOTIFICATION-TYPE
+             OBJECTS {
+                      hwAclLinkAclNum ,
+                      hwAclLinkSubitem
+                     }
+             STATUS    current
+             DESCRIPTION
+                 "The hwAclDeleteLinkAclTrap will be sent when the link acl is deleted."
+             ::= { hwAclCommonTraps 0 6 }    
+             
+        -- add user acl
+        hwAclAddUserAclTrap NOTIFICATION-TYPE
+             OBJECTS {
+                      hwAclUserAclNum ,
+                      hwAclUserSubitem
+                     }
+             STATUS    current
+             DESCRIPTION
+                 "The hwAclAddUserAclTrap will be sent when the user acl is added."
+             ::= { hwAclCommonTraps 0 7 }   
+             
+        -- delete user acl
+        hwAclDeleteUserAclTrap NOTIFICATION-TYPE
+             OBJECTS {
+                      hwAclUserAclNum ,
+                      hwAclUserSubitem
+                     }
+             STATUS    current
+             DESCRIPTION
+                 "The hwAclDeleteUserAclTrap will be sent when the user acl is deleted."
+             ::= { hwAclCommonTraps 0 8 }     
+             
+        -- active acl
+        hwAclActiveAclTrap NOTIFICATION-TYPE
+             OBJECTS {
+                      hwAclActiveAclIndex ,
+                      hwAclActiveIfIndex ,
+                      hwAclActiveDirection
+                     }
+             STATUS    current
+             DESCRIPTION
+                 "The hwAclActiveAclTrap will be sent when the acl is activated."
+             ::= { hwAclCommonTraps 0 9 }   
+             
+        -- deactivate acl
+        hwAclDeactiveAclTrap NOTIFICATION-TYPE
+             OBJECTS {
+                      hwAclActiveAclIndex ,
+                      hwAclActiveIfIndex ,
+                      hwAclActiveDirection
+                     }
+             STATUS    current
+             DESCRIPTION
+                 "The hwAclDeactiveAclTrap will be sent when the user acl is deactivated."
+             ::= { hwAclCommonTraps 0 10 }   
+
+    END
+
+--
+-- HUAWEI-ACL-MIB.my
+--

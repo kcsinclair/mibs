@@ -1,0 +1,766 @@
+-- ============================================================================
+-- Copyright (C) 2012 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description:  This MIB is used for defining Huawei's vdsl2 priv management MIB objects.
+-- Reference:  
+-- Version: V1.08
+-- ============================================================================
+
+   HUAWEI-VDSL2-PRIV-MIB DEFINITIONS ::= BEGIN
+
+        IMPORTS
+            MODULE-IDENTITY, OBJECT-TYPE, Unsigned32, NOTIFICATION-TYPE, Integer32, Counter32, Gauge32                 
+               FROM SNMPv2-SMI                   
+            TEXTUAL-CONVENTION
+               FROM SNMPv2-TC      	 
+            ifIndex
+               FROM IF-MIB
+            TruthValue, RowStatus, DateAndTime
+               FROM SNMPv2-TC
+            SnmpAdminString
+               FROM SNMP-FRAMEWORK-MIB
+            MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+               FROM SNMPv2-CONF
+            hwFrameIndex, hwSlotIndex, hwPortIndex
+               FROM HUAWEI-DEVICE-MIB           
+            vdsl2
+               FROM HUAWEI-VDSL2-LINE-MIB;    
+     
+        VSDLSELTOPERTYPE ::= TEXTUAL-CONVENTION
+    	    STATUS current
+    	    DESCRIPTION  
+    	        "the operation type of selt test
+    	         Options:
+    	         1. stop(0)       - Stop the VDSL or ADSL SELT, which is not supported currently
+    	    	 2. adslstart(1)  - Start the ADSL SELT in the VDSL compatible mode, which is not supported currently
+    	    	 3. vdsl2start(2) - Start the VDSL SELT
+    	    	"
+    	    SYNTAX INTEGER {
+    	    	stop(0),
+    	    	adslstart(1),
+    	    	vdsl2start(2)
+    	    }
+    	
+        VSDLSELTOPERRESULT ::= TEXTUAL-CONVENTION
+    	    STATUS current
+    	    DESCRIPTION  "the result of selt test
+    	                  Options:
+    	    	          1. normal(1) - The result of selt test is normal
+    	    	          2. fail(2)   - The result of selt test is fail
+    	    	          3. abort(3)  - Selt test abnormal 	                  
+    	                 "
+    	    SYNTAX INTEGER {
+    	    	normal(1),
+    	    	fail(2),
+    	    	abort(3)
+    	    }	
+    
+        VSDLSELTRESULTLASTFLAG ::= TEXTUAL-CONVENTION
+    	    STATUS current
+    	    DESCRIPTION  "last flag of selt test data
+    	                  Options:
+    	                  1. false(0) - Flag of selt is false
+    	                  2. true(1)  - Flag of selt is true
+    	                 "
+    	    SYNTAX INTEGER {
+    		false(0),
+    		true(1)
+    	    }   
+    
+        VSDLSELTPARAMLOOPTERMIN ::= TEXTUAL-CONVENTION
+    	    STATUS current
+    	    DESCRIPTION  
+    	         "Definition of the terminal type in the SELT 
+    	         Options:
+    	         1. open(0)        - Open
+    	         2. short(1)       - Closed
+    	         3. unknown(2)     - Unknown
+    	         4. terminated(3)  - Connected
+    	         "      
+    	    SYNTAX INTEGER {
+    		open(0),
+    		short(1),
+    		unknown(2),
+    		terminated(3)
+    	    }
+    	
+        VSDLSELTPARAMLOOPGAUGE ::= TEXTUAL-CONVENTION
+    	    STATUS current
+    	    DESCRIPTION  
+    	        "Gauge specification in the SELT 
+    	         Options:
+    	         1. greater26awg(1)   - Greater than 26 AWG
+    		 2. equal26awg(2)     - Equal to 26 AWG
+    		 3. equal24awg(3)     - Equal to 24 AWG
+    	         4. less24awg(4)      - Smaller than 24AWG
+    		 5. unknownawg(5)     - Unknown
+    	        "  
+    	    SYNTAX INTEGER {
+    		greater26awg(1),
+    		equal26awg(2),
+    		equal24awg(3),
+    	        less24awg(4),
+    		unknownawg(5)
+    	    }		
+    
+  	vdsl2Priv MODULE-IDENTITY 
+	    LAST-UPDATED "201207200000Z"		
+	    ORGANIZATION
+                "Huawei Technologies Co.,Ltd."
+            CONTACT-INFO                                        
+                         "Huawei Industrial Base                
+                          Bantian, Longgang                     
+                          Shenzhen 518129                       
+                          People's Republic of China            
+                          Website: http://www.huawei.com        
+                          Email: support@huawei.com             
+                         "                                      
+	    DESCRIPTION
+    	    	"This MIB is used for defining Huawei's vdsl2 priv management MIB objects."
+	    	
+	    --  Revision history
+	    REVISION     "201207200000Z"                                                 
+            DESCRIPTION  "V1.08, delete unnecessary en dashes."
+            
+	    REVISION     "201201090000Z"                                                 
+            DESCRIPTION  "V1.07, modify the description of the leaf hwvdsl2SeltTestParaVarUerC, hwvdsl2SeltTestParamAttnAt180KHZ, hwvdsl2SeltTestParamAttnAt300KHZ."
+                          
+	    REVISION     "201105040000Z"                                                 
+            DESCRIPTION  "V1.06, add leaf node hwvdsl2SeltTestParamCalcEnable of vdsl2SeltTestTable for setting selt test calculation switch.
+                          Add vdsl2SeltCalibrationTable for describing calibration data of selt test."
+                         
+            REVISION     "201102210000Z"                                                 
+            DESCRIPTION  "V1.05, add leaf node hwvdsl2SeltTestParaVarUerC,hwvdsl2SeltTestParaUerMmdC,hwvdsl2SeltTestParaQlnMmdC   
+                          hwvdsl2SeltTestParaUerStatus,hwvdsl2SeltTestParaQlnStatus for g996.2 selt.
+                          modify the description of the leaf vdsl2SeltTestParamInbandNoise.
+                         "
+                         
+	    REVISION     "201010290000Z"                                                 
+            DESCRIPTION  "V1.04, add value -1(invalid) for hwvdsl2SeltLevel and modify the description.
+                         "
+                         
+            REVISION     "201009250000Z"                                                 
+            DESCRIPTION  "V1.03, add leaf node hwvdsl2SeltTestParamUnCalibLineScale,hwvdsl2SeltTestParamUnCalibEchoRespRealSegment1,
+                          hwvdsl2SeltTestParamUnCalibEchoRespRealSegment2, hwvdsl2SeltTestParamUnCalibEchoRespImgSegment1,
+                          hwvdsl2SeltTestParamUnCalibEchoRespImgSegment2,hwvdsl2SeltTestParamQlnGroupSize, hwvdsl2SeltTestParamQmeC,
+                          hwvdsl2SeltTestParamUmeC and vdsl2SeltTestLevelTable for selt test.
+                         "  
+	    
+	    
+	    REVISION     "201002080000Z"
+            DESCRIPTION  "V1.02, delete the definition of the trap node, include:
+                          hwVdsl2PrivSeltTestResultFirstFrameTrap, hwVdsl2PrivSeltTestResultSecondFrameTrap, hwVdsl2PrivSeltTestResultThirdFrameTrap, 
+                          hwVdsl2PrivSeltTestResultFourFrameTrap, hwVdsl2PrivSeltTestResultFifthsFrameTrap, hwVdsl2PrivSeltTestResultSixthFrameTrap,
+	                  hwVdsl2PrivSeltTestResultSeventhFrameTrap, hwVdsl2PrivSeltTestOperResultTrap.
+                         "  
+                         
+	    REVISION     "201001200000Z"                                                 
+            DESCRIPTION  "V1.01, add the definition of the trap node;
+                          modify leaf node MAX-ACCESS from accessible-for-notify to read-only:vdsl2SeltTestParamLoopLength, 
+                          vdsl2SeltTestParamLoopTermin, vdsl2SeltTestParamUpShnCap, vdsl2SeltTestParamDwnShnCap, vdsl2SeltTestParamInbandNoise, 
+                          vdsl2SeltTestParamTerminResp, vdsl2SeltTestParamUpMgnAtRate, vdsl2SeltTestParamDwnMgnAtRate, vdsl2SeltTestParamUpRateAtMgn,
+                          vdsl2SeltTestParamDwnRateAtMgn,hwvdsl2SeltTestParamAttnAt180KHZ,hwvdsl2SeltTestParamAttnAt300KHZ,hwvdsl2SeltTestParamQSPsdValue  for performance monitoring."        
+                                                                                     
+            REVISION     "200701220000Z"
+            DESCRIPTION  "V1.00, initial version."
+         	    	
+	    ::= { vdsl2 7 }     
+       
+     vdsl2Test                     OBJECT IDENTIFIER ::= { vdsl2Priv 1 }
+--          vdsl2SeltTestTable                 
+       vdsl2SeltTestTable  OBJECT-TYPE
+            SYNTAX          SEQUENCE OF VDSL2SELTTESTENTRY
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION
+                "This table contains the VDSL SELT configuration, SELT result, SELT data. The index of this table is ifIndex."
+            ::= { vdsl2Test 1 }    
+                   
+        vdsl2SeltTestEntry  OBJECT-TYPE
+            SYNTAX          VDSL2SELTTESTENTRY
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION     
+                "This table contains the VDSL SELT configuration, SELT result, SELT data. The index of this entry is ifIndex."
+            INDEX           { ifIndex }
+            ::= { vdsl2SeltTestTable 1 }
+        
+        VDSL2SELTTESTENTRY ::=
+            SEQUENCE{
+                vdsl2SeltTestOperType       	    VSDLSELTOPERTYPE  ,
+                vdsl2SeltTestOperResult     	    VSDLSELTOPERRESULT ,
+                vdsl2SeltTestResultNo       	    Integer32  ,
+                vdsl2SeltTestResultLastFlag 	    VSDLSELTRESULTLASTFLAG,
+                vdsl2SeltTestResult         	    OCTET STRING ,
+                vdsl2SeltTestParamLoopLength 	    Integer32 ,
+                vdsl2SeltTestParamLoopTermin 	    VSDLSELTPARAMLOOPTERMIN ,
+                vdsl2SeltTestParamLoopGauge  	    VSDLSELTPARAMLOOPGAUGE ,
+                vdsl2SeltTestParamUpShnCap   	    Integer32 ,
+                vdsl2SeltTestParamDwnShnCap  	    Integer32 ,
+                vdsl2SeltTestParamInbandNoise 	    OCTET STRING ,
+                vdsl2SeltTestParamTerminResp 	    OCTET STRING ,
+                vdsl2SeltTestParamUpMgnAtRate       OCTET STRING ,
+                vdsl2SeltTestParamDwnMgnAtRate      OCTET STRING ,
+                vdsl2SeltTestParamUpRateAtMgn       OCTET STRING ,  
+                vdsl2SeltTestParamDwnRateAtMgn      OCTET STRING ,
+                hwvdsl2SeltTestParamAttnAt180KHZ    Integer32 ,
+                hwvdsl2SeltTestParamAttnAt300KHZ    Integer32 ,
+                hwvdsl2SeltTestParamQSPsdValue      OCTET STRING,
+                hwvdsl2SeltTestParamUnCalibLineScale Unsigned32,            
+                hwvdsl2SeltTestParamUnCalibEchoRespRealSegment1 OCTET STRING,
+                hwvdsl2SeltTestParamUnCalibEchoRespRealSegment2 OCTET STRING,
+                hwvdsl2SeltTestParamUnCalibEchoRespImgSegment1  OCTET STRING,             
+                hwvdsl2SeltTestParamUnCalibEchoRespImgSegment2  OCTET STRING,     
+                hwvdsl2SeltTestParamQlnGroupSize                Unsigned32,
+                hwvdsl2SeltTestParamQmeC                        INTEGER,
+                hwvdsl2SeltTestParamUmeC                        INTEGER,
+                hwvdsl2SeltTestParaVarUerC                      OCTET STRING,
+                hwvdsl2SeltTestParaUerMmdC                      Unsigned32,
+                hwvdsl2SeltTestParaQlnMmdC                      Unsigned32,
+                hwvdsl2SeltTestParaUerStatus                    INTEGER,
+                hwvdsl2SeltTestParaQlnStatus                    INTEGER,
+                hwvdsl2SeltTestParamCalcEnable                  INTEGER
+            }
+        
+        vdsl2SeltTestOperType OBJECT-TYPE
+            SYNTAX      VSDLSELTOPERTYPE
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "This object is used to start the VDSL SELT. Only the start of the SELT is supported current. The stop of the SELT is not supported."
+            ::= { vdsl2SeltTestEntry 1 }    
+           
+        vdsl2SeltTestOperResult OBJECT-TYPE
+            SYNTAX      VSDLSELTOPERRESULT
+            MAX-ACCESS  accessible-for-notify
+            STATUS      current
+            DESCRIPTION
+                "Selt test operation result."  
+            ::= { vdsl2SeltTestEntry 2 }
+           
+        vdsl2SeltTestResultNo OBJECT-TYPE
+            SYNTAX      Integer32(1..255)
+            MAX-ACCESS  accessible-for-notify
+            STATUS      current
+            DESCRIPTION
+                "Selt test result serial number."
+            ::= { vdsl2SeltTestEntry 3 }
+           
+        vdsl2SeltTestResultLastFlag OBJECT-TYPE
+            SYNTAX      VSDLSELTRESULTLASTFLAG
+            MAX-ACCESS  accessible-for-notify
+            STATUS      current
+            DESCRIPTION
+                "Last package flag for test result."
+            ::= { vdsl2SeltTestEntry 4 }
+           
+        vdsl2SeltTestResult OBJECT-TYPE
+            SYNTAX      OCTET STRING(SIZE(0..1500))
+            MAX-ACCESS  accessible-for-notify
+            STATUS      current
+            DESCRIPTION
+                "  Selt test result data."
+            ::= { vdsl2SeltTestEntry 5 }
+           
+        vdsl2SeltTestParamLoopLength OBJECT-TYPE
+            SYNTAX      Integer32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Selt test parameter Loop Length."
+            ::= { vdsl2SeltTestEntry 6 }
+           
+        vdsl2SeltTestParamLoopTermin OBJECT-TYPE
+            SYNTAX      VSDLSELTPARAMLOOPTERMIN
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Selt test parameter Loop Termination."
+            ::= { vdsl2SeltTestEntry 7 }
+           
+        vdsl2SeltTestParamLoopGauge OBJECT-TYPE
+            SYNTAX      VSDLSELTPARAMLOOPGAUGE
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION
+                "Selt test parameter Loop Gauge."
+            ::= { vdsl2SeltTestEntry 8 }
+           
+        vdsl2SeltTestParamUpShnCap OBJECT-TYPE
+            SYNTAX      Integer32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Selt test parameter Upstream Shannon Capacity."
+            ::= { vdsl2SeltTestEntry 9 }
+           
+        vdsl2SeltTestParamDwnShnCap OBJECT-TYPE
+            SYNTAX      Integer32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Selt test parameter Downstream Shannon Capacity."
+           ::= { vdsl2SeltTestEntry 10 }
+           
+        vdsl2SeltTestParamInbandNoise OBJECT-TYPE
+            SYNTAX      OCTET STRING(SIZE(0..8192))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Selt test parameter Inband Noise               
+                 4096 values that indicate inband noise in DB/Hz, 
+                 covering VDSL bands, from 0 to 30 MHz.
+                "
+            ::= { vdsl2SeltTestEntry 11 }
+           
+        vdsl2SeltTestParamTerminResp OBJECT-TYPE
+            SYNTAX      OCTET STRING(SIZE(0..1500))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Selt test parameter Termination Response               
+                 180 values that indicate termination response magnitude from 0 to 18 kft.
+                "
+            ::= { vdsl2SeltTestEntry 12 }
+           
+        vdsl2SeltTestParamUpMgnAtRate OBJECT-TYPE
+            SYNTAX      OCTET STRING(SIZE(0..1500))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Selt test parameter Upstream Rate vs. Margin               
+                 This value is a measure of the quality of your upstream data 
+                 signal relative to the noise on the line. Hundreds of values that 
+                 indicate SNR margin in DB/Hz at a particular bit rate are provided, 
+                 at a certain increments, up to 30 Mbps. This information may be plotted 
+                 with the bit rate on the X-axis and the SNR margin on the Y-axis.
+                "
+            ::= { vdsl2SeltTestEntry 13 }
+           
+        vdsl2SeltTestParamDwnMgnAtRate OBJECT-TYPE
+            SYNTAX      OCTET STRING(SIZE(0..1500))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Selt test parameter Downstream Rate vs. Margin                
+                 This value is a measure of the quality of your downstream data 
+                 signal relative to the noise on the line. Hundreds of values that 
+                 indicate SNR margin in DB/Hz at a particular bit rate are provided, 
+                 at a certain increments, up to 30 Mbps. This information may be plotted 
+                 with the bit rate on the X-axis and the SNR margin on the Y-axis.
+                "
+            ::= { vdsl2SeltTestEntry 14 }
+           
+        vdsl2SeltTestParamUpRateAtMgn OBJECT-TYPE
+            SYNTAX      OCTET STRING(SIZE(0..1500))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Selt test parameter Upstream Margin vs. Rate"
+            ::= { vdsl2SeltTestEntry 15 }
+           
+        vdsl2SeltTestParamDwnRateAtMgn OBJECT-TYPE
+            SYNTAX      OCTET STRING(SIZE(0..1500))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Selt test parameter Downstream Margin vs. Rate"
+            ::= { vdsl2SeltTestEntry 16 }
+           
+        hwvdsl2SeltTestParamAttnAt180KHZ OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "0.1 dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Selt test parameter AttnAt180KHZ.
+                 It ranges from -950 to 0 (physical values are -95 to 0 dB). 
+                 The invalid value is -1. If no SELT is performed, no SELT data is generated 
+                 because the SELT is incomplete, or no SELT data can be obtained from 
+                 the port because the SELT data is aged and cleared, the invalid value will be returned.
+                 Unit: 0.1 dB
+                "
+            ::= { vdsl2SeltTestEntry 65535 }
+           
+        hwvdsl2SeltTestParamAttnAt300KHZ OBJECT-TYPE
+            SYNTAX      Integer32
+            UNITS       "0.1 dB"
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Selt test parameter AttnAt300KHZ.
+                 It ranges from -950 to 0 (physical values are -95 to 0 dB). 
+                 The invalid value is -1. If no SELT is performed, no SELT data is generated 
+                 because the SELT is incomplete, or no SELT data can be obtained from 
+                 the port because the SELT data is aged and cleared, the invalid value will be returned.
+                 Unit: 0.1 dB
+                "
+           ::= { vdsl2SeltTestEntry 65536 }
+                   
+        hwvdsl2SeltTestParamQSPsdValue OBJECT-TYPE
+            SYNTAX      OCTET STRING(SIZE(0..8192))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Selt test parameter QuietSignal PSD.
+                 An array of 4096 16-bits values, 
+                 designed for supporting up to 4096 (downstream) sub-carriers. 
+                 It ranges from -150 to -40 units of 1dBm/Hz.
+                "
+            ::= { vdsl2SeltTestEntry 65537 }            
+                               
+        hwvdsl2SeltTestParamUnCalibLineScale OBJECT-TYPE
+            SYNTAX      Unsigned32(0..4294967295)
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The scale factor of uncalibrated echo response shall be coded as a 32 bit unsigned integer.
+                "
+            ::= { vdsl2SeltTestEntry 65538 }
+            
+        hwvdsl2SeltTestParamUnCalibEchoRespRealSegment1 OBJECT-TYPE
+            SYNTAX      OCTET STRING(SIZE(0..8192))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The uncalibrated echo response, UER(i* UER_G*Df), shall be represented in linear format by a
+                 scale factor and a normalized complex number a(i)+j*b(i), where i is a frequency index i ranging
+                 from 0 to NSC-1, the subcarrier spacing, Df = 4.3125 kHz, and (NSC-1)*UER_G*Df is the
+                 highest frequency supported by the SELT-PMD functionality. The UER granularity parameter,
+                 UER_G, has two valid values: 1 and 2, indicating whether the measurements were performed using
+                 a tone spacing of 4.3125 kHz or of 8.625 kHz. If the uncalibrated echo response is being reported
+                 over a frequency range of 17.664 MHz or lower, UER_G shall be set to 1. If the uncalibrated echo
+                 response is being reported over a frequency range that is greater than 17.664 MHz, UER_G shall be
+                 set to 2.
+                 The scale factor shall be coded as a 32-bit unsigned integer. Both a(i) and b(i) shall be coded as
+                 32-bit 2's complement signed integers. The value of UER(i* UER_G*Df) shall be defined as:
+                 UER(i* UER_G*Df) = (scale/2^31)*(a(i)+j*b(i))/2^31. In order to maximize precision, the scale factor
+                 shall be chosen such that max(|a(i)|, |b(i)|) over all i is equal to 2^31-1.
+                 NOTE - This data format supports an UER(f) granularity of 2^(-31) and an UER(f) dynamic range of
+                 approximately +6 dB to -186 dB, however it does not imply any future accuracy requirements.
+                 An UER(i*UER_G* Df) value indicated as a(i) = b(i) = -2^31 is a special value. It indicates that no
+                 measurement could be done for this subcarrier either because it is not supported by the SELT-PMD
+                 function, or that the value is out of range to be represented.
+                "
+            ::= { vdsl2SeltTestEntry 65539 }
+            
+        hwvdsl2SeltTestParamUnCalibEchoRespRealSegment2 OBJECT-TYPE
+            SYNTAX      OCTET STRING(SIZE(0..8192))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The uncalibrated echo response, UER(i* UER_G*Df), shall be represented in linear format by a
+                 scale factor and a normalized complex number a(i)+j*b(i), where i is a frequency index i ranging
+                 from 0 to NSC-1, the subcarrier spacing, Df = 4.3125 kHz, and (NSC-1)*UER_G*Df is the
+                 highest frequency supported by the SELT-PMD functionality. The UER granularity parameter,
+                 UER_G, has two valid values: 1 and 2, indicating whether the measurements were performed using
+                 a tone spacing of 4.3125 kHz or of 8.625 kHz. If the uncalibrated echo response is being reported
+                 over a frequency range of 17.664 MHz or lower, UER_G shall be set to 1. If the uncalibrated echo
+                 response is being reported over a frequency range that is greater than 17.664 MHz, UER_G shall be
+                 set to 2.
+                 The scale factor shall be coded as a 32-bit unsigned integer. Both a(i) and b(i) shall be coded as
+                 32-bit 2's complement signed integers. The value of UER(i* UER_G*Df) shall be defined as:
+                 UER(i* UER_G*Df) = (scale/2^31)*(a(i)+j*b(i))/2^31. In order to maximize precision, the scale factor
+                 shall be chosen such that max(|a(i)|, |b(i)|) over all i is equal to 2^31-1.
+                 NOTE - This data format supports an UER(f) granularity of 2^(-31) and an UER(f) dynamic range of
+                 approximately +6 dB to -186 dB, however it does not imply any future accuracy requirements.
+                 An UER(i*UER_G* Df) value indicated as a(i) = b(i) = -2^31 is a special value. It indicates that no
+                 measurement could be done for this subcarrier either because it is not supported by the SELT-PMD
+                 function, or that the value is out of range to be represented.
+                "
+            ::= { vdsl2SeltTestEntry 65540 }            
+            
+        hwvdsl2SeltTestParamUnCalibEchoRespImgSegment1 OBJECT-TYPE
+            SYNTAX      OCTET STRING(SIZE(0..8192))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+               "The uncalibrated echo response, UER(i* UER_G*Df), shall be represented in linear format by a
+                 scale factor and a normalized complex number a(i)+j*b(i), where i is a frequency index i ranging
+                 from 0 to NSC-1, the subcarrier spacing, Df = 4.3125 kHz, and (NSC-1)*UER_G*Df is the
+                 highest frequency supported by the SELT-PMD functionality. The UER granularity parameter,
+                 UER_G, has two valid values: 1 and 2, indicating whether the measurements were performed using
+                 a tone spacing of 4.3125 kHz or of 8.625 kHz. If the uncalibrated echo response is being reported
+                 over a frequency range of 17.664 MHz or lower, UER_G shall be set to 1. If the uncalibrated echo
+                 response is being reported over a frequency range that is greater than 17.664 MHz, UER_G shall be
+                 set to 2.
+                 The scale factor shall be coded as a 32-bit unsigned integer. Both a(i) and b(i) shall be coded as
+                 32-bit 2's complement signed integers. The value of UER(i* UER_G*Df) shall be defined as:
+                 UER(i* UER_G*Df) = (scale/2^31)*(a(i)+j*b(i))/2^31. In order to maximize precision, the scale factor
+                 shall be chosen such that max(|a(i)|, |b(i)|) over all i is equal to 2^31-1.
+                 NOTE - This data format supports an UER(f) granularity of 2^(-31) and an UER(f) dynamic range of
+                 approximately +6 dB to -186 dB, however it does not imply any future accuracy requirements.
+                 An UER(i*UER_G* Df) value indicated as a(i) = b(i) = -2^31 is a special value. It indicates that no
+                 measurement could be done for this subcarrier either because it is not supported by the SELT-PMD
+                 function, or that the value is out of range to be represented.
+                "
+            ::= { vdsl2SeltTestEntry 65541 }
+            
+                        
+        hwvdsl2SeltTestParamUnCalibEchoRespImgSegment2 OBJECT-TYPE
+            SYNTAX      OCTET STRING(SIZE(0..8192))
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "The uncalibrated echo response, UER(i* UER_G*Df), shall be represented in linear format by a
+                 scale factor and a normalized complex number a(i)+j*b(i), where i is a frequency index i ranging
+                 from 0 to NSC-1, the subcarrier spacing, Df = 4.3125 kHz, and (NSC-1)*UER_G*Df is the
+                 highest frequency supported by the SELT-PMD functionality. The UER granularity parameter,
+                 UER_G, has two valid values: 1 and 2, indicating whether the measurements were performed using
+                 a tone spacing of 4.3125 kHz or of 8.625 kHz. If the uncalibrated echo response is being reported
+                 over a frequency range of 17.664 MHz or lower, UER_G shall be set to 1. If the uncalibrated echo
+                 response is being reported over a frequency range that is greater than 17.664 MHz, UER_G shall be
+                 set to 2.
+                 The scale factor shall be coded as a 32-bit unsigned integer. Both a(i) and b(i) shall be coded as
+                 32-bit 2's complement signed integers. The value of UER(i* UER_G*Df) shall be defined as:
+                 UER(i* UER_G*Df) = (scale/2^31)*(a(i)+j*b(i))/2^31. In order to maximize precision, the scale factor
+                 shall be chosen such that max(|a(i)|, |b(i)|) over all i is equal to 2^31-1.
+                 NOTE - This data format supports an UER(f) granularity of 2^(-31) and an UER(f) dynamic range of
+                 approximately +6 dB to -186 dB, however it does not imply any future accuracy requirements.
+                 An UER(i*UER_G* Df) value indicated as a(i) = b(i) = -2^31 is a special value. It indicates that no
+                 measurement could be done for this subcarrier either because it is not supported by the SELT-PMD
+                 function, or that the value is out of range to be represented.
+                "
+            ::= { vdsl2SeltTestEntry 65542 }
+           
+        hwvdsl2SeltTestParamQlnGroupSize  OBJECT-TYPE
+            SYNTAX      Unsigned32(1 | 4294967295)
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+                "Number of QLN(quiet line noise) per group.
+ 	         The scale value is 1 or 4294967295.4294967295 is invalid value.
+                "
+            ::= { vdsl2SeltTestEntry 65548 }            
+            
+        hwvdsl2SeltTestParamQmeC OBJECT-TYPE
+            SYNTAX      INTEGER
+            {
+            enable(1),
+            disable(2),
+            invalid(-1)
+            }
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION 
+              "The status of QLN capture switch.
+               Options:
+               1. enable(1)       - Enable QLN capture switch
+    	       2. disable(2)      - Disable QLN capture switch
+    	       3. invalid(-1)     - Invalid value               
+              "
+            ::= { vdsl2SeltTestEntry 65549 }
+            
+        hwvdsl2SeltTestParamUmeC OBJECT-TYPE
+            SYNTAX      INTEGER
+            {
+            enable(1),
+            disable(2),
+            invalid(-1)
+            }
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION 
+              "The status of UER capture switch.
+               Options:
+               1. enable(1)       - Enable UER capture switch
+    	       2. disable(2)      - Disable UER capture switch
+    	       3. invalid(-1)     - Invalid value               
+              "
+            ::= { vdsl2SeltTestEntry 65550 }
+       
+       hwvdsl2SeltTestParaVarUerC OBJECT-TYPE
+            SYNTAX      OCTET STRING(SIZE(0..8192))
+            MAX-ACCESS  read-only
+            STATUS      current  
+            DESCRIPTION
+                "The relative variance of the uncalibrated echo response REL_VAR_UER(i* UER_G *Df) shall be
+                 represented as an 8-bit unsigned integer v(i), where i is the subcarrier index i = 0 to NSC-1. The
+                 value of REL_VAR_UER(i* UER_G *Df) shall be defined as REL_VAR_UER(i* UER_G *Df) = 3 - v(i)/2 dB. 
+                 The number v(i) is an 8-bit unsigned integer in the range 0 to 254. 
+                 This data format supports a REL_VAR_UER(i) over a range from -124 dB to +3 dB for each carrier with a granularity from 0.5 dB. 
+                 Out of range values shall be clamped to the closest range bound. 
+                 The special value v(i) = 255 indicates that no measurement is available for that carrier.
+                 Unit: 0.5dB
+                "
+            ::= { vdsl2SeltTestEntry 65551 }   
+             
+        hwvdsl2SeltTestParaUerMmdC OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-write
+            STATUS      current 
+            DESCRIPTION
+            	"This parameter is the maximum allowed time for SELT uncalibrated echo response measurement,
+             	 between the time of the start command written by the SELT-PMD-ME, and the time the result is
+             	 available for read operation by SELT-PMD-ME.
+             	 It is configurable between 5 seconds and 240 seconds, in steps of 1 second, Invalid value is 0xff.
+             	 Unit: 1 second
+            	"  
+            ::= { vdsl2SeltTestEntry 65552 }     
+             
+        hwvdsl2SeltTestParaQlnMmdC OBJECT-TYPE
+            SYNTAX      Unsigned32
+            MAX-ACCESS  read-write
+            STATUS      current 
+            DESCRIPTION
+            	"This parameter is the maximum allowed time for SELT quiet line noise measurement, between the
+                 time of the start command written by the SELT-PMD-ME, and the time the result is available for
+                 read operation by SELT-PMD-ME.
+                 It is configurable between 1 second and 240 seconds, in steps of 1 second. Invalid value is 0xff.
+                 Unit: 1 second
+            	"     
+            ::= { vdsl2SeltTestEntry 65553 } 
+             
+        hwvdsl2SeltTestParaUerStatus OBJECT-TYPE
+            SYNTAX      INTEGER{off(1), running(2),completed(3),failed(4)}
+            MAX-ACCESS  read-only
+            STATUS      current  
+            DESCRIPTION
+            	"UerStatus.
+		 Options:
+		 1.off(1)             - The status is off.
+		 2.running(2)         - The status is running.
+		 3.completed(3)       - The status is completed.
+		 4.failed(4)          - The status is failed.
+            	"  
+            ::= { vdsl2SeltTestEntry 65554 }	
+            
+        hwvdsl2SeltTestParaQlnStatus OBJECT-TYPE
+            SYNTAX      INTEGER{off(1), running(2),completed(3),failed(4)}
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION
+            	"QlnStatus.
+		 Options:
+		 1.off(1)             - The status is off.
+		 2.running(2)         - The status is running.
+		 3.completed(3)       - The status is completed.
+		 4.failed(4)          - The status is failed.
+            	"  
+            ::= { vdsl2SeltTestEntry 65555 }     
+            
+       hwvdsl2SeltTestParamCalcEnable OBJECT-TYPE
+            SYNTAX      INTEGER
+            {
+            enable(1),
+            disable(2),
+            invalid(-1)
+            }
+            MAX-ACCESS  read-write
+            STATUS      current
+            DESCRIPTION 
+               "The status of calculation switch.
+                Options:
+                1. enable(1)       - Enable calculation switch
+    	        2. disable(2)      - Disable calculation switch
+    	        3. invalid(-1)     - Invalid value
+    	        Default: enable(1)               
+               "
+            DEFVAL { enable }
+            ::= { vdsl2SeltTestEntry 65556 }
+     
+--          vdsl2SeltTestLevelTable                 
+       vdsl2SeltTestLevelTable  OBJECT-TYPE
+            SYNTAX          SEQUENCE OF VDSL2SELTTESTLEVELENTRY
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION
+                "This table supports the configuration of vdsl selt level.
+                 The indexes of this table are hwFrameIndex and hwSlotIndex."
+            ::= { vdsl2Test 2 }    
+                   
+        vdsl2SeltTestLevelEntry  OBJECT-TYPE
+            SYNTAX          VDSL2SELTTESTLEVELENTRY
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION     
+                "This table supports the configuration of vdsl selt level.
+                 The indexes of this entry are hwFrameIndex and hwSlotIndex."
+            INDEX { 
+              hwFrameIndex,
+              hwSlotIndex
+            }
+            ::= { vdsl2SeltTestLevelTable 1 }
+        
+        VDSL2SELTTESTLEVELENTRY ::=
+            SEQUENCE{
+                hwvdsl2SeltLevel       	    Integer32
+            }
+        
+    hwvdsl2SeltLevel  OBJECT-TYPE
+      SYNTAX Integer32 (-1 | 1..4)
+      MAX-ACCESS read-write
+      STATUS current
+      DESCRIPTION
+        "The level of vdsl SELT:
+ 	 1  Level0;
+ 	 2  Level1;
+ 	 3  Level2;
+ 	 4  Level3.
+ 	 A special value of -1 indicates the level of vdsl SELT is invalid.
+        "
+      ::= { vdsl2SeltTestLevelEntry 1 }
+
+--          vdsl2SeltCalibrationTable              
+    vdsl2SeltCalibrationTable  OBJECT-TYPE
+            SYNTAX          SEQUENCE OF HWVDSL2SELTCALIBRATIONTENTRY
+            MAX-ACCESS      not-accessible
+            STATUS          current
+            DESCRIPTION
+                "This table describes calibration data of selt test.
+                 The index of this table is ifIndex.
+                "
+            ::= { vdsl2Test 3 }     
+              
+    vdsl2SeltCalibrationEntry   OBJECT-TYPE
+        SYNTAX          HWVDSL2SELTCALIBRATIONTENTRY
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     
+            "This table describes calibration data of selt test.
+             The index of this entry is ifIndex.
+            "
+        INDEX           
+            { 
+            ifIndex
+            }
+        ::= { vdsl2SeltCalibrationTable 1 }
+    
+    HWVDSL2SELTCALIBRATIONTENTRY ::=
+        SEQUENCE 
+            {
+            vdsl2SeltCalibrationInvVendorId  OCTET STRING,
+            vdsl2SeltCalibrationDataSegment1 OCTET STRING,
+            vdsl2SeltCalibrationDataSegment2 OCTET STRING
+            }
+                
+    vdsl2SeltCalibrationInvVendorId OBJECT-TYPE
+        SYNTAX      OCTET STRING  (SIZE(8))
+        MAX-ACCESS  read-only
+        STATUS       current
+        DESCRIPTION
+            "It consists of 8 binary octets, including a
+             provider code.
+            "
+        ::= { vdsl2SeltCalibrationEntry 1 }
+        
+    vdsl2SeltCalibrationDataSegment1 OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..8192))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The part 1 of selt calibration data.
+             The unit of selt calibration data is 0.00001.
+            " 
+        ::= { vdsl2SeltCalibrationEntry 2 }
+        
+    vdsl2SeltCalibrationDataSegment2 OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..8192))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The part 2 of selt calibration data.
+             The unit of selt calibration data is 0.00001.
+            " 
+        ::= { vdsl2SeltCalibrationEntry 3 }
+              
+    END

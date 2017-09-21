@@ -1,0 +1,771 @@
+-- ==================================================================================================
+-- Copyright (C) 2012 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Description: The mib is used for defining the RSTP MIB object. 
+--              RSTP is used to check the ring network on the user side to prevent
+--              the services from being affected. 
+--              After that, the system checks the ring network on the user side automatically. 
+-- Reference:  
+-- Version: V3.09
+-- ===================================================================================================
+    HUAWEI-RSTP-EXT-MIB DEFINITIONS ::= BEGIN
+        IMPORTS 
+            dot1dStpPortEntry            
+                FROM BRIDGE-MIB            
+            huaweiMgmt            
+                FROM HUAWEI-MIB            
+            Counter32, OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE, Integer32, Unsigned32        
+                FROM SNMPv2-SMI            
+            MacAddress, TruthValue, TEXTUAL-CONVENTION            
+                FROM SNMPv2-TC
+            hwFrameIndex, hwSlotIndex, hwPortIndex, hwOntIndex
+                FROM HUAWEI-DEVICE-MIB;
+    
+        hwRstpExt MODULE-IDENTITY
+            LAST-UPDATED "201209170000Z"
+            ORGANIZATION "Huawei Technologies Co.,Ltd."
+            CONTACT-INFO                                        
+                "Huawei Industrial Base
+                 Bantian, Longgang
+                 Shenzhen 518129
+                 People's Republic of China
+                 Website: http://www.huawei.com
+                 Email: support@huawei.com
+                "                                      
+            DESCRIPTION 
+                "The mib is used for defining the RSTP MIB object. 
+                 RSTP is used to check the ring network on the user side to prevent
+                 the services from being affected. 
+                 After that, the system checks the ring network on the user side automatically." 
+            
+            --  Revision history 
+            REVISION     "201209170000Z"
+            DESCRIPTION  "V3.09, added hwRingCheckTrapNotify in hwRstpMibObject. 
+                         Add hwRingCheckPortRingWarningTrap in hwRingCheckAlarmTraps."
+
+            REVISION     "201103040000Z"
+            DESCRIPTION  "V3.08, added hwRingCheckRecordTable in hwRstpMibObject.  
+                         Added hwRingCheckResumeInterval in hwRstpMibObject."
+                            
+            REVISION     "201011200000Z"
+            DESCRIPTION  "V3.07, added hwCnuIndex and hwRingCheckEocPortRingTrap for the ring topology in the
+                         subscriber EoC port, modified the descriptions of this MIB file and leaves."
+                 
+            REVISION     "201007160000Z"
+            DESCRIPTION  "V3.06, modified the description."
+
+            REVISION     "201006201630Z"
+            DESCRIPTION  "V3.05, deleted the Chinese characters in this file." 
+            
+            REVISION     "201004131630Z"
+            DESCRIPTION  "V3.04, modified description of hwRingCheckAdminStatus and hwRingCheckPrivateEthtype." 
+                         
+            REVISION     "200912301630Z"
+            DESCRIPTION  "V3.03, added hwRingCheckTrapsVbOids in hwRstpExt. Added hwRingCheckTraps in hwRstpExt.
+                         Added hwRingCheckAlarmTraps in hwRingCheckTraps."
+            
+            REVISION     "200804290000Z" 
+            DESCRIPTION  "V3.02, added hwRingCheckModeStatus, hwRingCheckPrivateEthtype,
+                         hwRingCheckModeStatus used for setting ring check mode,
+                         and hwRingCheckPrivateEthtype used for setting the private ethtype of ring check packet."
+            
+            REVISION     "200611270000Z" 
+            DESCRIPTION  "V3.01, modified according to MIB rules."   
+            
+            REVISION     "200304280900Z"
+            DESCRIPTION  "V3.00, added IPR decriptions and updated all MIB version"           
+            
+            REVISION     "200211290000Z"
+            DESCRIPTION  "V2.00, reunification version based on the fix-net MIBs baseline by the MIB standard community."
+            
+            ::= { huaweiMgmt 21 }
+    
+        EnabledStatus ::= TEXTUAL-CONVENTION
+            STATUS current
+            DESCRIPTION
+                "
+                A simple status value for the object.
+                "
+            SYNTAX INTEGER
+                {
+                enabled(1),  
+                disabled(2)
+                }
+    
+        hwRstpMibObject OBJECT IDENTIFIER ::= { hwRstpExt 1 }
+        
+        hwdot1dStpAdminStatus OBJECT-TYPE
+            SYNTAX EnabledStatus
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "
+                Enabling/Disabling Spanning Tree of the Switch
+                Options: 
+                1. enabled(1)
+                2. disabled(2)
+                Default: disabled(2)
+                "
+            ::= { hwRstpMibObject 1 }
+        
+        hwdot1dStpForceVersion OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                stp(0),  
+                rstp(2)
+                }
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Configuring RSTP Operating Mode,
+                 RSTP is compatible with STP. If a bridge running STP is in 
+                 this switched network, this can be used to set RSTP to work 
+                 in STP compatible mode or RSTP compatible mode.  DEFVAL { 2 }
+                 Options:
+                 1. stp(0)  -indicates the configuring RSTP operating mode is stp
+                 2. rstp(2) -indicates the configuring RSTP operating mode is rstp
+                "
+            ::= { hwRstpMibObject 2 }
+        
+        hwdot1dStpDiameter OBJECT-TYPE
+            SYNTAX Integer32 (1..7)
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                " 
+                Configuring Diameter of the Switched Network,
+                Switched network is a loop-free tree structure in which any                              
+                two PCs are connected by a series of bridges. 
+                Network diameter refers to the path with the most bridges. 
+                It is denoted by the number of bridges on the path. 
+                "
+            ::= { hwRstpMibObject 3 }
+        
+        hwdot1dStpRootBridgeAddress OBJECT-TYPE
+            SYNTAX MacAddress
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "
+                MAC Address of the root bridge.
+                "
+            ::= { hwRstpMibObject 4 }
+        
+        hwdot1dStpPortXTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwDot1dStpPortXEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table describes rstp port expand table,
+                 The index of this table is is not supported. 
+                "
+            ::= { hwRstpMibObject 5 }
+        
+        hwdot1dStpPortXEntry OBJECT-TYPE
+            SYNTAX HwDot1dStpPortXEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table describes rstp port expand table,
+                 The index of this entry is is not supported.
+                "
+            AUGMENTS { dot1dStpPortEntry }
+            ::= { hwdot1dStpPortXTable 1 }
+        
+        HwDot1dStpPortXEntry ::=
+            SEQUENCE 
+                { 
+                hwdot1dStpPortAdminStatus
+                    EnabledStatus,
+                hwdot1dStpPortEdgeport
+                    TruthValue,
+                hwdot1dStpPortPointToPoint
+                    INTEGER,
+                hwdot1dStpMcheck
+                    TruthValue,
+                hwdot1dStpTransLimit
+                    Integer32,
+                hwdot1dSetStpDefaultPortCost
+                    INTEGER
+                }
+
+        hwdot1dStpPortAdminStatus OBJECT-TYPE
+            SYNTAX EnabledStatus
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                " 
+                Enabling/Disabling Spanning Tree on the Port
+                The spanning tree can be disabled on specified Ethernet port 
+                to forbid these ports participating in spanning tree calculation.
+                "
+            DEFVAL { 1 }
+            ::= { hwdot1dStpPortXEntry 1 }
+        
+        hwdot1dStpPortEdgeport OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                " 
+                Configuring specified port to be EdgePort,
+                If the current Ethernet port is not connected with any 
+                Ethernet port of other bridges, this port should be configured as 
+                EdgePort to enable it to enter forwarding state directly without 
+                the unnecessary transition. 
+                If the specified port that is connected with the port of other bridges, 
+                RSTP will automatically detect and reconfigure it as non-EdgePort                
+                "
+            DEFVAL { 2 }
+            ::= { hwdot1dStpPortXEntry 2 }
+        
+        hwdot1dStpPortPointToPoint OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                forceTrue(1),
+                forceFalse(2),
+                auto(3)
+                }
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "
+                Configuring the Port to Connect Point-to-Point Link,
+                The two ports connected via the Point-to-Point link can 
+                enter the forwarding state rapidly by transmitting synchronous packets,
+                so that unnecessary forwarding delay can be avoided. 
+                If the configuration mode for this parameter is set to auto, 
+                RSTP can automatically detect if the current Ethernet port is 
+                connected with Point-to-Point link.
+                Options:
+                1. forceTrue(1)  -indicates the configuration of the port to connect Point-to-Point link is forceTrue
+                2. forceFalse(2) -indicates the configuration of the port to connect Point-to-Point link is forceFalse
+                3. auto(3) -indicates the configuration of the port to connect Point-to-Point link is auto           
+                "
+            DEFVAL { 3 }
+            ::= { hwdot1dStpPortXEntry 3 }
+        
+        hwdot1dStpMcheck OBJECT-TYPE
+            SYNTAX TruthValue
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "
+                Configuring mCheck of Specified Port,
+                By configuring mCheck, the user can check if there is the bridge 
+                running STP in the network segment connected with the active Ethernet port. 
+                If there is, the port will transfer to STP compatible mode. 
+                In a stable network, though the bridge running STP has been removed, 
+                this port will still work in STP compatible mode. 
+                In this case, the port can be forced to RSTP mode by setting the variable mCheck 
+                "
+            ::= { hwdot1dStpPortXEntry 4 }
+        
+        hwdot1dStpTransLimit OBJECT-TYPE
+            SYNTAX Integer32 (1..255)
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "
+                Configuring Maximum Transmission Speed of Specified Port,
+                The maximum transmission speed of Ethernet port is related 
+                to its physical state and network structure. 
+                The user can configure it according to the actual network situation.  
+                "
+            ::= { hwdot1dStpPortXEntry 5 }
+        
+        hwdot1dSetStpDefaultPortCost OBJECT-TYPE
+            SYNTAX INTEGER { enable(1) }
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "
+                come back to default path cost of specified port,
+                The path cost of Ethernet port is related to its link speed. 
+                The higher the link speed is, the lower the path cost should be configured. 
+                When this parameter is set to the default value, 
+                RSTP can automatically detect the link speed on the current Ethernet port 
+                and transform it to corresponding path cost. 
+                Options:
+                1. enable(1)  -indicates default path cost of specified port is enabled
+                "
+            ::= { hwdot1dStpPortXEntry 6 }
+        
+        hwdot1dStpPortStatTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwDot1dStpPortStatEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table describes rstp port statistic table,
+                 The index of this table is not supported.
+                "
+            ::= { hwRstpMibObject 6 }
+        
+        hwdot1dStpPortStatEntry OBJECT-TYPE
+            SYNTAX HwDot1dStpPortStatEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table describes rstp port statistic table,
+                 The index of this entry is not supported.
+                "
+            AUGMENTS { dot1dStpPortEntry }
+            ::= { hwdot1dStpPortStatTable 1 }
+        
+        HwDot1dStpPortStatEntry ::=
+            SEQUENCE 
+                { 
+                hwdot1dStpRXStpBPDU
+                    Counter32,
+                hwdot1dStpTXStpBPDU
+                    Counter32,
+                hwdot1dStpRXTCNBPDU
+                    Counter32,
+                hwdot1dStpTXTCNBPDU
+                    Counter32,
+                hwdot1dStpRXRSTPBPDU
+                    Counter32,
+                hwdot1dStpTXRSTPBPDU
+                    Counter32,
+                hwdot1dStpClearStatistics
+                    INTEGER
+                }
+
+        hwdot1dStpRXStpBPDU OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " 
+                Number of STP BPDU Received.
+                "
+            ::= { hwdot1dStpPortStatEntry 1 }
+        
+        hwdot1dStpTXStpBPDU OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " 
+                Number of STP BPDU Transmitted.
+                "
+            ::= { hwdot1dStpPortStatEntry 2 }
+        
+        hwdot1dStpRXTCNBPDU OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "
+                Number of TCN BPDU Received.
+                "
+            ::= { hwdot1dStpPortStatEntry 3 }
+        
+        hwdot1dStpTXTCNBPDU OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " 
+                Number of TCN BPDU Transmitted.
+                "
+            ::= { hwdot1dStpPortStatEntry 4 }
+        
+        hwdot1dStpRXRSTPBPDU OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Number of RSTP BPDU Received.
+                "
+            ::= { hwdot1dStpPortStatEntry 5 }
+        
+        hwdot1dStpTXRSTPBPDU OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Number of RSTP BPDU Transmitted.
+                "
+            ::= { hwdot1dStpPortStatEntry 6 }
+        
+        hwdot1dStpClearStatistics OBJECT-TYPE
+            SYNTAX INTEGER { clear(1) }
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "To clear statistics of Rapid Spanning Tree Protocol (RSTP for short).
+                 Options:
+                 1. clear(1)  -indicates clearing statistics of Rapid Spanning Tree Protocol
+                "
+            ::= { hwdot1dStpPortStatEntry 7 }
+            
+        hwRingCheckAdminStatus OBJECT-TYPE
+            SYNTAX EnabledStatus
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Indicates the status of the ring check on the user side. 
+                 Options: 
+                 1. enabled(1)
+                 2. disabled(2)
+                 Default: disabled(2)
+                "
+            
+            ::= { hwRstpMibObject 7 }
+        
+        hwBpduTunnelAdminStatus OBJECT-TYPE
+            SYNTAX EnabledStatus
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Enabling/Disabling BPDU tunneling function.
+                 Options:
+                 1. enabled(1)
+                 2. disabled(2)
+                 Default: disabled(2)
+                "
+            ::= { hwRstpMibObject 8 }
+
+         hwRingCheckModeStatus OBJECT-TYPE
+            SYNTAX INTEGER 
+                {             
+                private-bpdu(0),
+                private-ethtype(1)
+                }
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Set ring check mode.
+                 Options:
+                 1. private-bpdu(0)  -indicates the ring check mode is private-bpdu
+                 2. private-ethtype(1)  -indicates the ring check mode is private-ethtype
+                 Default: private-bpdu(0)
+                "
+            ::= { hwRstpMibObject 9 }  
+            
+        hwRingCheckPrivateEthtype OBJECT-TYPE
+            SYNTAX Unsigned32 (1536..65535)
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Indicates the private Ethernet protocol type of the user-side ring check packet.
+                 Range: 1536-65535
+                 Default: 33536
+                "
+            ::= { hwRstpMibObject 10 }
+            
+       hwRingCheckResumeInterval OBJECT-TYPE
+            SYNTAX Integer32 (0|1..1440)
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Indicates the interval time of re-activating the ring check port/ONT/CNU.
+                 0 means to disable the function of automatically re-activating a port/ONT/CNU. 
+                 1-1440 indicates the waiting period for the port/ONT/CNU to be automatically 
+                 re-activated after it is automatically deactivated. 
+                 Unit: minute                
+                 Range: 0-1440
+                 Default: 0
+                "
+            ::= { hwRstpMibObject 11 }
+
+       hwRingCheckRecordTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwRingCheckRecordEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Used to query the deactivation information of ring check,
+                 The index of this table is hwRingCheckRecordIndex.
+                "
+            ::= { hwRstpMibObject 12 }
+        
+       hwRingCheckRecordEntry OBJECT-TYPE
+            SYNTAX HwRingCheckRecordEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Used to query the deactivation information of ring check,
+                 The index of this entry is hwRingCheckRecordIndex.
+                "
+           INDEX { hwRingCheckRecordIndex }
+            ::= { hwRingCheckRecordTable 1 }
+            
+      HwRingCheckRecordEntry ::=
+            SEQUENCE
+                {
+                hwRingCheckRecordIndex
+                    Unsigned32,
+                hwRingCheckRecordFrameIndex
+                    Integer32,
+                hwRingCheckRecordSlotIndex
+                    Integer32,
+                hwRingCheckRecordPortIndex
+                    Integer32,
+                hwRingCheckRecordOntIndex
+                    Integer32,
+                hwRingCheckRecordCountdown
+                    Integer32
+                }
+
+       hwRingCheckRecordIndex OBJECT-TYPE
+            SYNTAX Unsigned32 (1..4294967295)
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "Indicates the index of a deactivation record."
+            ::= { hwRingCheckRecordEntry 1 }
+
+       hwRingCheckRecordFrameIndex OBJECT-TYPE
+            SYNTAX Integer32 (0..255)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION 
+                "Indicates the Frame ID of the port/ONT/CNU that is deactivated by ring check."
+            ::= { hwRingCheckRecordEntry 2 }
+        
+       hwRingCheckRecordSlotIndex OBJECT-TYPE
+            SYNTAX Integer32 (0..255)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION 
+                "Indicates the Slot ID of the port/ONT/CNU that is deactivated by ring check."
+            ::= { hwRingCheckRecordEntry 3 }
+       
+       hwRingCheckRecordPortIndex OBJECT-TYPE   
+            SYNTAX Integer32 (0..255)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION 
+                "Indicates the Port ID of the port/ONT/CNU that is deactivated by ring check."
+            ::= { hwRingCheckRecordEntry 4 }
+      
+       hwRingCheckRecordOntIndex OBJECT-TYPE
+            SYNTAX Integer32 (-1|0..255)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION 
+                "Indicates the index of the ONT/CNU that is deactivated by ring check."
+            ::= { hwRingCheckRecordEntry 5 }
+      
+       hwRingCheckRecordCountdown OBJECT-TYPE
+            SYNTAX Integer32 (-1|0..1440) 
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION 
+                "Indicates remaining waiting time for automatic activation.
+                 -1 indicates that the automatic activation function of ring check is disabled. 
+                 Unit: minute 
+                "
+            ::= { hwRingCheckRecordEntry 6 }
+                    
+       hwRingCheckTrapNotify OBJECT-TYPE
+            SYNTAX INTEGER 
+                {
+                event(1),
+                alarm(2)
+                }
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Indicates the trap notification mode of ring check on the user side.
+                 Options:
+                 1. event(1) -indicates the way of trap is event
+                 2. alarm(2) -indicates the way of trap is alarm
+                 Default: event(1)
+                "
+            ::= { hwRstpMibObject 13 }
+
+       hwRingCheckTrapsVbOids OBJECT IDENTIFIER ::= { hwRstpExt 2 }
+                  
+       hwRingCheckRemoteMACAddress OBJECT-TYPE
+           SYNTAX  MacAddress
+           MAX-ACCESS accessible-for-notify
+           STATUS current
+           DESCRIPTION
+               "Indicates the remote Remote mac address.
+               "
+       ::= { hwRingCheckTrapsVbOids 1 }
+       
+       hwCnuIndex OBJECT-TYPE
+           SYNTAX  Integer32(0..127)
+           MAX-ACCESS accessible-for-notify
+           STATUS current
+           DESCRIPTION
+               "Indicates the CNU ID.
+               "
+       ::= { hwRingCheckTrapsVbOids 2 }
+
+       hwRingCheckTraps OBJECT IDENTIFIER ::= { hwRstpExt 3 }
+  
+       hwRingCheckAlarmTraps OBJECT IDENTIFIER ::= { hwRingCheckTraps 1 }
+        
+       hwRingCheckAlarmTrapsPrefix OBJECT IDENTIFIER ::= { hwRingCheckAlarmTraps 0 }
+         
+       hwRingCheckPortRingTrap NOTIFICATION-TYPE
+           OBJECTS
+               {  
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex,
+               hwRingCheckRemoteMACAddress,
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex
+               }
+           STATUS   current
+           DESCRIPTION
+               "The SNMP trap is generated when the ring topology in the subscriber port is found.
+               "
+           ::= { hwRingCheckAlarmTraps 0 1 }
+          
+       hwRingCheckXponPortRingTrap NOTIFICATION-TYPE
+           OBJECTS  
+               { 
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex,
+               hwOntIndex,
+               hwRingCheckRemoteMACAddress,
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex,
+               hwOntIndex
+               }
+           STATUS   current
+           DESCRIPTION
+               "The SNMP trap is generated when the ring topology in the subscriber xPON port is found.
+               "
+           ::= { hwRingCheckAlarmTraps 0 2 }
+           
+       hwRingCheckEocPortRingTrap NOTIFICATION-TYPE
+           OBJECTS  
+               { 
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex,
+               hwCnuIndex,
+               hwRingCheckRemoteMACAddress,
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex,
+               hwCnuIndex
+               }
+           STATUS   current
+           DESCRIPTION
+               "The SNMP trap is generated when the ring topology in the subscriber EoC port is found.
+               "
+           ::= { hwRingCheckAlarmTraps 0 3 }  
+           
+       hwRingCheckAlarmWarningTrapsPrefix OBJECT IDENTIFIER ::= { hwRingCheckAlarmTraps 1 }
+         
+       hwRingCheckPortRingWarningTrap NOTIFICATION-TYPE
+           OBJECTS
+               {  
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex,
+               hwRingCheckRemoteMACAddress,
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex
+               }
+           STATUS   current
+           DESCRIPTION
+               "The SNMP trap is generated when the ring topology in the subscriber port is found.
+               "
+           ::= { hwRingCheckAlarmTraps 1 1 }
+          
+       hwRingCheckXponPortRingWarningTrap NOTIFICATION-TYPE
+           OBJECTS  
+               { 
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex,
+               hwOntIndex,
+               hwRingCheckRemoteMACAddress,
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex,
+               hwOntIndex
+               }
+           STATUS   current
+           DESCRIPTION
+               "The SNMP trap is generated when the ring topology in the subscriber xPON port is found.
+               "
+           ::= { hwRingCheckAlarmTraps 1 2 }
+           
+       hwRingCheckEocPortRingWarningTrap NOTIFICATION-TYPE
+           OBJECTS  
+               { 
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex,
+               hwCnuIndex,
+               hwRingCheckRemoteMACAddress,
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex,
+               hwCnuIndex
+               }
+           STATUS   current
+           DESCRIPTION
+               "The SNMP trap is generated when the ring topology in the subscriber EoC port is found.
+               "
+           ::= { hwRingCheckAlarmTraps 1 3 }   
+           
+	  hwRingCheckPortRingClearedTrap NOTIFICATION-TYPE
+           OBJECTS
+               {  
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex,
+               hwRingCheckRemoteMACAddress,
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex
+               }
+           STATUS   current
+           DESCRIPTION
+               "The SNMP trap is generated when the ring topology in the subscriber port is cleared.
+               "
+           ::= { hwRingCheckAlarmTraps 1 4 }
+          
+       hwRingCheckXponPortRingClearedTrap NOTIFICATION-TYPE
+           OBJECTS  
+               { 
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex,
+               hwOntIndex,
+               hwRingCheckRemoteMACAddress,
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex,
+               hwOntIndex
+               }
+           STATUS   current
+           DESCRIPTION
+               "The SNMP trap is generated when the ring topology in the subscriber xPON port is cleared.
+               "
+           ::= { hwRingCheckAlarmTraps 1 5 }
+           
+       hwRingCheckEocPortRingClearedTrap NOTIFICATION-TYPE
+           OBJECTS  
+               { 
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex,
+               hwCnuIndex,
+               hwRingCheckRemoteMACAddress,
+               hwFrameIndex,
+               hwSlotIndex,
+               hwPortIndex,
+               hwCnuIndex
+               }
+           STATUS   current
+           DESCRIPTION
+               "The SNMP trap is generated when the ring topology in the subscriber EoC port is cleared.
+               "
+           ::= { hwRingCheckAlarmTraps 1 6 }
+    
+    END

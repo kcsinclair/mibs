@@ -1,0 +1,882 @@
+-- ==============================================================================
+-- Copyright (C) 2012 by HUAWEI TECHNOLOGIES. All rights reserved.  
+-- Description:   The extend MIB module is used for defining Huawei's Access Node Control 
+--                Protocol (ANCP) MIB objects.
+--                ANCP is a dedicated control protocol between NAS and access nodes
+--                can facilitate NAS-managed tight QOS control in the access
+--                network, simplified OSS infrastructure for service management, 
+--                optimized multicast replication to enable video services over DSL, 
+--                subscriber statistics retrieval on the NAS for accounting purposes, 
+--                and fault isolation capability on the NAS for the underlying access
+--                technology. Controllable multicast allows an access device to 
+--                determine if a user has the authority to watch programs by 
+--                identifying the user request packets. In this way, the access 
+--                device controls and forwards the multicast services.                             
+-- Reference:                                                        
+-- Version: V1.12
+-- ==============================================================================
+
+HUAWEI-ANCP-AN-EXT-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+       huaweiMgmt FROM HUAWEI-MIB
+       TruthValue FROM SNMPv2-TC
+
+       MODULE-IDENTITY, OBJECT-TYPE,
+       Unsigned32, mib-2, TimeTicks,
+       NOTIFICATION-TYPE
+            FROM SNMPv2-SMI                            -- [RFC2578]
+       ZeroBasedCounter32
+            FROM RMON2-MIB                             -- [RFC4502]
+       ifIndex      FROM IF-MIB                        -- [RFC2863]
+       InetAddressType, InetAddress, InetPortNumber
+            FROM INET-ADDRESS-MIB                      -- [RFC4001]
+       MODULE-COMPLIANCE, OBJECT-GROUP,
+       NOTIFICATION-GROUP
+            FROM SNMPv2-CONF                           -- [RFC2580]
+       GsmpVersion, GsmpNameType, GsmpPartitionIdType
+            FROM GSMP-MIB                              -- [RFC3295]
+       RowStatus, TEXTUAL-CONVENTION
+            FROM SNMPv2-TC                             -- [RFC2579]
+       ancpAnSessionConfigSessionId, ancpAnSessionConfigEntry,
+       ancpAnInterfaceConfigEntry, ancpAnCurrentSessionEntry, ancpAnCurrentSessionAnIpAddressType, ancpAnCurrentSessionAnIpAddress,
+       ancpAnSessionConfigNasIpAddressType, ancpAnSessionConfigNasIpAddress, ancpAnCurrentSessionAnInstance, ancpAnCurrentSessionNasInstance,
+       ancpAnCurrentSessionStartUptime, ancpAnCurrentSessionDiscontinuityTime, ancpAnCurrentSessionStatSentMessages,
+       ancpAnCurrentSessionStatReceivedValidMessages, ancpAnCurrentSessionStatDiscardedMessages 
+            FROM HUAWEI-ANCP-AN-MIB;                   -- [draft-ietf-ancp-mib-an-03.txt]
+
+hwAncpAnExtMIB MODULE-IDENTITY
+       LAST-UPDATED "201203190000Z"
+
+       ORGANIZATION "Huawei Technologies Co.,Ltd."
+       CONTACT-INFO 
+                   "Huawei Industrial Base
+                    Bantian, Longgang
+                    Shenzhen 518129
+                    People's Republic of China
+                    Website: http://www.huawei.com
+                    Email: support@huawei.com
+                   "
+       DESCRIPTION
+           "The extend MIB module is used for defining Huawei's Access Node Control 
+           Protocol (ANCP) MIB objects.
+           ANCP is a dedicated control protocol between NAS and access nodes 
+           can facilitate NAS-managed tight QOS control in the access network, 
+           simplified OSS infrastructure for service management, optimized multicast 
+           replication to enable video services over DSL, subscriber statistics 
+           retrieval on the NAS for accounting purposes, and fault isolation 
+           capability on the NAS for the underlying access technology. Controllable 
+           multicast allows an access device to determine if a user has the authority 
+           to watch programs by identifying the user request packets. In this way, 
+           the access device controls and forwards the multicast services."
+            
+       --  Revision history
+       REVISION     "201203190000Z"
+       DESCRIPTION  "V1.12, added hwAncpAnSessionConfigForceNoPartition to hwAncpAnSessionConfigTable."
+       
+       REVISION     "201011300000Z"
+       DESCRIPTION  "V1.11, modified the enumeration of hwAncpAnInterfaceEncapType and 
+                     hwAncpAnPartitionInterfaceEncapType.
+                     Modified the value range of hwAncpAnPartitionId."
+       
+       REVISION     "201011220000Z"
+       DESCRIPTION  "V1.10, modified the enumeration of hwAncpAnInterfaceEncapType."
+       
+       REVISION     "201011170000Z"
+       DESCRIPTION  "V1.09, modified description of leaves."
+       
+       REVISION     "201011100000Z"
+       DESCRIPTION  "V1.08, modified the value range of hwAncpAnPartitionId."
+       
+       REVISION     "201011090000Z"
+       DESCRIPTION  "V1.07, Moditfied the description of hwAncpAnPartitionTable and hwAncpAnPartitionEntry. Modified the description of 
+                     hwAncpAnPartitionInterfacePara1, hwAncpAnPartitionInterfacePara2, and hwAncpAnPartitionInterfacePara3."
+       
+       REVISION     "201007220000Z"
+       DESCRIPTION  "V1.06, added node hwAncpAnCurrentSessionPartitionUsedStatus and modified the description and format of the file."
+       
+       REVISION     "201005050000Z"
+       DESCRIPTION  "V1.05, modified the MIB file name and added trap node hwAncpAnSessionDiagnosticTrap."
+       
+       REVISION     "201004250000Z"
+       DESCRIPTION  "V1.04, modified the description of all leaves."
+       
+       REVISION     "201004120000Z"
+       DESCRIPTION  "V1.03, modified MAX-ACCESS of hwAncpAnPartitionId."
+       
+       REVISION     "201003160000Z"
+       DESCRIPTION  "V1.02, modified the module identity and changed the access permission of the hwAncpAnPartitionId from read-write to not-accessible."
+                   
+       REVISION     "200912220000Z"
+       DESCRIPTION  "V1.01, initial version."
+       ::= { huaweiMgmt 110 }
+-- The value of huaweiMgmt 108 to be assigned by HUAWEI.
+
+hwAncpAnObjects                    OBJECT IDENTIFIER ::= { hwAncpAnExtMIB 1 }
+
+--
+-- Extend Partitions
+--
+
+hwAncpAnTopoDiscoveryMode OBJECT-TYPE
+        SYNTAX   INTEGER
+        {
+            port(1),
+            servicePort(2)
+        }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+              "The object indicates the mode of reporting ANCP topology discovery.
+               Enumerated value. 
+               Options: 
+               1. port(1)        -indicates the mode of reporting ANCP topology discovery is port
+               2. servicePort(2) -indicates the mode of reporting ANCP topology discovery is serviceport
+               Default: servicePort(2)
+              "
+        ::= { hwAncpAnObjects 1 }
+
+hwAncpAnDraftVersion OBJECT-TYPE
+        SYNTAX INTEGER
+        {
+            draft00(0),
+            draft01(1),
+            draft02(2)
+        }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+              "ANCP draft version. 
+               Options:
+               1. draft00(0) -indicates that draft draft-wadhwa-gsmp-l2control-configuration-00 is supported
+               2. draft01(1) -indicates that draft draft-ietf-ancp-protocol-01 is supported
+               3. draft02(2) -indicates that draft draft-ietf-ancp-protocol-02 is supported
+               Default: draft01(1)
+              "
+        ::= { hwAncpAnObjects 2 }
+
+hwAncpAnPortBegin OBJECT-TYPE
+        SYNTAX Unsigned32(0..1)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+              "This object is used to configure the start port ID in the circuit ID information of the ANCP message.
+               Range: 0-1
+               Default: 0
+              "
+        ::= { hwAncpAnObjects 3 }
+
+--
+-- Extend Configuration of ANCP Sessions
+--
+
+hwAncpAnSessionConfigTable OBJECT-TYPE
+       SYNTAX SEQUENCE OF HwAncpAnSessionConfigEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+             "This table represents the ANCP sessions in the access node. An entry in this table needs to be configured (created) 
+              before an ANCP session might be started.
+              The index of this table is ancpAnSessionConfigSessionId.
+             "
+       ::= { hwAncpAnObjects 4 }
+
+hwAncpAnSessionConfigEntry OBJECT-TYPE
+       SYNTAX     HwAncpAnSessionConfigEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+             "This table represents the ANCP sessions in the access node. An entry in this table needs to be configured (created) 
+              before an ANCP session might be started.
+              The index of this entry is ancpAnSessionConfigSessionId.
+             "
+       AUGMENTS    { ancpAnSessionConfigEntry }
+       ::= { hwAncpAnSessionConfigTable 1 }
+
+HwAncpAnSessionConfigEntry ::= SEQUENCE {
+       hwAncpAnSessionConfigOamThreshold        Unsigned32,
+       hwAncpAnSessionConfigRollDefaultFlag     TruthValue,
+       hwAncpAnSessionConfigBandwidthCacSwitch  TruthValue,
+       hwAncpAnSessionConfigForceNoPartition    TruthValue
+}
+
+hwAncpAnSessionConfigOamThreshold OBJECT-TYPE
+       SYNTAX     Unsigned32(1..100)
+       UNITS      "percent"
+       MAX-ACCESS read-create
+       STATUS     current
+       DESCRIPTION
+             "The OAM threshold in this session. 
+              Range: 1-100
+              Default: 100
+             "
+       DEFVAL { 100 }
+       ::= { hwAncpAnSessionConfigEntry 1 }
+
+hwAncpAnSessionConfigRollDefaultFlag OBJECT-TYPE
+       SYNTAX     TruthValue
+       MAX-ACCESS read-create
+       STATUS     current
+       DESCRIPTION
+             "The flag indicates whether rollback is permitted when link configuration fails.  
+              Options:
+              1. true(1)  -rollback is permitted when link configuration fails
+              2. false(2) -rollback is not permitted when link configuration fails
+              Default: false(2)
+             "
+       DEFVAL { false }
+       ::= { hwAncpAnSessionConfigEntry 2 }
+
+hwAncpAnSessionConfigBandwidthCacSwitch OBJECT-TYPE
+        SYNTAX  TruthValue
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+              "The switch of ANCP bandwidthCAC in this session.
+               Options: 
+               1. true(1)
+               2. false(2)
+               Default: false(2)
+              "
+        DEFVAL { false }
+        ::= { hwAncpAnSessionConfigEntry 3 }
+        
+hwAncpAnSessionConfigForceNoPartition OBJECT-TYPE
+        SYNTAX  TruthValue
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+              "The switch of ANCP force no partition in this session.
+               Options: 
+               1. true(1)  -indicates that the partition is zero in ANCP packet
+               2. false(2) -indicates that the partition is the configuration in ANCP packet
+               Default: false(2)
+              "
+        DEFVAL { false }
+        ::= { hwAncpAnSessionConfigEntry 4 }
+
+--
+-- Extend Operational Information of ANCP Sessions
+--
+
+hwAncpAnCurrentSessionTable OBJECT-TYPE
+       SYNTAX SEQUENCE OF HwAncpAnCurrentSessionEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+             "It is the Huawei proprietary ANCP session status table. It is queried to 
+              obtain the cause of failure to establish a session and check whether 
+              the cause is inconsistency in capability set negotiation. It supports 
+              the query function.
+              The index of this table is ancpAnSessionConfigSessionId.
+             "
+       ::= { hwAncpAnObjects 5 }
+
+hwAncpAnCurrentSessionEntry OBJECT-TYPE
+       SYNTAX     HwAncpAnCurrentSessionEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+             "It is the Huawei proprietary ANCP session status table. It is queried to 
+              obtain the cause of failure to establish a session and check whether 
+              the cause is inconsistency in capability set negotiation. It supports 
+              the query function.
+              The index of this entry is ancpAnSessionConfigSessionId.
+             "
+       AUGMENTS    { ancpAnCurrentSessionEntry }
+       ::= { hwAncpAnCurrentSessionTable 1 }
+
+HwAncpAnCurrentSessionEntry ::= SEQUENCE {
+       hwAncpAnCurrentSessionDiagnostic             INTEGER,
+       hwAncpAnCurrentSessionPartitionUsedStatus    INTEGER
+}
+
+hwAncpAnCurrentSessionDiagnostic OBJECT-TYPE
+       SYNTAX     INTEGER
+       {
+           noDiagnostic(1),
+           capabilityNegotiationFailure(2)
+       }
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "This object indicates the diagnose result when a session fails to be established.
+              Options:
+              1. noDiagnostic(1)                 -indicates no diagnostic information
+              2. capabilityNegotiationFailure(2) -indicates capability negotiation failure
+             "
+       ::= { hwAncpAnCurrentSessionEntry 1 }
+
+hwAncpAnCurrentSessionPartitionUsedStatus OBJECT-TYPE
+       SYNTAX     INTEGER
+       {
+           used (1),
+           unused (2),
+           unknow (255)
+       }
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "This object indicates the partition used status.
+              Options:
+              1. used(1)     -the partition is used
+              2. unused(2)   -the partition is unused
+              3. unknow(255) -the session is not established
+             "
+       ::= { hwAncpAnCurrentSessionEntry 2 }
+
+--
+-- Extend Partitions
+--
+
+hwAncpAnInterfaceConfigTable OBJECT-TYPE
+       SYNTAX SEQUENCE OF HwAncpAnInterfaceConfigEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+             "An entry in the table showing the partition id for a
+              specific user facing interface.
+              The index of this table is ifIndex.
+             "
+       ::= { hwAncpAnObjects 6 }
+
+hwAncpAnInterfaceConfigEntry OBJECT-TYPE
+       SYNTAX     HwAncpAnInterfaceConfigEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+             "An entry in the table showing the partition id for a
+              specific user facing interface.
+              The index of this entry is ifIndex.
+             "
+       AUGMENTS    { ancpAnInterfaceConfigEntry }
+       ::= { hwAncpAnInterfaceConfigTable 1 }
+
+HwAncpAnInterfaceConfigEntry ::= SEQUENCE {
+       hwAncpAnInterfaceEnable         TruthValue,
+       hwAncpAnInterfaceEncapType      INTEGER,
+       hwAncpAnInterfacePara1          Unsigned32,
+       hwAncpAnInterfacePara2          Unsigned32,
+       hwAncpAnInterfacePara3          Unsigned32
+}
+
+hwAncpAnInterfaceEnable OBJECT-TYPE
+       SYNTAX     TruthValue
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+             "This object specifies whether the user facing interface is managed by ANCP.
+              Options:
+              1. true(1)  -indicates the user facing interface is managed by ANCP
+              2. false(2) -indicates the user facing interface is not managed by ANCP
+             "
+       DEFVAL { true }
+       ::= { hwAncpAnInterfaceConfigEntry 1 }
+
+
+hwAncpAnInterfaceEncapType OBJECT-TYPE
+       SYNTAX     INTEGER { atm(1), eth(2), auto(3), invalid(-1) }
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+             "This object indicates the access type of the user.  
+              Options: 
+              1. atm(1)      -indicates the access type of user is ATM
+              2. eth(2)      -indicates the access type of user is ETH
+              3. auto(3)     -indicates the access type of user is auto mode. In this mode, 
+                              the CID reported by ANCP is related with DSL profile
+              4. invalid(-1) -indicates the access type of user is invalid
+             "
+       ::= { hwAncpAnInterfaceConfigEntry 2 }
+
+hwAncpAnInterfacePara1 OBJECT-TYPE
+       SYNTAX     Unsigned32
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+             "In the case of user interface in ATM access, this parameter is valid 
+              indicating the VPI of the user interface.
+             "
+       ::= { hwAncpAnInterfaceConfigEntry 3 }
+
+hwAncpAnInterfacePara2 OBJECT-TYPE
+       SYNTAX     Unsigned32
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+             "In the case of user interface in ATM access, this parameter is valid 
+              indicating the VCI of the user interface.
+             "
+       ::= { hwAncpAnInterfaceConfigEntry 4 }
+
+hwAncpAnInterfacePara3 OBJECT-TYPE
+       SYNTAX     Unsigned32
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+             "In the case of user interface in ETH access, this parameter is valid 
+              indicating the VLAN of the user.
+             "
+       ::= { hwAncpAnInterfaceConfigEntry 5 }
+
+--
+-- Partitions information
+--
+
+hwAncpAnPartitionTable OBJECT-TYPE
+       SYNTAX SEQUENCE OF HwAncpAnPartitionEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+             "This table is used to configure the circuit IDs in batches for all ports in a 
+              certain partition on an access node. This table can only used to get the circuit
+              IDs of one port assoicated with the partition. If you need to obtain the current 
+              circuit ID configured for a certain port, you can specify a port to be queried 
+              in hwAncpAnInterfaceConfigTable. The index of this table is hwAncpAnPartitionId.
+             "
+              
+       ::= { hwAncpAnObjects 7 }
+
+hwAncpAnPartitionEntry OBJECT-TYPE
+       SYNTAX     HwAncpAnPartitionEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+             "This table is used to configure the circuit IDs in batches for all ports in a 
+              certain partition on an access node. This table can only used to get the circuit
+              IDs of one port assoicated with the partition. If you need to obtain the current 
+              circuit ID configured for a certain port, you can specify a port to be queried 
+              in hwAncpAnInterfaceConfigTable. The index of this entry is hwAncpAnPartitionId.
+             "
+       INDEX { hwAncpAnPartitionId }
+       ::= { hwAncpAnPartitionTable 1 }
+
+HwAncpAnPartitionEntry ::= SEQUENCE {
+       hwAncpAnPartitionId                      Unsigned32,
+       hwAncpAnPartitionInterfaceEncapType      INTEGER,
+       hwAncpAnPartitionInterfacePara1          Unsigned32,
+       hwAncpAnPartitionInterfacePara2          Unsigned32,
+       hwAncpAnPartitionInterfacePara3          Unsigned32
+}
+
+hwAncpAnPartitionId OBJECT-TYPE
+       SYNTAX     Unsigned32(0..255)
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+             "This object specifies whether the user facing interface is managed by ANCP.
+             "
+       ::= { hwAncpAnPartitionEntry 1 }
+
+
+hwAncpAnPartitionInterfaceEncapType OBJECT-TYPE
+       SYNTAX     INTEGER { atm(1), eth(2), auto(3) }
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+             "This object indicates the access type of the user. 
+              Options:
+              1. atm(1)  -indicates the access type of user is ATM
+              2. eth(2)  -indicates the access type of user is ETH
+              3. auto(3) -indicates the access type of user is auto mode. In this mode, 
+                          the CID reported by ANCP is related with DSL profile
+             "
+       ::= { hwAncpAnPartitionEntry 2 }
+
+hwAncpAnPartitionInterfacePara1 OBJECT-TYPE
+       SYNTAX     Unsigned32
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+             "In the case of user interface in ATM access, this parameter is valid 
+              indicating the VPI of the user interface. 
+              Range: 0-4095
+             "
+       ::= { hwAncpAnPartitionEntry 3 }
+
+hwAncpAnPartitionInterfacePara2 OBJECT-TYPE
+       SYNTAX     Unsigned32
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+             "In the case of user interface in ATM access, this parameter is valid 
+              indicating the VCI of the user interface.
+              Range: 32-65535
+             "
+       ::= { hwAncpAnPartitionEntry 4 }
+
+hwAncpAnPartitionInterfacePara3 OBJECT-TYPE
+       SYNTAX     Unsigned32
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+             "In the case of user interface in ETH access, this parameter is valid 
+              indicating the VLAN of the user.
+              Range: 1-4095
+             "
+       ::= { hwAncpAnPartitionEntry 5 }
+       
+hwAncpAnSessionStatisticTable OBJECT-TYPE
+       SYNTAX SEQUENCE OF HwAncpAnSessionStatisticEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+             "It is the Huawei proprietary ANCP session statistics table. It is 
+              queried to obtain the ANCP session statistics. It supports the query 
+              sand clear functions. 
+              The index of this table is ancpAnSessionConfigSessionId.
+             "
+       ::= { hwAncpAnObjects 8 }
+
+hwAncpAnSessionStatisticEntry OBJECT-TYPE
+       SYNTAX     HwAncpAnSessionStatisticEntry
+       MAX-ACCESS not-accessible
+       STATUS     current
+       DESCRIPTION
+             "It is the Huawei proprietary ANCP session statistics table. It is 
+              queried to obtain the ANCP session statistics. It supports the query 
+              sand clear functions. 
+              The index of this entry is ancpAnSessionConfigSessionId.
+             "
+       INDEX { ancpAnSessionConfigSessionId }
+       ::= { hwAncpAnSessionStatisticTable 1 }
+
+HwAncpAnSessionStatisticEntry ::= SEQUENCE {
+       hwAncpAnSessionClearStatistics                 INTEGER,
+       hwAncpAnSessionStatSentSynMessages             ZeroBasedCounter32,
+       hwAncpAnSessionStatSentSynAckMessages          ZeroBasedCounter32,
+       hwAncpAnSessionStatSentAckMessages             ZeroBasedCounter32,
+       hwAncpAnSessionStatSentRstAckMessages          ZeroBasedCounter32,
+       hwAncpAnSessionStatSentTopoUpMessages          ZeroBasedCounter32,
+       hwAncpAnSessionStatSentTopoDownMessages        ZeroBasedCounter32,
+       hwAncpAnSessionStatSentLineCfgMessages         ZeroBasedCounter32,
+       hwAncpAnSessionStatSentOamMessages             ZeroBasedCounter32,
+       hwAncpAnSessionStatSentCacMessages             ZeroBasedCounter32,
+       hwAncpAnSessionStatSentCacThresholdMessages    ZeroBasedCounter32,      
+       hwAncpAnSessionStatSentCacApplyBwMessages      ZeroBasedCounter32,
+       hwAncpAnSessionStatSentFailedMessages          ZeroBasedCounter32,
+       hwAncpAnSessionStatRcvdSynMessages             ZeroBasedCounter32,
+       hwAncpAnSessionStatRcvdSynAckMessages          ZeroBasedCounter32,
+       hwAncpAnSessionStatRcvdAckMessages             ZeroBasedCounter32,
+       hwAncpAnSessionStatRcvdRstAckMessages          ZeroBasedCounter32,
+       hwAncpAnSessionStatRcvdLineCfgMessages         ZeroBasedCounter32,
+       hwAncpAnSessionStatRcvdOamMessages             ZeroBasedCounter32,       
+       hwAncpAnSessionStatRcvdCacMessages             ZeroBasedCounter32,
+       hwAncpAnSessionStatRcvdCacThresholdMessages    ZeroBasedCounter32,
+       hwAncpAnSessionStatRcvdCacBdApplyMessages      ZeroBasedCounter32,
+       hwAncpAnSessionStatRcvdUnknownMessages         ZeroBasedCounter32
+}
+
+hwAncpAnSessionClearStatistics OBJECT-TYPE
+       SYNTAX     INTEGER{ clear(1) }
+       MAX-ACCESS read-write
+       STATUS     current
+       DESCRIPTION
+             "This object allowed clearing the message statistics of the session.
+              Options:
+              1. clear(1) -clear the message statistics of the session
+             "
+       ::= { hwAncpAnSessionStatisticEntry 1 }
+
+hwAncpAnSessionStatSentSynMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been sent SYN Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 2 }
+
+hwAncpAnSessionStatSentSynAckMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been sent SYNACK Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 3 }
+
+hwAncpAnSessionStatSentAckMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been sent ACK Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 4 }
+       
+hwAncpAnSessionStatSentRstAckMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been sent RSTACK Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 5 } 
+       
+hwAncpAnSessionStatSentTopoUpMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been sent TOPO up Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 6 }
+       
+hwAncpAnSessionStatSentTopoDownMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been sent TOPO down Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 7 }
+                     
+hwAncpAnSessionStatSentLineCfgMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been sent line config Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 8 }
+                     
+hwAncpAnSessionStatSentOamMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been sent OAM Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 9 }
+                     
+hwAncpAnSessionStatSentCacMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been sent CAC Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 10 }
+                        
+hwAncpAnSessionStatSentCacThresholdMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been sent CAC threshold Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 11 }
+                      
+hwAncpAnSessionStatSentCacApplyBwMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been sent CAC bandwidth apply Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 12 }                      
+
+hwAncpAnSessionStatSentFailedMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been sent failed Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 13 }      
+              
+hwAncpAnSessionStatRcvdSynMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been received SYN Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 14 }               
+   
+hwAncpAnSessionStatRcvdSynAckMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been received SYNACK Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 15 }    
+
+hwAncpAnSessionStatRcvdAckMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been received ACK Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 16 } 
+
+hwAncpAnSessionStatRcvdRstAckMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "
+              The number of messages that in this session have been received RSTACK Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 17 } 
+              
+hwAncpAnSessionStatRcvdLineCfgMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been received Line Config Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 18 }    
+
+hwAncpAnSessionStatRcvdOamMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been received OAM Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 19 }           
+             
+hwAncpAnSessionStatRcvdCacMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been received CAC Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 20 }           
+             
+hwAncpAnSessionStatRcvdCacThresholdMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been received CAC threshold Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 21 }             
+ 
+hwAncpAnSessionStatRcvdCacBdApplyMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been received CAC bandwidth apply Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 22 }  
+       
+hwAncpAnSessionStatRcvdUnknownMessages OBJECT-TYPE
+       SYNTAX     ZeroBasedCounter32
+       MAX-ACCESS read-only
+       STATUS     current
+       DESCRIPTION
+             "The number of messages that in this session have been received failed Message.
+             "
+       ::= { hwAncpAnSessionStatisticEntry 23 }  
+--
+-- Traps
+--
+
+hwAncpAnTraps OBJECT IDENTIFIER ::= { hwAncpAnObjects 9 }
+
+hwAncpAnTrapsVbOids OBJECT IDENTIFIER ::= { hwAncpAnTraps 0 }
+
+hwAncpAnSessionUpTrapParaNum OBJECT-TYPE
+       SYNTAX Unsigned32(1..4294967295)
+       MAX-ACCESS accessible-for-notify
+       STATUS current
+       DESCRIPTION
+       "Indicates the  parameters number of the hwAncpAnSessionUpTrap. 
+       "
+       ::= { hwAncpAnTrapsVbOids 1 }   
+       
+hwAncpAnSessionDownTrapParaNum OBJECT-TYPE
+       SYNTAX Unsigned32(1..4294967295)
+       MAX-ACCESS accessible-for-notify
+       STATUS current
+       DESCRIPTION
+       "Indicates the  parameters number of the hwAncpAnSessionDownTrap. 
+       "
+       ::= { hwAncpAnTrapsVbOids 2 }    
+  
+hwAncpAnCommonTraps OBJECT IDENTIFIER ::= { hwAncpAnTraps 1 } 
+        
+hwAncpAnCommonTrapsPrefix OBJECT IDENTIFIER ::= { hwAncpAnCommonTraps 0 }
+
+hwAncpAnSessionDownTrap NOTIFICATION-TYPE
+       OBJECTS {
+                ancpAnSessionConfigSessionId,
+                hwAncpAnSessionDownTrapParaNum,
+                ancpAnCurrentSessionAnIpAddressType,
+                ancpAnCurrentSessionAnIpAddress,
+                ancpAnSessionConfigNasIpAddressType,
+                ancpAnSessionConfigNasIpAddress,
+                ancpAnCurrentSessionAnInstance,
+                ancpAnCurrentSessionNasInstance,
+                ancpAnCurrentSessionStartUptime,
+                ancpAnCurrentSessionDiscontinuityTime,
+                ancpAnCurrentSessionStatSentMessages,
+                ancpAnCurrentSessionStatReceivedValidMessages,
+                ancpAnCurrentSessionStatDiscardedMessages
+               }
+       STATUS current
+       DESCRIPTION
+             "This notification is generated whenever an ANCP session
+              goes down.  A session can go down for several reasons:
+              1) The ANCP session can be deleted by a manager from the
+                 ancpAnSessionConfigTable, and hence it will also be
+                 removed from the ancpAnCurrentSessionTable.
+              2) The session can go operational down due to some
+                 malfunction in the network, the AN, or the NAS.  In
+                 this case, the ANCP session will be still in the
+                 ancpAnSessionConfigTable and ancpAnCurrentSessionTable,
+                 but the ancpAnCurrentSessionState moves from the estab
+                 state to another state.
+              This notification is only generated when
+              ancpAnSessionConfigNotifyDnEnable of this session is set
+              to true.
+             "
+       ::= { hwAncpAnCommonTrapsPrefix 1 }
+
+hwAncpAnSessionUpTrap NOTIFICATION-TYPE
+       OBJECTS {
+                ancpAnSessionConfigSessionId,
+                hwAncpAnSessionUpTrapParaNum,
+                ancpAnCurrentSessionAnInstance
+               }
+       STATUS current
+       DESCRIPTION
+            "This notification is generated when an ANCP session enters
+             the estab state as given by ancpAnCurrentSessionState.
+             Since ancpAnCurrentSessionAnInstance identifies the ANCP
+             session uniquely the other attributes can be derived from
+             this attribute.
+             This notification is only generated when
+             ancpAnSessionConfigNotifyUpEnable of this session is set
+             to true.
+            "
+       ::= { hwAncpAnCommonTrapsPrefix 2 }
+       
+hwAncpAnSessionDiagnosticTrap NOTIFICATION-TYPE
+       OBJECTS {
+                ancpAnSessionConfigSessionId,
+                ancpAnCurrentSessionAnIpAddressType,
+                ancpAnCurrentSessionAnIpAddress,
+                ancpAnSessionConfigNasIpAddressType,
+                ancpAnSessionConfigNasIpAddress,
+                hwAncpAnCurrentSessionDiagnostic
+               }
+       STATUS current
+       DESCRIPTION
+            "If the setup of the connection fails, the DSLAM 
+             and the BRAS must generate an appropriate fault/alarm 
+             message to the network management system.
+            "
+       ::= { hwAncpAnCommonTrapsPrefix 3 }
+
+
+END
+
