@@ -1,0 +1,2395 @@
+	       OMNI-gx2RSW1000B-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+	
+    OBJECT-TYPE
+					      FROM RFC-1212
+    DisplayString
+					      FROM RFC1213-MIB
+    TRAP-TYPE
+					      FROM RFC-1215
+    gx2Rsw1000b
+					      FROM GX2HFC-MIB
+
+	trapIdentifier,trapNetworkElemModelNumber,
+	trapNetworkElemSerialNum, trapPerceivedSeverity,
+	trapNetworkElemOperState, trapNetworkElemAlarmStatus,
+	trapNetworkElemAdminState, trapNetworkElemAvailStatus,
+	trapText, trapNETrapLastTrapTimeStamp, trapChangedObjectId,
+	trapChangedValueInteger, trapChangedValueDisplayString
+					      FROM NLSBBN-TRAPS-MIB;
+
+
+
+	       -- This MIB module uses the extended OBJECT-TYPE macro as
+	       -- defined in RFC1212 and the TRAP-TYPE macro as defined
+	       -- in RFC 1215.
+
+
+
+
+		   --REVISION	"4" Jan 20, 2003
+		   --DESCRIPTION
+		   --			Added revision and description comment section
+		   
+		   --REVISION	"5" Dec 18, 2003
+		   --DESCRIPTION
+		   --			Fixed discrepancies from Rev "4"
+		   --			Renamed parameters to properly reflect thier function
+		   --			This version will be used to do pre-release firmware
+		   --           testing of RSW1000B 
+		   --			Changes will be marked "DFL: description of change..."
+
+		   --REVISION	"6" Jan 14, 2004
+		   --DESCRIPTION
+		   --			(Changes based on MIB Review directives)
+		   --         * Remove: "IpAddress, TimeTicks  FROM RFC1155-SMI",
+		   --            "sysUpTime",
+		   --            "gi,motproxies FROM NLS-BBNIDENT-MIB"
+		   --         * Change integer upper limit to 2^31-1 (2147483647)
+		   --         * For the unused analog limits add the following text:
+		   --            "This object is not used by this module and always
+		   --             returns invalid float value of 0xFFFFFFFF . This
+		   --             object is kept here for persistence."
+		   --         * Unused analog object defined as "obsolete" rather than
+		   --           "mandatory"
+		   --         * Removed unnecessary comments:
+		   --             "Contains a list...network elements"
+		   --             "!!! THE TRAP SECTION..."  
+		   --             "DFL: description of change..."
+		   --         * Enforce correspondance with enumeration values ant text
+		   -- 			    comments
+		   --         * Specified unit of measure in comments:
+		   --             "For all analog objects for this parameter type, the
+		   --              unit of measure is ___."
+		   --         * Remove IEEE floating point comments (consolidate in one
+		   --             general comment)
+		   --         * Uptate text to identify "gauge" limit parameters.
+		   --         * Annotate rsw1000bvalueFactoryDefault with behavioral
+		   --             description.
+		   
+		   --REVISION	"7" March 02, 2004
+		   --DESCRIPTION
+		   --         Made the PRI/SEC level alarms "unused"
+		   --		  All analog alarm state parameters are mandatory
+			
+
+
+
+		--    OMNISTAR RF Switch Module MIB MODULE
+
+	-- This MIB module defines information for management of HFC networks
+		--
+		-- The MIB module assumes that all generic (static) network element
+		-- information is defined in a different module such as the HFC module
+		-- The MIB consists of two groups:
+		-- the device type descriptor subgroup and
+		-- gx2Rsw1000b Network Elements subgroup.
+		-- The device type descriptor subgroup is used to define
+		-- parameters specific to gx2Rsw1000b device type.
+		-- These parameters are common across all network elements
+		-- from gx2Rsw1000b device type.
+		--
+		-- The gx2Rsw1000b Network Elements subgroup is
+		-- a list of gx2Rsw1000b type elements in the
+		-- current network topology with nominal
+		-- and current parameter values for the
+		-- individual network elements; the individual
+		-- network elements are identified by
+		-- index from hfcCommonTable.
+		-- That implies what hfcCommonTableIndex and
+		-- gx2Rsw1000b TableIndex are equal for each individual
+		-- network element.
+		-- This table is an extension of the hfcCommonTable
+		-- for all elements of gx2Lmc type.
+		--
+		-- Both groups are mandatory for management of gx2Lmc devices.
+
+-- ****************************************************************************
+		--
+		-- All floating point numbers will be represented by an IEEE 32 Bit number.
+		-- Conversion of this number must be done on the user interface to view the
+		-- actual floating point number.
+		--
+
+		Float ::= Counter  -- UNSIGNED (32 BITS)
+
+-- ****************************************************************************
+
+		-- gx2Rsw1000b Device Descriptor subgroup.
+
+		-- The device type descriptor subgroup is used to define
+		-- parameters specific to gx2Rsw1000b device type.
+		-- These parameters are common across all network elements
+		-- from gx2Rsw1000b device type.
+
+
+		gx2Rsw1000bDescriptor OBJECT IDENTIFIER ::= {gx2Rsw1000b 1}
+
+
+
+--*****************************************************************************
+		--              gx2Rsw1000b Table
+
+		-- The individual network elements indentified by
+		-- index from hfcCommonTable.
+		-- That implies what hfcCommonTableIndex and
+		-- gx2Rsw1000bTableIndex are equal for each individual
+		-- nettwork element.
+		-- This table should be used as an extension of the hfcCommonTable
+		-- for all elements of gx2Rsw1000b type.
+
+
+	       gx2Rsw1000bAnalogTable                    OBJECT-TYPE
+			 SYNTAX             SEQUENCE OF Gx2Rsw1000bAnalogEntry
+			 ACCESS             not-accessible
+			 STATUS             mandatory
+			 DESCRIPTION
+			 "This table contains gx2Rsw1000b specific parameters with
+			  nominal and current values."
+			 ::= { gx2Rsw1000b 2 }
+
+
+	       gx2Rsw1000bAnalogEntry               OBJECT-TYPE
+			 SYNTAX             Gx2Rsw1000bAnalogEntry
+			 ACCESS             not-accessible
+			 STATUS             mandatory
+			 DESCRIPTION
+			 "This list contains the analog parameters and descriptions."
+			 INDEX { gx2Rsw1000bAnalogTableIndex }
+			 ::= { gx2Rsw1000bAnalogTable  1}
+
+--*****************************************************************************
+	       gx2Rsw1000bDigitalTable                    OBJECT-TYPE
+			 SYNTAX             SEQUENCE OF Gx2Rsw1000bDigitalEntry
+			 ACCESS             not-accessible
+			 STATUS             mandatory
+			 DESCRIPTION
+			 "This table contains gx2Rsw1000b specific parameters with
+			  nominal and current values."
+			 ::= { gx2Rsw1000b 3 }
+
+	       gx2Rsw1000bDigitalEntry               OBJECT-TYPE
+			 SYNTAX             Gx2Rsw1000bDigitalEntry
+			 ACCESS             not-accessible
+			 STATUS             mandatory
+			 DESCRIPTION
+			 "This list contains digital parameters and descriptions."
+			 INDEX { gx2Rsw1000bDigitalTableIndex }
+			 ::= { gx2Rsw1000bDigitalTable  2}
+
+--*****************************************************************************
+	       gx2Rsw1000bStatusTable                    OBJECT-TYPE
+			 SYNTAX             SEQUENCE OF Gx2Rsw1000bStatusEntry
+			 ACCESS             not-accessible
+			 STATUS             mandatory
+			 DESCRIPTION
+			 "This table contains gx2Rsw1000b specific parameters with
+			  nominal and current values."
+			 ::= { gx2Rsw1000b 4 }
+
+	       gx2Rsw1000bStatusEntry               OBJECT-TYPE
+			 SYNTAX             Gx2Rsw1000bStatusEntry
+			 ACCESS             not-accessible
+			 STATUS             mandatory
+			 DESCRIPTION
+			 "This list contains Status parameters and descriptions."
+			 INDEX { gx2Rsw1000bStatusTableIndex }
+			 ::= { gx2Rsw1000bStatusTable  3}
+
+--*****************************************************************************
+	       gx2Rsw1000bFactoryTable                    OBJECT-TYPE
+			 SYNTAX             SEQUENCE OF Gx2Rsw1000bFactoryEntry
+			 ACCESS             not-accessible
+			 STATUS             mandatory
+			 DESCRIPTION
+			 "This table contains gx2Rsw1000b specific parameters with
+			  nominal and current values."
+			 ::= { gx2Rsw1000b 5 }
+
+	       gx2Rsw1000bFactoryEntry               OBJECT-TYPE
+			 SYNTAX             Gx2Rsw1000bFactoryEntry
+			 ACCESS             not-accessible
+			 STATUS             mandatory
+			 DESCRIPTION
+			 "This list contains Factory parameters and descriptions."
+			 INDEX { gx2Rsw1000bFactoryTableIndex }
+			 ::= { gx2Rsw1000bFactoryTable  4}
+
+--*****************************************************************************
+
+	       gx2Rsw1000bHoldTimeTable                    OBJECT-TYPE
+			 SYNTAX             SEQUENCE OF Gx2Rsw1000bHoldTimeEntry
+			 ACCESS             not-accessible
+			 STATUS             mandatory
+			 DESCRIPTION
+			 "This table contains gx2Rsw1000b specific parameters with
+			  nominal and current values."
+			 ::= { gx2Rsw1000b 6 }
+
+	       gx2Rsw1000bHoldTimeEntry               OBJECT-TYPE
+			 SYNTAX             Gx2Rsw1000bHoldTimeEntry
+			 ACCESS             not-accessible
+			 STATUS             mandatory
+			 DESCRIPTION
+			 "This list contains digital product class and the
+			  associated RF channel parameters and descriptions."
+			 INDEX { rxgx2Rsw1000bHoldTimeTableIndex, rxgx2Rsw1000bHoldTimeSpecIndex }
+			 ::= { gx2Rsw1000bHoldTimeTable  5}
+
+--***********************************************************************
+
+
+
+
+	      Gx2Rsw1000bAnalogEntry    ::= SEQUENCE
+	       {
+		gx2Rsw1000bAnalogTableIndex         INTEGER,
+
+		--           Analog Parameters
+		rsw1000blabelPriRFInputLvl		DisplayString (SIZE (0..80)),
+		rsw1000buomPriRFInputLvl		DisplayString (SIZE (0..80)),
+		rsw1000bmajorHighPriRFInputLvl	Float,
+		rsw1000bmajorLowPriRFInputLvl		Float,
+		rsw1000bminorHighPriRFInputLvl	Float,
+		rsw1000bminorLowPriRFInputLvl		Float,
+		rsw1000bcurrentValuePriRFInputLvl	Float,
+		rsw1000bstateFlagPriRFInputLvl	INTEGER,
+		rsw1000bminValuePriRFInputLvl		Float,
+		rsw1000bmaxValuePriRFInputLvl		Float,
+		rsw1000balarmStatePriRFInputLvl	INTEGER,
+
+		rsw1000blabelSecRFInputLvl		DisplayString (SIZE (0..80)),
+		rsw1000buomSecRFInputLvl		DisplayString (SIZE (0..80)),
+		rsw1000bmajorHighSecRFInputLvl	Float,
+		rsw1000bmajorLowSecRFInputLvl		Float,
+		rsw1000bminorHighSecRFInputLvl	Float,
+		rsw1000bminorLowSecRFInputLvl		Float,
+		rsw1000bcurrentValueSecRFInputLvl	Float,
+		rsw1000bstateFlagSecRFInputLvl	INTEGER,
+		rsw1000bminValueSecRFInputLvl		Float,
+		rsw1000bmaxValueSecRFInputLvl		Float,
+		rsw1000balarmStateSecRFInputLvl	INTEGER,
+
+		rsw1000blabelPriRFThreshold		DisplayString (SIZE (0..80)),
+		rsw1000buomPriRFThreshold		DisplayString (SIZE (0..80)),
+		rsw1000bmajorHighPriRFThreshold	Float,
+		rsw1000bmajorLowPriRFThreshold	Float,
+		rsw1000bminorHighPriRFThreshold	Float,
+		rsw1000bminorLowPriRFThreshold	Float,
+		rsw1000bcurrentValuePriRFThreshold	Float,
+		rsw1000bstateFlagPriRFThreshold	INTEGER,
+		rsw1000bminValuePriRFThreshold	Float,
+		rsw1000bmaxValuePriRFThreshold	Float,
+		rsw1000balarmStatePriRFThreshold	INTEGER,
+
+		rsw1000blabelSecRFThreshold		DisplayString (SIZE (0..80)),
+		rsw1000buomSecRFThreshold		DisplayString (SIZE (0..80)),
+		rsw1000bmajorHighSecRFThreshold	Float,
+		rsw1000bmajorLowSecRFThreshold	Float,
+		rsw1000bminorHighSecRFThreshold	Float,
+		rsw1000bminorLowSecRFThreshold	Float,
+		rsw1000bcurrentValueSecRFThreshold	Float,
+		rsw1000bstateFlagSecRFThreshold	INTEGER,
+		rsw1000bminValueSecRFThreshold	Float,
+		rsw1000bmaxValueSecRFThreshold	Float,
+		rsw1000balarmStateSecRFThreshold	INTEGER,
+
+		rsw1000blabelModTemp			DisplayString (SIZE (0..80)),
+		rsw1000buomModTemp			DisplayString (SIZE (0..80)),
+	
+		rsw1000bmajorHighModTemp		Float,
+		rsw1000bmajorLowModTemp			Float,
+		rsw1000bminorHighModTemp		Float,
+		rsw1000bminorLowModTemp			Float,
+
+		rsw1000bcurrentValueModTemp		Float,
+		rsw1000bstateFlagModTemp		INTEGER,
+		rsw1000bminValueModTemp			Float,
+		rsw1000bmaxValueModTemp			Float,
+		rsw1000balarmStateModTemp		INTEGER,
+
+		rsw1000blabelFanCurrent			DisplayString (SIZE (0..80)),
+		rsw1000buomFanCurrent			DisplayString (SIZE (0..80)),
+		rsw1000bmajorHighFanCurrent		Float,
+		rsw1000bmajorLowFanCurrent		Float,
+		rsw1000bminorHighFanCurrent		Float,
+		rsw1000bminorLowFanCurrent		Float,
+		rsw1000bcurrentValueFanCurrent	Float,
+		rsw1000bstateFlagFanCurrent		INTEGER,
+		rsw1000bminValueFanCurrent		Float,
+		rsw1000bmaxValueFanCurrent 		Float,
+		rsw1000balarmStateFanCurrent		INTEGER
+		}
+
+		-- ****************  Digital Parameters ***********************
+	     Gx2Rsw1000bDigitalEntry    ::= SEQUENCE
+	     {
+		gx2Rsw1000bDigitalTableIndex    	INTEGER,
+
+		rsw1000blabelSwitchControl		DisplayString (SIZE (0..80)),
+		rsw1000benumSwitchControl		DisplayString (SIZE (0..80)),
+		rsw1000bvalueSwitchControl		INTEGER,
+		rsw1000bstateflagSwitchControl  	INTEGER,
+
+		rsw1000blabelSwitchMode			DisplayString (SIZE (0..80)),
+		rsw1000benumSwitchMode			DisplayString (SIZE (0..80)),
+		rsw1000bvalueSwitchMode			INTEGER,
+		rsw1000bstateflagSwitchMode   	INTEGER,
+
+		rsw1000blabelRevertEnable		DisplayString (SIZE (0..80)),
+		rsw1000benumRevertEnable		DisplayString (SIZE (0..80)),
+		rsw1000bvalueRevertEnable		INTEGER,
+		rsw1000bstateflagRevertEnable   	INTEGER,
+
+		rsw1000blabelRevertTime			DisplayString (SIZE (0..80)),
+		rsw1000benumRevertTime			DisplayString (SIZE (0..80)),
+		rsw1000bvalueRevertTime			INTEGER,
+		rsw1000bstateflagRevertTime  		INTEGER,
+
+
+		rsw1000blabelSensorMode			DisplayString (SIZE (0..80)),
+		rsw1000benumSensorMode			DisplayString (SIZE (0..80)),
+		rsw1000bvalueSensorMode			INTEGER,
+		rsw1000bstateflagSensorMode  		INTEGER,
+
+		rsw1000blabelSwitchMonitor		DisplayString (SIZE (0..80)),
+		rsw1000benumSwitchMonitor		DisplayString (SIZE (0..80)),
+		rsw1000bvalueSwitchMonitor		INTEGER,
+		rsw1000bstateflagSwitchMonitor  	INTEGER,
+
+		rsw1000blabelPriStatusSig		DisplayString (SIZE (0..80)),
+		rsw1000benumPriStatusSig		DisplayString (SIZE (0..80)),
+		rsw1000bvaluePriStatusSig		INTEGER,
+		rsw1000bstateflagPriStatusSig		INTEGER,
+
+		rsw1000blabelSecStatusSig		DisplayString (SIZE (0..80)),
+		rsw1000benumSecStatusSig		DisplayString (SIZE (0..80)),
+		rsw1000bvalueSecStatusSig		INTEGER,
+		rsw1000bstateflagSecStatusSig		INTEGER,
+
+		rsw1000blabelFactoryDefault		DisplayString (SIZE (0..80)),
+		rsw1000benumFactoryDefault		DisplayString (SIZE (0..80)),
+		rsw1000bvalueFactoryDefault		INTEGER,
+		rsw1000bstateflagFactoryDefault 	INTEGER
+		}
+
+		-- ****************  Status Parameters ************************************
+	     Gx2Rsw1000bStatusEntry    ::= SEQUENCE
+	     {
+		gx2Rsw1000bStatusTableIndex     	INTEGER,
+
+		rsw1000blabelBoot				DisplayString (SIZE (0..80)),
+		rsw1000bvalueBoot				INTEGER,
+		rsw1000bstateflagBoot			INTEGER,
+
+		rsw1000blabelFlash			DisplayString (SIZE (0..80)),
+		rsw1000bvalueFlash			INTEGER,
+		rsw1000bstateflagFlash			INTEGER,
+
+		rsw1000blabelFactoryDataCRC 		DisplayString (SIZE (0..80)),
+		rsw1000bvalueFactoryDataCRC		INTEGER,
+		rsw1000bstateflagFactoryDataCRC	INTEGER,
+
+		rsw1000blabelRFDataCRC			DisplayString (SIZE (0..80)),
+		rsw1000bvalueRFDataCRC			INTEGER,
+		rsw1000bstateflagRFDataCRC		INTEGER,
+
+		rsw1000blabelAlarmDataCRC		DisplayString (SIZE (0..80)),
+		rsw1000bvalueAlarmDataCRC		INTEGER,
+		rsw1000bstateflagAlarmDataCRC		INTEGER,
+
+		rsw1000blabelRFSignalStatus		DisplayString (SIZE (0..80)),
+		rsw1000bvalueRFSignalStatus		INTEGER,
+		rsw1000bstateflagRFSignalStatus	INTEGER,
+
+		rsw1000blabelPriActiveStatus		DisplayString (SIZE (0..80)),
+		rsw1000bvaluePriActiveStatus		INTEGER,
+		rsw1000bstateflagPriActiveStatus	INTEGER
+
+		}
+
+
+		-- ****************  Factory Parameters *************************************
+       Gx2Rsw1000bFactoryEntry    ::= SEQUENCE
+       {
+		gx2Rsw1000bFactoryTableIndex		INTEGER,
+
+		rsw1000bbootControlByte  		INTEGER,
+		rsw1000bbootStatusByte   		INTEGER,
+		rsw1000bbank0CRC    			INTEGER,
+		rsw1000bbank1CRC    			INTEGER,
+
+		rsw1000bprgEEPROMByte    		INTEGER,
+		rsw1000bfactoryCRC    			INTEGER,
+		rsw1000bcalculateCRC    		INTEGER,
+		rsw1000bhourMeter    			INTEGER,
+		rsw1000bflashPrgCnt0    		INTEGER,
+		rsw1000bflashPrgCnt1    		INTEGER,
+		rsw1000bflashBank0Rev    		DisplayString (SIZE (0..80)),
+		rsw1000bflashBank1Rev    		DisplayString (SIZE (0..80)),
+
+		rsw1000bSubagentRev	    		DisplayString (SIZE (0..80))
+
+		}
+
+		-- ****************  Hold Time Parameters *************************************
+	    Gx2Rsw1000bHoldTimeEntry    ::= SEQUENCE  
+	    {
+		rxgx2Rsw1000bHoldTimeTableIndex        INTEGER,
+		rxgx2Rsw1000bHoldTimeSpecIndex         INTEGER,   
+		rxgx2Rsw1000bHoldTimeData  			 INTEGER
+		}
+
+
+            -- ************** Analog Parameters ****************************
+		gx2Rsw1000bAnalogTableIndex              OBJECT-TYPE
+			   SYNTAX           INTEGER (1..2147483647)
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object identifies the network
+			    element. This index is equal to the
+			    hfcCommonTableIndex for the same element."
+			   ::= { gx2Rsw1000bAnalogEntry 1}
+
+		rsw1000blabelPriRFInputLvl              OBJECT-TYPE
+			   SYNTAX           DisplayString (SIZE (0..80))
+			   ACCESS           read-only
+			   STATUS           optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    Primary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 2}
+
+		rsw1000buomPriRFInputLvl                OBJECT-TYPE
+			   SYNTAX           DisplayString (SIZE (0..80))
+			   ACCESS           read-only
+			   STATUS           optional
+			   DESCRIPTION
+			   "The value of this object provides the Unit of Measure of the
+			    Primary RF Input Level Analog parameter.
+               For all analog objects for this parameter type, the
+               Unit of Measure is dBmV."
+			   ::= { gx2Rsw1000bAnalogEntry 3}
+
+		rsw1000bmajorHighPriRFInputLvl           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+		         "This object is not used by this module and always
+                     returns invalid float value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+             	   The value of this object provides the Major High alarm value
+			   of the Primary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 4}
+
+		rsw1000bmajorLowPriRFInputLvl           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+			   "This object is not used by this module and always
+                     returns invalid float value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+                     The value of this object provides the Major Low alarm value
+			   of the Primary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 5}
+
+		rsw1000bminorHighPriRFInputLvl           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+                     "This object is not used by this module and always
+                     returns invalid float value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+                     The value of this object provides the Minor High alarm value
+                     of the Primary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 6}
+
+		rsw1000bminorLowPriRFInputLvl           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+                     "This object is not used by this module and always
+                     returns invalid float value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+                     The value of this object provides the Minor Low alarm value
+                     of the Primary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 7}
+
+		rsw1000bcurrentValuePriRFInputLvl           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the current value of the
+			   Primary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 8}
+
+		rsw1000bstateFlagPriRFInputLvl          OBJECT-TYPE
+			   SYNTAX           INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			    of the Primary RF Input Level Analog parameter. (1-hidden
+			          2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bAnalogEntry 9}
+
+		rsw1000bminValuePriRFInputLvl           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object represents a gauge minimum
+               limit for the Primary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 10}
+
+		rsw1000bmaxValuePriRFInputLvl           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object represents a gauge maximum
+               limit for the Primary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 11}
+
+		rsw1000balarmStatePriRFInputLvl         OBJECT-TYPE
+			   SYNTAX           INTEGER
+									{
+									noAlarm(1),
+									majorLowAlarm(2),
+									minorLowAlarm(3),
+									minorHighAlarm(4),
+									majorHighAlarm(5),
+									informational(6)
+									}
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the curent alarm state of
+			    the Primary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 12}
+
+		rsw1000blabelSecRFInputLvl              OBJECT-TYPE
+			   SYNTAX           DisplayString (SIZE (0..80))
+			   ACCESS           read-only
+			   STATUS           optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    Secondary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 13}
+
+		rsw1000buomSecRFInputLvl                OBJECT-TYPE
+			   SYNTAX           DisplayString (SIZE (0..80))
+			   ACCESS           read-only
+			   STATUS           optional
+			   DESCRIPTION
+			   "The value of this object provides the Unit of Measure of the
+			   Secondary RF Input Level Analog parameter.
+                     For all analog objects for this parameter type, the
+                     Unit of Measure is dBmV."
+			   ::= { gx2Rsw1000bAnalogEntry 14}
+
+		rsw1000bmajorHighSecRFInputLvl           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+		         "This object is not used by this module and always
+                     returns invalid float value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+			   The value of this object provides the Major High alarm value
+			   of the Secondary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 15}
+
+		rsw1000bmajorLowSecRFInputLvl           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+		         "This object is not used by this module and always
+                     returns invalid float value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+			   The value of this object provides the Major Low alarm value
+			   of the Secondary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 16}
+
+		rsw1000bminorHighSecRFInputLvl           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+		         "This object is not used by this module and always
+                     returns invalid float value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+			   The value of this object provides the Minor High alarm value
+			   of the Secondary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 17}
+
+		rsw1000bminorLowSecRFInputLvl           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+		         "This object is not used by this module and always
+                     returns invalid float value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+			   The value of this object provides the Minor Low alarm value
+			   of the Secondary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 18}
+
+		rsw1000bcurrentValueSecRFInputLvl           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the current value of the
+			   Secondary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 19}
+
+		rsw1000bstateFlagSecRFInputLvl          OBJECT-TYPE
+			   SYNTAX           INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			   of the Secondary RF Input Level Analog parameter. (1-hidden
+			   2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bAnalogEntry 20}
+
+		rsw1000bminValueSecRFInputLvl           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object represents a gauge minimum
+                     limit for the Secondary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 21}
+
+		rsw1000bmaxValueSecRFInputLvl           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object represents a gauge maximum
+               limit for the Secondary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 22}
+
+		rsw1000balarmStateSecRFInputLvl         OBJECT-TYPE
+			   SYNTAX           INTEGER
+									{
+									noAlarm(1),
+									majorLowAlarm(2),
+									minorLowAlarm(3),
+									minorHighAlarm(4),
+									majorHighAlarm(5),
+									informational(6)
+									}
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the curent alarm state of
+			   the Secondary RF Input Level Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 23}
+
+		rsw1000blabelPriRFThreshold              OBJECT-TYPE
+			   SYNTAX           DisplayString (SIZE (0..80))
+			   ACCESS           read-only
+			   STATUS           optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			   Primary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 24}
+
+		rsw1000buomPriRFThreshold                OBJECT-TYPE
+			   SYNTAX           DisplayString (SIZE (0..80))
+			   ACCESS           read-only
+			   STATUS           optional
+			   DESCRIPTION
+			   "The value of this object provides the Unit of Measure of the
+			   Primary RF Threshold Analog parameter.
+               For all analog objects for this parameter type, the
+               Unit of Measure is dBmV."
+			   ::= { gx2Rsw1000bAnalogEntry 25}
+
+		rsw1000bmajorHighPriRFThreshold           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+                     "This object is not used by this module and always
+                     returns invalid float value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+			   The value of this object provides the Major High alarm value
+                     of the Primary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 26}
+
+		rsw1000bmajorLowPriRFThreshold           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+                     "This object is not used by this module and always
+                     returns invalid float value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+                     The value of this object provides the Major Low alarm value
+                     of the Primary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 27}
+
+		rsw1000bminorHighPriRFThreshold           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+                     "This object is not used by this module and always
+                     returns invalid float value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+                     The value of this object provides the Minor High alarm value
+                    of the Primary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 28}
+
+		rsw1000bminorLowPriRFThreshold           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+                     "This object is not used by this module and always
+                     returns invalid float value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+                     The value of this object provides the Minor Low alarm value
+                     of the Primary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 29}
+
+		rsw1000bcurrentValuePriRFThreshold           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-write
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the current value of the
+			   Primary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 30}
+
+		rsw1000bstateFlagPriRFThreshold          OBJECT-TYPE
+			   SYNTAX           INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			   of the Primary RF Threshold Analog parameter. (1-hidden
+			   2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bAnalogEntry 31}
+
+		rsw1000bminValuePriRFThreshold           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object represents a gauge minimum
+               limit for the Primary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 32}
+
+		rsw1000bmaxValuePriRFThreshold           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object represents a gauge maximum
+               limit for the Primary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 33}
+
+		rsw1000balarmStatePriRFThreshold         OBJECT-TYPE
+			   SYNTAX           INTEGER
+									{
+									noAlarm(1),
+									majorLowAlarm(2),
+									minorLowAlarm(3),
+									minorHighAlarm(4),
+									majorHighAlarm(5),
+									informational(6)
+									}
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+                     "The value of this object provides the curent alarm state of
+                     the Primary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 34}
+	
+		rsw1000blabelSecRFThreshold              OBJECT-TYPE
+			   SYNTAX           DisplayString (SIZE (0..80))
+			   ACCESS           read-only
+			   STATUS           optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			   Secondary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 35}
+
+		rsw1000buomSecRFThreshold                OBJECT-TYPE
+			   SYNTAX           DisplayString (SIZE (0..80))
+			   ACCESS           read-only
+			   STATUS           optional
+			   DESCRIPTION
+			   "The value of this object provides the Unit of Measure of the
+			   Secondary RF Threshold Analog parameter.
+                     For all analog objects for this parameter type, the
+                     Unit of Measure is dBmV."
+			   ::= { gx2Rsw1000bAnalogEntry 36}
+
+		rsw1000bmajorHighSecRFThreshold           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+                     "This object is not used by this module and always
+                     returns invalid float value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+                     The value of this object provides the Major High alarm value
+                     of the Secondary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 37}
+
+		rsw1000bmajorLowSecRFThreshold           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+                     "This object is not used by this module and always
+                     returns invalid float value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+                     The value of this object provides the Major Low alarm value
+                     of the Secondary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 38}
+
+		rsw1000bminorHighSecRFThreshold           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+                     "This object is not used by this module and always
+                     returns invalid float value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+                     The value of this object provides the Minor High alarm value
+                     of the Secondary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 39}
+
+		rsw1000bminorLowSecRFThreshold           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+                     "This object is not used by this module and always
+                     returns invalid float value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+                     The value of this object provides the Minor Low alarm value
+                     of the Secondary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 40}
+
+		rsw1000bcurrentValueSecRFThreshold           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-write
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the current value of the
+			   Secondary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 41}
+
+		rsw1000bstateFlagSecRFThreshold          OBJECT-TYPE
+			   SYNTAX           INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			   of the Secondary RF Threshold Analog parameter. (1-hidden
+			   2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bAnalogEntry 42}
+
+		rsw1000bminValueSecRFThreshold           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object represents a gauge minimum
+                     limit for the Secondary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 43}
+
+		rsw1000bmaxValueSecRFThreshold           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object represents a gauge maximum
+                     limit for the Secondary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 44}
+
+		rsw1000balarmStateSecRFThreshold         OBJECT-TYPE
+			   SYNTAX           INTEGER
+									{
+									noAlarm(1),
+									majorLowAlarm(2),
+									minorLowAlarm(3),
+									minorHighAlarm(4),
+									majorHighAlarm(5),
+									informational(6)
+									}
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+                     "The value of this object provides the curent alarm state of
+                     the Secondary RF Threshold Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 45}
+
+		rsw1000blabelModTemp              OBJECT-TYPE
+			   SYNTAX           DisplayString (SIZE (0..80))
+			   ACCESS           read-only
+			   STATUS           optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    Module Temperature Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 46}
+
+
+		rsw1000buomModTemp             OBJECT-TYPE
+			   SYNTAX           DisplayString (SIZE (0..80))
+			   ACCESS           read-only
+			   STATUS           optional
+			   DESCRIPTION
+			   "The value of this object provides the Unit of Measure of the
+			   Module Temperature Analog parameter.
+                     For all analog objects for this parameter type, the
+                     Unit of Measure is degrees Celsius."
+
+			   ::= { gx2Rsw1000bAnalogEntry 47}
+
+		rsw1000bmajorHighModTemp          OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the Major High alarm value
+			   of the Module Temperature Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 48}
+
+
+		rsw1000bmajorLowModTemp           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the Major Low alarm value
+			   of the Module Temperature Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 49}
+
+		rsw1000bminorHighModTemp          OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the Minor High alarm value
+			   of the Module Temperature Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 50}
+
+		rsw1000bminorLowModTemp           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the Minor Low alarm value
+			   of the Module Temperature Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 51}
+
+		rsw1000bcurrentValueModTemp       OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the Current value
+			   of the Module Temperature Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 52}
+
+		rsw1000bstateFlagModTemp          OBJECT-TYPE
+			   SYNTAX           INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			   of the Module Temperature Analog parameter. (1-hidden
+			   2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bAnalogEntry 53}
+
+		rsw1000bminValueModTemp           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object represents a gauge minimum
+                     limit for the Module Temperature Analog parameter."
+	 		   ::= { gx2Rsw1000bAnalogEntry 54}
+
+		rsw1000bmaxValueModTemp           OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object represents a gauge maximum
+                     limit for the Module Temperature Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 55}
+
+		rsw1000balarmStateModTemp         OBJECT-TYPE
+			   SYNTAX           INTEGER
+									{
+									noAlarm(1),
+									majorLowAlarm(2),
+									minorLowAlarm(3),
+									minorHighAlarm(4),
+									majorHighAlarm(5),
+									informational(6)
+									}
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the curent alarm state of
+		         the Module Temperature Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 56}
+
+		rsw1000blabelFanCurrent           OBJECT-TYPE
+			   SYNTAX           DisplayString (SIZE (0..80))
+			   ACCESS           read-only
+			   STATUS           optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			   Fan Current Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 57}
+
+		rsw1000buomFanCurrent             OBJECT-TYPE
+			   SYNTAX           DisplayString (SIZE (0..80))
+			   ACCESS           read-only
+			   STATUS           optional
+			   DESCRIPTION
+			   "The value of this object provides the Unit of Measure of the
+			   Fan Current Analog parameter.
+                     For all analog objects for this parameter type, the
+                     Unit of Measure is mA"
+			   ::= { gx2Rsw1000bAnalogEntry 58}
+
+		rsw1000bmajorHighFanCurrent       OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the Major High alarm value
+		         of the Fan Current Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 59}
+
+
+		rsw1000bmajorLowFanCurrent        OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the Major Low alarm value
+			   of the Fan Current Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 60}
+
+		rsw1000bminorHighFanCurrent       OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+                     "This object is not used by this module and always
+                     returns invalid floating point value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+                     The value of this object provides the Minor High alarm value
+                     of the Fan Current Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 61}
+
+		rsw1000bminorLowFanCurrent        OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           obsolete
+			   DESCRIPTION
+                     "This object is not used by this module and always
+                     returns invalid floating point value of 0xFFFFFFFF. This
+                     object is kept here for persistence.
+                     The value of this object provides the Minor Low alarm value
+                     of the Fan Current Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 62}
+
+		rsw1000bcurrentValueFanCurrent    OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the Current value
+			   of the Fan Current Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 63}
+
+		rsw1000bstateFlagFanCurrent       OBJECT-TYPE
+			   SYNTAX           INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			   of the Fan Current Analog parameter. (1-hidden
+			   2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bAnalogEntry 64}
+
+		rsw1000bminValueFanCurrent        OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object represents a gauge minimum
+                     limit for the Fan Current Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 65}
+
+		rsw1000bmaxValueFanCurrent        OBJECT-TYPE
+			   SYNTAX           Float
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object represents a gauge maximum
+                     limit for the Fan Current Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 66}
+
+        rsw1000balarmStateFanCurrent      OBJECT-TYPE
+			   SYNTAX           INTEGER
+									{
+									noAlarm(1),
+									majorLowAlarm(2),
+									minorLowAlarm(3),
+									minorHighAlarm(4),
+									majorHighAlarm(5),
+									informational(6)
+									}
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object provides the curent alarm state of
+			   the Fan Current Analog parameter."
+			   ::= { gx2Rsw1000bAnalogEntry 67}
+
+-- ************************ Digital parameters **********************************
+		gx2Rsw1000bDigitalTableIndex              OBJECT-TYPE
+			   SYNTAX           INTEGER (1..2147483647)
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object identifies the network
+			    element. This index is equal to the
+			    hfcCommonTableIndex for the same element."
+			   ::= { gx2Rsw1000bDigitalEntry 1}
+
+		rsw1000blabelSwitchControl           OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    Switch Control Digital parameter."
+			   ::= { gx2Rsw1000bDigitalEntry 2}
+
+		rsw1000benumSwitchControl              	OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object represents the Enumeration values
+			    possible for the Digital parameter. Each Enumerated values is
+			    separated by a common. The first value has a enumerated value of 1."
+			   ::= { gx2Rsw1000bDigitalEntry 3}
+
+		rsw1000bvalueSwitchControl         	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+					    		{
+								primary(1),
+								secondary(2)
+					    		}
+			   ACCESS           	read-write
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object is the current value of the parameter."
+			   ::= { gx2Rsw1000bDigitalEntry 4}
+
+		rsw1000bstateflagSwitchControl     	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			    of the the parameter. (1-hidden, 2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bDigitalEntry 5}
+
+		rsw1000blabelSwitchMode	           OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    Revert Mode Digital parameter."
+			   ::= { gx2Rsw1000bDigitalEntry 6}
+
+		rsw1000benumSwitchMode               	OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object represents the Enumeration values
+			    possible for the Digital parameter. Each Enumerated values is
+			    separated by a common. The first value has a enumerated value of 1."
+			   ::= { gx2Rsw1000bDigitalEntry 7}
+
+		rsw1000bvalueSwitchMode         	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+					    		{
+								automatic(1),
+								manual(2)
+					    		}
+			   ACCESS           	read-write
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object is the current value of the parameter."
+			   ::= { gx2Rsw1000bDigitalEntry 8}
+
+		rsw1000bstateflagSwitchMode     	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			    of the the parameter. (1-hidden, 2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bDigitalEntry 9}
+
+		rsw1000blabelRevertEnable		OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    Revert Enable Digital parameter."
+			   ::= { gx2Rsw1000bDigitalEntry 10}
+
+		rsw1000benumRevertEnable               	OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object represents the Enumeration values
+			    possible for the Digital parameter. Each Enumerated values is
+			    separated by a common. The first value has a enumerated value of 1."
+			   ::= { gx2Rsw1000bDigitalEntry 11}
+
+		rsw1000bvalueRevertEnable         	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+					    		{
+								off(1),
+								on(2)
+					    		}
+			   ACCESS           	read-write
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object is the current value of the parameter."
+			   ::= { gx2Rsw1000bDigitalEntry 12}
+
+		rsw1000bstateflagRevertEnable     	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			    of the the parameter. (1-hidden 2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bDigitalEntry 13}
+
+		rsw1000blabelRevertTime	     		OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    Revert Time Digital parameter."
+			   ::= { gx2Rsw1000bDigitalEntry 14}
+
+		rsw1000benumRevertTime               	OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object represents the Enumeration values
+			    possible for the Digital parameter. Each Enumerated values is
+			    separated by a common. The first value has a enumerated value of 1."
+			   ::= { gx2Rsw1000bDigitalEntry 15}
+
+
+		rsw1000bvalueRevertTime         	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+					    		{
+								tensec(1),
+								sixtysec(2),
+								sixhundredsec(3)
+					    		}
+			   ACCESS           	read-write
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object is the current value of the parameter."
+			   ::= { gx2Rsw1000bDigitalEntry 16}
+
+		rsw1000bstateflagRevertTime     	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			    of the the parameter. (1-hidden 2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bDigitalEntry 17}
+
+		rsw1000blabelSensorMode	           OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    SensorMode Digital parameter."
+			   ::= { gx2Rsw1000bDigitalEntry 18}
+
+		rsw1000benumSensorMode               	OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object represents the Enumeration values
+			    possible for the Digital parameter. Each Enumerated values is
+			    separated by a common. The first value has a enumerated value of 1."
+			   ::= { gx2Rsw1000bDigitalEntry 19}
+
+
+		rsw1000bvalueSensorMode         	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+					    		{
+								internal(1),
+								external(2)
+					    		}
+			   ACCESS           	read-write
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object is the current value of the parameter."
+			   ::= { gx2Rsw1000bDigitalEntry 20}
+
+		rsw1000bstateflagSensorMode     	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			    of the the parameter. (1-hidden, 2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bDigitalEntry 21}
+
+		rsw1000blabelSwitchMonitor	           OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    Switch Monitor Digital parameter."
+			   ::= { gx2Rsw1000bDigitalEntry 22}
+
+		rsw1000benumSwitchMonitor               	OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object represents the Enumeration values
+			    possible for the Digital parameter. Each Enumerated values is
+			    separated by a common. The first value has a enumerated value of 1."
+			   ::= { gx2Rsw1000bDigitalEntry 23}
+
+		rsw1000bvalueSwitchMonitor         	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+					    		{
+								primary(1),
+								secondary(2)
+					    		}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object is the current value of the parameter."
+			   ::= { gx2Rsw1000bDigitalEntry 24}
+
+		rsw1000bstateflagSwitchMonitor     	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			    of the the parameter. (1-hidden, 2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bDigitalEntry 25}
+
+				rsw1000blabelPriStatusSig           OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    Primary Control Signal Digital parameter."
+			   ::= { gx2Rsw1000bDigitalEntry 26}
+
+		rsw1000benumPriStatusSig               	OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object represents the Enumeration values
+			    possible for the Digital parameter. Each Enumerated values is
+			    separated by a common. The first value has a enumerated value of 1."
+			   ::= { gx2Rsw1000bDigitalEntry 27}
+
+		rsw1000bvaluePriStatusSig   	      	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+					    		{
+								short(1),
+								valid(2),
+								invalid(3),
+								open(4)
+					    		}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object is the current value of the parameter."
+			   ::= { gx2Rsw1000bDigitalEntry 28}
+
+		rsw1000bstateflagPriStatusSig     		OBJECT-TYPE
+			   SYNTAX       		INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			    of the the parameter. (1-hidden, 2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bDigitalEntry 29}
+
+		rsw1000blabelSecStatusSig      	     OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    Secondary Control Signal Digital parameter."
+			   ::= { gx2Rsw1000bDigitalEntry 30}
+
+		rsw1000benumSecStatusSig               	OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object represents the Enumeration values
+			    possible for the Digital parameter. Each Enumerated values is
+			    separated by a common. The first value has a enumerated value of 1."
+			   ::= { gx2Rsw1000bDigitalEntry 31}
+
+		rsw1000bvalueSecStatusSig       	  	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+					    		{
+								short(1),
+								valid(2),
+								invalid(3),
+								open(4)
+					    		}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object is the current value of the parameter."
+			   ::= { gx2Rsw1000bDigitalEntry 32}
+
+		rsw1000bstateflagSecStatusSig    	 	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			    of the the parameter. (1-hidden, 2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bDigitalEntry 33}
+
+		rsw1000blabelFactoryDefault           OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    Factory Default Reset  Digital parameter."
+			   ::= { gx2Rsw1000bDigitalEntry 34}
+
+		rsw1000benumFactoryDefault               	OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object represents the Enumeration values
+			    possible for the Digital parameter. Each Enumerated values is
+			    separated by a common. The first value has a enumerated value of 1."
+			   ::= { gx2Rsw1000bDigitalEntry 35}
+
+
+		rsw1000bvalueFactoryDefault         	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+					    		{
+								off(1),
+								on(2)
+					    		}
+			   ACCESS           	read-write
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "This is a one-shot control value.  A read of this value is
+				 always the value corresponding to off(1).  A write of the
+              value corresponding to on(2) results in effecting the factory
+				default reset.  A write of the value corresponding to off(1)
+				has no effect."
+			   ::= { gx2Rsw1000bDigitalEntry 36}
+
+		rsw1000bstateflagFactoryDefault     	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			    of the the parameter. (1-hidden, 2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bDigitalEntry 37}
+
+
+		--*********** STATUS *****************
+		gx2Rsw1000bStatusTableIndex              OBJECT-TYPE
+			   SYNTAX           INTEGER (1..2147483647)
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object identifies the network
+			    element. This index is equal to the
+			    hfcCommonTableIndex for the same element."
+			   ::= { gx2Rsw1000bStatusEntry 1}
+
+		rsw1000blabelBoot               	OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    Boot Status  Status parameter."
+			   ::= { gx2Rsw1000bStatusEntry 2}
+
+		rsw1000bvalueBoot              		OBJECT-TYPE
+			   SYNTAX       		INTEGER
+									{
+									ok(1),
+									undetermined(2),
+									warning(3),
+									minor(4),
+									major(5),
+									critical(6)
+									}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the current state of
+			    the parameter (1-ok, 2-undetermined
+			    3-warning, 4-minor, 5-major, 6-critical)."
+			   ::= { gx2Rsw1000bStatusEntry 3}
+
+		rsw1000bstateflagBoot     	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			    of the the parameter. (1-hidden, 2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bStatusEntry  4}
+
+		rsw1000blabelFlash               	OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    Flash Status  Status parameter."
+			   ::= { gx2Rsw1000bStatusEntry 5}
+
+		rsw1000bvalueFlash              	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+									{
+									ok(1),
+									undetermined(2),
+									warning(3),
+									minor(4),
+									major(5),
+									critical(6)
+									}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the current state of
+			    the parameter (1-ok, 2-undetermined
+			    3-warning, 4-minor, 5-major, 6-critical)."
+			   ::= { gx2Rsw1000bStatusEntry 6}
+
+		rsw1000bstateflagFlash     	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			    of the the parameter. (1-hidden, 2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bStatusEntry  7}
+
+		rsw1000blabelFactoryDataCRC           OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    Factory Data CRC Status parameter."
+			   ::= { gx2Rsw1000bStatusEntry 8}
+
+		rsw1000bvalueFactoryDataCRC          	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+									{
+									ok(1),
+									undetermined(2),
+									warning(3),
+									minor(4),
+									major(5),
+									critical(6)
+									}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the current state of
+			    the parameter (1-ok, 2-undetermined
+			    3-warning, 4-minor, 5-major, 6-critical)."
+			   ::= { gx2Rsw1000bStatusEntry 9}
+
+		rsw1000bstateflagFactoryDataCRC     	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			    of the the parameter. (1-hidden, 2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bStatusEntry  10}
+
+		rsw1000blabelRFDataCRC           OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    Radio Frequency Data CRC Status parameter."
+			   ::= { gx2Rsw1000bStatusEntry 11}
+
+		rsw1000bvalueRFDataCRC          	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+									{
+									ok(1),
+									undetermined(2),
+									warning(3),
+									minor(4),
+									major(5),
+									critical(6)
+									}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the current state of
+			    the parameter (1-ok, 2-undetermined
+			    3-warning, 4-minor, 5-major, 6-critical)."
+			   ::= { gx2Rsw1000bStatusEntry 12}
+
+		rsw1000bstateflagRFDataCRC     	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			    of the the parameter. (1-hidden, 2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bStatusEntry  13}
+
+		rsw1000blabelAlarmDataCRC               	      OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    Alarm Data Crc parameter."
+			   ::= { gx2Rsw1000bStatusEntry 14}
+
+		rsw1000bvalueAlarmDataCRC              		OBJECT-TYPE
+			   SYNTAX       		INTEGER
+									{
+									ok(1),
+									undetermined(2),
+									warning(3),
+									minor(4),
+									major(5),
+									critical(6)
+									}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the current state of
+			    the parameter (1-ok, 2-undetermined
+			    3-warning, 4-minor, 5-major, 6-critical)."
+			   ::= { gx2Rsw1000bStatusEntry 15}
+
+		rsw1000bstateflagAlarmDataCRC  		   	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			    of the the parameter. (1-hidden, 2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bStatusEntry  16}
+
+		rsw1000blabelRFSignalStatus              OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    RF Signal Status parameter."
+			   ::= { gx2Rsw1000bStatusEntry 17}
+
+		rsw1000bvalueRFSignalStatus              OBJECT-TYPE
+			   SYNTAX       		INTEGER
+									{
+									ok(1),
+									undetermined(2),
+									warning(3),
+									minor(4),
+									major(5),
+									critical(6)
+									}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the current state of
+			    the parameter (1-ok, 2-undetermined
+			    3-warning, 4-minor, 5-major, 6-critical)."
+			   ::= { gx2Rsw1000bStatusEntry 18}
+
+		rsw1000bstateflagRFSignalStatus     	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			    of the the parameter. (1-hidden, 2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bStatusEntry  19}
+
+		rsw1000blabelPriActiveStatus              OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	optional
+			   DESCRIPTION
+			   "The value of this object provides the label of the
+			    Secondary Active Status parameter."
+			   ::= { gx2Rsw1000bStatusEntry 20}
+
+		rsw1000bvaluePriActiveStatus              OBJECT-TYPE
+			   SYNTAX       		INTEGER
+									{
+									ok(1),
+									undetermined(2),
+									warning(3),
+									minor(4),
+									major(5),
+									critical(6)
+									}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the current state of
+			    the parameter (1-ok, 2-undetermined
+			    3-warning, 4-minor, 5-major, 6-critical)."
+			   ::= { gx2Rsw1000bStatusEntry 21}
+
+		rsw1000bstateflagPriActiveStatus     	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+								{
+								hidden(1),
+								read-only(2),
+								updateable(3)
+								}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides the state
+			    of the the parameter. (1-hidden, 2-read-only, 3-updateable)."
+			   ::= { gx2Rsw1000bStatusEntry  22}
+
+            -- ************ FACTORY DATA ****************
+		gx2Rsw1000bFactoryTableIndex              OBJECT-TYPE
+			   SYNTAX           INTEGER (1..2147483647)
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object identifies the network
+			    element. This index is equal to the
+			    hfcCommonTableIndex for the same element."
+			   ::= { gx2Rsw1000bFactoryEntry 1}
+
+		rsw1000bbootControlByte          	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object indicates which bank the firmware
+			    is currently being boot from."
+			   ::= { gx2Rsw1000bFactoryEntry 2}
+
+		rsw1000bbootStatusByte          	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "This object indicates the status of the last boot"
+			   ::= { gx2Rsw1000bFactoryEntry 3}
+
+		rsw1000bbank0CRC          		OBJECT-TYPE
+			   SYNTAX       		INTEGER
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "This object provides the CRC code of bank 0."
+			   ::= { gx2Rsw1000bFactoryEntry 4}
+
+		rsw1000bbank1CRC          		OBJECT-TYPE
+			   SYNTAX       		INTEGER
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "This object provides the CRC code of bank 1."
+			   ::= { gx2Rsw1000bFactoryEntry 5}
+
+		rsw1000bprgEEPROMByte          		OBJECT-TYPE
+			   SYNTAX       		INTEGER
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "This object indicates if the EEPROM has been programmed"
+			   ::= { gx2Rsw1000bFactoryEntry 6}
+
+		rsw1000bfactoryCRC          		OBJECT-TYPE
+			   SYNTAX       		INTEGER
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "This object provides the CRC code for the Factory data."
+			   ::= { gx2Rsw1000bFactoryEntry 7}
+
+		rsw1000bcalculateCRC          		OBJECT-TYPE
+			   SYNTAX       		INTEGER
+					    		{
+								factory(1),
+								rf(2),
+								alarm(3)
+					    		}
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "This oject indicates which of the Emnums will have the CRC calculated."
+			   ::= { gx2Rsw1000bFactoryEntry 8}
+
+		rsw1000bhourMeter          		OBJECT-TYPE
+			   SYNTAX       		INTEGER
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "This object provides the hour meter reading of the module."
+			   ::= { gx2Rsw1000bFactoryEntry 9}
+
+		rsw1000bflashPrgCnt0          		OBJECT-TYPE
+			   SYNTAX       		INTEGER
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "This object provides the number of times Bank 1 flash has been
+                      programmed."
+			   ::= { gx2Rsw1000bFactoryEntry 10}
+
+		rsw1000bflashPrgCnt1          		OBJECT-TYPE
+			   SYNTAX       		INTEGER
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "This object provides the number of times Bank 1 flash has been
+                      programmed."
+			   ::= { gx2Rsw1000bFactoryEntry 11}
+
+		rsw1000bflashBank0Rev          		OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "This object provides the revision of flash bank 0."
+			   ::= { gx2Rsw1000bFactoryEntry 12}
+
+		rsw1000bflashBank1Rev          		OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "This object provides the revision of flash bank 1."
+			   ::= { gx2Rsw1000bFactoryEntry 13}
+
+		rsw1000bSubagentRev          		OBJECT-TYPE
+			   SYNTAX       		DisplayString (SIZE (0..80))
+			   ACCESS           	read-only
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "This object provides the revision of the subagent."
+			   ::= { gx2Rsw1000bFactoryEntry 14}
+
+            -- ************ Hold Time DATA ****************
+		rxgx2Rsw1000bHoldTimeTableIndex              OBJECT-TYPE
+			   SYNTAX           INTEGER (1..4294967295)
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object is the index of the data object."
+			   ::= { gx2Rsw1000bHoldTimeEntry 1}
+
+		rxgx2Rsw1000bHoldTimeSpecIndex              OBJECT-TYPE
+			   SYNTAX           INTEGER (1..4294967295)
+			   ACCESS           read-only
+			   STATUS           mandatory
+			   DESCRIPTION
+			   "The value of this object identifies the index of the alarm object to be modified."
+			   ::= { gx2Rsw1000bHoldTimeEntry 2}
+
+		rxgx2Rsw1000bHoldTimeData          	OBJECT-TYPE
+			   SYNTAX       		INTEGER
+			   ACCESS           	read-write
+			   STATUS           	mandatory
+			   DESCRIPTION
+			   "The value of this object provides access to the hold timers used 
+			   to suppress nose on analog objects. This object is a 32 bit object. 
+			   Validation data is entered into bytes zero and one of the object. 
+			   Bytes three and four are used to entering the hold time for the 
+			   specified alarm object. The Hold timer data ranges from 0 to 1300 seconds.
+			   The index of this object corresponds to the alarm object to be modified. 
+			   Alarm Hold timers correspond to the index of this object as follows:  
+			   Index 1 = xxx, index 2 = xxxx, Index 3 = xxxx, 
+			   The hold time is represented in seconds."
+			   ::= { gx2Rsw1000bHoldTimeEntry 3}
+-- ****************************************************************
+--
+-- TRAP DEFINITIONS
+--
+--
+-- Every trap generated by an HFC agents will include first 9 identical
+-- fields. If particular variable is not supported in
+-- particular TRAP-TYPE then default value will be returned.
+--
+-- DESCRIPTION will include explanation of use of generic
+-- variables (trapAdditionalInfo******.)  If no
+-- DESCRIPTION is given then generic variables will contain
+-- default values.
+--
+-- **************************************************************************
+--                              RF Switch Module traps
+-- **************************************************************************
+   trapRSW1000bConfigChangeInteger TRAP-TYPE
+       ENTERPRISE gx2Rsw1000b
+       VARIABLES
+	       {
+		trapIdentifier,
+		trapNetworkElemModelNumber,
+		trapNetworkElemSerialNum,
+		trapPerceivedSeverity,
+		trapNetworkElemOperState,
+		trapNetworkElemAlarmStatus,
+		trapNetworkElemAdminState,
+		trapNetworkElemAvailStatus,
+		trapText,
+		trapChangedObjectId,
+		trapChangedValueInteger,
+		trapNETrapLastTrapTimeStamp
+	       }
+       DESCRIPTION
+	"This trap is issued if configuration of a single variable
+	 with integer type was changed (via ANY interface).
+	 TrapChangedValueInteger variable may contain current reading
+	 of that variable.
+	 trapPerceivedSeverity - 'indeterminate'"
+  ::= 1
+
+   trapRSW1000bConfigChangeDisplayString TRAP-TYPE
+       ENTERPRISE gx2Rsw1000b
+       VARIABLES
+	       {
+		trapIdentifier,
+		trapNetworkElemModelNumber,
+		trapNetworkElemSerialNum,
+		trapPerceivedSeverity,
+		trapNetworkElemOperState,
+		trapNetworkElemAlarmStatus,
+		trapNetworkElemAdminState,
+		trapNetworkElemAvailStatus,
+		trapText,
+		trapChangedObjectId,
+		trapChangedValueDisplayString,
+		trapNETrapLastTrapTimeStamp
+	       }
+       DESCRIPTION
+	"This trap is issued if configuration of a single variable
+	 with DispalayString type was changed (via ANY interface).
+	 TrapChangedValueDisplayString variable may contain current reading
+	 of that variable.
+	 trapPerceivedSeverity - 'indeterminate'"
+  ::= 2
+
+  trapRSW1000bRFInputAlarm TRAP-TYPE
+	ENTERPRISE gx2Rsw1000b
+	VARIABLES
+		{       
+		 trapIdentifier,
+		 trapNetworkElemModelNumber,
+		 trapNetworkElemSerialNum,
+		 trapPerceivedSeverity,
+		 trapNetworkElemOperState,
+		 trapNetworkElemAlarmStatus,  
+		 trapNetworkElemAdminState,
+		 trapNetworkElemAvailStatus,
+		 trapText,
+		 trapChangedObjectId,
+		 trapChangedValueInteger,
+		 trapNETrapLastTrapTimeStamp
+		}
+	DESCRIPTION
+	"This trap is issued when the Switch Control signals 
+	 go out of range.
+	 trapAdditionalInfoInteger variable contains current reading of 
+	 the this parameter."
+  ::= 3
+  
+  trapRSW1000bFanCurrentAlarm TRAP-TYPE
+	ENTERPRISE gx2Rsw1000b
+	VARIABLES
+		{       
+		 trapIdentifier,
+		 trapNetworkElemModelNumber,
+		 trapNetworkElemSerialNum,
+		 trapPerceivedSeverity,
+		 trapNetworkElemOperState,
+		 trapNetworkElemAlarmStatus,  
+		 trapNetworkElemAdminState,
+		 trapNetworkElemAvailStatus,
+		 trapText,
+		 trapChangedObjectId,
+		 trapChangedValueInteger,
+		 trapNETrapLastTrapTimeStamp
+		}
+	DESCRIPTION
+	"This trap is issued when the Fan Current 
+	 parameter goes out of range.
+	 trapAdditionalInfoInteger variable contains current reading of 
+	 the this parameter."
+  ::= 4
+
+  trapRSW1000bModuleTempAlarm TRAP-TYPE
+	ENTERPRISE gx2Rsw1000b
+	VARIABLES
+		{       
+		 trapIdentifier,
+		 trapNetworkElemModelNumber,
+		 trapNetworkElemSerialNum,
+		 trapPerceivedSeverity,
+		 trapNetworkElemOperState,
+		 trapNetworkElemAlarmStatus,  
+		 trapNetworkElemAdminState,
+		 trapNetworkElemAvailStatus,
+		 trapText,
+		 trapChangedObjectId,
+		 trapChangedValueInteger,
+		 trapNETrapLastTrapTimeStamp
+		}
+	DESCRIPTION
+	"This trap is issued when the Temperature goes out of range.
+	 trapAdditionalInfoInteger variable contains current reading of 
+	 the this parameter."
+  ::= 5
+
+  trapRSW1000bFlashAlarm TRAP-TYPE
+	ENTERPRISE gx2Rsw1000b
+	VARIABLES
+		{       
+		 trapIdentifier,
+		 trapNetworkElemModelNumber,
+		 trapNetworkElemSerialNum,
+		 trapPerceivedSeverity,
+		 trapNetworkElemOperState,
+		 trapNetworkElemAlarmStatus,  
+		 trapNetworkElemAdminState,
+		 trapNetworkElemAvailStatus,
+		 trapText,
+		 trapChangedObjectId,
+		 trapChangedValueInteger,
+		 trapNETrapLastTrapTimeStamp
+		}
+	DESCRIPTION
+	"This trap is issued when the detects an error during
+	Flash memory operations."
+  ::= 6
+
+  trapRSW1000bBankBootAlarm TRAP-TYPE
+	ENTERPRISE gx2Rsw1000b
+	VARIABLES
+		{       
+		 trapIdentifier,
+		 trapNetworkElemModelNumber,
+		 trapNetworkElemSerialNum,
+		 trapPerceivedSeverity,
+		 trapNetworkElemOperState,
+		 trapNetworkElemAlarmStatus,  
+		 trapNetworkElemAdminState,
+		 trapNetworkElemAvailStatus,
+		 trapText,
+		 trapChangedObjectId,
+		 trapChangedValueInteger,
+		 trapNETrapLastTrapTimeStamp
+		}
+	DESCRIPTION
+	"This trap is issued when the detects an error while booting
+	from bank 0 or bank 1."
+  ::= 7
+
+	trapRSW1000bAlarmDataCRCAlarm TRAP-TYPE
+	ENTERPRISE gx2Rsw1000b
+	VARIABLES
+		{       
+		 trapIdentifier,
+		 trapNetworkElemModelNumber,
+		 trapNetworkElemSerialNum,
+		 trapPerceivedSeverity,
+		 trapNetworkElemOperState,
+		 trapNetworkElemAlarmStatus,  
+		 trapNetworkElemAdminState,
+		 trapNetworkElemAvailStatus,
+		 trapText,
+		 trapChangedObjectId,
+		 trapChangedValueInteger,
+		 trapNETrapLastTrapTimeStamp
+		}
+	DESCRIPTION
+	"This trap is issued when the Alarm Data CRC is incorrect."
+  ::= 8
+
+	trapRSW1000bFactoryDataCRCAlarm TRAP-TYPE
+	ENTERPRISE gx2Rsw1000b
+	VARIABLES
+		{       
+		 trapIdentifier,
+		 trapNetworkElemModelNumber,
+		 trapNetworkElemSerialNum,
+		 trapPerceivedSeverity,
+		 trapNetworkElemOperState,
+		 trapNetworkElemAlarmStatus,  
+		 trapNetworkElemAdminState,
+		 trapNetworkElemAvailStatus,
+		 trapText,
+		 trapChangedObjectId,
+		 trapChangedValueInteger,
+		 trapNETrapLastTrapTimeStamp
+		}
+	DESCRIPTION
+	"This trap is issued when the Factory Data CRC is incorrect."
+  ::= 9
+
+	trapRSW1000bInputSwitchedAlarm TRAP-TYPE
+	ENTERPRISE gx2Rsw1000b
+	VARIABLES
+		{       
+		 trapIdentifier,
+		 trapNetworkElemModelNumber,
+		 trapNetworkElemSerialNum,
+		 trapPerceivedSeverity,
+		 trapNetworkElemOperState,
+		 trapNetworkElemAlarmStatus,  
+		 trapNetworkElemAdminState,
+		 trapNetworkElemAvailStatus,
+		 trapText,
+		 trapChangedObjectId,
+		 trapChangedValueInteger,
+		 trapNETrapLastTrapTimeStamp
+		}
+	DESCRIPTION
+	"This trap is issued when the RF input switched."
+  ::= 10
+
+	trapRSW1000bResetFactoryDefaultAlarm TRAP-TYPE
+	ENTERPRISE gx2Rsw1000b
+	VARIABLES
+		{       
+		 trapIdentifier,
+		 trapNetworkElemModelNumber,
+		 trapNetworkElemSerialNum,
+		 trapPerceivedSeverity,
+		 trapNetworkElemOperState,
+		 trapNetworkElemAlarmStatus,  
+		 trapNetworkElemAdminState,
+		 trapNetworkElemAvailStatus,
+		 trapText,
+		 trapChangedObjectId,
+		 trapChangedValueInteger,
+		 trapNETrapLastTrapTimeStamp
+		}
+	DESCRIPTION
+	"This trap is issued when the Factory Default Reset occurs."
+  ::= 11
+
+	trapRSW1000bSecondaryInputActiveAlarm TRAP-TYPE
+	ENTERPRISE gx2Rsw1000b
+	VARIABLES
+		{       
+		 trapIdentifier,
+		 trapNetworkElemModelNumber,
+		 trapNetworkElemSerialNum,
+		 trapPerceivedSeverity,
+		 trapNetworkElemOperState,
+		 trapNetworkElemAlarmStatus,  
+		 trapNetworkElemAdminState,
+		 trapNetworkElemAvailStatus,
+		 trapText,
+		 trapChangedObjectId,
+		 trapChangedValueInteger,
+		 trapNETrapLastTrapTimeStamp
+		}
+	DESCRIPTION
+	"This trap is issued when the scondary input becomes active."
+  ::= 12
+
+	trapRSW1000bCalibrationDataCRCAlarm TRAP-TYPE
+	ENTERPRISE gx2Rsw1000b
+	VARIABLES
+		{       
+		 trapIdentifier,
+		 trapNetworkElemModelNumber,
+		 trapNetworkElemSerialNum,
+		 trapPerceivedSeverity,
+		 trapNetworkElemOperState,
+		 trapNetworkElemAlarmStatus,  
+		 trapNetworkElemAdminState,
+		 trapNetworkElemAvailStatus,
+		 trapText,
+		 trapChangedObjectId,
+		 trapChangedValueInteger,
+		 trapNETrapLastTrapTimeStamp
+		}
+	DESCRIPTION
+	"This trap is issued when the calibration data CRC is incorrect."
+  ::= 13
+
+  END
+-- // Section: Header & History

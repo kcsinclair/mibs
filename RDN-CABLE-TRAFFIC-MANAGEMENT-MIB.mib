@@ -1,0 +1,384 @@
+-- *****************************************************************
+-- RDN-CABLE-TRAFFIC-MANAGEMENT-MIB.mib:
+-- Motorola BSR's Cable Traffic Management MIB
+--
+-- Copyright (C) 2008 by Motorola, Inc.
+-- All rights reserved.
+-- *****************************************************************
+RDN-CABLE-TRAFFIC-MANAGEMENT-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+        riverdelta
+                FROM RDN-MIB
+
+        NOTIFICATION-TYPE, MODULE-IDENTITY, OBJECT-TYPE,
+        Integer32, Counter32
+                FROM SNMPv2-SMI
+        MacAddress, DateAndTime, DisplayString, TruthValue
+                FROM SNMPv2-TC
+        InterfaceIndex
+                FROM IF-MIB;
+
+rdnCableTrafficManagementMib MODULE-IDENTITY
+        LAST-UPDATED "200809160000Z" -- September 16, 2008
+        ORGANIZATION "Motorola"
+        CONTACT-INFO "Motorola
+               Customer Service 
+                      101 Tournament Drive
+                      Horsham, PA 19044
+                      US Tel: +1 888 944 4357
+                      Int Tel: +1 215 323 0044
+               Fax: +1 215 323 1502
+                      Email: CPSSupport@Motorola.com"
+        DESCRIPTION
+            "MIB module for Motorola Cable Traffic Policy.
+
+	     Copyright (C) 2008 by Motorola, Inc.
+	     All rights reserved."
+
+	REVISION "200809160000Z" -- September 16, 2008
+	DESCRIPTION
+	    "Added Copyright Statement into MIB modules's
+	     description."     
+
+ 	REVISION    "200802260000Z" -- February 26, 2008 
+        DESCRIPTION
+            "Initial Version. "
+        ::= { riverdelta 10 }
+
+--
+-- RDN Cable Traffic Management Scalar Group
+--
+--
+-- These parameters apply globally for each configured Cable Traffic
+-- Management (CTM).  CTM controls are applied to either Downstream or 
+-- Upstream service flows specified via configuration.
+--
+
+rdnCtmScalar OBJECT IDENTIFIER ::= { rdnCableTrafficManagementMib 1 }
+
+    rdnCtmEnforcedClear   OBJECT-TYPE 
+        SYNTAX      INTEGER
+        {
+                    noAction (1),
+                    clear (2)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Clears all monitored traffic counts thereby ending any
+              enforcement in effect."            
+        REFERENCE
+            "Proprietary MIB, defined in CTM Product Functional Specification."
+        DEFVAL { 1 }
+        ::= { rdnCtmScalar 1 }
+
+    rdnCtmEnforcedSince   OBJECT-TYPE
+        SYNTAX      DateAndTime
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Time at which cable traffic enforcement history was last cleared
+             via CLI command, 'clear cable traffic history' or by writing a '1'
+             to the object rdnCtmClearHistory."                    
+        REFERENCE
+            "Proprietary MIB, defined in CTM Product Functional Specification."
+        ::= { rdnCtmScalar 2 }        
+
+    rdnCtmClearHistory   OBJECT-TYPE 
+        SYNTAX      INTEGER
+        {
+                    noAction (1),
+                    clear (2)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This object is always read as the value noAction(1). Writing the
+            value clear(2) clears the history of last enforcement for each monitored
+            service flow as reported in the object rdnCtmEnforcedLast and the 
+            'LastEnforced' column of the output of the CLI command 'show cable
+            subscriber-usage'."            
+        REFERENCE
+            "Proprietary MIB, defined in CTM Product Functional Specification."
+        DEFVAL { 1 }
+        ::= { rdnCtmScalar 3 }
+
+--
+--    CTM Summary Table
+--      Shows the sum of the traffic transferred for all service flows
+--      controlled by each cable traffic policy on a cable interface.
+--
+
+rdnCtmSummaryTable   OBJECT-TYPE
+        SYNTAX       SEQUENCE OF RdnCtmSummaryTableEntry
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+            "Summarizes the operation of the cable traffic management feature.
+            Each entry summarizes the operation of a single cable traffic policy
+            on a single cable interface."                    
+        REFERENCE
+            "Proprietary MIB, defined in CTM Product Functional Specification."
+        ::= { rdnCableTrafficManagementMib 2 }
+
+    rdnCtmSummaryTableEntry OBJECT-TYPE
+        SYNTAX       RdnCtmSummaryTableEntry
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+            "The entry indexes are ifindex, direction, and cable traffic policy
+            name. The direction is included as an index in order to sort the 
+            entries by direction."
+        INDEX  { rdnCtmSummaryIfIndex, rdnCtmSummaryDirection,
+                 rdnCtmSummaryTrafficPolicy }
+        ::= { rdnCtmSummaryTable 1 }
+
+    RdnCtmSummaryTableEntry ::= 
+        SEQUENCE {
+          rdnCtmSummaryIfIndex
+                 InterfaceIndex,
+          rdnCtmSummaryDirection
+                 INTEGER,
+          rdnCtmSummaryTrafficPolicy
+                 DisplayString,
+          rdnCtmSummaryMonitoredCount
+                 Integer32,
+          rdnCtmSummaryTotalFlows
+                 Integer32,
+          rdnCtmSummaryEnforcedFlows
+                 Integer32
+        }
+        
+    rdnCtmSummaryIfIndex OBJECT-TYPE
+        SYNTAX       InterfaceIndex
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+            "MAC Domain ifIndex."
+        ::= { rdnCtmSummaryTableEntry 1 }
+
+    rdnCtmSummaryDirection OBJECT-TYPE
+        SYNTAX       INTEGER {
+                         downstream (1),
+                         upstream (2)
+                     }
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+            "Traffic direction."
+        ::= { rdnCtmSummaryTableEntry 2 }
+         
+    rdnCtmSummaryTrafficPolicy OBJECT-TYPE
+        SYNTAX       DisplayString
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+            "Name of the cable traffic policy."
+        ::= { rdnCtmSummaryTableEntry 3 }
+         
+    rdnCtmSummaryMonitoredCount OBJECT-TYPE
+        SYNTAX       Integer32
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+            "The sum of the monitored counts for all flows controlled by the
+            cable traffic policy on the interface of this entry."
+        ::= { rdnCtmSummaryTableEntry 4 } 
+        
+    rdnCtmSummaryTotalFlows OBJECT-TYPE
+        SYNTAX       Integer32
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+            "Total number of service flows controlled by the cable 
+            traffic policy on a cable interface (i.e. MAC domain)."
+        ::= { rdnCtmSummaryTableEntry 5 }
+        
+    rdnCtmSummaryEnforcedFlows OBJECT-TYPE
+        SYNTAX       Integer32
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+            "Number of service flows currently exceeding their credit limit
+            while controlled by the cable traffic policy on a cable interface
+            (i.e. MAC domain)."
+        ::= { rdnCtmSummaryTableEntry 6 }
+         
+--
+--  CTM Enforced Table
+--
+--    The Cable Traffic Management Enforced Table describes the set of service
+--    flows which are being effected by the configured Cable Traffic Management.
+--    These service flows are temporarily experiencing a lower Max Rate since
+--    the last 'clear cable subscriber-usage' command.
+--    
+
+rdnCtmEnforcedTable   OBJECT-TYPE
+        SYNTAX       SEQUENCE OF RdnCtmEnforcedTableEntry
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+            "Table of service flows which have exceeded their credit limit and
+             been enforced since the last clearing of cable traffic history. Cable 
+             traffic history is cleared with the CLI command 'clear cable traffic
+             history' or by writing clear(1) to the object rdnCtmClearHistory.
+             This table does not include entries for service flows with rate limits
+             reduced due to bidirectional enforcement."                    
+        REFERENCE
+            "Proprietary MIB, as described in the CTM Product Functional Specification."
+        ::= { rdnCableTrafficManagementMib 3 }
+
+    rdnCtmEnforcedTableEntry OBJECT-TYPE
+        SYNTAX       RdnCtmEnforcedTableEntry
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+            "Each entry corresponds to a single service flow which started enforcement
+            due to exceeding its credit limit since the last clearing of cable
+            traffic history."
+        INDEX  { rdnCtmEnforcedIfIndex, rdnCtmEnforcedDirection, 
+          rdnCtmEnforcedServiceFlowId }
+        ::= { rdnCtmEnforcedTable 1 }
+
+    RdnCtmEnforcedTableEntry ::= 
+        SEQUENCE {
+          rdnCtmEnforcedIfIndex
+                 InterfaceIndex,
+          rdnCtmEnforcedDirection
+                 INTEGER,
+          rdnCtmEnforcedServiceFlowId
+                 Integer32,
+          rdnCtmEnforcedCmMacAddr
+                 MacAddress,
+          rdnCtmEnforcedTrafficPolicy
+                 DisplayString,
+          rdnCtmEnforcedMonitoredCount
+                 Counter32,
+          rdnCtmEnforcedLast
+                 OCTET STRING,
+          rdnCtmEnforcedRemain
+                 OCTET STRING,
+          rdnCtmEnforcedLimitRate
+                 INTEGER,
+          rdnCtmEnforcedReason
+                 INTEGER,
+          rdnCtmEnforcedMonitored
+                 TruthValue
+        }
+
+    rdnCtmEnforcedIfIndex OBJECT-TYPE
+        SYNTAX       InterfaceIndex
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+            "The mac domain interface index that the service flow is admitted to."
+        ::= { rdnCtmEnforcedTableEntry 1 }
+
+    rdnCtmEnforcedDirection OBJECT-TYPE
+        SYNTAX       INTEGER {
+                         downstream (1),
+                         upstream (2)
+                     }
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+            "Direction of service flow."
+        ::= { rdnCtmEnforcedTableEntry 2 }
+             
+    rdnCtmEnforcedServiceFlowId OBJECT-TYPE
+        SYNTAX       Integer32
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+            "The service flow ID."
+        ::= { rdnCtmEnforcedTableEntry 3 }
+
+    rdnCtmEnforcedCmMacAddr OBJECT-TYPE
+        SYNTAX       MacAddress
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+            "The mac Address of modem to which service flow belongs."
+        ::= { rdnCtmEnforcedTableEntry 4 }
+
+    rdnCtmEnforcedTrafficPolicy OBJECT-TYPE
+        SYNTAX       DisplayString
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+            "The cable traffic policy which service flow is controlled by."
+        ::= { rdnCtmEnforcedTableEntry 5 }
+                            
+    rdnCtmEnforcedMonitoredCount OBJECT-TYPE
+        SYNTAX       Counter32
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+            "For 'continuous' monitored policies, represents the excess traffic
+            beyond the enforce rate for this service flow. For 'peak-interval'
+            monitoring, represents the total traffic transferred in the curent
+            or last completed peak-time interval.
+            Units are kilobytes, with 1024 bytes per kilobyte."
+        ::= { rdnCtmEnforcedTableEntry 6 }
+
+    rdnCtmEnforcedLast OBJECT-TYPE
+        SYNTAX       OCTET STRING
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+            "The amount of time since the service flow was last enforced. This
+            field will be empty if it has not been enforced since the last time
+            cable traffic history was cleared or since system start."
+        ::= { rdnCtmEnforcedTableEntry 7 }
+
+    rdnCtmEnforcedRemain OBJECT-TYPE
+        SYNTAX       OCTET STRING
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+            "The minimum amount of time a service flow is to remain under enforcement."
+        ::= { rdnCtmEnforcedTableEntry 8 }
+
+    rdnCtmEnforcedLimitRate OBJECT-TYPE
+        SYNTAX       INTEGER
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+            "The current scheduler limit rate for the service flow in kbps. 
+            This is either the configured maximum rate or the policy's enforce rate
+            if flow is currently under enforcement.
+            Units are kilobits per second, with 1000 bits per kilobit."
+        ::= { rdnCtmEnforcedTableEntry 9 }
+
+    rdnCtmEnforcedReason OBJECT-TYPE
+        SYNTAX       INTEGER {
+                           configured (1),
+                           bidirectional (2),
+                           enforced (3)
+                           }
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+            "Indicates if the service flow's rate limit is currently reduced
+            due to the cable traffic management feature. The value of configured(1)
+            indicates the service flow is not reduced by the feature, i.e. it is
+            limited to its configured maximum rate.
+            The value of bidirectional(2) is reserved for future use. The
+            rdnCtmEnforcedTable does not include flows reduced due to bidirectional
+            enforcement. The value of enforced(3) indicates a service flow is
+            currently enforced, i.e. it has over-consumed its monitored traffic
+            credit limit."
+        ::= { rdnCtmEnforcedTableEntry 10 } 
+        
+     rdnCtmEnforcedMonitored OBJECT-TYPE
+        SYNTAX          TruthValue
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+            "Indiacates if the service flow is currently being monitored,
+            either true(1) or false(2)."
+        ::= { rdnCtmEnforcedTableEntry 11 }
+              
+                                          
+END                           

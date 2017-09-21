@@ -1,0 +1,422 @@
+-- *****************************************************************
+-- RDN-CHANNEL-BONDING-MIB.mib:
+-- Motorola BSR's Channel Bonding MIB  
+--
+-- Copyright (C) 2007, 2008 by Motorola, Inc.
+-- All rights reserved.
+-- *****************************************************************
+RDN-CHANNEL-BONDING-MIB DEFINITIONS ::= BEGIN
+
+  IMPORTS
+
+        riverdelta
+                FROM RDN-MIB
+
+        NOTIFICATION-TYPE,
+        MODULE-IDENTITY,
+        OBJECT-TYPE,
+        Integer32,
+        IpAddress,
+        Counter64,
+        Counter32,
+        Unsigned32
+                FROM SNMPv2-SMI
+
+        TEXTUAL-CONVENTION,
+        MacAddress
+             FROM SNMPv2-TC          -- RFC 2579
+
+        ifIndex,
+        InterfaceIndex
+                FROM IF-MIB
+
+        InetAddressIPv6
+                FROM INET-ADDRESS-MIB
+
+        docsIfCmtsCmStatusIndex
+                FROM DOCS-IF-MIB
+
+        ChSetId,
+        IfDirection
+                FROM DOCS-IF3-MIB;
+
+rdnChannelBondingMib MODULE-IDENTITY
+        LAST-UPDATED "201107200000Z" -- May 20, 2011
+        ORGANIZATION "Motorola"
+        CONTACT-INFO "Motorola
+               Customer Service 
+                      101 Tournament Drive
+                      Horsham, PA 19044
+                      US Tel: +1 888 944 4357
+                      Int Tel: +1 215 323 0044
+                      Fax: +1 215 323 1502
+                      Email: CPSSupport@Motorola.com"
+        DESCRIPTION
+            "MIB module for Motorola Downstream/Upstream Channel Bonding.
+	    
+	     Copyright (C) 2007, 2008 by Motorola, Inc.
+	     All rights reserved."
+        REVISION    "201107200000Z" -- July 20, 2011
+        DESCRIPTION
+           "Revise attributes in rdnCmtsCmPartialServiceTable.
+            rdnCmtsCmPSAssignedChSetList   
+            rdnCmtsCmPSNonActiveChList  
+            rdnCmtsCmPSIpv4Addr 
+            rdnCmtsCmPSIpv6Addr. "
+
+
+        REVISION    "201105170000Z" -- May 17, 2011
+        DESCRIPTION
+           "Add rdnCmtsCmPartialServiceTable."
+
+        REVISION    "201105020000Z" -- May 02, 2011
+        DESCRIPTION
+            "Modify DS bonding tables to be integrated US/DS;
+             increase DS bonding group size to 8 channels"
+
+	REVISION    "200808080000Z" -- August 8, 2008
+	DESCRIPTION
+	    "Added Copyright Statement into MIB modules's
+	     description."   
+ 	REVISION    "200702260000Z" -- February 26, 2006 
+        DESCRIPTION
+            "Initial Version. "
+
+        ::= { riverdelta 9 }
+
+
+      -- Textual conventions
+ChSetListStr ::= TEXTUAL-CONVENTION
+           STATUS    current
+           DESCRIPTION
+               " A string  containing a comma separated list of channels.
+           Channels can be either physical or logical channels. 
+           The formatting of each channel will follow the board specific
+           numbering scheme.  (e.g. 5/2/0,5/3/0,5/4/0 or 15/2/0/2,15/3/0/2).
+           Allowing for (future) 11 chars/ch * 16 chs = 176 bytes."
+                 
+           SYNTAX    OCTET STRING (SIZE (0..176))
+
+--
+-- RDN downstream and upstream bonding groups
+--
+--
+-- The following table is implemented on 
+-- the SRM.
+--
+
+rdnBondingGroupTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnBondingGroupEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table describes downstream and upstream channel bonding groups"
+        REFERENCE
+            "Proprietary MIB."
+        ::= { rdnChannelBondingMib 5 }
+
+rdnBondingGroupEntry OBJECT-TYPE
+        SYNTAX      RdnBondingGroupEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry provides a list of attributes for a downstream or
+             upstream channel in each bonding group for each mac domain.  
+             An entry in this table exists for each channel in each defined 
+             bonding group on each mac domain (ifEntry with ifType of 
+             docsCableMaclayer(127))"
+
+       INDEX { rdnBondingGroupMacIfIndex, 
+               rdnBondingGroupDir,
+               rdnBondingGroupId, 
+               rdnBondingGroupChanIndex 
+             }
+
+        ::= { rdnBondingGroupTable 1 }
+
+RdnBondingGroupEntry ::= SEQUENCE 
+        {
+            rdnBondingGroupMacIfIndex  INTEGER,
+            rdnBondingGroupDir  IfDirection,
+            rdnBondingGroupId   INTEGER,
+            rdnBondingGroupChanIndex  INTEGER,
+            rdnBondingGroupChanId  INTEGER
+        }
+
+rdnBondingGroupMacIfIndex OBJECT-TYPE
+        SYNTAX      INTEGER
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This references the mac domain to which this bonding group is bound."
+        ::= { rdnBondingGroupEntry 1 }
+
+
+rdnBondingGroupDir OBJECT-TYPE
+     SYNTAX      IfDirection
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+        "This attribute defines the direction (downstream or
+         upstream) of the bonding group"
+     ::= { rdnBondingGroupEntry 2 }
+
+rdnBondingGroupId  OBJECT-TYPE
+    SYNTAX      INTEGER (1..65535)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "The bonding group identifier"
+    ::= { rdnBondingGroupEntry 3 }
+
+rdnBondingGroupChanIndex OBJECT-TYPE
+    SYNTAX INTEGER (1..8)
+    MAX-ACCESS not-accessible
+    STATUS      current
+    DESCRIPTION 
+    "This is the index into a bonding groups channel list (1-8).
+     A downstream bonding group can have up to 8 channels.
+     an upstream bonding group can have up to 4 logical channels.
+    "
+    ::= {rdnBondingGroupEntry 4}
+
+rdnBondingGroupChanId  OBJECT-TYPE
+    SYNTAX      INTEGER (0..255)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+       "The downstream or upstream channel identifier.  This value is equivalent
+        to docsIfDownChannelId or docsIfUpChannelId"
+    ::= { rdnBondingGroupEntry 5 }
+
+--
+-- rdnBondingGroupStatsTable
+--
+rdnBondingGroupStatsTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnBondingGroupStatsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table lists statistic counts for each downstream 
+             or upstream in each bonding group for each mac domain."
+        REFERENCE
+            "Proprietary MIB."
+        ::= { rdnChannelBondingMib 6 }
+
+rdnBondingGroupStatsEntry OBJECT-TYPE
+        SYNTAX      RdnBondingGroupStatsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry provides statistic counts for all downstream
+             or upstream channels in a bonding group for each mac domain.
+             An entry in this table exists for each channel in 
+             each bonding group on each mac domain (each ifEntry  
+             with an ifType of docsCableMaclayer(127))."
+
+        INDEX { rdnBondingGroupMacIfIndex, 
+                rdnBondingGroupDir,
+                rdnBondingGroupId, 
+                rdnBondingGroupChanIndex 
+              }
+        ::= { rdnBondingGroupStatsTable 1 }
+
+RdnBondingGroupStatsEntry ::= SEQUENCE 
+        {
+            rdnBondingGroupStatsChanId  INTEGER,
+            rdnBondingGroupStatsOctetCount  Counter64,
+            rdnBondingGroupStatsPacketCount Counter64
+        }
+
+rdnBondingGroupStatsChanId  OBJECT-TYPE
+    SYNTAX      INTEGER (0..255)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+      "The downstream or upstream channel identifier.  This value is 
+       equivalent to docsIfDownChannelId or docsIfUpChannelId"
+    ::= { rdnBondingGroupStatsEntry 1 }
+
+rdnBondingGroupStatsOctetCount  OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "This entry contains the statistical count of the 
+         number of octets sent through this downstream or
+         upstream for this bonding group."
+    ::= { rdnBondingGroupStatsEntry 2 }
+
+rdnBondingGroupStatsPacketCount  OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+        "This entry contains the statistical count of the 
+         number of packets sent through this downstream or
+         number of segments sent through this upstream for
+         this bonding group."
+    ::= { rdnBondingGroupStatsEntry 3 }
+
+--
+-- rdnBondingGroupCmTable
+--
+rdnBondingGroupCmTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnBondingGroupCmEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table shows the number of modems registered
+            on the downstream or upstream bonding group"
+        REFERENCE
+            "Proprietary MIB."
+        ::= { rdnChannelBondingMib 7 }
+
+rdnBondingGroupCmEntry OBJECT-TYPE
+        SYNTAX      RdnBondingGroupCmEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry provides a list of attributes for a single
+             downstream or upstream bonding group.
+             An entry in this table exists for each defined 
+             bonding group."
+
+        INDEX {rdnBondingGroupMacIfIndex, rdnBondingGroupDir, rdnBondingGroupId }
+
+        ::= { rdnBondingGroupCmTable 1 }
+
+RdnBondingGroupCmEntry ::= SEQUENCE 
+       {
+           rdnBondingGroupCmRegisteredModems Integer32
+       }
+
+rdnBondingGroupCmRegisteredModems  OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The number of modems registered under this bonding group"
+    ::= { rdnBondingGroupCmEntry 1 }
+
+rdnCmtsCmPartialServiceTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnCmtsCmPartialServiceEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table describes Cable Modems operating in partial service
+         mode in either downstream or upstream direction due to deficiencies
+         in available resources to match requested performance."
+        REFERENCE
+            "Proprietary MIB."
+        ::= { rdnChannelBondingMib 8 }
+
+rdnCmtsCmPartialServiceEntry OBJECT-TYPE
+        SYNTAX      RdnCmtsCmPartialServiceEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry provides info on CMs working in partial service mode. 
+             Info including the Cable modem Id,  MAC domain ifIndex, 
+             the CM macAddress, Active and Inactive Channel Set ID.  
+             The table is indexed by Cable modem Id and the bonding group 
+             direction. The table provides a reference to 
+             docsIf3UsChSetEntry/docsIf3DsChSetEntry
+             used in DOCS-IF3-MIB.mibs via MacIfIndex and ChSetId."
+               
+        INDEX { docsIfCmtsCmStatusIndex,
+                rdnCmtsCmPSDir
+              }
+        ::= { rdnCmtsCmPartialServiceTable 1 }
+
+RdnCmtsCmPartialServiceEntry ::= SEQUENCE
+        {
+            rdnCmtsCmPSDir                 IfDirection,
+            rdnCmtsCmPSMacDomainIfIndex InterfaceIndex,
+            rdnCmtsCmPSMacAddress           MacAddress,
+            rdnCmtsCmPSAssignedChSetId         ChSetId,
+            rdnCmtsCmPSActiveChSetId           ChSetId,
+            rdnCmtsCmPSAssignedChSetList  ChSetListStr,
+            rdnCmtsCmPSNonActiveChList    ChSetListStr,
+            rdnCmtsCmPSIpv4Addr              IpAddress,
+            rdnCmtsCmPSIpv6Addr        InetAddressIPv6
+        }
+
+rdnCmtsCmPSDir OBJECT-TYPE
+        SYNTAX      IfDirection
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+         "This attribute defines the direction (downstream or
+          upstream) of the bonding group"
+        ::= { rdnCmtsCmPartialServiceEntry 1 }
+
+rdnCmtsCmPSMacDomainIfIndex OBJECT-TYPE
+        SYNTAX      InterfaceIndex
+        MAX-ACCESS  read-only 
+        STATUS      current
+        DESCRIPTION
+            "The MAC interface index under which this
+             channel's bonding group is configured.
+             This will be an ifType of docsCableMaclayer(127).
+            "
+        ::= { rdnCmtsCmPartialServiceEntry 2 }
+
+rdnCmtsCmPSMacAddress OBJECT-TYPE
+        SYNTAX      MacAddress
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The MAC address of the Cable Modem in Partial Service."
+        ::= { rdnCmtsCmPartialServiceEntry 3 }
+
+rdnCmtsCmPSAssignedChSetId OBJECT-TYPE
+        SYNTAX      ChSetId
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The assigned Channel Set for the current modem ."
+        ::= { rdnCmtsCmPartialServiceEntry 4 }
+
+rdnCmtsCmPSActiveChSetId OBJECT-TYPE
+        SYNTAX      ChSetId
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The currently active Channel Set for the current modem ."
+        ::= { rdnCmtsCmPartialServiceEntry 5 }
+
+rdnCmtsCmPSAssignedChSetList OBJECT-TYPE
+        SYNTAX      ChSetListStr
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The currently assigned Channels for the current modem."
+        ::= { rdnCmtsCmPartialServiceEntry 6 }
+
+rdnCmtsCmPSNonActiveChList OBJECT-TYPE
+        SYNTAX      ChSetListStr
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The current non-active Channel(s) for the current modem."
+        ::= { rdnCmtsCmPartialServiceEntry 7 }
+
+rdnCmtsCmPSIpv4Addr OBJECT-TYPE
+        SYNTAX      IpAddress
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The IPv4 assigned to the current modem. If the modem
+             is operating in a IPv6 only provisioning mode this field
+             should return 0.0.0.0."
+        ::= { rdnCmtsCmPartialServiceEntry 8 }
+
+rdnCmtsCmPSIpv6Addr OBJECT-TYPE
+        SYNTAX      InetAddressIPv6
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This attribute represents the IPv6 address of the
+             current CM. If the CM has no Internet IPv6 address assigned
+             the value of this attribute is the all zeros address."
+        ::= { rdnCmtsCmPartialServiceEntry 9 }
+END

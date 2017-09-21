@@ -1,0 +1,238 @@
+-- *****************************************************************
+-- RDN-DLB-MIB.mib:
+-- Motorola BSR's Dynamic Load Balance MIB
+--
+-- Copyright (c) 2004, 2008 by Motorola, Inc.
+-- All rights reserved.
+-- *****************************************************************
+RDN-DLB-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+        MODULE-IDENTITY, 
+        OBJECT-TYPE, 
+        Unsigned32
+            FROM SNMPv2-SMI
+        TruthValue,
+        DisplayString,
+        RowStatus
+            FROM SNMPv2-TC
+        riverdelta
+            FROM RDN-MIB;
+
+    --
+    -- riverdelta dynamic load balance mib module
+    --
+
+    rdnLoadBalance MODULE-IDENTITY
+        LAST-UPDATED "200808080000Z" --  August 8, 2008
+        ORGANIZATION "Motorola"
+        CONTACT-INFO "Motorola
+                      Customer Service
+                      101 Tournament Drive
+                      Horsham, PA 19044
+                      US Tel: +1 888 944 4357
+                      Int Tel: +1 215 323 0044
+	              Fax: +1 215 323 1502
+                      Email: CPSSupport@Motorola.com"
+        DESCRIPTION
+                "Mib module for Motorola Dynamic Load Balancing.
+
+		 Copyright (C) 2004, 2008 by Motorola, Inc.
+		 All rights reserved."
+
+
+	REVISION "200808080000Z"  -- 08 August 2008
+	DESCRIPTION
+	    "Added Copyright Statement into MIB modules's
+	     description."		 
+
+	REVISION     "200409150000Z"
+        DESCRIPTION
+            "+  Updated the CONTACT-INFO.
+	     +  Reorder REVISION/DESCRIPTION in required 
+                reverse chronological order."
+	REVISION     "200409150000Z"
+        DESCRIPTION
+                "Initial creation. - SLC"
+        ::= { riverdelta 8 }
+
+
+    rdnLoadBalBasicRuleTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF RdnLoadBalBasicRuleEntry
+        MAX-ACCESS  not-accessible
+        STATUS  current
+        DESCRIPTION
+                 "Load Balance Basic Rule Table."
+        ::= { rdnLoadBalance 1 }
+
+    rdnLoadBalBasicRuleEntry OBJECT-TYPE
+        SYNTAX  RdnLoadBalBasicRuleEntry
+        MAX-ACCESS  not-accessible
+        STATUS  current
+        DESCRIPTION
+                 "Load Balance Basic Rule Table entry."
+        INDEX { rdnLoadBalBasicRuleId }
+       ::= { rdnLoadBalBasicRuleTable 1 }
+
+    RdnLoadBalBasicRuleEntry ::=
+        SEQUENCE {
+            rdnLoadBalBasicRuleId
+                Unsigned32,
+            rdnLoadBalBasicRuleEnable
+                INTEGER,
+            rdnLoadBalBasicRuleMinThres
+                Unsigned32,
+            rdnLoadBalBasicRuleDeltaThres
+                Unsigned32,
+            rdnLoadBalBasicRuleStopThres
+                Unsigned32,
+            rdnLoadBalBasicRuleRowStatus
+                RowStatus,
+            rdnLoadBalBasicRuleModemCountThres
+	Unsigned32
+        }
+
+    --
+    -- start of Load Balance table
+    --
+
+    rdnLoadBalBasicRuleId OBJECT-TYPE
+        SYNTAX  Unsigned32 (1..4294967295) 
+        MAX-ACCESS not-accessible 
+        STATUS  current
+        DESCRIPTION
+                "An index uniquely identifying an entry
+                 in the rdnLoadBalBasicRuleTable."
+        ::= { rdnLoadBalBasicRuleEntry 1 }
+
+    rdnLoadBalBasicRuleEnable OBJECT-TYPE
+        SYNTAX  INTEGER {
+                upstream(1),
+                downstream(2),
+                interval(3),
+                registration(4),
+                rem-dsx(5),
+		spec-trig(6),
+                ds-reg(7), 
+                us-reg-bonding(8),
+                ds-reg-bonding(9) 
+                }
+        MAX-ACCESS  read-create
+        STATUS  current
+        DESCRIPTION
+                "When using this rule set, the load balancing algorithm is based on upstream and downstream
+                 utilization by the values upstream(1) and downstream(2) respectively. Additionally, a Load
+                 Balancing groups interval can be defined by value interval(3). Upstream Load Balancing during
+                 modem registration can be enabled by value registration(4). Load Balancing after a resource
+                 failure due to a DSX from a CPE can be enabled by value rem-dsx(5). Load balancing triggered
+		 by a Spectrum Management bit rate change can be enabled by value spec-trig(6). Downstream Load 
+                 Balancing during modem registration can be enabled by value ds-reg(7). Upstream Load Balancing
+                 with Bonding Groups during modem registration can be enabled by value us-reg-bonding(8). 
+                 Downstream Load Balancing with Bonding Groups during modem registration can be enabled by 
+                 value ds-reg-bonding(9). The load balancing
+	         utilization thresholds are defined by the objects rdnLoadBalBasicRuleMinThres, rdnLoadBalBasicRuleDeltaThres
+                 and rdnLoadBalBasicRuleStopThres objects if this object value is set to upstream(1) or 
+                 downstream(2). The modem count threshold is defined by the object
+                 rdnLoadBalBasicRuleModemCountThres if this object value is set to registration(4), ds-reg(7), 
+                 us-reg-bonding(8), or ds-reg-bonding(9)."
+        ::= { rdnLoadBalBasicRuleEntry 2 }
+
+    rdnLoadBalBasicRuleMinThres OBJECT-TYPE
+        SYNTAX  Unsigned32 (0..100) 
+        MAX-ACCESS  read-create
+        STATUS  current
+        DESCRIPTION
+                "If object rdnLoadBalBasicRuleEnable is upstream(1) or downstream(2), the minimum percentage
+                 of utilization that a channel must have to start load balancing is defined by this value. 
+                 Otherwise, this object has no meaning."
+        ::= { rdnLoadBalBasicRuleEntry 3 }
+
+    rdnLoadBalBasicRuleDeltaThres OBJECT-TYPE
+        SYNTAX  Unsigned32 (0..100) 
+        MAX-ACCESS  read-create
+        STATUS  current
+        DESCRIPTION
+                "If object rdnLoadBalBasicRuleEnable is upstream(1) or downstream(2), the delta percentage
+                 of utilization between two load balancing group channels that must exist to start load  
+                 balancing is defined by this value. Otherwise, this object has no meaning."
+        ::= { rdnLoadBalBasicRuleEntry 4 }
+
+    rdnLoadBalBasicRuleStopThres OBJECT-TYPE
+        SYNTAX  Unsigned32 (0..100) 
+        MAX-ACCESS  read-create
+        STATUS  current
+        DESCRIPTION
+                "If object rdnLoadBalBasicRuleEnable is upstream(1) or downstream(2), the delta percentage
+                 of utilization between two load balancing group channels that should be met to stop load 
+                 balancing is defined by this value. Otherwise, this object has no meaning."
+        ::= { rdnLoadBalBasicRuleEntry 5 }
+
+    rdnLoadBalBasicRuleRowStatus OBJECT-TYPE
+        SYNTAX  RowStatus 
+        MAX-ACCESS  read-create
+        STATUS  current
+        DESCRIPTION
+                "This object is to create or delete rows in this table. There is no restriction for 
+                 changing this row status or object's values in this table at any time."
+        ::= { rdnLoadBalBasicRuleEntry 7 }
+
+    rdnLoadBalBasicRuleModemCountThres OBJECT-TYPE
+        SYNTAX  Unsigned32 (1..50) 
+        MAX-ACCESS  read-create
+        STATUS  current
+        DESCRIPTION
+                "If object rdnLoadBalBasicRuleEnable is registration(4), the modem count threshold
+	 represents the maximum allowed difference in modem count between the modem's initial
+	 upstream channel and the least loaded upstream channel in the load balance group.
+	 If the threshold is exceeded the modem is moved to the least loaded upstream
+	 channel otherwise the modem remains on its initial upstream channel."
+        ::= { rdnLoadBalBasicRuleEntry 8 }
+
+-- Available Load Balance Operations
+
+    rdnLoadBalOperations OBJECT-GROUP
+        OBJECTS {
+            rdnLoadBalanceUpstreamModemCount,
+	    rdnLoadBalanceDnstreamModemCount
+        }
+        STATUS  current
+        DESCRIPTION
+                 "Available Load Balance Operations"
+        ::= { rdnLoadBalance 2 }
+
+    rdnLoadBalanceUpstreamModemCount OBJECT-TYPE
+        SYNTAX  Unsigned32 (0..255)
+        UNITS "Load-Balance Group ID [0-255]"
+        MAX-ACCESS read-write
+        STATUS  current
+        DESCRIPTION
+                "Perform upstream load-balancing based on modem count.
+                 0 = Perform on all enabled Load-Balance Groups.
+                 [1-255] = Perform on a specific Load-Balance Group based on group ID.
+                 Reading this object always returns zero."
+        ::= { rdnLoadBalOperations 1 }
+
+    rdnLoadBalanceDnstreamModemCount OBJECT-TYPE
+        SYNTAX  Unsigned32 (0..255)
+        UNITS "Load-Balance Group ID [0-255]"
+        MAX-ACCESS read-write
+        STATUS  current
+        DESCRIPTION
+                "Perform downstream load-balancing based on modem count.
+                 0 = Perform on all enabled Load-Balance Groups.
+                 [1-255] = Perform on a specific Load-Balance Group based on group ID.
+                 Reading this object always returns zero."
+        ::= { rdnLoadBalOperations 2 }
+
+    rdnLoadBalGroupInterval OBJECT-TYPE
+        SYNTAX  Unsigned32 (5..480) 
+        UNITS "minutes"
+        MAX-ACCESS  read-create
+        STATUS  current
+        DESCRIPTION
+                "The period at which load balancing process will be initiated  
+                 for any load balancing group in the system."
+        ::= { rdnLoadBalance 3 }
+
+
+END

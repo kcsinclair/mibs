@@ -1,0 +1,3290 @@
+SDM-MIB DEFINITIONS ::= BEGIN
+
+
+IMPORTS
+        MODULE-IDENTITY,
+        IpAddress,
+        NOTIFICATION-TYPE,
+        Integer32,
+        OBJECT-TYPE
+                                FROM SNMPv2-SMI
+
+        DisplayString,
+        DateAndTime
+                                FROM SNMPv2-TC
+
+        giproducts              FROM BCS-IDENT-MIB
+
+        snmpTrapAddress
+                                FROM SNMP-COMMUNITY-MIB
+
+        trapIdentifier,
+        trapSequenceId,
+        trapNetworkElemModelNumber,
+        trapNetworkElemSerialNum,
+        trapPerceivedSeverity,
+        trapNetworkElemOperState,
+        trapNetworkElemAlarmStatus,
+        trapNetworkElemAdminState,
+        trapNetworkElemAvailStatus,
+        trapText,
+        trapNETrapLastTrapTimeStamp,
+        trapChangedObjectId,
+        trapAdditionalInfoInteger1,
+        trapAdditionalInfoInteger2,
+        trapAdditionalInfoInteger3
+                                FROM BCS-TRAPS-MIB;
+
+sdm MODULE-IDENTITY
+        LAST-UPDATED "201004210000Z"
+
+        ORGANIZATION "Motorola Broadband Home Solutions"
+        CONTACT-INFO "Motorola Technical Response Center
+                      Inside USA     1-888-944-HELP (1-888-944-4357)
+                      Outside USA    1-215-323-0044
+                      TRC Hours:
+                      Monday through Friday 8am - 7pm Eastern Standard Time
+                      Saturdays            10am - 5pm Eastern Standard Time"
+
+        DESCRIPTION  "The MIB module for the SDM (SmartStream Device Manager)."
+
+        REVISION     "201004210000Z"
+        DESCRIPTION
+                     "Version 1.2 - Apr 21, 2010                      
+                      Following modifications introduced
+                        -- Existing collated traps marked as obsolete.
+                        -- Varbind snmpTrapAddress removed from all NBI traps.
+                        -- A new varbind sdmProbableCauseName added to all the NBI traps. 
+                        -- A new NBI trap trapEventNotification added to model the pass-through Events."
+
+        REVISION     "200907170000Z"
+        DESCRIPTION
+                     "Version 1.1 - July 17, 2009
+                      Modified for Pass-through Alarm Transition and to add
+                      sdmObjectType and sdmObjectName to all other traps."
+                      
+        REVISION     "200410180000Z"                      
+        DESCRIPTION        
+                     "Version 1.0 - October 18, 2004
+                      Initial SDM MIB supporting northbound traps."
+
+         ::= {giproducts 100}
+
+
+--
+-- SDM MIB STRUCTURE
+--
+   sdmTraps                             OBJECT IDENTIFIER ::= {sdm 0}
+   sdmTrapVarbinds                      OBJECT IDENTIFIER ::= {sdm 1}
+   sdmSystem                            OBJECT IDENTIFIER ::= {sdm 2}
+   sdmFault                             OBJECT IDENTIFIER ::= {sdm 3}
+   sdmConfiguration                     OBJECT IDENTIFIER ::= {sdm 4}
+
+
+
+-- ****************************************************************************
+--
+-- SDM Traps
+--
+-- This section describes the SDM northbound traps.  The SDM classifies the northbound
+-- traps into the following types:
+--    Northbound Event Notification
+--			- This NBI trap is sent out in response to an event generated at SDM, and
+--			  is modeled by the trapEventNotification.
+--    Northbound Alarm Notifications
+--			- This NBI trap is sent out in response to an alarm generated at SDM, and
+--			  is modeled by the trapAlarmTransition.
+--    Special SDM Traps
+--			- These NBI traps are sent out to report certain SDM operating conditions of interest to the
+--			  northbound, such as SDM Start/Stop, Sync Start/Complete, and the SDM Heartbeat.
+--
+-- The managed object against which the NBI trap is sent out can represent a headend device, 
+-- a user-defined group or the SDM itself.  
+-- The Northbound Event Notifications have been introduced in SDM release 5.2.
+-- SDM 5.2 release also has removed collation for the Northbound Alarm Notifications, which meant sending 
+-- out only the highest severity alarm per ITU category for a given managed object.
+--
+-- All northbound traps use a common format and contain the following varbinds:
+--    trapIdentifier 
+--    trapSequenceId
+--    trapNetworkElemModelNumber
+--    trapNetworkElemSerialNum
+--    trapPerceivedSeverity
+--    trapNetworkElemOperState
+--    trapNetworkElemAlarmStatus
+--    trapNetworkElemAdminState
+--    trapNetworkElemAvailStatus
+--    trapText
+--    trapNETrapLastTrapTimeStamp
+--    trapChangedObjectId
+--    trapAdditionalInfoInteger1
+--    trapAdditionalInfoInteger2
+--    trapAdditionalInfoInteger3
+--    sdmCategory
+--    sdmProbableCause
+--    sdmProbableCauseText
+--    sdmUrl
+--    sdmObjectDescription
+--    sdmObjectIPAddress
+--    sdmObjectName
+--    sdmObjectType
+--    sdmProbableCauseName
+--
+-- The first 15 varbinds are common Motorola BCS varbinds defined in the
+-- bcs_traps.mib.  The last 9 varbinds are SDM specific varbinds defined below.
+--
+-- The trapIndentifier and trapSequenceId varbinds persist across SDM restarts.
+--
+-- When a trap corresponds to a specific headend device, the snmpTrapAddress
+-- varbind indicates the IP address of the headend device and along with the
+-- trapNetworkElemModelNumber and trapNetworkElemSerialNum varbinds uniquely
+-- identifies the headend device.  Moreover the trapNetworkElemOperState
+-- trapNetworkElemAlarmStatus, trapNetworkElemAdminState and
+-- trapNetworkElemAvailStatus reflect the state of the device when the trap
+-- was issued.  For traps that don't correspond to a specific headend device,
+-- these varbinds represent the IP address and state of the SDM.
+--
+-- The difference between the trapPerceivedSeverity and
+-- trapNetworkElemAlarmStatus varbinds is that trapPerceivedSeverity describes
+-- the severity of the trap while trapNetworkElemAlarmStatus describes the
+-- aggregate (highest severity) alarm status of the managed object when the
+-- trap was reported.
+
+-- The trapText varbind is used to describe the trap. For the Northbound Alarm Notification,
+-- sdm will add a string to the traptext varbind field in the following format:
+-- "This trap describes a fault from source <the alarm source>, category <the alarm category>, 
+-- and severity <the alarm severity>".
+-- For the Northbound Event Notification, the traptext varbind will be:
+-- "This trap describes an event from source <the event source>, category <the event category>, 
+-- and severity <the event severity>".
+-- For the Special SDM Traps, the trapText varbind describes the operation on the SDM 
+-- that caused this trap to be sent.
+--
+-- The trapNETrapLastTrapTimeStamp varbind reflects the time the event or
+-- alarm condition occurred.
+--
+-- The trapChangedObjectId is not applicable for most SDM northbound event
+-- and SDM collated alarm traps, thus for these traps this varbind will
+-- be set to NULL.  The trap description indicates when this varbind is
+-- applicable.
+--
+-- See below for descriptions of the SDM specific varbinds.
+-- ****************************************************************************
+
+-- ****************************************************************************
+--
+-- SDM Trap Varbinds
+--
+-- ****************************************************************************
+sdmProbableCause OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "This object identifies the probable cause associated with the current
+         trap.
+
+         For SDM collated alarms, the probable cause identifies the specific
+         alarm failure responsible for triggering this notification. When
+         multiple alarms of the same category are active at the same time for
+         a given managed object, the probable cause corresponds to the active
+         alarm with the highest severity for the reported category.  Moreover,
+         when the highest severity alarm for a given category clears, the
+         probable cause may change if another active alarm of the same
+         category is active for the given managed object.
+
+         For SDM northbound events, this object is not always applicable.
+         Each northbound event description indicates whether this object is
+         applicable.  For those northbound events where this object is not
+         applicable, this object will be NULL."
+    ::= { sdmTrapVarbinds 1 }
+
+sdmProbableCauseText OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "This object identifies the description for the above probable cause
+         and contains the alarm description of the alarm responsible for
+         triggering this notification.
+
+         For those SDM northbound event where probable cause is not applicable,
+         this object will be NULL."
+    ::= { sdmTrapVarbinds 2 }
+
+sdmObjectDescription OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "This object contains a user-defined description for the managed 
+         object associated with the current trap."
+    ::= { sdmTrapVarbinds 3 }
+
+sdmObjectIPAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "This object contains the IP address (where applicable) for the 
+         managed object associated with the current trap.  For those managed
+         objects that do not have an IP address (e.g. user-defined groups),
+         this object will be NULL."
+    ::= { sdmTrapVarbinds 4 }
+
+sdmObjectName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The object describes the name used by the SDM to uniquely identify
+         the managed object associated with the current trap."
+    ::= { sdmTrapVarbinds 5 }
+
+sdmObjectType OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The object identifies the type of managed object associated with the
+         current trap."
+    ::= { sdmTrapVarbinds 6 }
+
+sdmUrl OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The object contains an URL that provides additional information about
+         the current trap."
+    ::= { sdmTrapVarbinds 7 }
+
+sdmCategory OBJECT-TYPE
+    SYNTAX INTEGER
+        {
+         catNA                  (0),
+         catOther               (1),
+         catCommunications      (2),
+         catQualityOfService    (3),
+         catProcessingError     (4),
+         catEquipment           (5),
+         catEnvironmental       (6),
+         catIntegrity           (7),
+         catOperational         (8),
+         catPhysical            (9),
+         catSecurity            (10),
+         catTimeDomain          (11)
+        }
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The object identifies the category, i.e. ITU Event Type, associated with
+         the current trap."
+    ::= { sdmTrapVarbinds 8 }
+
+sdmProbableCauseName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "This object identifies the display name (title) of the event/alarm responsible
+         for triggering this notification."
+    ::= { sdmTrapVarbinds 9 }
+
+-- ****************************************************************************
+-- SDM Northbound Events
+--
+-- The following is a list of events sent northbound that report the 
+-- occurrence of various noteworthy events within the SDM.  These events
+-- include:
+--   o  Heartbeat
+--   o  Application starting/stopping
+--   o  Northbound resynchronization starting/completing
+--   o  Addition/removal of managed objects from the SDM. These notifications have now been obsoleted.
+-- ****************************************************************************
+trapSdmHeartbeat NOTIFICATION-TYPE
+    OBJECTS
+    {
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType,
+     sdmProbableCauseName
+    }
+    STATUS current
+    DESCRIPTION
+        "This trap is issued periodically as defined by the heartbeat
+         interval to indicate that the SDM is alive and is capable of 
+         sending traps northbound."
+::= { sdmTraps 1 }
+
+trapSdmStarted NOTIFICATION-TYPE
+    OBJECTS
+    {
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType,
+     sdmProbableCauseName
+    }
+    STATUS current
+    DESCRIPTION
+        "This trap is issued when the SDM application is started."
+::= { sdmTraps 2 }
+
+trapSdmStopped NOTIFICATION-TYPE
+    OBJECTS
+    {
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType,
+     sdmProbableCauseName
+    }
+    STATUS current
+    DESCRIPTION
+        "This trap is issued when the SDM application is shutdown orderly.
+         This trap may not be sent when the SDM prematurely aborts or is
+         not properly shutdown."
+::= { sdmTraps 3 }
+
+trapSdmResynchStarted NOTIFICATION-TYPE
+    OBJECTS
+    {
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType,
+     sdmProbableCauseName
+    }
+    STATUS current
+    DESCRIPTION
+        "This trap is issued when the SDM resynchronizes to a particular trap
+         destination.
+
+         Additional information is provided in the following
+         variable-bindings:
+             trapAdditionalInfoInteger1 - Type of resynchronization where
+                 1=Resynch All, 2=Resynch Time, and 3=Resynch=Active
+             trapAdditionalInfoInteger2 - Time (only applicable for Type=2)"
+::= { sdmTraps 4 }
+
+trapSdmResynchCompleted NOTIFICATION-TYPE
+    OBJECTS
+    {
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType,
+     sdmProbableCauseName
+    }
+    STATUS current
+    DESCRIPTION
+        "This trap is issued when the resynchronization to a particular trap
+         destination has completed.
+
+         The following Additional Information variable-bindings are used to
+         describe the resynchronization completion status as follows:
+              trapAdditionalInfoInteger1 - Status of resynchronization where
+                 0=No Error
+                 1=User Abort
+                 2=SDM Shutdown
+                 3=Database Error"
+::= { sdmTraps 5 }
+
+trapSdmObjectAdded NOTIFICATION-TYPE
+    OBJECTS
+    {
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+--     sdmObjectName,
+--     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This is now obsolete.
+        
+         This trap is issued when a managed object such as a device or group
+         is added to the system.
+
+         A managed object can be added to the system in various ways
+         (e.g. manually adding a device or discovering a device), and the
+         sdmProbableCauseId and sdmProbableCauseText varbinds are used
+         to provide additional information.
+
+         When the managed object corresponds to a device, the varbinds
+         sdmObjectIPAddress, trapNetworkElemModelNumber,
+         trapNetworkElemSerialNum,  trapNetworkElemOperState,
+         trapNetworkElemAdminState and trapNetworkElemAvailStatus reflect
+         the state of the device when the device was added to the system.
+         For other managed objects, these varbinds are NULL.
+
+         For all managed objects, the trapNetworkElemAlarmStatus varbind
+         reflects the aggregate alarm status of the managed object and 
+         the sdmObjectDescription varbind contains a user-defined description
+         associated with the managed object."
+::= { sdmTraps 6 }
+
+trapSdmObjectRemoved NOTIFICATION-TYPE
+    OBJECTS
+    {
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+--     sdmObjectName,
+--     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This is now obsolete.
+        
+         This trap is issued when a managed object such as a device or group
+         is deleted from the system. 
+
+         The sdmProbableCauseId and sdmProbableCauseText varbinds are used
+         to provide additional information on the deletion.
+
+         When the managed object corresponds to a device, the varbinds
+         sdmObjectIPAddress, trapNetworkElemModelNumber,
+         trapNetworkElemSerialNum,  trapNetworkElemOperState,
+         trapNetworkElemAdminState and trapNetworkElemAvailStatus reflect
+         the state of the device when the device was deleted from the system.
+         For other managed objects, these varbinds are NULL.
+
+         For all managed objects, the trapNetworkElemAlarmStatus varbind
+         reflects the aggregate alarm status of the managed object and 
+         the sdmObjectDescription varbind contains a user-defined description
+         associated with the managed object."
+::= { sdmTraps 7 }
+
+-- *****************************************************************************
+-- SDM Pass-through Event Transition
+--   The following trap is used to report an event generated against a managed object.
+-- *****************************************************************************
+
+trapEventNotification NOTIFICATION-TYPE
+    OBJECTS
+    {
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType,
+     sdmProbableCauseName
+    }
+    STATUS current
+    DESCRIPTION
+        "This trap is issued in response to an event generated on SDM.
+        The sdmProbableCause and sdmProbableCauseText varbinds identify the event 
+        while the sdmObjectIPaddress and sdmObjectName varbinds identify the 
+        managed object. The trapPerceivedSeverity varbind identifies the current 
+        severity."
+::= { sdmTraps 99 }
+
+-- *****************************************************************************
+-- SDM Pass-through Alarm Transition
+--   The following trap is used to report a change to the state of an active
+--   alarm for a managed object.
+-- *****************************************************************************
+
+trapAlarmTransition NOTIFICATION-TYPE
+    OBJECTS
+    {
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType,
+     sdmProbableCauseName
+    }
+    STATUS current
+    DESCRIPTION
+        "This trap is issued to indicate that the SDM detected a change to
+        the state of an active alarm for a managed object.  In other words,
+        an active alarm was cleared or the perceived severity of the alarm
+        changed.  The sdmProbableCause and sdmProbableCauseText varbinds
+        identify the alarm while the sdmObjectIPaddress and sdmObjectName
+        varbinds identify the managed object.  The trapPerceivedSeverity
+        varbind identifies the current severity."
+::= { sdmTraps 100 }
+
+
+-- *****************************************************************************
+-- SDM Collated Alarms
+--
+-- These traps were used prior to SDM 5.2 release. With the 5.2 release, the 
+-- SDM Collated Alarms have been obsoleted.
+
+-- For each managed object in the systems, the SDM collates (i.e. categorizes)
+-- alarms into the following categories based on the ITU Event Types:
+--   o  Other
+--   o  Communications 
+--   o  Quality of Service 
+--   o  Processing Error
+--   o  Equipment 
+--   o  Environmental 
+--   o  Integrity 
+--   o  Operational 
+--   o  Physical 
+--   o  Security 
+--   o  Time Domain 
+--
+-- The SDM reports northbound the status of each managed object based on the
+-- state of the above categories.  Managed objects include headend devices,
+-- user-defined groups and the SDM itself.  For these managed objects, the SDM
+-- maintains an aggregate alarm status for each of the categories shown above
+-- and generates a trap when the state (e.g. severity) of any one of these
+-- categories changes for the managed object.  Collating device-specific alarms
+-- allows the SDM to report failure conditions consistently across all managed
+-- objects.
+--
+-- The SDM can be configured to report the status on a per alarm basis instead
+-- of aggregating alarm status across each category.  Configuring the SDM in a
+-- a pass-through mode disables the SDM from collating the alarms; thus anytime
+-- the state of an individual alarm changes for a managed object, the SDM
+-- reports the change northbound. Changes to all active alarms are reported for
+-- each managed object, even those alarms generated by the SDM.  Moreover, only
+-- those traps sent by a device that are represented as alarms result in a 
+-- northbound trap.
+-- *****************************************************************************
+
+
+-- *****************************************************************************
+-- Other (Miscellaneous):
+--   The following are the definitions for severity based Other 
+--   traps.  An Other fault is a miscellaneous category used to describe any
+--   fault that does belong to one of the other categories.  A trap is sent
+--   whenever the SDM detects that the Other state for the managed object
+--   changes. A different Communications trap has been defined for each
+--   severity.
+-- *****************************************************************************
+
+trapCriticalOtherFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a critical 'Other' fault.  This
+         trap is issued when the highest severity of all 'Other'
+         faults for the given managed object is 'Critical'.
+         An 'Other' fault is a miscellaneous category used to describes
+         any fault that does not belong to one of the other categories."
+::= { sdmTraps 101 }
+
+trapMajorOtherFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a Major 'Other' fault.  This
+         trap is issued when the highest severity of all 'Other'
+         faults for the given managed object is 'Major'.
+         An 'Other' fault is a miscellaneous category used to describes
+         any fault that does not belong to one of the other categories."
+::= { sdmTraps 102 }
+
+
+trapMinorOtherFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a minor 'Other' fault.  This
+         trap is issued when the highest severity of all 'Other'
+         faults for the given managed object is 'Minor'.
+
+         An 'Other' fault is a miscellaneous category used to describes
+         any fault that does not belong to one of the other categories."
+::= { sdmTraps 103 }
+
+trapWarningOtherFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a warning 'Other' fault.  This
+         trap is issued when the highest severity of all 'Other'
+         faults for the given managed object is 'Warning'.
+         An 'Other' fault is a miscellaneous category used to describes
+         any fault that does not belong to one of the other categories."
+::= { sdmTraps 104 }
+
+trapClearedOtherFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a cleared 'Other' fault.  This trap is
+         issued when either all active 'Other' faults for the given
+         managed object are 'Clear' or no 'Other' faults exist.
+         An 'Other' fault is a miscellaneous category used to describes
+         any fault that does not belong to one of the other categories."
+::= { sdmTraps 105 }
+
+
+trapInformationalOtherFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes an informational 'Other' fault.  This
+         trap is issued when the highest severity of all 'Other'
+         faults for the given managed object is 'Informational'.
+         An 'Other' fault is a miscellaneous category used to describes
+         any fault that does not belong to one of the other categories."
+::= { sdmTraps 106 }
+
+
+-- ****************************************************************************
+-- Communications Fault:
+--   The following are the definitions for severity based Communications 
+--   traps.  A Communications fault is used to describe a problem with
+--   procedures or processes used to exchange information between two or more
+
+--   components within the system.  A trap is sent whenever the SDM detects
+--   that the Communications state for the managed object changes.  A
+--   different Communications trap has been defined for each severity.
+-- *****************************************************************************
+
+trapCriticalCommunicationsFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a critical 'Communications' fault.  This trap is
+         issued when the highest severity of all 'Communications' faults for
+         the given managed object is 'Critical'.  A 'Communications' fault
+         usually describes a problem with procedures or processes used to
+         exchange information between two or more components within the
+         system."
+::= { sdmTraps 111 }
+
+trapMajorCommunicationsFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a major 'Communications' fault.  This trap is
+         issued when the highest severity of all 'Communications' faults for
+         the given managed object is 'Major'.  A 'Communications' fault
+         usually describes a problem with procedures or processes used to
+         exchange information between two or more components within the
+         system."
+::= { sdmTraps 112 }
+
+trapMinorCommunicationsFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a minor 'Communications' fault.  This trap is
+         issued when the highest severity of all 'Communications' faults for
+         the given managed object is 'Minor'.  A 'Communications' fault
+         usually describes a problem with procedures or processes used to
+         exchange information between two or more components within the
+         system."
+::= { sdmTraps 113 }
+
+trapWarningCommunicationsFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a warning 'Communications' fault.  This trap is
+         issued when the highest severity of all 'Communications' faults for
+         the given managed object is 'Warning'.  A 'Communications' fault
+         usually describes a problem with procedures or processes used to
+         exchange information between two or more components within the
+         system."
+::= { sdmTraps 114 }
+
+trapClearedCommunicationsFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a cleared 'Communications' fault.  This trap is
+         issued when either all active 'Communications' faults for the given
+         managed object are 'Clear' or no 'Communications' faults exist.
+         A 'Communications' fault usually describes a problem with procedures
+         or processes used to exchange information between two or more
+         components within the system."
+::= { sdmTraps 115 }
+
+trapInformationalCommunicationsFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes an informational 'Communications' fault.  This
+         trap is issued when the highest severity of all 'Communications'
+         faults for the given managed object is 'Informational'.
+         A 'Communications' fault usually describes a problem with procedures
+         or processes used to exchange information between two or more
+         components within the system."
+::= { sdmTraps 116 }
+
+
+-- ******************************************************************************
+-- Quality of Service Fault:
+--   The following are the definitions for severity based Quality of Service 
+--   traps.  A Quality of Service fault usually describes degradation
+--   in the quality of service.  A trap is sent whenever the SDM detects
+--   that the Quality of Service state for the managed object changes.  A
+--   different Quality of Service trap has been defined for each severity.
+-- ******************************************************************************
+
+trapCriticalQualityOfServiceFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a critical 'Quality of Service' fault.  This
+         trap is issued when the highest severity of all 'Quality of Service'
+         faults for the given managed object is 'Critical'.
+         A 'Quality of Service' fault usually describes degradation in the
+         quality of service."
+::= { sdmTraps 121 }
+
+trapMajorQualityOfServiceFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a major 'Quality of Service' fault.  This
+         trap is issued when the highest severity of all 'Quality of Service'
+         faults for the given managed object is 'Major'.
+         A 'Quality of Service' fault usually describes degradation in the
+         quality of service."
+::= { sdmTraps 122 }
+
+trapMinorQualityOfServiceFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a minor 'Quality of Service' fault.  This
+         trap is issued when the highest severity of all 'Quality of Service'
+         faults for the given managed object is 'Minor'.
+         A 'Quality of Service' fault usually describes degradation in the
+         quality of service."
+::= { sdmTraps 123 }
+
+trapWarningQualityOfServiceFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a warning 'Quality of Service' fault.  This
+         trap is issued when the highest severity of all 'Quality of Service'
+         faults for the given managed object is 'Warning'.
+         A 'Quality of Service' fault usually describes degradation in the
+         quality of service."
+::= { sdmTraps 124 }
+
+
+trapClearedQualityOfServiceFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a cleared 'Quality of Service' fault.  This trap is
+         issued when either all active 'Quality of Service' faults for the given
+         managed object are 'Clear' or no 'Quality of Service' faults exist.
+         A 'Quality of Service' fault usually describes degradation in the
+         quality of service."
+::= { sdmTraps 125 }
+
+trapInformationalQualityOfServiceFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes an informational 'Quality of Service' fault.  This
+         trap is issued when the highest severity of all 'Quality of Service'
+         faults for the given managed object is 'Informational'.
+         A 'Quality of Service' fault usually describes degradation in the
+         quality of service."
+::= { sdmTraps 126 }
+
+
+-- *****************************************************************************
+-- Processing Error Fault:
+--   The following are the definitions for severity based Processing Error 
+--   traps.  A Processing Error fault is used to describe a software or 
+--   processing failure.  A trap is sent whenever the SDM detects
+--   that the Processing Error state for the managed object changes.
+--   A different Processing Error trap has been defined for each severity.
+-- *****************************************************************************
+
+trapCriticalProcessingErrorFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a critical 'Processing Error' fault.  This
+         trap is issued when the highest severity of all 'Processing Error'
+         faults for the given managed object is 'Critical'.
+         A 'Processing Error' fault is used to describe a software or
+         processing failure."
+::= { sdmTraps 131 }
+
+trapMajorProcessingErrorFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a Major 'Processing Error' fault.  This
+         trap is issued when the highest severity of all 'Processing Error'
+         faults for the given managed object is 'Major'.
+         A 'Processing Error' fault is used to describe a software or
+         processing failure."
+::= { sdmTraps 132 }
+
+trapMinorProcessingErrorFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a minor 'Processing Error' fault.  This
+         trap is issued when the highest severity of all 'Processing Error'
+         faults for the given managed object is 'Minor'.
+         A 'Processing Error' fault is used to describe a software or
+         processing failure."
+::= { sdmTraps 133 }
+
+trapWarningProcessingErrorFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a warning 'Processing Error' fault.  This
+         trap is issued when the highest severity of all 'Processing Error'
+         faults for the given managed object is 'Warning'.
+         A 'Processing Error' fault is used to describe a software or
+         processing failure."
+::= { sdmTraps 134 }
+
+trapClearedProcessingErrorFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a cleared 'Processing Error' fault.  This trap is
+         issued when either all active 'Processing Error' faults for the given
+         managed object are 'Clear' or no 'Processing Error' faults exist.
+         A 'Processing Error' fault is used to describe a software or
+         processing failure."
+::= { sdmTraps 135 }
+
+trapInformationalProcessingErrorFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes an informational 'Processing Error' fault.  This
+         trap is issued when the highest severity of all 'Processing Error'
+         faults for the given managed object is 'Informational'.
+         A 'Processing Error' fault is used to describe a software or
+         processing failure."
+::= { sdmTraps 136 }
+
+
+
+-- *****************************************************************************
+-- Equipment Fault:
+--   The following are the definitions for severity based Equipment Fault 
+--   traps.  An Equipment fault is used to describe a hardware equipment
+--   failure.  A trap is sent whenever the SDM detects
+--   that the Equipment state for the managed object changes. 
+--   A different Equipment trap has been defined for each severity.
+-- *****************************************************************************
+
+trapCriticalEquipmentFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a critical 'Equipment' fault.  This
+         trap is issued when the highest severity of all 'Equipment'
+         faults for the given managed object is 'Critical'.  An 'Equipment'  
+         fault is used to describe a hardware equipment failure."
+::= { sdmTraps 141 }
+
+trapMajorEquipmentFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+
+        "This trap describes a Major 'Equipment' fault.  This
+         trap is issued when the highest severity of all 'Equipment'
+         faults for the given managed object is 'Major'.  An 'Equipment' 
+         fault is used to describe a hardware equipment failure."
+::= { sdmTraps 142 }
+
+trapMinorEquipmentFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a minor 'Equipment' fault.  This
+         trap is issued when the highest severity of all 'Equipment'
+         faults for the given managed object is 'Minor'.  An 'Equipment' 
+         fault is used to describe a hardware equipment failure."
+::= { sdmTraps 143 }
+
+trapWarningEquipmentFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a warning 'Equipment' fault.  This
+         trap is issued when the highest severity of all 'Equipment'
+         faults for the given managed object is 'Warning'.  An 'Equipment' 
+         fault is used to describe a hardware equipment failure."
+::= { sdmTraps 144 }
+
+trapClearedEquipmentFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a cleared 'Equipment' fault.  This trap is
+         issued when either all active 'Equipment' faults for the given
+         managed object are 'Clear' or no 'Equipment' faults exist.  An
+         'Equipment' fault is used to describe a hardware equipment failure."
+::= { sdmTraps 145 }
+
+trapInformationalEquipmentFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes an informational 'Equipment' fault.  This
+         trap is issued when the highest severity of all 'Equipment'
+         faults for the given managed object is 'Informational'.  An
+         'Equipment' fault is used to describe a hardware equipment failure."
+::= { sdmTraps 146 }
+
+
+-- ******************************************************************************
+-- Environmental Fault:
+--   The following are the definitions for severity based Environmental Fault 
+--   traps.  An Environmental fault is used to describe a problem or condition
+--   relating to the enclosure in which the equipment resides.  A trap is sent
+--   whenever the SDM detects that the Environmental state for the managed 
+--   object changes.  A different Environmental trap has been defined for
+--   each severity.
+-- ******************************************************************************
+
+trapCriticalEnvironmentalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a critical 'Environmental' fault.  This
+         trap is issued when the highest severity of all 'Environmental'
+         faults for the given managed object is 'Critical'.
+         An 'Environmental' fault is used to describe a problem or condition
+         relating to the enclosure in which the equipment resides."
+::= { sdmTraps 151 }
+
+trapMajorEnvironmentalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a Major 'Environmental' fault.  This
+         trap is issued when the highest severity of all 'Environmental'
+         faults for the given managed object is 'Major'.
+         An 'Environmental' fault is used to describe a problem or condition
+         relating to the enclosure in which the equipment resides."
+::= { sdmTraps 152 }
+
+trapMinorEnvironmentalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a minor 'Environmental' fault.  This
+         trap is issued when the highest severity of all 'Environmental'
+         faults for the given managed object is 'Minor'.
+         An 'Environmental' fault is used to describe a problem or condition
+         relating to the enclosure in which the equipment resides."
+::= { sdmTraps 153 }
+
+trapWarningEnvironmentalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a warning 'Environmental' fault.  This
+         trap is issued when the highest severity of all 'Environmental'
+         faults for the given managed object is 'Warning'.
+         An 'Environmental' fault is used to describe a problem or condition
+         relating to the enclosure in which the equipment resides."
+::= { sdmTraps 154 }
+
+trapClearedEnvironmentalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a cleared 'Environmental' fault.  This trap is
+         issued when either all active 'Environmental' faults for the given
+         managed object are 'Clear' or no 'Environmental' faults exist.
+         An 'Environmental' fault is used to describe a problem or condition
+         relating to the enclosure in which the equipment resides."
+::= { sdmTraps 155 }
+
+trapInformationalEnvironmentalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes an informational 'Environmental' fault.  This
+         trap is issued when the highest severity of all 'Environmental'
+         faults for the given managed object is 'Informational'.
+         An 'Environmental' fault is used to describe a problem or condition
+         relating to the enclosure in which the equipment resides."
+::= { sdmTraps 156 }
+
+
+-- *****************************************************************************
+-- Integrity Fault:
+--   The following are the definitions for severity based Integrity Fault 
+--   traps.  An Integrity fault is used to indicate that information may have 
+--   been illegally modified, inserted or deleted.  A trap is sent whenever the
+--   SDM detects that the Integrity state for the managed object changes. 
+--   A different Integrity trap has been defined for each severity.
+-- *****************************************************************************
+
+trapCriticalIntegrityFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a critical 'Integrity' fault.  This
+         trap is issued when the highest severity of all 'Integrity'
+         faults for the given managed object is 'Critical'.
+         An 'Integrity' fault is used to indicate that information may have
+         been illegally modified, inserted or deleted."
+::= { sdmTraps 161 }
+
+trapMajorIntegrityFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a Major 'Integrity' fault.  This
+         trap is issued when the highest severity of all 'Integrity'
+         faults for the given managed object is 'Major'.
+         An 'Integrity' fault is used to indicate that information may have
+         been illegally modified, inserted or deleted."
+::= { sdmTraps 162 }
+
+trapMinorIntegrityFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a minor 'Integrity' fault.  This
+         trap is issued when the highest severity of all 'Integrity'
+         faults for the given managed object is 'Minor'.
+         An 'Integrity' fault is used to indicate that information may have
+         been illegally modified, inserted or deleted."
+::= { sdmTraps 163 }
+
+trapWarningIntegrityFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a warning 'Integrity' fault.  This
+         trap is issued when the highest severity of all 'Integrity'
+         faults for the given managed object is 'Warning'.
+         An 'Integrity' fault is used to indicate that information may have
+         been illegally modified, inserted or deleted."
+::= { sdmTraps 164 }
+
+trapClearedIntegrityFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a cleared 'Integrity' fault.  This trap is
+         issued when either all active 'Integrity' faults for the given
+         managed object are 'Clear' or no 'Integrity' faults exist.
+         An 'Integrity' fault is used to indicate that information may have
+         been illegally modified, inserted or deleted."
+::= { sdmTraps 165 }
+
+trapInformationalIntegrityFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes an informational 'Integrity' fault.  This
+         trap is issued when the highest severity of all 'Integrity'
+         faults for the given managed object is 'Informational'.
+         An 'Integrity' fault is used to indicate that information may have
+         been illegally modified, inserted or deleted."
+::= { sdmTraps 166 }
+
+
+-- *****************************************************************************
+-- Operational Fault:
+--   The following are the definitions for severity based Operational Fault 
+--   traps.  An Operational fault usually describes a problem or condition
+--   regarding the provisioning or configuration of a network element service.
+--   A trap is sent whenever the SDM detects that the Operational state for
+--   the managed object changes.  A different Operational trap has been defined
+--   for each severity.
+-- *****************************************************************************
+
+trapCriticalOperationalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a critical 'Operational' fault.  This
+         trap is issued when the highest severity of all 'Operational'
+         faults for the given managed object is 'Critical'.
+         An 'Operational' fault usually describes a problem or condition
+         regarding the provisioning or configuration of a network element
+         service."
+::= { sdmTraps 171 }
+
+trapMajorOperationalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a Major 'Operational' fault.  This
+         trap is issued when the highest severity of all 'Operational'
+         faults for the given managed object is 'Major'.
+         An 'Operational' fault usually describes a problem or condition
+         regarding the provisioning or configuration of a network element
+         service."
+::= { sdmTraps 172 }
+
+trapMinorOperationalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a minor 'Operational' fault.  This
+         trap is issued when the highest severity of all 'Operational'
+         faults for the given managed object is 'Minor'.
+         An 'Operational' fault usually describes a problem or condition
+         regarding the provisioning or configuration of a network element
+         service."
+::= { sdmTraps 173 }
+
+trapWarningOperationalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a warning 'Operational' fault.  This
+         trap is issued when the highest severity of all 'Operational'
+         faults for the given managed object is 'Warning'.
+         An 'Operational' fault usually describes a problem or condition
+         regarding the provisioning or configuration of a network element
+         service."
+::= { sdmTraps 174 }
+
+trapClearedOperationalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a cleared 'Operational' fault.  This trap is
+         issued when either all active 'Operational' faults for the given
+         managed object are 'Clear' or no 'Operational' faults exist.
+         An 'Operational' fault usually describes a problem or condition
+         regarding the provisioning or configuration of a network element
+         service."
+::= { sdmTraps 175 }
+
+trapInformationalOperationalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes an informational 'Operational' fault.  This
+         trap is issued when the highest severity of all 'Operational'
+         faults for the given managed object is 'Informational'.
+         An 'Operational' fault usually describes a problem or condition
+         regarding the provisioning or configuration of a network element
+         service."
+::= { sdmTraps 176 }
+
+
+-- ******************************************************************************
+-- Physical Violation:
+--   The following are the definitions for severity based Physical Violation
+--   traps.  An Physical Violation fault is used to indicate that a physical 
+--   resource has been violated.  A trap is sent whenever the SDM detects
+--   that the Physical Violation state for the managed object changes. 
+--   A different Physical Violation trap has been defined for each severity.
+-- ******************************************************************************
+
+trapCriticalPhysicalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a critical 'Physical Violation' fault.  This
+         trap is issued when the highest severity of all 'Physical Violation'
+         faults for the given managed object is 'Critical'.
+         A 'Physical Violation' fault is used to indicate that a physical
+         resource has been violated."
+::= { sdmTraps 181 }
+
+trapMajorPhysicalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a Major 'Physical Violation' fault.  This
+         trap is issued when the highest severity of all 'Physical Violation'
+         faults for the given managed object is 'Major'.
+         A 'Physical Violation' fault is used to indicate that a physical
+         resource has been violated."
+::= { sdmTraps 182 }
+
+trapMinorPhysicalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a minor 'Physical Violation' fault.  This
+         trap is issued when the highest severity of all 'Physical Violation'
+         faults for the given managed object is 'Minor'.
+         A 'Physical Violation' fault is used to indicate that a physical
+         resource has been violated."
+::= { sdmTraps 183 }
+
+trapWarningPhysicalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a warning 'Physical Violation' fault.  This
+         trap is issued when the highest severity of all 'Physical Violation'
+         faults for the given managed object is 'Warning'.
+         A 'Physical Violation' fault is used to indicate that a physical
+         resource has been violated."
+::= { sdmTraps 184 }
+
+trapClearedPhysicalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a cleared 'Physical Violation' fault.  This trap is
+         issued when either all active 'Physical Violation' faults for the given
+         managed object are 'Clear' or no 'Physical Violation' faults exist.
+         A 'Physical Violation' fault is used to indicate that a physical
+         resource has been violated."
+::= { sdmTraps 185 }
+
+trapInformationalPhysicalFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes an informational 'Physical Violation' fault.  This
+         trap is issued when the highest severity of all 'Physical Violation'
+         faults for the given managed object is 'Informational'.
+         A 'Physical Violation' fault is used to indicate that a physical
+         resource has been violated."
+::= { sdmTraps 186 }
+
+
+-- *****************************************************************************
+-- Security Fault:
+--   The following are the definitions for severity based Security Fault 
+--   traps.  A Security fault usually describes a problem in securing 
+--   a service or program.  A trap is sent whenever the SDM detects
+--   that the Security state for the managed object changes. 
+--   A different Security trap has been defined for each severity.
+-- *****************************************************************************
+
+trapCriticalSecurityFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a critical 'Security' fault.  This
+         trap is issued when the highest severity of all 'Security'
+         faults for the given managed object is 'Critical'.
+         A 'Security' fault usually describes a problem securing a
+         service or program."
+::= { sdmTraps 191 }
+
+trapMajorSecurityFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a major 'Security' fault.  This
+         trap is issued when the highest severity of all 'Security'
+         faults for the given managed object is 'Major'.
+         A 'Security' fault usually describes a problem securing a
+         service or program."
+::= { sdmTraps 192 }
+
+trapMinorSecurityFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a minor 'Security' fault.  This
+         trap is issued when the highest severity of all 'Security'
+         faults for the given managed object is 'Minor'.
+         A 'Security' fault usually describes a problem securing a
+         service or program."
+::= { sdmTraps 193 }
+
+trapWarningSecurityFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a warning 'Security' fault.  This
+         trap is issued when the highest severity of all 'Security'
+         faults for the given managed object is 'Warning'.
+         A 'Security' fault usually describes a problem securing a
+         service or program."
+::= { sdmTraps 194 }
+
+trapClearedSecurityFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a cleared 'Security' fault.  This trap is
+         issued when either all active 'Security' faults for the given
+         managed object are 'Clear' or no 'Security' faults exist.
+         A 'Security' fault usually describes a problem securing a
+         service or program."
+::= { sdmTraps 195 }
+
+trapInformationalSecurityFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes an informational 'Security' fault.  This
+         trap is issued when the highest severity of all 'Security'
+         faults for the given managed object is 'Informational'.
+         A 'Security' fault usually describes a problem securing a
+         service or program."
+::= { sdmTraps 196 }
+
+
+
+-- *****************************************************************************
+-- Time Domain Fault:
+--   The following are the definitions for severity based Time Domain Fault 
+--   traps.  A Time Domain fault usually describes a problem synchronizing 
+--   to the system time.  A trap is sent whenever the SDM detects
+--   that the Time Domain state for the managed object changes. 
+--   A different Time Domain trap has been defined for each severity.
+-- *****************************************************************************
+
+trapCriticalTimeDomainFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a critical 'Time Domain' fault.  This
+         trap is issued when the highest severity of all 'Time Domain'
+         faults for the given managed object is 'Critical'.
+         A 'Time Domain' fault usually describes a problem synchronizing
+         to the system time."
+::= { sdmTraps 201 }
+
+trapMajorTimeDomainFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a major 'Time Domain' fault.  This
+         trap is issued when the highest severity of all 'Time Domain'
+         faults for the given managed object is 'Major'.
+         A 'Time Domain' fault usually describes a problem synchronizing
+         to the system time."
+::= { sdmTraps 202 }
+
+trapMinorTimeDomainFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a minor 'Time Domain' fault.  This
+         trap is issued when the highest severity of all 'Time Domain'
+         faults for the given managed object is 'Minor'.
+         A 'Time Domain' fault usually describes a problem synchronizing
+         to the system time."
+::= { sdmTraps 203 }
+
+trapWarningTimeDomainFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a warning 'Time Domain' fault.  This
+         trap is issued when the highest severity of all 'Time Domain'
+         faults for the given managed object is 'Warning'.
+         A 'Time Domain' fault usually describes a problem synchronizing
+         to the system time."
+::= { sdmTraps 204 }
+
+trapClearedTimeDomainFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes a cleared 'Time Domain' fault.  This trap is
+         issued when either all active 'Time Domain' faults for the given
+         managed object are 'Clear' or no 'Time Domain' faults exist.
+         A 'Time Domain' fault usually describes a problem synchronizing
+         to the system time."
+::= { sdmTraps 205 }
+
+
+trapInformationalTimeDomainFault NOTIFICATION-TYPE
+    OBJECTS
+    {
+     snmpTrapAddress,
+     trapIdentifier,
+     trapSequenceId,
+     trapNetworkElemModelNumber,
+     trapNetworkElemSerialNum,
+     trapPerceivedSeverity,
+     trapNetworkElemOperState,
+     trapNetworkElemAlarmStatus,
+     trapNetworkElemAdminState,
+     trapNetworkElemAvailStatus,
+     trapText,
+     trapNETrapLastTrapTimeStamp,
+     trapChangedObjectId,
+     trapAdditionalInfoInteger1,
+     trapAdditionalInfoInteger2,
+     trapAdditionalInfoInteger3,
+     sdmCategory,
+     sdmProbableCause,
+     sdmProbableCauseText,
+     sdmUrl,
+     sdmObjectDescription,
+     sdmObjectIPAddress,
+     sdmObjectName,
+     sdmObjectType
+    }
+    STATUS obsolete
+    DESCRIPTION
+        "This trap describes an information 'Time Domain' fault.  This
+         trap is issued when the highest severity of all 'Time Domain'
+         faults for the given managed object is 'Informational'.
+         A 'Time Domain' fault usually describes a problem synchronizing
+         to the system time."
+::= { sdmTraps 206 }
+
+END

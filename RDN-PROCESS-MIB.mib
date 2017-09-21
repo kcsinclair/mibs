@@ -1,0 +1,360 @@
+-- *****************************************************************
+-- RDN-PROCESS-MIB.mib: 
+-- Motorola BSR's CPU and Memory Statistics MIB
+--
+-- Copyright (c) 2003, 2008 by Motorola, Inc.
+-- All rights reserved.
+-- *****************************************************************
+RDN-PROCESS-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+	MODULE-IDENTITY,
+	OBJECT-TYPE,
+        Unsigned32
+		FROM SNMPv2-SMI
+		
+	DisplayString,
+        TEXTUAL-CONVENTION
+                FROM SNMPv2-TC
+        
+	MODULE-COMPLIANCE,
+	OBJECT-GROUP
+		FROM SNMPv2-CONF
+	rdnChassis
+		FROM RDN-CHASSIS-MIB;
+
+rdnProcessMIB MODULE-IDENTITY
+	LAST-UPDATED	"200808080000Z"  -- 08 August 2008
+	ORGANIZATION	"Motorola, Inc."
+        CONTACT-INFO
+                    "Motorola Inc.
+                     Customer Service
+                     101 Tournament Drive
+                     Horsham, PA 19044
+                     US Tel: +1 888 944 4357
+                     Int Tel: +1 215 323 0044
+	             Fax: +1 215 323 1502
+                     Email: CPSSupport@Motorola.com" 
+
+	DESCRIPTION
+	    "The MIB module to describe active system 
+	    processes and memory usages.
+
+	    Copyright (C) 2003, 2008 by Motorola, Inc.
+	    All rights reserved."
+
+	REVISION        "200808080000Z"  -- 08 August 2008
+	DESCRIPTION
+	    "Added Copyright Statement into MIB modules's
+	    description."
+        REVISION        "200311050000Z"
+        DESCRIPTION
+            "Updated the CONTACT-INFO."
+
+	REVISION	"200303180000Z"
+	DESCRIPTION
+	    "Initial version of this MIB."		
+	::= { rdnChassis 20   }
+
+
+-- Textual Conventions
+RdnTaskPriorityType ::= TEXTUAL-CONVENTION
+    STATUS	    current
+    DESCRIPTION	    "The task priority in the BSR system. It maps from
+                     the vxWorks task priorities:
+                     0 to 10: critical
+                     11 to 50: high
+                     51 to 100: normal
+                     101 to 254: low
+                     255:   notAssigned"
+    SYNTAX	    INTEGER {
+				critical(1),
+				high(2),
+				normal(3),
+				low(4),
+				notAssigned(5) }
+
+-- This MIB displays memory and CPU utilization on Motorola BSR devices. 
+-- CPU utilization gives a general idea of how busy the processor is. 
+-- Please note that this information should be used as an estimate only. 
+
+rdnProcessMIBObjects	OBJECT IDENTIFIER ::= { rdnProcessMIB 1 }
+
+--Motorola CPU Total Utilization Table
+
+rdnCPUTotalTable OBJECT-TYPE
+	SYNTAX		SEQUENCE OF RdnCPUTotalEntry
+	MAX-ACCESS      not-accessible
+	STATUS          current
+	DESCRIPTION
+		"A table of overall CPU utilizations per processor. "
+	::= { rdnProcessMIBObjects 1 }
+
+rdnCPUTotalEntry OBJECT-TYPE
+	SYNTAX		RdnCPUTotalEntry
+	MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION
+		"Overall information about the CPU utilization."
+	INDEX	{  rdnSlotSnmpIndex,
+	           rdnCPUIndex }
+	::= { rdnCPUTotalTable 1 }
+
+RdnCPUTotalEntry ::=
+	SEQUENCE {
+	  rdnSlotSnmpIndex			INTEGER,
+	  rdnCPUIndex				Unsigned32,
+          rdnCPUType				DisplayString,		
+          rdnTotalAllocatableMem		Unsigned32,
+	  rdnTotalMemAllocated		        Unsigned32,
+	  rdnTotalFreeMem			Unsigned32,
+          rdnTotalCPUUtilization5Sec		Unsigned32,
+          rdnTotalCPUUtilization1Min		Unsigned32,
+          rdnTotalCPUUtilization5Min		Unsigned32
+	}
+
+rdnSlotSnmpIndex OBJECT-TYPE
+    SYNTAX          INTEGER (1..16)
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+	"A Logical index uniquely identifies a slot in the 
+	system. The value of this field is the physical slot
+	ID plus 1."
+    ::= { rdnCPUTotalEntry 1 }
+
+rdnCPUIndex OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+	"An index uniquely represents a CPU in the system.  
+	This index is assigned arbitrarily by the SNMP engine.
+	It starts from 1."
+    ::= { rdnCPUTotalEntry 2 }
+
+rdnCPUType OBJECT-TYPE
+    SYNTAX      DisplayString ( SIZE (1..128) ) 
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The predefined CPU name in human readable format. It is
+        used to associate CPU number with the CPU name to help
+        to identify the CPU that is querying. e.g. PowerPC 750,
+        IXP1200-US, etc."
+    ::= { rdnCPUTotalEntry 3 }
+
+rdnTotalAllocatableMem	OBJECT-TYPE
+    SYNTAX      Unsigned32
+    UNITS	"byte"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+	"The total memory that is available for dynamic allocation
+	in the system."
+    ::= { rdnCPUTotalEntry 4 }
+
+rdnTotalMemAllocated	OBJECT-TYPE
+    SYNTAX      Unsigned32
+    UNITS	"byte"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+	"The total of allocated memory for all the tasks."
+    ::= { rdnCPUTotalEntry 5 }
+
+rdnTotalFreeMem	OBJECT-TYPE
+    SYNTAX      Unsigned32
+    UNITS	"byte"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+	"The total free memory."
+    ::= { rdnCPUTotalEntry 6 }
+
+rdnTotalCPUUtilization5Sec OBJECT-TYPE
+    SYNTAX      Unsigned32 (0..100)
+    UNITS	"1/100"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+	"The overall CPU utilization rate in the last 5-second 
+	period. The unit is 1/100."
+    ::= { rdnCPUTotalEntry 7 }
+
+rdnTotalCPUUtilization1Min OBJECT-TYPE
+    SYNTAX      Unsigned32 (0..100)
+    UNITS	"1/100"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+	"The overall CPU utilization rate in the last 1-minute 
+	period. The unit is 1/100."
+    ::= { rdnCPUTotalEntry 8 }
+
+rdnTotalCPUUtilization5Min OBJECT-TYPE
+    SYNTAX      Unsigned32 (0..100)
+    UNITS	"1/100"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+	"The overall CPU utilization rate in the last 5-minute 
+	period. The unit is 1/100."
+    ::= { rdnCPUTotalEntry 9 }
+
+
+-- Motorola Task Table
+
+rdnTaskTable OBJECT-TYPE
+    SYNTAX          SEQUENCE OF RdnTaskEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+	"A table of general information about the tasks on
+         this device."
+	::= { rdnProcessMIBObjects 2 }
+
+rdnTaskEntry OBJECT-TYPE
+    SYNTAX    	    RdnTaskEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+	"General information, about an active task on this 
+	device. One entry for each CPU, each task."
+    INDEX	{ rdnSlotSnmpIndex,
+                  rdnCPUIndex, 
+	          rdnTaskId }
+    ::= { rdnTaskTable 1 }
+
+RdnTaskEntry ::=
+	SEQUENCE {
+		rdnTaskId               Unsigned32,
+		rdnTaskName  		DisplayString,
+		rdnTaskPriority		RdnTaskPriorityType,
+		rdnTaskMemAllocated	Unsigned32,
+		rdnTaskUtil5Sec		Unsigned32,	
+		rdnTaskUtil1Min		Unsigned32,	
+		rdnTaskUtil5Min         Unsigned32
+	}
+
+rdnTaskId  OBJECT-TYPE
+    SYNTAX    	    Unsigned32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+	"This entry	is generated when task is created by the OS 
+	(also called process ID, PID). It unique identifies a task 
+	that is running in the system (per CPU system)."
+    ::= { rdnTaskEntry 1 }
+
+rdnTaskName OBJECT-TYPE
+    SYNTAX    	    DisplayString(SIZE(1..128))
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+	"The name associated with this task/process."
+    ::= { rdnTaskEntry 2 }
+
+rdnTaskPriority OBJECT-TYPE
+    SYNTAX          RdnTaskPriorityType
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+	"The priority level at which the task is running."
+    ::= { rdnTaskEntry 3 }
+
+rdnTaskMemAllocated		 OBJECT-TYPE
+    SYNTAX          Unsigned32
+    UNITS           "byte"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+	"The total memory that is allocated by this task."
+    ::= { rdnTaskEntry 4 }
+
+rdnTaskUtil5Sec		OBJECT-TYPE
+    SYNTAX           Unsigned32(0..100)
+    UNITS            "1/100"
+    MAX-ACCESS       read-only
+    STATUS           current
+    DESCRIPTION
+	"The CPU utilization rate for this task during the past
+	5 seconds interval."
+    ::= { rdnTaskEntry 5 }
+
+rdnTaskUtil1Min		OBJECT-TYPE
+    SYNTAX           Unsigned32(0..100)
+    UNITS            "1/100"
+    MAX-ACCESS       read-only
+    STATUS           current
+    DESCRIPTION
+	"The CPU utilization rate for this task during the past
+	1 minute interval."
+    ::= { rdnTaskEntry 6 }
+
+rdnTaskUtil5Min OBJECT-TYPE
+    SYNTAX          Unsigned32(0..100)
+    UNITS           "1/100"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+	"The CPU utilization rate for this task during the past
+	5 minute interval. Unit is 1/1000. "
+    ::= { rdnTaskEntry 7 }
+
+-- notifications
+
+rdnProcessMIBNotifPrefix OBJECT IDENTIFIER ::= { rdnProcessMIB 2 }
+rdnProcessMIBNotifs OBJECT IDENTIFIER ::={ rdnProcessMIBNotifPrefix 0 }
+
+-- (no notifications are currently defined)
+
+-- conformance information
+
+rdnProcessMIBConformance OBJECT IDENTIFIER ::= { rdnProcessMIB 3 }
+rdnProcessCompliances OBJECT IDENTIFIER ::= { rdnProcessMIBConformance 1 }
+rdnProcessGroups OBJECT IDENTIFIER ::=  { rdnProcessMIBConformance 2 }
+
+rdnProcessMIBCompliance  MODULE-COMPLIANCE
+	STATUS	current
+	DESCRIPTION
+	    "The compliance statement for entities which implement
+	    the Motorola Process MIB."
+	MODULE	-- this module
+		MANDATORY-GROUPS { rdnCPUTotalGroup, rdnTaskGroup}	
+	
+	::= { rdnProcessCompliances 1 }
+
+-- units of conformance
+
+rdnCPUTotalGroup OBJECT-GROUP
+	OBJECTS { rdnCPUType,		
+		  rdnTotalAllocatableMem,
+		  rdnTotalMemAllocated,
+		  rdnTotalFreeMem,
+                  rdnTotalCPUUtilization5Sec,
+                  rdnTotalCPUUtilization1Min,
+                  rdnTotalCPUUtilization5Min }
+	STATUS  current
+	DESCRIPTION
+	    "A collection of objects providing total CPU utilization
+	    ratio for each CPU in the system."
+	::= { rdnProcessGroups 1 }
+
+rdnTaskGroup OBJECT-GROUP
+	OBJECTS { rdnTaskId,
+		  rdnTaskName,
+		  rdnTaskPriority,		
+		  rdnTaskMemAllocated,
+		  rdnTaskUtil5Sec,	
+		  rdnTaskUtil1Min,	
+		  rdnTaskUtil5Min }
+	STATUS	current
+	DESCRIPTION
+	    "A collection of objects providing per task information
+	    in the system."
+	::= { rdnProcessGroups 2 }
+
+END
+
+

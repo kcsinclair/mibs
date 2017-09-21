@@ -1,0 +1,333 @@
+-- *****************************************************************
+-- RDN-SYSLOG-MIB.mib:
+-- Motorola BSR's Syslog MIB
+--
+-- Copyright (C) 2000, 2008 by Motorola, Inc.
+-- All rights reserved.
+-- *****************************************************************
+RDN-SYSLOG-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+	NOTIFICATION-TYPE,
+	MODULE-IDENTITY,
+        OBJECT-TYPE,
+	IpAddress, 
+	Integer32
+                 FROM SNMPv2-SMI
+        DisplayString
+	         FROM SNMPv2-TC
+        riverdelta
+		 FROM RDN-MIB;
+
+
+		-- RiverDelta Networks enterprise syslog module definition
+
+rdnSyslog MODULE-IDENTITY
+      LAST-UPDATED "200808080000Z"  -- August 8, 2008
+      ORGANIZATION "Motorola"
+      CONTACT-INFO "Motorola
+                    Customer Service
+		    101 Tournament Drive
+		    Horsham, PA 19044
+		    US Tel: +1 888 944 4357
+		    Int Tel: +1 215 323 0044
+		    Fax: +1 215 323 1502
+		    Email: CPSSupport@Motorola.com"
+
+      DESCRIPTION
+	  "MIB module for Motorola syslog.
+
+	  Copyright (C) 2000, 2008 by Motorola, Inc.
+	  All rights reserved."
+
+      REVISION     "200808080000Z"
+      DESCRIPTION
+          "Removed Compilier Warning by changing 
+	   rdnSyslogServerTableEntry to rdnSyslogServerEntry.Added 
+	   Copyright Statement into MIB modules description."
+      REVISION     "200401230000Z"
+      DESCRIPTION
+          "Updated the definition of
+           rdnSyslogTrapSeverity object."
+      REVISION     "200311050000Z"
+      DESCRIPTION
+	  "Updated the CONTACT-INFO."
+      REVISION     "200301300000Z"
+      DESCRIPTION
+	  "Obsolete syslogRateLimitAutoRestart.
+	  Can now use docsDevEvThrottleAdminStatus"
+      REVISION     "200006140000Z"
+      DESCRIPTION
+	  "Added variable syslogRateLimitAutoRestart to allow
+	  turning on/off syslog rate-limit auto-restart."
+      REVISION     "200006080000Z"
+      DESCRIPTION
+	  "Added syslogMessageTable."
+      REVISION     "200005230000Z"
+      DESCRIPTION
+	  "Changed import of the riverdelta chassis mib to
+	  just the riverdelta definition mib."
+      REVISION     "200005170000Z"
+      DESCRIPTION
+                    "Initial creation."
+      ::= { riverdelta 3 }
+
+
+          --
+          -- syslog group should be present in all products.
+          --
+
+               rdnSyslogSize OBJECT-TYPE
+                   SYNTAX  Integer32
+                   MAX-ACCESS  read-only
+                   STATUS  current
+                   DESCRIPTION
+                           "Current size in bytes of the syslog file."
+                   ::= { rdnSyslog 1 }
+
+               rdnSyslogMaxSize OBJECT-TYPE
+                   SYNTAX  Integer32 (4096..5242880)
+                   MAX-ACCESS  read-write
+                   STATUS  current
+                   DESCRIPTION
+                           "Maximum size in bytes of the syslog file."
+                   DEFVAL { 4096 }
+                   ::= { rdnSyslog 2 }
+
+               rdnSyslogServerEnable OBJECT-TYPE
+                   SYNTAX  INTEGER {
+                             enabled(1),
+			     disabled(2)
+			     }
+                   MAX-ACCESS  read-write
+                   STATUS  current
+                   DESCRIPTION
+                           "Enable or disable logging to remote syslog
+                            servers."
+                   ::= { rdnSyslog 3 }
+
+               rdnSyslogServerTable OBJECT-TYPE
+                   SYNTAX  SEQUENCE OF RdnSyslogServerEntry
+                   MAX-ACCESS  not-accessible
+                   STATUS  current
+                   DESCRIPTION
+                            "Table of remote syslog servers, of which
+			    there can be at most 3 entries."
+                   ::= { rdnSyslog 4 }
+
+               rdnSyslogServerEntry OBJECT-TYPE
+                   SYNTAX RdnSyslogServerEntry
+                   MAX-ACCESS  not-accessible
+                   STATUS  current
+                   DESCRIPTION
+                            "syslog table entry."
+                   INDEX { rdnSyslogServerIndex }
+               ::= { rdnSyslogServerTable 1 }
+
+               RdnSyslogServerEntry  ::=
+                   SEQUENCE {
+                       rdnSyslogServerIndex
+                           Integer32,
+                       rdnSyslogServerAddress
+                           IpAddress,
+                       rdnSyslogServerStatus
+                           INTEGER
+                   }
+
+               --
+               -- start of syslog server table
+               --
+
+               rdnSyslogServerIndex OBJECT-TYPE
+                   SYNTAX  Integer32
+                   MAX-ACCESS  not-accessible
+                   STATUS  current
+                   DESCRIPTION
+                           "Index into the remote syslog server table."
+                   ::= { rdnSyslogServerEntry 1 }
+
+               rdnSyslogServerAddress OBJECT-TYPE
+                   SYNTAX  IpAddress
+                   MAX-ACCESS  read-write
+                   STATUS  current
+                   DESCRIPTION
+                           "The IP address of this syslog server."
+                   ::= { rdnSyslogServerEntry 2 }
+
+               rdnSyslogServerStatus OBJECT-TYPE
+                   SYNTAX  INTEGER {
+                           enabled(1),
+			   disabled(2)
+			   }
+                   MAX-ACCESS  read-write
+                   STATUS  current
+                   DESCRIPTION
+                           "Status of remote syslog server. Always enabled;
+			    set to disable to delete a syslog server from
+			    the syslogServerTable. Setting this to disabled
+			    will remove this entry from the table."
+                   ::= { rdnSyslogServerEntry 3 }
+
+               -- end of syslog server table
+
+
+               rdnSyslogSeverity OBJECT-TYPE
+                   SYNTAX  INTEGER {
+						   disable(0),
+						   informational(1),
+						   notifications(2),
+						   warnings(3),
+						   errors(4),
+			                           critical(5),
+                        			   alerts(6),
+						   emergencies(7)
+						   }
+                   MAX-ACCESS  read-write
+                   STATUS  current
+                   DESCRIPTION
+                           "Severity of syslog messages reported/sent to a
+						   remote syslog server."
+                   ::= { rdnSyslog 5 }
+
+               rdnSyslogConsoleSeverity OBJECT-TYPE
+                   SYNTAX  INTEGER {
+						   disable(0),
+						   informational(1),
+						   notifications(2),
+						   warnings(3),
+						   errors(4),
+			                           critical(5),
+                        			   alerts(6),
+						   emergencies(7)
+			   }
+                   MAX-ACCESS  read-write
+                   STATUS  current
+                   DESCRIPTION
+                           "Severity of syslog messages reported/sent to a
+						   console."
+                   ::= { rdnSyslog 6 }
+
+               rdnSyslogClear OBJECT-TYPE
+                   SYNTAX  INTEGER {
+                           true(1),
+			   false(2)
+			   }
+                   MAX-ACCESS  read-write
+                   STATUS  current
+                   DESCRIPTION
+                           "Indicates whether syslog file contains syslog
+			    messages. This value is FALSE if syslog contains
+			    syslog messages, TRUE otherwise. Set to TRUE to
+			    clear all messages from the syslog file."
+                   ::= { rdnSyslog 7 }
+
+               rdnSyslogTrapSeverity OBJECT-TYPE
+                   SYNTAX  INTEGER {
+						   disable(0),
+						   informational(1),
+						   notifications(2),
+						   warnings(3),
+						   errors(4),
+			                           critical(5),
+                        			   alerts(6),
+						   emergencies(7)
+						   }
+                   MAX-ACCESS  read-write
+                   STATUS  current
+                   DESCRIPTION
+                           "SNMP trap severity level for which a syslog
+			    message severity level equal to or above will
+			    generate an SNMP trap. Set to disable to turn
+			    off generation of any traps."
+                   ::= { rdnSyslog 8 }
+
+               rdnSyslogMessageTable OBJECT-TYPE
+                   SYNTAX  SEQUENCE OF RdnSyslogMessageTableEntry
+                   MAX-ACCESS  not-accessible
+                   STATUS  current
+                   DESCRIPTION
+                            "Table of the latest syslog message strings."
+                   ::= { rdnSyslog 9 }
+
+               rdnSyslogMessageTableEntry OBJECT-TYPE
+                   SYNTAX RdnSyslogMessageTableEntry
+                   MAX-ACCESS  not-accessible
+                   STATUS  current
+                   DESCRIPTION
+                            "syslog message table entry."
+                   INDEX { rdnSyslogMessageIndex }
+               ::= { rdnSyslogMessageTable 1 }
+
+               RdnSyslogMessageTableEntry ::=
+                   SEQUENCE {
+                       rdnSyslogMessageIndex
+                           Integer32,
+                       rdnSyslogMessageString
+                           OCTET STRING
+                   }
+
+               --
+               -- start of syslog message table
+               --
+
+               rdnSyslogMessageIndex OBJECT-TYPE
+                   SYNTAX  Integer32
+                   MAX-ACCESS  not-accessible
+                   STATUS  current
+                   DESCRIPTION
+                           "Index into the syslog message table."
+                   ::= { rdnSyslogMessageTableEntry 1 }
+
+               rdnSyslogMessageString OBJECT-TYPE
+                   SYNTAX  OCTET STRING (SIZE (0..512))
+                   MAX-ACCESS  read-only
+                   STATUS  current
+                   DESCRIPTION
+                           "Actual message string of entry in syslog
+						   message table."
+                   ::= { rdnSyslogMessageTableEntry 2 }
+
+               -- end of syslog message table
+
+
+               -- rdnSyslogRateLimitAutoRestart is OBSOLETE.
+               -- Now use docsDevEvThrottleAdminStatus, instead
+               rdnSyslogRateLimitAutoRestart OBJECT-TYPE
+                   SYNTAX  INTEGER {
+                           enabled(1),
+						   disabled(2)
+						   }
+                   MAX-ACCESS  read-write
+                   STATUS  obsolete
+                   DESCRIPTION
+                           "Enable or disable rate-limit auto-restart
+                            on logging of syslog messages."
+                   ::= { rdnSyslog 10 }
+
+
+        -- traps
+
+		rdnSyslogMIB        OBJECT IDENTIFIER ::= { rdnSyslog 0 }
+		rdnSyslogTraps      OBJECT IDENTIFIER ::= { rdnSyslogMIB 0 }
+
+		rdnSyslogSeverityTrap NOTIFICATION-TYPE
+            OBJECTS { rdnSyslogTrapSeverity }
+			STATUS  current
+			DESCRIPTION
+					"A syslogSeverityTrap trap signifies that the
+					system logger has received a syslog message
+					with its own severity level greater than or
+					equal to the severity level of syslog MIB
+					Object syslogTrapSeverity."
+			::= { rdnSyslogTraps 1 }
+
+
+        -- conformance information
+
+
+        -- compliance statements
+
+
+        -- units of conformance
+
+    END

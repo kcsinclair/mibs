@@ -1,0 +1,3554 @@
+-- *****************************************************************
+-- RDN-CABLE-SPECTRUM-GROUP-MIB.mib:
+-- Motorola BSR's Cable Spectrum Group MIB  
+--
+-- Copyright (C) 2001, 2008 by Motorola, Inc.
+-- All rights reserved.
+-- *****************************************************************
+RDN-CABLE-SPECTRUM-GROUP-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS   
+        rdnCableSpectrumObjects
+                FROM RDN-CABLE-SPECTRUM-MIB
+        MODULE-IDENTITY,
+        NOTIFICATION-TYPE,
+        OBJECT-TYPE,
+        Unsigned32,
+        Counter32
+                FROM SNMPv2-SMI
+        DisplayString,
+        RowStatus,
+        DateAndTime,
+        TEXTUAL-CONVENTION,
+        TruthValue,
+	TestAndIncr,
+        MacAddress
+                FROM SNMPv2-TC
+        IpAddress,
+        Integer32
+                FROM SNMPv2-SMI
+        InetAddressIPv4,
+        InetAddressIPv6
+                FROM INET-ADDRESS-MIB
+	SnmpAdminString
+		FROM SNMP-FRAMEWORK-MIB
+        ifIndex,
+        InterfaceIndex
+                FROM IF-MIB
+        TenthdB,
+        docsIfUpChannelFrequency,
+        docsIfUpChannelWidth,
+         docsIfUpChannelModulationProfile
+                FROM DOCS-IF-MIB
+        rdnSlotNumber,
+        rdnCardIfSlotNumber,
+        rdnCardIfPortNumber
+                FROM RDN-CHASSIS-MIB;
+
+rdnCableSpectrumGroup MODULE-IDENTITY
+        LAST-UPDATED  "201110100000Z" -- 10 Oct 2011
+        ORGANIZATION  "Motorola"
+        CONTACT-INFO  "Motorola        
+                       Customer Service
+                       101 Tournament Drive
+                       Horsham, PA 19044
+                       US Tel: +1 888 944 4357
+                       Int Tel: +1 215 323 0044
+                       Fax: +1 215 323 1502
+		       Email: CPSSupport@Motorola.com"
+        DESCRIPTION
+            "This is the MIB Module for Cable Spectrum Group Management
+             for MCNS compliant Cable Modem Termination Systems (CMTS).
+
+             Copyright (C) 2001, 2008 by Motorola, Inc.
+             All rights reserved."
+
+        REVISION       "201110100000Z" -- 10 Oct 2011
+        DESCRIPTION
+            "Update rdnReferenceModemTable to support IPv6 Reference modems."
+
+        REVISION       "201109290000Z" -- 29 Sep 2011
+        DESCRIPTION
+            "Update rdnReferenceModemTable to support IPv6 Reference modems."
+
+        REVISION       "201007240000Z" -- 24 Jul 2010
+
+        DESCRIPTION
+            "rdnCableFftConfigAverage and rdnCableFftConfigIngressCanceller objects
+             are added to rdnCableFftConfigObjects, These two objects are valid for DRX Only,
+             Setting these values for CMTS 2x8 will not be having any impact."
+        REVISION       "201007240000Z" -- 24 Jul 2010
+
+        DESCRIPTION
+            "For rdnReferenceModemTable and rdnModemExclusionTable,
+             one of the table index values is changed from the rdnCardIfPortNumber to ifIndex.
+             This change is to fetch all the instances of the MIB table,
+             in case of DRX upstream channel assignment to the spectrum group is at
+             RF channel level where as in case of cmts2x8 it is at port level.
+             In case of DRX us port can have multiple RF channel
+             so indexing with port will lead to missing some instance values."
+
+        REVISION       "201006110000Z" -- 11 Jun 2010
+
+        DESCRIPTION
+            "The range of the upstream frequency on the RX48 Module is 
+             from 5 to 85 MHZ in Release 6.0
+             Changed the upper bound for rdnSpectrumHopBandHigh,
+             rdnSpectrumHopBandLow, rdnSpectrumHopFrequency to 85000000 ."
+
+        REVISION       "201006070000Z" -- 07 June 2010
+        DESCRIPTION
+            "Fixing rdnSpectrumGroupSnrHysteresisValue choices to match
+             CLI (2,3).  Also adding 'DRX' to comments concerning support
+             on CMTS 2x8 cards"
+
+        REVISION       "201004210000Z" -- 21 Apr 2010
+	DESCRIPTION
+	    "Removing the LLC ping option from the SNR LOOP command because of 
+	     buffer corruption."
+
+	REVISION       "200808080000Z" -- 08 August 2008     
+	DESCRIPTION
+	    "Added MODULE Description back to this MIB. Cleaned up
+	    revision history formatting. Changed the range of 
+	    rdnSpectrumGroupReferenceCMExclusion from 0..15 to 
+	    0..45. The default value for the same object was changed 
+	    from 0 to 15."				       
+		       
+	REVISION       "200711290000Z" -- 29 Nov 2007     
+	DESCRIPTION
+	    "Setting the equalization parameters for the SNR and SNR LOOP
+	     commands to be defaulted to the value of ON."
+
+		   
+	REVISION        "200609200000Z" -- 20 September 2006	   
+        DESCRIPTION
+            "Adding support for the rdnModemExclusionGroup and
+	     and rdnReferenceModemGroup."
+
+ 	REVISION        "200607200000Z" -- 20 July 2006     
+        DESCRIPTION
+            "Adding a couple codes to rdnSpectrumGroupConflictType;
+             updating codes for rdnCableAgilityHopAbortReason."
+
+        
+	REVISION       "200509280000Z" -- 29 Sept 2005
+        DESCRIPTION
+            "Adding Advanced Spectrum Management, SNR-based Frequency and 
+             Modulation Agility, with Rollback Feature to rdnSpectrumGroupTable.
+             Also creating a new rdnSnrThresholdTable"
+
+	REVISION       "200508280000Z" -- 28 Aug 2005
+        DESCRIPTION
+            "Adding rdnCableSnrLoopTestTable and rdnCableSnrLoopResultTable."
+
+	REVISION       "200410120000Z" -- 12 Oct 2004
+        DESCRIPTION
+            "Minor clarification to range for rdnCableSnrLoopTestLoopCount
+             (zero means 'unconfigured')"
+        
+        REVISION        "200409160000Z" -- 16 Sept 2004
+        DESCRIPTION  
+            "Clarifying descriptive text for tables that currently apply
+             only to port (physical channel) rather than to DOCSIS 2.0
+             logical channels"  
+   
+        REVISION        "200311120000Z" -- 11th November 2003
+        DESCRIPTION
+            "Modified SYNTAX of rdnSpectrumMapIndex from INTEGER
+             to Unsigned32."   
+
+        REVISION        "200311050000Z" -- 05th November 2003
+        DESCRIPTION
+            "Updated the CONTACT-INFO."   
+
+        REVISION        "200309040000Z" -- 04th September 2003
+        DESCRIPTION
+            "Modifies MAX-ACCESS for object rdnSpectrumGroupLoadBalance
+            to be read-create instead of read-write."
+
+        REVISION        "200305230000Z" -- 23rd May 2003
+        DESCRIPTION
+            "This adds comments and fix the SYNTAX clause for the following 
+            objects: rdnSpectrumHopFrequency, rdnSpectrumHopBandLow, 
+            rdnSpectrumHopBandHigh, rdnSpectrumHopPowerLevel, 
+            rdnSpectrumHopModulationProfile, and rdnSpectrumHopChannelWidth.
+            Also changed the SYNTAX clause for the object 
+            rdnSpectrumDataSamples and the textual convention SpecDataArray 
+            used by the rdnSpectrumDataArray object."
+
+        REVISION        "200304290000Z" -- 29th April 2003
+        DESCRIPTION  
+            "This `corrects past mistakes' where ASN.1 allowed hyphens
+             but SMIv2 states that hyphens are not allowed in 
+             identifiers for objects or for labels on
+             enumerated integer values. 
+                
+             Hyphens where removed from the labels on enumerated integer
+             values from the textual convention 'SpectrumHopChannelWidth' and
+             from the 'rdnSpectrumHopChannelWidth' object."  
+   
+        ::= { rdnCableSpectrumObjects 2 }
+
+
+rdnCableFftGroup OBJECT IDENTIFIER ::= { rdnCableSpectrumGroup 9 }
+
+-- Textual Conventions
+SchedulingWeekDay ::= TEXTUAL-CONVENTION
+    STATUS          current
+    DESCRIPTION     "The scheduling week day."
+    SYNTAX          INTEGER {
+                      sunday (1),
+                      monday (2),
+                      tuesday (3),
+                      wednesday (4),
+                      thursday (5),
+                      friday (6),
+                      saturday (7),
+                      everyday (8)
+                    }
+
+SpectrumHopSelections ::= TEXTUAL-CONVENTION
+    STATUS          current
+    DESCRIPTION     "The rules for spectrum hop."
+    SYNTAX      INTEGER {
+                      frequency (1),
+                      band (2),
+                      powerDefault (3),
+                      powerLevel (4),
+                      modulationProfile (5),
+                      channelWidth (6) 
+                    }
+
+SpecDataArray ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION
+          "An array holds the spectrum data."
+    SYNTAX       OCTET STRING (SIZE (2..600))
+
+ThousandthdB ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "d-4"
+    STATUS       current
+    DESCRIPTION
+          "This data type represents power levels that are normally
+           expressed in dB. Units are in thousandths of a dB;
+           for example, 5.1234 dB will be represented as 51234."
+    SYNTAX       Integer32
+
+--
+-- Spectrum Group
+--
+-- Spectrum manager can configure and activate frequency agility by using 
+-- the spectrum groups. Up to 256 spectrum groups can be created for
+-- each CMTS system. Each spectrum group supports up to 256 shared upstream
+-- channels.
+-- Spectrum data converts frequency range of 5 to 65 MHz to support
+-- Euro-DOCSIS
+--
+
+rdnSpectrumGroupTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnSpectrumGroupEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table keeps the records of spectrum groups. These groups
+             can be configured and activated by the spectrum manager and used
+             by the CMTS upstream port for frequency hopping. 
+
+             In this table, certain objects will apply DRX and CMTS 2x8 cards,
+             and others will apply to CMTS 1x8 and 1x4 cards, as indicated in
+             the individual DESCRIPTION statements.
+
+             For DRX and CMTS 2x8 cards, all member channels of the same spectrum group 
+             must reside on the same, physical 2x8 card in the chassis.
+
+             As the normal practice, it is recommended that all receivers on the 
+             same CMTS card should be physically cabled together.  At a minimum, 
+             all receivers in spectrum group should be cabled together.
+
+             If receivers are in different spectrum groups, it is expected that
+             they can independently reuse the same spectrum, so must *not* be 
+             physically cabled together.
+
+             For CMTS 1x8 and 1x4 cards, it is not forbidden to add receivers
+             from different cards to the same spectrum group, but this is not
+             recommended.
+
+            "
+        ::= { rdnCableSpectrumGroup 1 }
+
+rdnSpectrumGroupEntry OBJECT-TYPE
+        SYNTAX      RdnSpectrumGroupEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of attributes for an entry in the rdnSpectrumGroupEntry.
+             An entry in this table exists for each spectrum group that
+             has been configured by the spectrum manager."
+        INDEX { 
+                rdnSpectrumGroupName
+              }
+        ::= { rdnSpectrumGroupTable 1 }
+
+RdnSpectrumGroupEntry ::= SEQUENCE {
+            rdnSpectrumGroupName                DisplayString,
+            rdnSpectrumGroupId                  Unsigned32,
+            rdnSpectrumGroupHopPeriod           Unsigned32,
+            rdnSpectrumGroupHopThresholdFlap    Unsigned32,
+            rdnSpectrumGroupHopThresholdError   Unsigned32,
+            rdnSpectrumGroupHopRollbackEnable   INTEGER,
+            rdnSpectrumDataCollectResolution    Unsigned32,
+            rdnSpectrumDataCollectInterval      Unsigned32,
+            rdnSpectrumGroupGuardBand           Unsigned32,
+            rdnSpectrumGroupRowStatus           RowStatus,
+            rdnSpectrumOfflineModemCount        Integer32,
+            rdnSpectrumOnlineModemCount         Integer32,
+            rdnSpectrumActiveModemCount         Integer32,
+            rdnSpectrumRegisteredModemCount     Integer32,
+            rdnSpectrumProvisionedModemCount    Integer32,
+            rdnSpectrumUnregisteredModemCount   Integer32,
+            rdnSpectrumGroupUnerroreds          Counter32,
+            rdnSpectrumGroupCorrecteds          Counter32,
+            rdnSpectrumGroupUncorrectables      Counter32,
+            rdnSpectrumGroupStaticLoadBalEnable INTEGER,
+            rdnSpectrumGroupLoadBalance         TruthValue,
+            rdnSpectrumGroupActiveChannelSamplingPeriod        Unsigned32,
+            rdnSpectrumGroupHopRollbackChannelSamplingPeriod   Unsigned32,
+            rdnSpectrumGroupHopSpareChannelSamplingPeriod      Unsigned32,
+            rdnSpectrumGroupSnrHysteresisValue                 Unsigned32,
+            rdnSpectrumGroupReferenceCMExclusion               Unsigned32
+        }
+
+rdnSpectrumGroupName OBJECT-TYPE
+        SYNTAX      DisplayString  ( SIZE (1..20) )
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The text name (index) of the spectrum group."
+        ::= { rdnSpectrumGroupEntry 1 }
+
+rdnSpectrumGroupId OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The number index for the spectrum group."
+        ::= { rdnSpectrumGroupEntry 2 }
+
+rdnSpectrumGroupHopPeriod OBJECT-TYPE
+        SYNTAX      Unsigned32  (30..3600)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The rate at which the frequency hop takes place. This would be
+             useful in preventing excessive hops. Unit is in second.
+
+             This parameter applies only to CMTS 1x8 and 1x4 cards.
+            "
+                DEFVAL      { 300       }
+        ::= { rdnSpectrumGroupEntry 3 }
+
+rdnSpectrumGroupHopThresholdFlap OBJECT-TYPE
+        SYNTAX      Unsigned32  (0..100)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The CM flap rate percentage threshold that controls the hopping 
+             frequency. The hopping only happens when the percentage of flap 
+             CMs is higher than this threshold. Value 0 means the flap 
+             threshold hop disabled.
+ 
+             This parameter applies to CMTS 1x8 and 1x4 cards.
+
+            "
+                DEFVAL      { 0 }
+        ::= { rdnSpectrumGroupEntry 4 }
+
+rdnSpectrumGroupHopThresholdError OBJECT-TYPE
+        SYNTAX      Unsigned32  (1..1000)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The FEC error rate percentage threshold that controls the hopping 
+             frequency. The hopping only happens when the error rate percentage
+             is higher than this threshold. The unit is 1/1000.
+
+             This parameter applies to CMTS 1x8 and 1x4 cards.
+            "
+                DEFVAL      { 10 }
+        ::= { rdnSpectrumGroupEntry 5 }
+
+rdnSpectrumGroupHopRollbackEnable OBJECT-TYPE
+        SYNTAX      INTEGER  {
+                        enable (1),
+                        disable (2)
+                    }
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "This field controls the spectrum rollback option when the original
+             channel quality recovers. The rollback is allowed when this field
+             is enabled. The rollback is not allowed when this field is set to
+             disable.
+
+             This parameter applies to all CMTS card types.
+            "
+                DEFVAL      { 2 }
+        ::= { rdnSpectrumGroupEntry 6 }
+
+rdnSpectrumDataCollectResolution OBJECT-TYPE
+        SYNTAX      Unsigned32  (200000..400000)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The spectrum data collection resolution, in Hz.
+
+             This parameter applies to all CMTS card types.
+            "
+                DEFVAL      { 200000    }
+        ::= { rdnSpectrumGroupEntry 7 }
+
+rdnSpectrumDataCollectInterval OBJECT-TYPE
+        SYNTAX      Unsigned32  (0 | 60..65535)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The spectrum data collection interval, in second. Minimum value 60 
+             seconds. Value 0 means the collection is disabled.
+
+             This parameter applies to all CMTS card types.
+            "
+                DEFVAL      { 0 }
+
+        ::= { rdnSpectrumGroupEntry 8 }
+
+rdnSpectrumGroupGuardBand OBJECT-TYPE
+        SYNTAX      Unsigned32  (0..60000000)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The minimum spectrum separation between upstream channels in 
+             the same spectrum group, in Hz.
+
+             This parameter applies to CMTS 1x8 and 1x4 cards.
+
+            "
+                DEFVAL      { 0 }
+        ::= { rdnSpectrumGroupEntry 9 }
+
+rdnSpectrumGroupRowStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Controls and reflects the status of rows in this table. This
+             field is used to control the addition and deletion of a 
+             spectrum group."
+        ::= { rdnSpectrumGroupEntry 10 }
+ 
+rdnSpectrumOfflineModemCount OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "Number of offline modems for this spectrum group"
+        ::= { rdnSpectrumGroupEntry 11 }
+
+rdnSpectrumOnlineModemCount OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "Number of online modems for this spectrum group"
+        ::= { rdnSpectrumGroupEntry 12 }
+
+rdnSpectrumActiveModemCount OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "Number of active modems for this spectrum group"
+        ::= { rdnSpectrumGroupEntry 13 }
+
+rdnSpectrumRegisteredModemCount OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "Number of registered modems for this spectrum group"
+        ::= { rdnSpectrumGroupEntry 14 }
+
+rdnSpectrumProvisionedModemCount OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "Number of provisioned modems for this spectrum group"
+        ::= { rdnSpectrumGroupEntry 15 }
+
+rdnSpectrumUnregisteredModemCount OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "Number of Unregistered modems for this spectrum group"
+        ::= { rdnSpectrumGroupEntry 16 }
+
+rdnSpectrumGroupUnerroreds OBJECT-TYPE
+        SYNTAX      Counter32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Codewords received on this spectrum group without error.
+             This includes all codewords, whether or not they
+             were part of frames destined for this device."
+        ::= { rdnSpectrumGroupEntry 17 }
+
+rdnSpectrumGroupCorrecteds OBJECT-TYPE
+        SYNTAX      Counter32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Codewords received on this spectrum group with correctable
+             errors. This includes all codewords, whether or not
+             they were part of frames destined for this device."
+        ::= { rdnSpectrumGroupEntry 18 }
+
+rdnSpectrumGroupUncorrectables OBJECT-TYPE
+        SYNTAX      Counter32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Codewords received on this spectrum group with uncorrectable
+             errors. This includes all codewords, whether or not
+             they were part of frames destined for this device."
+        ::= { rdnSpectrumGroupEntry 19 }
+                                     
+rdnSpectrumGroupStaticLoadBalEnable OBJECT-TYPE
+        SYNTAX      INTEGER  {
+                        enable (1),
+                        disable (2)
+                    }
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "This field controls the Static Load Balancing feature.
+
+             This parameter applies to all CMTS card types.
+
+            "
+        DEFVAL      { 2 }
+        ::= { rdnSpectrumGroupEntry 20 }
+
+rdnSpectrumGroupLoadBalance OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Setting this object to TRUE performs a Static Load
+        Balancing for the spectrum group. Reading this object always
+        returns FALSE."
+        ::= { rdnSpectrumGroupEntry 21 }
+
+rdnSpectrumGroupActiveChannelSamplingPeriod OBJECT-TYPE
+        SYNTAX      Unsigned32  (0 | 1..15)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The signal quality of the active channel is periodically measured for SNR.
+             This object is the time between two consecutive signal quality measurements 
+             of the active channel. 
+
+              A value of zero means that the timer is disabled.
+
+              This object applies to DRX and CMTS 2x8.
+
+             Units are in seconds."
+        DEFVAL      { 3 }
+        ::= { rdnSpectrumGroupEntry 22 }
+
+
+rdnSpectrumGroupHopRollbackChannelSamplingPeriod OBJECT-TYPE
+        SYNTAX      Unsigned32  (10..300)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "When a primary channel is swapped with the spare channel, if the rollback 
+             is configured, the primary channel is periodically measured for 
+             signal quality in the background using the 9th receiver.
+             This object is the time between two consecutive signal quality measurements 
+             of the primary channel. 
+
+             This object applies to DRX and CMTS 2x8.
+
+             Units are in seconds."
+        DEFVAL      { 60 }
+        ::= { rdnSpectrumGroupEntry 23 }
+
+
+rdnSpectrumGroupHopSpareChannelSamplingPeriod OBJECT-TYPE
+        SYNTAX      Unsigned32  (10..600)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "If a primary channel could not be swapped for noise avoidance with 
+             a spare channel, due to poor signal quality of the spare channels, 
+             the spare channels are periodically assessed on the 9th receiver. 
+             This object is the time between two consecutive signal quality 
+             measurements of all the spare channels.
+
+             In each spare channel quality sampling cycle, all the spare channels 
+             are tested (this is not the delay between testing two spare channels.  
+
+             This object applies to DRX and CMTS 2x8.
+
+             Units are in seconds."
+
+        DEFVAL      { 10 }
+        ::= { rdnSpectrumGroupEntry 24 }
+
+
+rdnSpectrumGroupSnrHysteresisValue OBJECT-TYPE
+        SYNTAX      Unsigned32 ( 2 | 3)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "SNR hysteresis (a default hysteresis of 2dB) is used to 
+             determine the SNR threshold for the downward transition from 
+             upper modulation type to a lower modulation type. The hysteresis 
+             can be configured to a resolution of 1dB. The operator must be 
+             aware of the effects of lowering or increasing the hysteresis. An 
+             increase in hysteresis will delay the channel switching. A 
+             decrease in hysteresis could result in too many transitions.  For 
+             example, if the SNR threshold is configured to 20dB and the 
+             default SNR hysteresis of 2dB is used, then in the event of noise, 
+             a channel switch from primary to spare will take effect when the 
+             SNR value drops to 18dB on the primary channel (provided the 
+             spare channel's SNR is at least 20dB). When the primary channel's
+             SNR goes up to 20dB, the primary channel will be rolled back.
+
+             If a spare channel is not available or the spare channel's SNR is 
+             below 20dB, and if a secondary modulation profile is configured, 
+             then the modulation profile of the primary channel is changed.
+
+             This object applies to DRX and CMTS 2x8.
+
+             Allowable choies are 2dB or 3dB"
+
+        DEFVAL      { 2 }
+        ::= { rdnSpectrumGroupEntry 25 }
+
+
+
+rdnSpectrumGroupReferenceCMExclusion OBJECT-TYPE
+        SYNTAX      Unsigned32  (0..45)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "This parameter defines the number of low SNR modem(s),
+	on each upstream in the spectrum-group, not allowed to be
+	used for channel assessment.  This parameter has no effect 
+	when the number of registered modems on a specific upstream 
+	is less than double the configured value."
+
+        DEFVAL      { 15 }
+        ::= { rdnSpectrumGroupEntry 26 }
+
+
+
+-- Band schedule table defines the spectrum band schedules for the specific
+-- spectrum group
+rdnSpectrumBandSchedTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnSpectrumBandSchedEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table keeps the records of spectrum band scheduled for
+             a specific spectrum group. 
+
+             This table applies to CMTS 1x8 and 1x4, only.
+
+            "
+        ::= { rdnCableSpectrumGroup 2 }
+
+rdnSpectrumBandSchedEntry OBJECT-TYPE
+        SYNTAX      RdnSpectrumBandSchedEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of attributes for an entry in the rdnSpectrumBandScheEntry."
+        INDEX { 
+                rdnSpectrumGroupId,
+                rdnSpectrumBandSchedId,
+                rdnSpectrumBandSchedAction
+              }
+        ::= { rdnSpectrumBandSchedTable 1 }
+
+RdnSpectrumBandSchedEntry ::= SEQUENCE {
+            rdnSpectrumBandSchedId              Unsigned32,
+            rdnSpectrumBandSchedAction          Unsigned32,
+            rdnSpectrumBandFreqLow              Unsigned32,
+            rdnSpectrumBandFreqHigh             Unsigned32,
+            rdnSpectrumBandSchedWeekDay         SchedulingWeekDay,
+            rdnSpectrumBandSchedHour            Unsigned32,
+            rdnSpectrumBandSchedMinute          Unsigned32,
+            rdnSpectrumBandSchedSecond          Unsigned32,
+            rdnSpectrumBandSchedRowStatus       RowStatus
+        }
+
+rdnSpectrumBandSchedId OBJECT-TYPE
+        SYNTAX      Unsigned32  
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The identifier for the band schedule, it is the second index 
+             for the spectrum band schedule table."
+        ::= { rdnSpectrumBandSchedEntry 1 }
+
+rdnSpectrumBandSchedAction OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  not-accessible 
+        STATUS      current
+        DESCRIPTION
+            "The action on the specified frequency band. The third index of
+             this band schedule table. Band add (1), band delete (2)."
+        ::= { rdnSpectrumBandSchedEntry 2 }
+
+rdnSpectrumBandFreqLow OBJECT-TYPE
+        SYNTAX      Unsigned32  (5000000..65000000)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The spectrum band low frequency in Hz. The lower limit is 5 MHz
+             for North American standard, is 5 MHz for European standard. "
+                DEFVAL      { 5000000 }
+        ::= { rdnSpectrumBandSchedEntry 3 }
+
+rdnSpectrumBandFreqHigh OBJECT-TYPE
+        SYNTAX      Unsigned32  (5000000..65000000)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The spectrum band high frequency in Hz. This value must be at least 
+             200000 Hz higher than the band low frequency. The upper limit is 42 MHz
+             for North American standard, is 65 MHz for European standard. "
+                DEFVAL      { 42000000 }
+        ::= { rdnSpectrumBandSchedEntry 4 }
+
+rdnSpectrumBandSchedWeekDay OBJECT-TYPE
+        SYNTAX      SchedulingWeekDay
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The week day of the band schedule."
+                DEFVAL      { everyday }
+        ::= { rdnSpectrumBandSchedEntry 5 }
+
+rdnSpectrumBandSchedHour OBJECT-TYPE
+        SYNTAX      Unsigned32  (0..23)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The hour of the band schedule (in 24-hour format)."
+                DEFVAL      { 0 }
+        ::= { rdnSpectrumBandSchedEntry 6 }
+
+rdnSpectrumBandSchedMinute OBJECT-TYPE
+        SYNTAX      Unsigned32  (0..59)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The minute of the band schedule."
+                DEFVAL      { 0 }
+        ::= { rdnSpectrumBandSchedEntry 7 }
+
+rdnSpectrumBandSchedSecond OBJECT-TYPE
+        SYNTAX      Unsigned32  (0..59)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The second of the band schedule."
+                DEFVAL      { 0 }
+        ::= { rdnSpectrumBandSchedEntry 8 }
+
+rdnSpectrumBandSchedRowStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The row status that controls the addition and deletion of 
+             the band schedule entry."
+        ::= { rdnSpectrumBandSchedEntry 9 }
+
+
+-- Spectrum hop rule table defines the hopping rules
+rdnSpectrumHopTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnSpectrumHopEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table keeps the records of spectrum hopping rules for
+             a specific spectrum group. 
+
+             Certain objects in this table apply to all CMTS card types,
+             while others might apply to DRX and CMTS 2x8, or only to
+             CMTS 1x8 and 1x4, as indicated by the individual 
+             DESCRIPTION statements.
+
+            "
+        ::= { rdnCableSpectrumGroup 3 }
+
+rdnSpectrumHopEntry OBJECT-TYPE
+        SYNTAX      RdnSpectrumHopEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of attributes for an entry in the rdnSpectrumHopTable.
+            This table is index by a rdnSpectrumGroupId and a 
+            rdnSpectrumHopId. Each row within this table reflects one Hop 
+            action for a spectrum group. The rdnSelection object reflects 
+            which Hop Action this row describes. For the rest of the objects
+            within this row that do not apply to this Hop action a value of 0
+            will be returned. Only the object(s) that for which is object action 
+            applies will report a valid value."
+        INDEX { 
+                rdnSpectrumGroupId,
+                rdnSpectrumHopId
+              }
+        ::= { rdnSpectrumHopTable 1 }
+
+RdnSpectrumHopEntry ::= SEQUENCE {
+            rdnSpectrumHopId                 Unsigned32,
+            rdnSpectrumHopSelection          SpectrumHopSelections,
+            rdnSpectrumHopPriority           INTEGER,
+            rdnSpectrumHopFrequency          Unsigned32,
+            rdnSpectrumHopBandLow            Unsigned32,
+            rdnSpectrumHopBandHigh           Unsigned32,
+            rdnSpectrumHopPowerLevel         INTEGER,
+            rdnSpectrumHopModulationProfile  INTEGER,
+            rdnSpectrumHopChannelWidth       INTEGER,
+            rdnSpectrumHopRowStatus          RowStatus
+        }
+
+rdnSpectrumHopId OBJECT-TYPE
+        SYNTAX      Unsigned32  
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The index for the spectrum hop rule table."
+        ::= { rdnSpectrumHopEntry 1 }
+
+rdnSpectrumHopSelection OBJECT-TYPE
+        SYNTAX      SpectrumHopSelections
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+           "Identifies the selection of the action for this spectrum hop 
+            rule. If the value is 'frequency(1)' then the only applicable
+            objects are rdnSpectrumHopPriority and rdnSpectrumHopFrequency.
+            If the value is 'band(2)' then the only applicable
+            objects are rdnSpectrumHopPriority, rdnSpectrumHopBandLow, 
+            and rdnSpectrumHopBandHigh. If the value is 'powerDefault(3)'
+            then the only applicable objects are rdnSpectrumHopPriority and 
+            rdnSpectrumHopPowerLevel. If the value is 'modulationProfile(5)'
+            then the only applicable objects are rdnSpectrumHopPriority and
+            rdnSpectrumHopModulationProfile. If the value is 'channelWidth(6)'
+            then the only applicable object for this row is 
+            rdnSpectrumHopPriority and rdnSpectrumHopChannelWidth.
+
+           The powerDefault(3),  powerLevel (4), and  channelWidth (6)
+           selections apply only to CMTS 1x4 and 1x8 cards, but not to
+           CMTS 2x8 cards..  All other selections apply to all CMTS card types"
+        DEFVAL      { frequency }
+        ::= { rdnSpectrumHopEntry 2 }
+                      
+rdnSpectrumHopPriority OBJECT-TYPE
+        SYNTAX      INTEGER (1..255)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+           "Identifies the priority for this spectrum hop policy. The 
+            default value is 128. The range is 1 to 255.
+
+            This parameter applies to all CMTS card types.
+
+           "
+        DEFVAL      { 128 }
+        ::= { rdnSpectrumHopEntry 3 }
+
+rdnSpectrumHopFrequency   OBJECT-TYPE
+        SYNTAX      Unsigned32  ( 0 | 5000000..85000000 )
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+           "Identifies the center frequency for the spectrum hop 
+            schedule entry. The hop can be specified with a discrete 
+            center frequency or with a band but not both in the same
+            group.
+            
+            This object is not applicable to a hop action when a 
+            value of 0 is reported by this object.
+
+            This parameter applies to all CMTS card types, although the
+            criteria for making a hop decision depend on card type.
+
+            For CMTS 2x8 cards, hop decisions are made on the basis of
+            SNR measurements.   For older, 1x8 and 1x4 cards, hop decisions
+            are made on the basis of error thresholds, or modem flapping.
+
+          "
+        DEFVAL      { 10000000 }
+        ::= { rdnSpectrumHopEntry 4 }
+
+rdnSpectrumHopBandLow   OBJECT-TYPE
+        SYNTAX      Unsigned32  ( 0 | 5000000..85000000 )
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+           "The start frequency for the individual spectrum hop.
+           
+            This object is not applicable to a hop action when a 
+            value of 0 is reported by this object.
+
+            This parameter applies to all CMTS card types.
+
+           "
+        DEFVAL      { 8400000 }
+        ::= { rdnSpectrumHopEntry 5 }
+
+rdnSpectrumHopBandHigh   OBJECT-TYPE
+        SYNTAX      Unsigned32  ( 0 | 5000000..85000000 )
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+           "The stop frequency for the individual spectrum hop. This value must
+            be at least 200000 Hz higher than the start frequency.
+            
+            This object is not applicable to a hop action when a 
+            value of 0 is reported by this object.
+
+            This parameter applies to all CMTS card types.
+
+           "
+        DEFVAL      { 42000000 }
+        ::= { rdnSpectrumHopEntry 6 }
+        
+rdnSpectrumHopChannelWidth   OBJECT-TYPE
+        SYNTAX      INTEGER  {
+                        notApplicable(0),
+                        channelWidth1(200000),
+                        channelWidth2(400000),
+                        channelWidth3(800000),
+                        channelWidth4(1600000),
+                        channelWidth5(3200000) 
+                    }
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+           "Identifies the channel width change for this individual spectrum 
+            hop. The valid band width is 200000 Hz, 400000 Hz, 800000 Hz,
+            1600000 Hz, 3200000 Hz.
+
+            This object is not applicable to a hop action when a 
+            value of 0 is reported by this object.
+
+            This object applies only to CMTS 1x4 and 1x8 cards, not to
+            CMTS 2x8 cards."
+
+        DEFVAL      { 3200000 }
+        ::= { rdnSpectrumHopEntry 7 }
+
+rdnSpectrumHopPowerLevel OBJECT-TYPE
+        SYNTAX      INTEGER  ( -160..260 )
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+           "Identifies a power level change for this individual spectrum 
+            hop. Different channel width has different power level range,
+            < -160, 140 > for 200 KHz, < -130, 170 > for 400 KHz, < -100, 
+            200 > for 800 KHz, < -70, 230 > for 1600 KHz, < -40, 260 > for 
+            3200 KHz. For power default, the range is < -150, 150 > for 
+            all the channel widths. The unit is in tenths of a dBmV.
+
+            If the rdnSpectrumHopSelection is 'powerDefault(3)' and
+            a value of 0 is returned for this object for the same 
+            instance then this is a valid Power Level for this Hop action.
+            Else if the rdnSpectrumHopSelection is not 'powerDefault(3)'
+            and a value of 0 is returned for this object for the same 
+            instance then this object is not applicable to this hop action.
+
+            This object applies only to CMTS 1x4 and 1x8 cards, not to
+            CMTS 2x8 cards."
+        DEFVAL      { 0 }
+        ::= { rdnSpectrumHopEntry 8 }
+
+rdnSpectrumHopModulationProfile   OBJECT-TYPE
+        SYNTAX      INTEGER  ( 0 | 1..16 )
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+           "Identifies the modulation profile change for this individual 
+            spectrum hop.
+
+            This object is not applicable to a hop action when a 
+            value of 0 is reported by this object.
+
+            This parameter applies to all CMTS card types, although the criteria
+            for making hop decisions is dependent on card type. 
+
+            For CMTS 2x8 cards, hop decisions are made on the basis of
+            SNR measurements.   For older, 1x8 and 1x4 cards, hop decisions
+            are made on the basis of error thresholds, or modem flapping.
+          "
+        DEFVAL      { 1 }
+        ::= { rdnSpectrumHopEntry 9 }
+
+rdnSpectrumHopRowStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The row status that controls the add and deletion of the 
+             spectrum hop rule entry."
+        ::= { rdnSpectrumHopEntry 10 }
+
+-- member channel table defines the association of the upstream ports and 
+-- the spectrum groups, it also controls the spectrum hopping (enable or 
+-- disable) for this upstream channel.
+
+rdnSpectrumMemberChannelTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnSpectrumMemberChannelEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table keeps the records of the associations between 
+             upstream ports and spectrum groups.
+
+             For CMTS 2x8 cards, all members of the same spectrum group 
+             must reside on the same physical card.
+
+             Channels on CMTS 1x8 and 1x4 cards can be mixed in the same
+             spectrum group, but they may NOT be mixed in the same spectrum
+             group with CMTS 2x8 channels.
+
+             As the normal practice, it is recommended that all receivers on the 
+             same CMTS card should be physically cabled together.  At a minimum, 
+             all receivers in spectrum group should be cabled together.
+
+             If channels are in different spectrum groups, it is expected that
+             they can independently reuse the same spectrum, so must *not* be 
+             physically cabled together.
+
+             For CMTS 1x8 and 1x4 cards, it is not forbidden to add receivers
+             from different cards to the same spectrum group, but this is not
+             recommended.
+
+           "
+        ::= { rdnCableSpectrumGroup 4 }
+
+rdnSpectrumMemberChannelEntry OBJECT-TYPE
+        SYNTAX      RdnSpectrumMemberChannelEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of attributes for an entry in the 
+             RdnSpectrumMemberChannelEntry. It is indexed by ifIndex values
+             that are associated with upstream ports (ifType = 129)"
+        INDEX { 
+                ifIndex
+              }
+        ::= { rdnSpectrumMemberChannelTable 1 }
+
+RdnSpectrumMemberChannelEntry ::= SEQUENCE {
+            rdnUsChannelId                      INTEGER,
+            rdnMemChSpectrumGroupId             Unsigned32,
+            rdnMemChSpectrumGroupName           DisplayString
+        }
+
+rdnUsChannelId OBJECT-TYPE
+        SYNTAX      INTEGER  (1..255) -- upper 4 bits for slot ID, lower 4 bits for US
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The upstream channel ID."
+        ::= { rdnSpectrumMemberChannelEntry 1 }
+
+rdnMemChSpectrumGroupId OBJECT-TYPE
+        SYNTAX      Unsigned32  (0..255)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The ID for the spectrum group that is associated with this 
+             upstream port. Value 0 means no association."
+        ::= { rdnSpectrumMemberChannelEntry 2 }
+
+rdnMemChSpectrumGroupName OBJECT-TYPE
+        SYNTAX      DisplayString  
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The text name of the associated spectrum group."
+        ::= { rdnSpectrumMemberChannelEntry 3 }
+
+
+-- Spectrum data table stores the spectrum data collection information
+
+rdnSpectrumDataTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnSpectrumDataEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table stores the noise and error rate for the different 
+             frequency bands.  This table applies to all CMTS card types."
+        ::= { rdnCableSpectrumGroup 5 }
+
+rdnSpectrumDataEntry OBJECT-TYPE
+        SYNTAX      RdnSpectrumDataEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of attributes for an entry in the rdnSpectrumDataEntry.
+             The index for this table is an ifIndex that is associated
+             with an upstream port (ifType = 129)"
+
+        INDEX { ifIndex
+              }
+        ::= { rdnSpectrumDataTable 1 }
+
+RdnSpectrumDataEntry ::= SEQUENCE {
+            rdnSpectrumDataIndex             INTEGER,   
+            rdnSpecDataUsChannelId           INTEGER,
+            rdnSpectrumDataStartFrequency    Unsigned32,   
+            rdnSpectrumDataResolution        INTEGER,           
+            rdnSpectrumDataSamples           INTEGER,
+            rdnSpectrumDataLastUpdate        DateAndTime,
+            rdnSpectrumDataArray             SpecDataArray
+        }
+
+rdnSpectrumDataIndex OBJECT-TYPE
+        SYNTAX      INTEGER  (1..200)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           " The internal index of the spectrum data"
+        ::= { rdnSpectrumDataEntry 1 }
+
+rdnSpecDataUsChannelId OBJECT-TYPE
+        SYNTAX      INTEGER  (1..255)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The upstream channel ID."
+        ::= { rdnSpectrumDataEntry 2 }
+
+rdnSpectrumDataStartFrequency OBJECT-TYPE
+        SYNTAX      Unsigned32  
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           "Start Frequency of the spectrum data collection"
+        ::= { rdnSpectrumDataEntry 3 }
+
+rdnSpectrumDataResolution OBJECT-TYPE
+        SYNTAX      INTEGER  (200000..32000000)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           "Resolution of the spectrum data collection in Hz"
+        ::= { rdnSpectrumDataEntry 4 }
+
+rdnSpectrumDataSamples OBJECT-TYPE
+        SYNTAX      INTEGER  (1..300)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           "Number of data samples used in this spectrum data collection 
+            period"
+        ::= { rdnSpectrumDataEntry 5 }
+
+rdnSpectrumDataLastUpdate OBJECT-TYPE
+        SYNTAX      DateAndTime  
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           "Date and time when this collection data was last updated "
+        ::= { rdnSpectrumDataEntry 6 }
+
+rdnSpectrumDataArray OBJECT-TYPE
+        SYNTAX      SpecDataArray
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The data array that holds the spectrum data."
+        ::= { rdnSpectrumDataEntry 7 }
+
+-- Spectrum quality table stores the spectrum quality information
+rdnSpectrumQualityTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnSpectrumQualityEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table stores the spectrum quality information.
+
+             This table applies to all CMTS card types.
+
+            "
+        ::= { rdnCableSpectrumGroup 6}
+
+rdnSpectrumQualityEntry OBJECT-TYPE
+        SYNTAX      RdnSpectrumQualityEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of attributes for an entry in the rdnSpectrumDataEntry."
+        INDEX { 
+                ifIndex
+              }
+        ::= { rdnSpectrumQualityTable 1 }
+
+RdnSpectrumQualityEntry ::= SEQUENCE {
+            rdnSpecQualityUsChId             INTEGER,
+            rdnSpectrumQualityDataLastUpdate DateAndTime,
+            rdnSpectrumDataInBandPower       INTEGER,
+            rdnSpectrumTotCodeWord           Unsigned32,  
+            rdnSpectrumErrorCodeWord         Unsigned32
+        }
+
+rdnSpecQualityUsChId OBJECT-TYPE
+        SYNTAX      INTEGER  (1..255)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           "Identifies the upstream channel id for which the spectrum signal 
+            quality is gathered. "
+        ::= { rdnSpectrumQualityEntry 1 }
+
+rdnSpectrumQualityDataLastUpdate OBJECT-TYPE
+        SYNTAX      DateAndTime  
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           "Date and time when this data was last updated "
+        ::= { rdnSpectrumQualityEntry 2 }
+
+rdnSpectrumDataInBandPower OBJECT-TYPE
+        SYNTAX      INTEGER  (-600..363)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           "The in-band power for this frequency band. The unit is the 
+            tenths of dBmV."
+        ::= { rdnSpectrumQualityEntry 3 }
+
+rdnSpectrumTotCodeWord OBJECT-TYPE
+        SYNTAX      Unsigned32  
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           "The total number of code words transfer through this interface"
+        ::= { rdnSpectrumQualityEntry 4 }
+
+rdnSpectrumErrorCodeWord OBJECT-TYPE
+        SYNTAX      Unsigned32  
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           "The uncorrectable error code words received through this
+            interface."
+        ::= { rdnSpectrumQualityEntry 5 }
+
+
+-- Spectrum map table keeps the spectrum map
+rdnSpectrumMapTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnSpectrumMapEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table keeps the records of spectrum usage.
+
+             This table applies to all CMTS card types.
+            "
+        ::= { rdnCableSpectrumGroup 7}
+
+rdnSpectrumMapEntry OBJECT-TYPE
+        SYNTAX      RdnSpectrumMapEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of attributes for an entry in the rdnSpectrumMapEntry."
+        INDEX { 
+                rdnSpectrumGroupId,
+                rdnSpectrumMapIndex
+              }
+        ::= { rdnSpectrumMapTable 1 }
+
+RdnSpectrumMapEntry ::= SEQUENCE {
+            rdnSpectrumMapIndex                 Unsigned32,
+            rdnSpectrumMapStartFrequency        Unsigned32,
+            rdnSpectrumMapStopFrequency         Unsigned32,
+            rdnSpectrumMapStatus                INTEGER
+        }
+
+rdnSpectrumMapIndex OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+           " Identifies an entry in the spectrum map table"
+        ::= { rdnSpectrumMapEntry 1 }
+
+rdnSpectrumMapStartFrequency OBJECT-TYPE
+        SYNTAX      Unsigned32  
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           "The start frequency of the current spectrum band."
+        ::= { rdnSpectrumMapEntry 2 }
+
+rdnSpectrumMapStopFrequency OBJECT-TYPE
+        SYNTAX      Unsigned32  
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           "The stop frequency of the current spectrum band."
+        ::= { rdnSpectrumMapEntry 3 }
+
+rdnSpectrumMapStatus OBJECT-TYPE
+        SYNTAX      INTEGER
+        {
+          invalid(0),
+          available(1),
+          occupied(2),
+          adminDown(3),
+          scheduled(4),
+          reserved(5),
+          agile(6),
+          hopAvailable(7)
+        }
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           "The spectrum band status:
+
+            invalid(0)      - is not used, and would indicate a software error.
+            available(1)    - spectrum that is available for use in an
+                              RSSI-based spectrum group.
+
+            occupied(2)     - configured frequency, assigned to a member channel.
+                              The upstream might be in either shut or no shut 
+                              state.
+
+            adminDown(3)    - spectrum this administratively down as a result
+                              of the 'schedule' feature for RSSI-based spectrum
+                              groups.
+
+            scheduled(4)    - spectrum is scheduled for RSSI-based spectrum group,
+                              via the 'schedule' feature.
+
+            reserved(5)     - configured frequency, for an upstream that has
+                              hopped to another frequency.
+
+            agile(6)        - upstream has hopped to this frequency
+
+            hopAvailable(7) - is spectrum that is available for use as
+                               a hopping action in an SNR-based spectrum group."
+
+        ::= { rdnSpectrumMapEntry 4 }
+
+-- 
+-- FFT Group
+--
+-- The following objects are used for configuration
+-- and activation of FFT measurements.
+--
+-- The results will only be available after the measurement
+-- is initiated. If the configuration is modified the results
+-- will become unavailable. This guarantees that when the
+-- results are present, they are consistent with the
+-- configuration.
+ 
+rdnCableFftConfigObjects OBJECT IDENTIFIER ::= { rdnCableFftGroup 1 }
+             
+rdnCableFftConfigIfIndex OBJECT-TYPE
+        SYNTAX      InterfaceIndex
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "A value that uniquely identifies an interface with an
+             ifType of docsCableUpstream(129) in the ifTable. The
+             interface identified by a particular value of this
+             object is the same interface identified by the same
+             value of ifIndex.
+
+             Setting this object sets up the interface that will
+             be addressed by any subsequent sets to rdnCableFftConfigSpinLock,
+             rdnCableFftConfigSamples, rdnCableFftConfigOpMode,
+             and rdnCableFftConfigWindow.
+
+             These objects apply to CMTS 2x8 cards, and to BSR2000.
+            "
+        REFERENCE   "RFC 2233, ifIndex"
+        ::= { rdnCableFftConfigObjects 1 }
+
+rdnCableFftConfigSpinLock OBJECT-TYPE
+        SYNTAX      TestAndIncr
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This object is used to initiate FFT measurement, and
+             identify the current invocation an FFT measurement,
+             for interface that is currently selected by
+             rdnCableFftConfigIfIndex.
+
+             This object is applicable to CMTS 2x8 cards, and
+             to BSR2000.
+
+             It is recommended that a management application will
+             first read this object, then perform a set to the
+             current value. This set may occur in the same set request
+             as other sets.
+
+             It is recommended that a management application will
+             first read this object, then perform a set to the
+             current value. This set may occur in the same set request
+             as other sets.
+
+             This object should be read again, and should return
+             the previous value + 1, indicating the results are valid
+             and the configuration has not changed. Else, another
+             management station has initiated another measurement
+             (following this procedure).
+
+             1. Get this object and store in configNum
+             2. Set any desired configuration objects
+             3. Set this object to configNum
+                (Note: 2 & 3 can be done in the same set request)
+             4. If step 3 fails, then another management station
+                has already set this object.
+             5. After short delay, get requested data from
+                rdnCableFftResultTable.
+             6. Get this object and compare with configNum + 1
+             7. If step 6 yields the same value, the data retrieved
+                in step 5 is valid.
+
+             The use of rdnCableFftConfigSpinLock is to avoid
+             conflicts with another SNMP command responder
+             application which may also be acting on the
+             rdnCableFftConfigObjects. Setting this object
+             does not provide exclusive access. Other managers
+             will still be able to modify these objects."
+        REFERENCE   "RFC 2579, TestAndIncr"
+        ::= { rdnCableFftConfigObjects 2 }
+        
+rdnCableFftConfigLastTime OBJECT-TYPE
+        SYNTAX      DateAndTime
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The date and time of the last FFT measurement."
+        REFERENCE   "RFC 2579, DateAndTime"
+        ::= { rdnCableFftConfigObjects 3 }
+
+rdnCableFftConfigSamples OBJECT-TYPE
+        SYNTAX      INTEGER  {
+                        samples256  ( 256),
+                        samples512  ( 512),
+                        samples1024 (1024),
+                        samples2048 (2048),
+                        samples4096 (4096)
+                    }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The number of samples used for the FFT measurement.
+             samples4096 is applicable only for DRX."
+        ::= { rdnCableFftConfigObjects 4 }
+
+rdnCableFftConfigOpMode OBJECT-TYPE
+        SYNTAX      INTEGER {
+            tapIn(1),
+            idle-sid(2),
+            hardware(3)
+            }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Set to tapIn(1) to utilize the FFT engine on the extra
+             demodulator, which has its own RF path.
+             tapIn(1) is valid for cmts 2x8
+             idle-sid(2) and hardware(3) are valid for DRX."
+        ::= { rdnCableFftConfigObjects 5 }
+
+rdnCableFftConfigWindow OBJECT-TYPE
+        SYNTAX      INTEGER {
+            rectangular(1),
+            hanning(2),
+            hamming(3),
+            blackman(4),
+            blackman-harris(5)
+            }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The windowing function that is used for this measurement."
+        ::= { rdnCableFftConfigObjects 6 }
+
+rdnCableFftConfigAverage OBJECT-TYPE
+        SYNTAX      INTEGER {
+            avg1(1),
+            avg2(2),
+            avg4(4),
+            avg8(8),
+            avg16(16),
+            avg32(32),
+            avg64(64),
+            avg128(128)
+            }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Average that is used for FFT measurement
+             Applicable only for DRX.
+             Setting This Object's value is not allowed for cmts2x8."
+        ::= { rdnCableFftConfigObjects 7 }
+
+rdnCableFftConfigIngressCanceller OBJECT-TYPE
+        SYNTAX      INTEGER {
+            pre(1),
+            post(2)
+            }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "ingress-canceller-option that is used for FFT measurement
+             Applicable only for DRX.
+             Setting This Object's value is not allowed for cmts2x8."
+        ::= { rdnCableFftConfigObjects 8 }
+
+-- 
+--   rdnCableFftResultTable
+--
+
+rdnCableFftResultTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnCableFftResultEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table provides the statistical data collected
+             as a result of a FFT measurement, initiated by
+             setting rdnCableFftConfigSpinLock.
+
+             This table applies to CMTS 2x8 cards, and to BSR2000.
+
+            "
+        ::= { rdnCableFftGroup 2 }
+
+rdnCableFftResultEntry OBJECT-TYPE
+        SYNTAX      RdnCableFftResultEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of results from a FFT measurement."
+        INDEX {
+                 rdnCableFftResultSampleFreq
+              }
+        ::= { rdnCableFftResultTable 1 }
+
+RdnCableFftResultEntry ::= SEQUENCE {
+            rdnCableFftResultSampleFreq         Integer32,
+            rdnCableFftResultPowerValue         ThousandthdB
+            }
+
+rdnCableFftResultSampleFreq OBJECT-TYPE
+        SYNTAX      Integer32
+        UNITS       "hertz"
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Sample frequency used for the indicated power value."
+        ::= { rdnCableFftResultEntry 1 }
+        
+rdnCableFftResultPowerValue OBJECT-TYPE
+        SYNTAX      ThousandthdB
+        UNITS       "dB"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "FFT power value for this sample frequency."
+        ::= { rdnCableFftResultEntry 2 }
+
+--
+-- rdnCableSnrGroup keeps configuration parameter and test result for SNR 
+-- measurement on 9th receiver feature. rdnCableSpectrumGroup 8 is saved for
+-- FFT feature.
+--
+
+rdnCableSnrGroup OBJECT IDENTIFIER ::= { rdnCableSpectrumGroup 10 }
+
+rdnCableSnrConfigTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnCableSnrConfigEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table allows configuration for SNR tests. These tests
+             are performed on the ninth receiver for diagnostic
+             purposes.
+
+             This table applies to CMTS 2x8 cards, and to BSR2000.
+            "
+        ::= { rdnCableSnrGroup 1 }
+ 
+rdnCableSnrConfigEntry OBJECT-TYPE
+        SYNTAX      RdnCableSnrConfigEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+              "List of attributes for an entry in the
+               rdnCableSnrConfigEntry. An entry in this table exists
+               for each slot/port of 2x8 CMTS."
+        INDEX {
+                ifIndex
+              }
+        ::= {rdnCableSnrConfigTable 1}
+ 
+RdnCableSnrConfigEntry ::= SEQUENCE {
+           rdnCableSnrConfigIdleSpectrumStart            Integer32,
+           rdnCableSnrConfigIdleSpectrumStop             Integer32,
+           rdnCableSnrConfigChannelWidth                 INTEGER,
+           rdnCableSnrConfigEqualization                 INTEGER
+        }
+ 
+rdnCableSnrConfigIdleSpectrumStart OBJECT-TYPE
+        SYNTAX      Integer32  ( 0|5000000..65000000 )
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The start frequency of the idle spectrum from 5 MHZ to 42
+            MHZ for North American standard, 65 MHz for European
+            standard and 10 MHz to 55 MHz for Japanese standard.
+            If value 0 is retrieved for GET operation, it indicates this parameter
+            has never been set. Value 0 is not allowed for SET operation."
+        ::= { rdnCableSnrConfigEntry 1 }
+ 
+rdnCableSnrConfigIdleSpectrumStop OBJECT-TYPE
+        SYNTAX      Integer32  ( 0|5000000..65000000 )
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The end frequency in idle spectrum. The upper limit is 42
+             MHz for North American standard, 65 MHz for European
+             standard and 10 MHz to 55 MHz for Japanese standard.
+             If value 0 is retrieved for GET operation, it indicates this parameter
+            has never been set. Value 0 is not allowed for SET operation."
+        ::= { rdnCableSnrConfigEntry 2 }
+ 
+rdnCableSnrConfigChannelWidth OBJECT-TYPE
+        SYNTAX      INTEGER {
+            channelWidthNotConfiged(0),
+            channelWidth2(400000),
+            channelWidth3(800000),
+            channelWidth4(1600000),
+            channelWidth5(3200000),
+            channelWidth6(6400000)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The spectrum channel width that the SNR tests will be evaluated.
+             If value 0 is retrieved for GET operation, it indicates this parameter
+            has never been set. Value 0 is not allowed for SET operation. "
+        DEFVAL      { 3200000 }
+        ::= { rdnCableSnrConfigEntry 3 }
+ 
+rdnCableSnrConfigEqualization OBJECT-TYPE
+        SYNTAX      INTEGER {
+            on(1),
+            off(2)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Indicates whether equalization will be used for this SNR test. If this 
+             object has not be set, default value on will be displayed."
+        DEFVAL      { on }
+        ::= { rdnCableSnrConfigEntry 4 }
+
+--
+--      rdnCableSnrStartTable
+--
+ 
+
+rdnCableSnrStartTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnCableSnrStartEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table allows activation of SNR test. These tests are
+             performed on the ninth receiver of 2x8 CMTS for diagnostic
+             purposes.
+
+             This table applies to CMTS 2x8 cards, and to BSR2000.
+            "
+        ::= { rdnCableSnrGroup 2 }
+ 
+rdnCableSnrStartEntry OBJECT-TYPE
+        SYNTAX      RdnCableSnrStartEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of attributes for an entry in the rdnCableSnrStartEntry.
+            An entry in this table exists for each sport of each 2x8 CMTS blade."
+        INDEX {
+                 ifIndex
+              }
+        ::= { rdnCableSnrStartTable 1 }
+ 
+RdnCableSnrStartEntry ::= SEQUENCE {
+            rdnCableSnrStart                TruthValue,
+            rdnCableSnrStartCmMac   MacAddress
+        }
+ 
+rdnCableSnrStart OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Setting this object to true(1) causes SNR measurements.
+              Reading the object with value true(1) indicates test in
+             progress, and false(2) indicates no test in progress."
+        ::= { rdnCableSnrStartEntry 1 }
+ 
+rdnCableSnrStartCmMac OBJECT-TYPE
+        SYNTAX      MacAddress
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "MAC address of the reference modem to be used for this SNR 
+             test. If left default, then a CM will be selected from a 
+             pool of registered CMs on this ifIndex. "
+        DEFVAL      { ''H }
+        ::= { rdnCableSnrStartEntry 2 }
+ 
+
+--
+--   SNR Results Group
+--
+
+rdnCableSnrResultsGroup OBJECT IDENTIFIER ::= { rdnCableSnrGroup 3 }
+ 
+rdnCableSnrResultTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnCableSnrResultEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table provides the SNR data directly from the CMTS
+             card. CMTS card only keeps the latest results from an SNR
+             measurement.
+
+             This table applies to CMTS 2x8 cards, and to BSR2000.
+            "
+        ::= { rdnCableSnrResultsGroup 1 }
+ 
+rdnCableSnrResultEntry OBJECT-TYPE
+        SYNTAX      RdnCableSnrResultEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of results from a SNR measurement."
+        INDEX {
+                 ifIndex,
+                 rdnCableSnrResultIndex
+              }
+        ::= { rdnCableSnrResultTable 1 }
+ 
+RdnCableSnrResultEntry ::= SEQUENCE {
+            rdnCableSnrResultIndex                    Integer32,
+            rdnCableSnrResultLastTime                 DateAndTime,
+            rdnCableSnrResultCenterFreq               Integer32,	    
+            rdnCableSnrResultModulationProfile        Integer32,
+	    rdnCableSnrResultModulationType           INTEGER,
+            rdnCableSnrResultEqualization             INTEGER,
+            rdnCableSnrResultSnrValue                 TenthdB
+        }
+ 
+rdnCableSnrResultIndex OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A sequential index of 1 - n, and corresponding essentially
+             to a display line number, as it would appear in the CLI. "
+        ::= { rdnCableSnrResultEntry 1 }
+ 
+rdnCableSnrResultLastTime OBJECT-TYPE
+        SYNTAX      DateAndTime
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The date and time of the last SNR measurement."
+        ::= { rdnCableSnrResultEntry 2 }
+ 
+rdnCableSnrResultCenterFreq OBJECT-TYPE
+        SYNTAX      Integer32 ( 5000000..65000000 )
+        UNITS       "hertz"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Center frequency used for the indicated SNR value."
+        ::= { rdnCableSnrResultEntry 3 }
+
+rdnCableSnrResultModulationProfile OBJECT-TYPE
+        SYNTAX      Integer32 ( 1..600 )
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Modulation profile used for this SNR test result."
+        ::= { rdnCableSnrResultEntry 4 }
+
+rdnCableSnrResultModulationType OBJECT-TYPE
+        SYNTAX      INTEGER{
+               qpsk(1),
+               qam16(2),
+	       qam8(3),
+	       qam32(4),
+	       qam64(5),
+	       qam128(6),
+	       qam256(7)
+          }
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Modulation type used for this SNR test result."
+        ::= { rdnCableSnrResultEntry 5 }
+ 
+rdnCableSnrResultEqualization OBJECT-TYPE
+        SYNTAX      INTEGER {
+            on(1),
+            off(2)
+        }
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Indicates whether equalization used for this SNR test."
+        ::= { rdnCableSnrResultEntry 6 }
+ 
+rdnCableSnrResultSnrValue OBJECT-TYPE
+        SYNTAX      TenthdB
+        UNITS       "dB"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "SNR value for the indicated rdnCableSnrResultIndex."
+        ::= { rdnCableSnrResultEntry 7 }
+
+rdnCableSnrResultModemTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnCableSnrResultModemEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table provides the list of cable modem mac addresses
+             that were selected / specified for the SNR test."
+        ::= { rdnCableSnrResultsGroup 2 }
+ 
+rdnCableSnrResultModemEntry OBJECT-TYPE
+        SYNTAX      RdnCableSnrResultModemEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of modem mac addresses used for SNR test."
+        INDEX {
+                 ifIndex
+              }
+        ::= { rdnCableSnrResultModemTable 1 }
+ 
+RdnCableSnrResultModemEntry ::= SEQUENCE {
+            rdnCableSnrResultSelectedCmMac   MacAddress
+            }
+
+rdnCableSnrResultSelectedCmMac OBJECT-TYPE
+        SYNTAX      MacAddress
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "MAC address of the reference modem that was selected for
+             this SNR test. "
+        ::= { rdnCableSnrResultModemEntry 1 }
+
+
+--
+-- Object to enable/disable SNR traps
+--
+
+rdnCableSnrTrapEnable OBJECT-TYPE
+        SYNTAX      INTEGER {
+                      enabled(1),
+                      disabled(2)
+                    }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Indicates whether SNR measurement traps should be generated.
+             This includes:
+
+                 rdnCableSnrAbortTrap
+                 rdnCableSnrResultReadyTrap"
+
+        DEFVAL { enabled }
+        ::= { rdnCableSnrGroup 4 }
+--
+-- SNR traps
+--
+ 
+rdnCableSnrNotification OBJECT IDENTIFIER ::= { rdnCableSnrGroup 5 }
+
+rdnCableSnrNotificationPrefix OBJECT IDENTIFIER ::= { rdnCableSnrNotification 0 }
+
+rdnCableSnrAbortTrap  NOTIFICATION-TYPE
+        OBJECTS {  ifIndex,
+                   rdnCardIfSlotNumber,
+                   rdnCardIfPortNumber,
+                   rdnCableSnrAbortReason}
+        STATUS  current
+        DESCRIPTION
+               " An event to report SNR measurement failure the 
+                 slot/port and specify the SNR measurement abort 
+                 reason."
+        ::= { rdnCableSnrNotificationPrefix 1 }
+
+rdnCableSnrResultReadyTrap  NOTIFICATION-TYPE
+        OBJECTS {  ifIndex,
+                   rdnCardIfSlotNumber,
+                   rdnCardIfPortNumber}
+        STATUS  current
+        DESCRIPTION
+            "An event to report SNR measurement completion on the slot/port and
+             indicate the test result is ready to be viewed." 
+        ::= { rdnCableSnrNotificationPrefix 2 }
+
+
+-- rdnSnrThresholdTable
+--
+-- This is an expansion table for rdnSpectrumGroupTable, listing SNR threshold
+-- values, per modulation type, for the associated Spectrum Group
+--
+
+
+rdnSnrThresholdTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF RdnSnrThresholdEntry
+        MAX-ACCESS not-accessible
+        STATUS  current
+        DESCRIPTION
+            "This table is an expansion table for the rdnSpectrumGroupTable,
+             and defines the SNR thresholds for each possible modulation type.
+
+             This table applies to CMTS 2x8 cards.
+            "
+ 
+        ::= { rdnCableSpectrumGroup 11 }
+
+rdnSnrThresholdEntry OBJECT-TYPE
+        SYNTAX  RdnSnrThresholdEntry
+        MAX-ACCESS not-accessible
+        STATUS  current
+        DESCRIPTION
+            "A row in the rdnSnrThresholdTable.  
+             This is an expansion table for the rdnSpectrumGroupTable "
+        INDEX 
+        { 
+            rdnSpectrumGroupName, rdnSnrThresholdModulationType
+        }
+
+        ::= {rdnSnrThresholdTable 1 }
+
+        RdnSnrThresholdEntry ::= SEQUENCE
+        {
+            rdnSnrThresholdModulationType  INTEGER,
+            rdnSnrThresholdValue           Unsigned32
+        }
+
+rdnSnrThresholdModulationType OBJECT-TYPE
+        SYNTAX      INTEGER
+        {
+            qpsk(1),
+            qam16(2),   -- ordering here to match rdnCableSnrResultModulationType
+            qam8(3),    -- and to be more consistent with docsIfCmtsModType
+            qam32(4),
+            qam64(5),
+            qam128(6),
+            qam256(7)
+        }
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Modulation type for which this entry in the rdnSnrThresholdTable
+             is setting a threshold value"
+        ::= { rdnSnrThresholdEntry 1 }
+
+
+rdnSnrThresholdValue OBJECT-TYPE
+        SYNTAX      Unsigned32 (12 .. 37)
+        UNITS       "dB"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The SNR threshold is used to determine if a channel is capable of 
+            operating error free in the modulation mode that is specified for 
+            data IUC in the configured modulation profile for the upstream 
+            receiver.
+
+            A default SNR threshold is used for each modulation type. 
+            The operator can override this by configuring a different SNR 
+            threshold for a specific modulation type that is used in the 
+            primary or secondary modulation profile.
+
+            This threshold is used to transition channel states.
+ 
+            SNR thresholds are configurable with a resolution of 1dB.
+
+            The following  table lists default SNR thresholds for the
+            different modulation modes, with no FEC:
+
+                    QPSK                        16dB
+                    8QAM                        19dB
+                   16QAM                        22dB
+                   32QAM                        25dB
+                   64QAM                        28dB
+                   128QAM                       31dB
+                   256QAM                       34dB"
+
+
+        ::= { rdnSnrThresholdEntry 2 }
+
+
+--
+-- Object to enable/disable Spectrum Management Agility traps
+--
+
+rdnCableSpectrumManagementTrapEnable OBJECT-TYPE
+        SYNTAX      INTEGER {
+                      enabled(1),
+                      disabled(2)
+                    }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Indicates whether Spectrum Management traps
+             traps should be generated.  This includes:
+
+                 rdnCableFrequencyHopTrap
+                 rdnCableFrequencyRollbackTrap
+                 rdnCableModulationProfileHopTrap
+                 rdnCableModulationProfileRollbackTrap
+		 rdnCableFrequencyRevertedTrap
+		 rdnCableModulationProfileRevertedTrap	 	 
+                 rdnCableChannelImpairedTrap
+                 rdnCableChannelNormalTrap
+		 rdnCableChannelPendingTrap
+                 rdnCableFrequencyHopFailureTrap
+                 rdnCableModulationProfileHopFailureTrap
+                 rdnCableSpectrumGroupConflictTrap"
+
+        DEFVAL { enabled }
+        ::= { rdnCableSpectrumGroup 12 }
+
+
+
+-- 
+-- Spectrum Management Frequency/Modulation Agility/Rollback Traps
+--
+
+rdnCableAgilityNotification OBJECT IDENTIFIER ::= { rdnCableSpectrumGroup 13 }
+
+rdnCableAgilityNotificationPrefix OBJECT IDENTIFIER ::= { rdnCableAgilityNotification 0 }
+
+
+-- Frequency Agility Trap
+
+rdnCableFrequencyHopTrap  NOTIFICATION-TYPE
+        OBJECTS {  ifIndex,
+                   rdnCardIfSlotNumber,
+                   rdnCardIfPortNumber,
+                   rdnSpectrumGroupName,
+                   rdnSpectrumAgilityOldFrequency,
+                   docsIfUpChannelFrequency,
+                   docsIfUpChannelWidth,
+                   docsIfUpChannelModulationProfile
+                }
+        STATUS  current
+        DESCRIPTION
+            "The BSR Spectrum Management feature has initiated
+             an automatic Frequency change for purposes of
+             noise avoidance.  Severity level = warning(5).
+
+             PARAMETERS:
+
+               ifIndex is the interface index of the upstream physical channel
+               that underwent an automatic frequency change.
+                           
+               rdnCardIfSlotNumber is the chassis slot number of the CMTS card
+               that is associated with the ifIndex parameter.
+
+               rdnCardIfPortNumber is the port number of the receiver
+               that is associated with the ifIndex parameter.
+
+               rdnSpectrumGroupName is the Spectrum Group name associated
+               with the upstream channel that underwent the frequency change.
+
+               rdnSpectrumAgilityOldFrequency is the old frequency to which
+               the upstream channel had been tuned, prior to the frequency change.
+               Presumably, this frequency had an inadequate signal quality,
+               which resulted in the automatic frequency change.
+
+               docsIfUpChannelFrequency is the new frequency to which
+               the upstream channel is tuned, following the frequency change.
+
+               docsIfUpChannelWidth is the channel width for the upstream
+               channel that underwent the frequency change.
+
+               docsIfUpChannelModulationProfile is the modulation profile
+               associated with the upstream channel that underwent the
+               frequency change. " 
+
+        ::= { rdnCableAgilityNotificationPrefix 1 }
+
+-- Frequency Rollback Trap
+
+rdnCableFrequencyRollbackTrap  NOTIFICATION-TYPE
+        OBJECTS {  ifIndex,
+                   rdnCardIfSlotNumber,
+                   rdnCardIfPortNumber,
+                   rdnSpectrumGroupName,
+                   rdnSpectrumAgilityOldFrequency,
+                   docsIfUpChannelFrequency,
+                   docsIfUpChannelWidth,
+                   docsIfUpChannelModulationProfile
+                }
+        STATUS  current
+        DESCRIPTION
+            "The BSR Spectrum Management feature has initiated
+             an automatic Frequency rollback, switching from the
+             spare spectrum, back to the original frequency, after
+             determining that signal-quality has been sufficiently
+             restored on the original frequency.   Severity level = notice(6).
+
+             PARAMETERS:
+
+               ifIndex is the interface index of the upstream physical channel
+               that underwent an automatic frequency rollback.
+                           
+               rdnCardIfSlotNumber is the chassis slot number of the CMTS card
+               that is associated with the ifIndex parameter.
+
+               rdnCardIfPortNumber is the port number of the receiver
+               that is associated with the ifIndex parameter.
+
+               rdnSpectrumGroupName is the Spectrum Group name associated
+               with the upstream channel that underwent the frequency rollback.
+
+               rdnSpectrumAgilityOldFrequency is the spare frequency to which
+               the upstream channel had been tuned, prior to the frequency rollback.
+
+               docsIfUpChannelFrequency is the original frequency to which
+               the upstream channel is once again tuned, following a sufficient
+               improvement in the signal quality.
+
+               docsIfUpChannelWidth is the channel width for the upstream
+               channel that underwent the frequency rollback.
+
+               docsIfUpChannelModulationProfile is the modulation profile
+               associated with the upstream channel that underwent the
+               frequency rollback. " 
+
+        ::= { rdnCableAgilityNotificationPrefix 2 }
+
+
+-- Modulation Profile Agility Trap
+
+rdnCableModulationProfileHopTrap  NOTIFICATION-TYPE
+        OBJECTS {  ifIndex,
+                   rdnCardIfSlotNumber,
+                   rdnCardIfPortNumber,
+                   rdnSpectrumGroupName,
+                   rdnSpectrumAgilityOldModulationProfile,
+                   docsIfUpChannelModulationProfile,
+                   docsIfUpChannelFrequency,
+                   docsIfUpChannelWidth
+
+                }
+        STATUS  current
+        DESCRIPTION
+             "The BSR Spectrum Management feature has initiated
+             an automatic modulation profile hop, for purposes of
+             noise avoidance.  Severity level = warning(5).
+
+             PARAMETERS:
+
+               ifIndex is the interface index of the upstream logical channel
+               that underwent an automatic modulation profile hop.
+                           
+               rdnCardIfSlotNumber is the chassis slot number of the CMTS card
+               that is associated with the ifIndex parameter.
+
+               rdnCardIfPortNumber is the port number of the receiver
+               that is associated with the ifIndex parameter.
+
+               rdnSpectrumGroupName is the Spectrum Group name associated
+               with the upstream channel that underwent the modulation profile hop.
+
+               rdnSpectrumAgilityOldModulationProfile is the modulation profile which
+               the upstream channel had been using, prior to the modulation profile hop.
+
+               docsIfUpChannelModulationProfile is the new modulation profile
+               now in use the upstream channel, following the automatic 
+               modulation profile hop action.
+
+               docsIfUpChannelFrequency is the frequency to which
+               the upstream channel is currently tuned.
+
+               docsIfUpChannelWidth is the channel width for the upstream
+               channel that underwent the modulation profile hop."
+
+
+
+        ::= { rdnCableAgilityNotificationPrefix 3 }
+
+
+-- Modulation Profile Rollback Trap
+
+rdnCableModulationProfileRollbackTrap  NOTIFICATION-TYPE
+
+        OBJECTS {  ifIndex,
+                   rdnCardIfSlotNumber,
+                   rdnCardIfPortNumber,
+                   rdnSpectrumGroupName,
+                   rdnSpectrumAgilityOldModulationProfile,
+                   docsIfUpChannelModulationProfile,
+                   docsIfUpChannelFrequency,
+                   docsIfUpChannelWidth
+
+                }
+        STATUS  current
+        DESCRIPTION
+             "The BSR Spectrum Management feature has initiated
+             an automatic modulation profile rollback, for purposes of
+             noise avoidance.  Severity level = notice(6).
+
+             PARAMETERS:
+
+               ifIndex is the interface index of the upstream logical channel
+               that underwent an automatic modulation profile rollback.
+                           
+               rdnCardIfSlotNumber is the chassis slot number of the CMTS card
+               that is associated with the ifIndex parameter.
+
+               rdnCardIfPortNumber is the port number of the receiver
+               that is associated with the ifIndex parameter.
+
+               rdnSpectrumGroupName is the Spectrum Group name associated
+               with the upstream channel that underwent the modulation profile rollback.
+
+               rdnSpectrumAgilityOldModulationProfile is the modulation profile which
+               the upstream channel had been using, prior to the modulation profile rollback.
+
+               docsIfUpChannelModulationProfile is the new modulation profile
+               now in use the upstream channel, following the automatic 
+               modulation profile rollback.
+
+               docsIfUpChannelFrequency is the frequency to which
+               the upstream channel is currently tuned.
+
+               docsIfUpChannelWidth is the channel width for the upstream
+               channel that underwent the modulation profile rollback."
+
+
+        ::= { rdnCableAgilityNotificationPrefix 4 }
+
+
+-- Frequency Reverted Trap
+
+rdnCableFrequencyRevertedTrap  NOTIFICATION-TYPE
+
+        OBJECTS {  ifIndex,
+                   rdnCardIfSlotNumber,
+                   rdnCardIfPortNumber,
+                   rdnSpectrumGroupName,
+	           rdnSpectrumAgilityFrequency,
+                   docsIfUpChannelFrequency,
+                   docsIfUpChannelWidth,
+                   docsIfUpChannelModulationProfile
+                }
+        STATUS  current
+        DESCRIPTION
+            "The BSR Spectrum Management feature has detected
+	    an upstream port is shutdown or removed from a 
+	    spectrum group.  If the receiver is in any of the agile
+	    states, then the receiver is configured to the configured
+	    frequency.  Severity level = warning(5).
+
+            PARAMETERS:
+
+               ifIndex is the interface index of the upstream 
+               physical channel that is underwent the frequency 
+               change.
+
+               rdnCardIfSlotNumber is the chassis slot number of the 
+               CMTS card that is associated with the ifIndex 
+               parameter.
+
+               rdnCardIfPortNumber is the port number of the receiver 
+               that is associated with the ifIndex parameter.
+
+               rdnSpectrumGroupName is the Spectrum Group name 
+               associated with the upstream channel that underwent 
+               the frequency change.
+
+               rdnSpectrumAgilityFrequency is the old frequency to 
+               which the upstream channel had been tuned to in agile
+	       state.
+
+	       docsIfUpChannelFrequency is the configured frequency to which 
+               the upstream channel is tuned, following the frequency 
+               change.
+
+               docsIfUpChannelWidth is the channel width for the 
+               upstream channel that underwent the frequency change.
+
+               docsIfUpChannelModulationProfile is the modulation 
+               profile associated with the upstream channel that 
+               underwent the frequency change. "
+
+        ::= { rdnCableAgilityNotificationPrefix 5 }
+
+
+-- Modulation Profile Reverted Trap
+
+rdnCableModulationProfileRevertedTrap  NOTIFICATION-TYPE
+
+        OBJECTS {  ifIndex,
+                   rdnCardIfSlotNumber,
+                   rdnCardIfPortNumber,
+                   rdnSpectrumGroupName, 
+	           rdnSpectrumAgilityModulationProfile,                  
+                   docsIfUpChannelModulationProfile,
+                   docsIfUpChannelFrequency,
+                   docsIfUpChannelWidth
+
+                }
+        STATUS  current
+        DESCRIPTION
+             " The BSR Spectrum Management feature has detected
+	     an upstream port is shutdown or removed from a 
+	     spectrum group.  If the receiver is in any of the agile
+	     states, then the receiver is configured to the configured
+	     modulation profile.  Severity level = warning(5).
+
+             PARAMETERS:
+
+               ifIndex is the interface index of the upstream 
+               logical channel that underwent a modulation profile
+	       change.
+
+               rdnCardIfSlotNumber is the chassis slot number of the 
+               CMTS card that is associated with the ifIndex 
+               parameter.
+
+               rdnCardIfPortNumber is the port number of the receiver 
+               that is associated with the ifIndex parameter.
+
+               rdnSpectrumGroupName is the Spectrum Group name 
+               associated with the upstream channel that underwent 
+               the modulation profile hop.
+
+               rdnSpectrumAgilityModulationProfile is the 
+               modulation profile which the upstream channel had been 
+               using in agile state.
+
+	       docsIfUpChannelModulationProfile is the new modulation 
+               profile now in use the upstream channel, following the 
+               modulation profile changed.
+
+               docsIfUpChannelFrequency is the frequency to 
+               which the upstream channel is currently tuned.
+
+               docsIfUpChannelWidth is the channel width for the 
+               upstream channel that underwent the modulation 
+               profile change."
+
+        ::= { rdnCableAgilityNotificationPrefix 6 }
+
+
+-- Channel Impaired Trap
+
+rdnCableChannelImpairedTrap  NOTIFICATION-TYPE
+        OBJECTS {  ifIndex,
+                   rdnCardIfSlotNumber,
+                   rdnCardIfPortNumber,
+                   rdnSpectrumGroupName,
+                   docsIfUpChannelFrequency,
+                   docsIfUpChannelWidth,
+                   docsIfUpChannelModulationProfile
+                }
+        STATUS  current
+        DESCRIPTION
+            "The BSR Spectrum Management feature has detected
+             an upstream channel quality state transition
+             to an impaired state, due to noise.   Severity level =  error(4).
+
+             The channel will continue to operate in the impaired state,
+             though in possibly degraded fashion, until such time as
+             the BSR might be able to undertake a corrective 
+             frequency/modulation profile agility hop action, if such a 
+             hop action is configured.
+
+             PARAMETERS:
+
+               ifIndex is the interface index of the upstream physical channel
+               that is impaired.
+                           
+               rdnCardIfSlotNumber is the chassis slot number of the CMTS card
+               that is associated with the ifIndex parameter.
+
+               rdnCardIfPortNumber is the port number of the receiver
+               that is associated with the ifIndex parameter.
+
+               rdnSpectrumGroupName is the Spectrum Group name associated
+               with the upstream channel that has become impaired.
+
+               docsIfUpChannelFrequency is the frequency to which
+               the impaired upstream channel is tuned.
+
+               docsIfUpChannelWidth is the channel width for the upstream
+               channel that has become impaired.
+
+               docsIfUpChannelModulationProfile is the modulation profile
+               associated with the upstream channel that has become
+               impaired. " 
+
+        ::= { rdnCableAgilityNotificationPrefix 7 }
+
+-- Channel Normal Trap
+
+rdnCableChannelNormalTrap  NOTIFICATION-TYPE
+        OBJECTS {  ifIndex,
+                   rdnCardIfSlotNumber,
+                   rdnCardIfPortNumber,
+                   rdnSpectrumGroupName,
+                   docsIfUpChannelFrequency,
+                   docsIfUpChannelWidth,
+                   docsIfUpChannelModulationProfile
+                }
+        STATUS  current
+        DESCRIPTION
+            "The BSR Spectrum Management feature has detected
+             an upstream channel quality state transition
+             from an impaired state, to normal operating state.
+             Severity level = notice(6).
+
+             PARAMETERS:
+
+               ifIndex is the interface index of the upstream physical channel
+               that is no longer impaired.
+                           
+               rdnCardIfSlotNumber is the chassis slot number of the CMTS card
+               that is associated with the ifIndex parameter.
+
+               rdnCardIfPortNumber is the port number of the receiver
+               that is associated with the ifIndex parameter.
+
+               rdnSpectrumGroupName is the Spectrum Group name associated
+               with the upstream channel.
+
+               docsIfUpChannelFrequency is the frequency for the upstream
+               channel.
+
+               docsIfUpChannelWidth is the channel width for the upstream
+               channel.
+
+               docsIfUpChannelModulationProfile is the modulation profile
+               associated with the upstream channel."
+
+        ::= { rdnCableAgilityNotificationPrefix 8 }
+
+
+-- Channel Pending Trap
+
+rdnCableChannelPendingTrap  NOTIFICATION-TYPE
+        OBJECTS {  ifIndex,
+                   rdnCardIfSlotNumber,
+                   rdnCardIfPortNumber,
+                   rdnSpectrumGroupName,
+                   docsIfUpChannelFrequency,
+                   docsIfUpChannelWidth,
+                   docsIfUpChannelModulationProfile
+                }
+        STATUS  current
+        DESCRIPTION
+            "The BSR Spectrum Management feature does not know an 
+            upstream channel quality state either Normal or Impaired.  Once
+            the state is known, it will transition out of Pending state.
+            Severity level = notice(6).
+
+            PARAMETERS:
+
+               ifIndex is the interface index of the upstream 
+               physical channel that is in pending state.  
+
+               rdnCardIfSlotNumber is the chassis slot number of the 
+               CMTS card that is associated with the ifIndex 
+               parameter.
+
+               rdnCardIfPortNumber is the port number of the receiver 
+               that is associated with the ifIndex parameter.
+
+               rdnSpectrumGroupName is the Spectrum Group name 
+               associated with the upstream channel.
+
+               docsIfUpChannelFrequency is the frequency for the 
+               upstream channel.
+
+               docsIfUpChannelWidth is the channel width for the 
+               upstream channel.
+
+               docsIfUpChannelModulationProfile is the modulation 
+               profile associated with the upstream channel."
+
+
+        ::= { rdnCableAgilityNotificationPrefix 9 }
+
+
+-- Frequency Hop Failure Trap
+
+rdnCableFrequencyHopFailureTrap  NOTIFICATION-TYPE
+        OBJECTS {  ifIndex,
+                   rdnCardIfSlotNumber,
+                   rdnCardIfPortNumber,
+                   rdnSpectrumGroupName,
+                   rdnSpectrumAgilityOldFrequency,
+                   docsIfUpChannelFrequency,
+                   docsIfUpChannelWidth,
+                   docsIfUpChannelModulationProfile,
+                   rdnCableAgilityHopAbortReason
+                }
+        STATUS  current
+        DESCRIPTION
+            "The BSR Spectrum Management feature attempted to initiate
+             an automatic frequency hop action, for purposes of noise avoidance,
+             but the hop attempt failed.   The frequency of the upstream channel
+             is unchanged.  Severity level =  error(4).
+
+             PARAMETERS:
+
+               ifIndex is the interface index of the upstream physical channel
+               that attempted an automatic frequency change.
+                           
+               rdnCardIfSlotNumber is the chassis slot number of the CMTS card
+               that is associated with the ifIndex parameter.
+
+               rdnCardIfPortNumber is the port number of the receiver
+               that is associated with the ifIndex parameter.
+
+               rdnSpectrumGroupName is the Spectrum Group name associated
+               with the upstream channel that attempted the frequency change.
+
+               rdnSpectrumAgilityOldFrequency is the frequency to which
+               the upstream channel was tuned, before the attempted
+               frequency change.  Presumably, this frequency had an inadequate 
+               signal quality, which resulted in the attempted frequency 
+               change.  The receiver will still be tuned to this frequency,
+               because of the hop failure.
+
+               docsIfUpChannelFrequency is the new frequency which
+               the failed hop action had attempted to set for the
+               upstream channel
+
+               docsIfUpChannelWidth is the channel width for the upstream
+               channel that attempted the frequency change.
+
+               docsIfUpChannelModulationProfile is the modulation profile
+               associated with the upstream channel that attempted the
+               frequency change. 
+
+               rdnCableAgilityHopAbortReason describes the reason that 
+               the frequency hop failed" 
+
+        ::= { rdnCableAgilityNotificationPrefix 10 }
+
+
+-- Modulation Profile Hop Failure Trap
+
+rdnCableModulationProfileHopFailureTrap  NOTIFICATION-TYPE
+        OBJECTS {  ifIndex,
+                   rdnCardIfSlotNumber,
+                   rdnCardIfPortNumber,
+                   rdnSpectrumGroupName,
+                   rdnSpectrumAgilityOldModulationProfile,
+                   docsIfUpChannelModulationProfile,
+                   docsIfUpChannelFrequency,
+                   docsIfUpChannelWidth,
+                   rdnCableAgilityHopAbortReason
+
+                }
+        STATUS  current
+        DESCRIPTION
+             "The BSR Spectrum Management feature attempted
+             an automatic modulation profile hop, for purposes of
+             noise avoidance, but the hop failed.  Severity level =  error(4).
+
+             PARAMETERS:
+
+               ifIndex is the interface index of the upstream logical channel
+               that attempted an automatic modulation profile hop.
+                           
+               rdnCardIfSlotNumber is the chassis slot number of the CMTS card
+               that is associated with the ifIndex parameter.
+
+               rdnCardIfPortNumber is the port number of the receiver
+               that is associated with the ifIndex parameter.
+
+               rdnSpectrumGroupName is the Spectrum Group name associated
+               with the upstream channel that attempted the modulation profile hop.
+
+               rdnSpectrumAgilityOldModulationProfile is the modulation profile 
+               the upstream channel (unchanged).
+
+               docsIfUpChannelModulationProfile is the new modulation profile
+               for the upstream channel, that the failed hop action had attempted
+               to set.
+
+               docsIfUpChannelFrequency is the frequency to which
+               the upstream channel is currently tuned.
+
+               docsIfUpChannelWidth is the channel width for the upstream
+               channel that attempted the modulation profile hop.
+
+               rdnCableAgilityHopAbortReason describes the reason that 
+               the frequency hop failed" 
+
+
+
+        ::= { rdnCableAgilityNotificationPrefix 11 }
+
+
+-- Spectrum Group Conflict Trap
+
+rdnCableSpectrumGroupConflictTrap  NOTIFICATION-TYPE
+        OBJECTS {
+                   rdnSpectrumGroupConflictType,
+                   rdnSpectrumGroupConflictDescription,
+                   rdnSpectrumGroupName
+                }
+        STATUS  current
+        DESCRIPTION
+             "This trap reports an attempt by the operator to make a
+              configuration change that would have created a conflict
+              for a related spectrum group.  Severity level =  error(4).
+
+              In all such cases, the attempted configuration attempt
+              has been rejected, and the configuration is unchanged.
+
+              PARAMETERS:
+
+               rdnSpectrumGroupConflictType indicates the type of
+               conflict that occurred.
+
+               rdnSpectrumGroupConflictDescription is a string description to give
+               detailed information about the conflict.
+
+               rdnSpectrumGroupName is the Spectrum Group name involved
+               in the failed configuration attempt."
+
+
+        ::= { rdnCableAgilityNotificationPrefix 12 }
+
+
+--
+-- rdnCableSnrNotificationObjects
+--
+
+rdnCableSnrNotificationObjects OBJECT IDENTIFIER ::= { rdnCableSnrGroup 6 }
+
+rdnCableSnrAbortReason OBJECT-TYPE
+        SYNTAX      INTEGER {
+                        enableRxFreqInIdleSpectrum (0),
+                        addedRxFreqInIdleSpectrum (1),
+                        chanWidthChangeAffectsSNR (2),
+                        rxFreqChangeInIdleSpectrum (3),
+                        snrInProgressRxShutdown (4),
+                        spareChannelEvaluationRequest (5)
+                    }
+        MAX-ACCESS  accessible-for-notify
+        STATUS      current
+        DESCRIPTION
+            "This entry contains the rdnCableSnrAbortTrap reason code:
+
+                 enableRxFreqInIdleSpectrum (0) indicates that the operator
+                      enabled a receiver, for which the assigned frequency
+                      might have conflicted with an SNR test that was
+                      that was already in progress, in the same spectrum group.
+
+                 addedRxFreqInIdleSpectrum (1) means that the operator added
+                      a new receiver to a spectrum group, for which the 
+                      assigned frequency might have conflicted with an SNR 
+                      test that was in progress.
+                      
+                 chanWidthChangeAffectsSNR (2) means that the operator set a 
+                      new, larger channel width that might have conflicted 
+                      with an SNR test that was already in progress.
+
+                 rxFreqChangeInIdleSpectrum (3) means that the operator set a
+                     new center frequency for a receiver, conflicting with the
+                     range of idle spectrum for an SNR test that was already 
+                     in progress.
+
+                 snrInProgressRxShutdown (4) means that the operator shutdown
+                     the primary receiver, for which the RFSentry
+                     already had an SNR test in progress.
+
+                 spareChannelEvaluationRequest (5) means that the SNR test
+                     was automatically preempted by the software, in order 
+                     to evaluate spare spectrum for purposes of performing
+                     an agility hopping action on an impaired channel."
+
+
+        ::= { rdnCableSnrNotificationObjects 1 }
+
+
+rdnCableAgilityNotificationObjects OBJECT IDENTIFIER ::= { rdnCableSpectrumGroup  14 }
+
+rdnSpectrumAgilityOldFrequency OBJECT-TYPE
+        SYNTAX      Integer32 (0..1000000000)
+        UNITS       "hertz"
+        MAX-ACCESS  accessible-for-notify
+        STATUS      current
+        DESCRIPTION
+            "The frequency to which the upstream channel
+             was tuned, prior to the frequency agility hop or rollback.
+
+             In the case of a frequency hop, this frequency presumably 
+             had inadequate signal quality, which caused a frequency 
+             change.
+        
+             In the case of a frequency rollback, this object
+             represents the spare spectrum which had been in use,
+             prior to the rollback.  This frequency did not necessarily
+             have any problem with signal quality.  However,
+             signal quality had improved under the original
+             frequency sufficiently to allow a reversion to
+             that frequency. "
+
+        ::= { rdnCableAgilityNotificationObjects 1 }
+
+
+rdnSpectrumAgilityOldModulationProfile OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  accessible-for-notify
+        STATUS      current
+        DESCRIPTION
+            "The modulation profile which was in use on the upstream channel
+             prior to the modulation profile agility hop or rollback.
+
+             In the case of a modulation profile hop, signal quality
+             had been inadequate when the channel had been using this
+             modulation profile.  This resulted a hop action.
+        
+             In the case of a modulation profile rollback, this object
+             represents the modulation profile that had been in use
+             prior to the rollback, and which had been previously selected
+             by a modulation profile agility hop action.  The old modulation
+             profile did not necessarily have any problem with signal quality.
+             However, the original modulation profile improved sufficiently
+             to allow a reversion to that profile."
+
+        ::= { rdnCableAgilityNotificationObjects 2 }
+
+
+rdnCableAgilityHopAbortReason OBJECT-TYPE
+        SYNTAX      INTEGER 
+                    {
+                        invalidSnrResults(0),
+                        spareFrequencyInUse(1),
+                        spareFrequencyPoorQuality(2),
+                        snrTimeout(3),
+                        modProfileChanTypeMismatch(4),
+                        modProfileNotOptimal(5)
+                    }
+        MAX-ACCESS  accessible-for-notify
+        STATUS      current
+        DESCRIPTION
+            "This entry contains a reason code for the 
+             rdnCableFrequencyHopFailureTrap or 
+             rdnCableModulationProfileHopFailureTrap.
+
+             invalidSnrResults(0) means that the SNR measurement of the spare 
+             frequency failed, for an attempted frequency hop, for any reason.
+      
+             spareFrequencyInUse(1) means that the spare frequency assessed
+             by the CMTS card is in use by another receiver in the spectrum group.
+
+             spareFrequencyPoorQuality(2) means that the spare frequency for 
+             an attempted frequency hop was too noisy to run at the optimal 
+             modulation level, and needed to be downgraded by an additional
+             modulation hop. The frequency hop action itself DID occur, and should
+             have produced a separate  rdnCableFrequencyHopTrap.
+             The rdnCableFrequencyHopFailureTrap in this case is simply warning
+             that the new frequency is running a lower modulation.
+            
+             snrTimeout(3) means that the SNR measurement did not complete
+             on the spare spectrum, for a frequency hop (no response).
+
+             modProfileChanTypeMismatch(4) means that the BSR attempted to do a 
+             modulation profile hop, and found a number of configured 
+             configured hops, but none of the profiles had an appropriate
+             channel type.  No modulation profile hop took place.  For this status,
+             the docsIfUpChannelModulationProfile varbind will show a dummy value
+             of 0.
+
+             modProfileNotOptimal(5) means that a modulation profile hop DID take
+             place, but the BSR could not find a profile having a modulation level 
+             that was appropriate for the impaired channel, based on the 
+             configured SNR threshold levels.  The BSR did the next-best thing, 
+             by using the lowest of the modulation level that it could find.
+            "
+             ::= { rdnCableAgilityNotificationObjects 3 }
+
+
+rdnSpectrumGroupConflictType OBJECT-TYPE
+        SYNTAX      INTEGER {
+                        newMemberFreqOverlap(1),
+                        invalidChannelTypeMix(2),
+                        freqOverlapsExistingMember(3),
+                        hopFrequencyInUse(4),
+                        hopModulationInUse(5),
+                        hopSpareAssessInProgress(6),
+                        chanIsAgile(7),
+                        chanWidthOverlap(8),
+                        internalError(9)
+                    }
+        MAX-ACCESS  accessible-for-notify
+        STATUS      current
+        DESCRIPTION
+
+            "This entry contains the type of conflict that resulted in
+             a rdnCableSpectrumGroupConflictTrap:
+
+             newMemberFreqOverlap (1) indicates an attempt to add a 
+             member channel to a spectrum group, when the assigned 
+             frequency of the prospective member channel would have 
+             overlapped with an existing frequency hop action definition, 
+             or the frequency in use by an existing member channel.  
+
+             invalidChannelTypeMix (2) indicates an attempt to add a 2x8 
+             CMTS member channel to a spectrum group that contains 1x4 or 
+             1x8 CMTS channels, or vice-versa.
+
+
+             freqOverlapsExistingMember (3) indicates an  attempt to set 
+             a frequency for a channel that is a member of a spectrum 
+             group, and the frequency would conflict with an another 
+             channel in the same spectrum group that is already using 
+             that frequency.
+
+
+             hopFrequencyInUse (4) indicates an attempt to delete a hop 
+             action frequency or band from a spectrum group configuration, 
+             when a frequency in this range is currently in use as a 
+             result of a hopping action.  In order to achieve the desired 
+             deletion, the operator must explicitly remove the frequency 
+             from use, before updating the spectrum group.
+
+             hopModulationInUse(5) indicates an attempt to delete a 
+             modulation profile hop action from a spectrum group 
+             configuration, when the modulation profile is already in use, 
+             as a result of a hopping action.
+
+             hopSpareAssessInProgress(6) indicates that the requested operation
+             could not be performed because a spare channel assessment was 
+             already in progress.
+
+             channelIsAgile(7) means that the requested operation on a
+             member channel is not allowed because the channel is in a 
+             frequency or modulation-agile state.
+
+             chanWidthOverlap(8) means that an attempted change to a channel
+             width of a member channel would cause a conflict within the
+             Spectrum Group, for another member channel or a configured 
+             hop action.
+
+             internalError(9) implies an internal software or hardware error.
+             This is an unexpected error type, so report to Motorola, if it
+             ever occurs.
+            "
+
+
+        ::= { rdnCableAgilityNotificationObjects 4 }
+
+
+rdnSpectrumGroupConflictDescription OBJECT-TYPE
+        SYNTAX      SnmpAdminString
+        MAX-ACCESS  accessible-for-notify
+        STATUS      current
+        DESCRIPTION
+            "Describes the exact failure cause for an attempted configuration
+             change that would have resulted in a conflict for the associated
+             Spectrum Group.   This includes applicable information such as
+             interface index values, frequencies, and modulation profiles
+             that are involved.
+            "
+        ::= { rdnCableAgilityNotificationObjects 5 }
+
+
+rdnSpectrumAgilityFrequency OBJECT-TYPE
+        SYNTAX      Integer32 (0..1000000000)
+        UNITS       "hertz"
+        MAX-ACCESS  accessible-for-notify
+        STATUS      current
+        DESCRIPTION
+            "The frequency to which the upstream channel
+             was tuned for the frequency agility."
+
+        ::= { rdnCableAgilityNotificationObjects 6 }
+
+
+rdnSpectrumAgilityModulationProfile OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  accessible-for-notify
+        STATUS      current
+        DESCRIPTION
+            "The modulation profile which was in use on the upstream channel
+             for the modulation profile agility."
+
+        ::= { rdnCableAgilityNotificationObjects 7 }
+
+
+rdnModemExclusionGroup OBJECT IDENTIFIER ::= { rdnCableSpectrumGroup 15 }
+
+
+rdnModemExclusionTimeStamp OBJECT-TYPE
+
+        SYNTAX DateAndTime
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "Timestamp indicating when this Cable Modem Exclusion List
+             (rdnModemExclusionTable) was built
+            "
+        ::= { rdnModemExclusionGroup 1 }
+
+
+--- rdnModemExclusionTable:  
+--- 
+---    Display Modem Exclusion List
+---    This is a counterpart to the CLI
+---    "show cable spectrum-group sg1 modem-exclusion-list"
+
+rdnModemExclusionTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnModemExclusionEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Show list of low SNR modems(s) not allowed to be used for 
+             channel assessment"
+
+        ::= { rdnModemExclusionGroup 2 }
+
+rdnModemExclusionEntry OBJECT-TYPE
+        SYNTAX      RdnModemExclusionEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+              "List of attributes for an entry in the rdnModemExclusionEntry.
+               This table has 3 index values:
+
+                  1) Spectrum group id.
+
+                  2) ifIndex is the interface index of the upstream physical channel
+                     that is associated with the spectrum group.
+
+                  3) Modem Exclusion index for each upstream.
+              "
+        INDEX {
+                rdnSpectrumGroupId,
+		ifIndex,
+		rdnModemExclusionEntryIndex
+              }
+        ::= {rdnModemExclusionTable 1}
+
+RdnModemExclusionEntry ::= SEQUENCE 
+        {
+	    rdnModemExclusionEntryIndex          Integer32,
+            rdnModemExclusionSpectrumGroupName   DisplayString,
+            rdnModemExclusionSpectrumGroupId     Unsigned32,
+	    rdnModemExclusionSpectrumGroupIface  DisplayString,
+            rdnModemExclusionMacAddress          MacAddress,
+            rdnModemExclusionSnrValue            TenthdB,
+            rdnModemExclusionIPv4Addr            InetAddressIPv4,
+            rdnModemExclusionIPv6Addr            InetAddressIPv6
+        }
+
+
+rdnModemExclusionEntryIndex OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A sequential index of 1 - n, and corresponding essentially
+             to a display line number, as it would appear in the CLI. "
+        ::= { rdnModemExclusionEntry 1 }
+
+rdnModemExclusionSpectrumGroupName OBJECT-TYPE
+        SYNTAX      DisplayString  ( SIZE (1..20) )
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The text name of the spectrum group,
+             associated with this excluded modem"
+        ::= { rdnModemExclusionEntry 2 }
+
+rdnModemExclusionSpectrumGroupIface OBJECT-TYPE
+        SYNTAX      DisplayString  ( SIZE (1..20) )
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The text name of the cable interface,
+             associated with this excluded modem"
+        ::= { rdnModemExclusionEntry 3 }
+
+rdnModemExclusionSpectrumGroupId OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The number index for the spectrum group,
+             that is associated with the excluded modem.
+            "
+        ::= { rdnModemExclusionEntry 4 }
+
+rdnModemExclusionMacAddress OBJECT-TYPE
+        SYNTAX      MacAddress
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "MAC address of Cable Modem on Exclusion List.
+            "
+
+        ::= { rdnModemExclusionEntry 5 }
+
+rdnModemExclusionSnrValue OBJECT-TYPE
+        SYNTAX      TenthdB
+        UNITS       "dB"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "SNR value for Cable Modem on the Exclusion List"
+        ::= { rdnModemExclusionEntry 7 }
+
+rdnModemExclusionIPv4Addr OBJECT-TYPE
+         SYNTAX      InetAddressIPv4
+         MAX-ACCESS read-only
+         STATUS      current
+         DESCRIPTION
+          "IPv4 address of this Cable Modem on the Exclusion List."
+          ::= { rdnModemExclusionEntry 8 }
+
+rdnModemExclusionIPv6Addr OBJECT-TYPE
+         SYNTAX      InetAddressIPv6
+         MAX-ACCESS read-only
+         STATUS      current
+         DESCRIPTION
+           "IPv6 address of this Cable Modem on the Exclusion List."
+        ::= { rdnModemExclusionEntry 9 }
+
+rdnReferenceModemGroup  OBJECT IDENTIFIER ::= { rdnCableSpectrumGroup 16 }
+
+--- rdnReferenceModemTable:  
+--- 
+---    Display Reference Modem List
+---    This is a counterpart to the CLI
+---    "show cable spectrum-group sg1 reference-modem"
+
+
+rdnReferenceModemTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnReferenceModemEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Show reference modems(s) being used for channel assessment"
+        ::= { rdnReferenceModemGroup 1 }
+
+
+rdnReferenceModemEntry OBJECT-TYPE
+        SYNTAX      RdnReferenceModemEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+              "List of attributes for an entry in the rdnReferenceModemEntry.
+               This table has 2 index values:
+
+                  1) Spectrum group id.
+
+                  2) ifIndex is the interface index of the upstream physical channel
+                     that is associated with the spectrum group.
+
+                  3) Reference Modem index for each upstream.
+              "
+        INDEX {
+                rdnSpectrumGroupId,
+		ifIndex,
+		rdnReferenceModemEntryIndex
+              }
+        ::= {rdnReferenceModemTable 1}
+
+RdnReferenceModemEntry ::= SEQUENCE 
+        {
+	    rdnReferenceModemEntryIndex          Integer32,
+            rdnReferenceModemSpectrumGroupName   DisplayString,
+            rdnReferenceModemSpectrumGroupId     Unsigned32,
+	    rdnReferenceModemSpectrumGroupIface  DisplayString,
+            rdnReferenceModemMacAddress          MacAddress,
+            rdnReferenceModemSnrValue            TenthdB,
+            rdnReferenceModemIPv4Addr            InetAddressIPv4,
+            rdnReferenceModemIPv6Addr            InetAddressIPv6
+        }
+
+
+rdnReferenceModemEntryIndex OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The modem index into the reference modem array."
+        ::= { rdnReferenceModemEntry 1 }
+
+rdnReferenceModemSpectrumGroupName OBJECT-TYPE
+        SYNTAX      DisplayString  ( SIZE (1..20) )
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The text name of the spectrum group,
+             associated with this reference modem
+            "
+        ::= { rdnReferenceModemEntry 2 }
+
+rdnReferenceModemSpectrumGroupId OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The number index for the spectrum group,
+             that is associated with the reference modem.
+            "
+        ::= { rdnReferenceModemEntry 3 }
+
+rdnReferenceModemSpectrumGroupIface OBJECT-TYPE
+        SYNTAX      DisplayString  ( SIZE (1..20) )
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The text name of the cable interface,
+             associated with this excluded modem"
+        ::= { rdnReferenceModemEntry 4 }
+
+rdnReferenceModemMacAddress OBJECT-TYPE
+        SYNTAX      MacAddress
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "MAC address of Reference Modem.
+            "
+
+        ::= { rdnReferenceModemEntry 5 }
+
+rdnReferenceModemSnrValue OBJECT-TYPE
+        SYNTAX      TenthdB
+        UNITS       "dB"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "SNR value for Reference Modem"
+        ::= { rdnReferenceModemEntry 6 }
+
+rdnReferenceModemIPv4Addr OBJECT-TYPE
+         SYNTAX      InetAddressIPv4
+         MAX-ACCESS  read-only
+         STATUS      current
+         DESCRIPTION
+             "IPv4 address of this Reference Modem."
+         ::= { rdnReferenceModemEntry 7 }
+
+rdnReferenceModemIPv6Addr OBJECT-TYPE
+         SYNTAX      InetAddressIPv6
+         MAX-ACCESS  read-only
+         STATUS      current
+         DESCRIPTION
+             "IPv6 address of this Reference Modem."
+        ::= { rdnReferenceModemEntry 8 }
+
+
+--
+-- SNR loop test
+--
+
+rdnCableSnrLoopTestTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnCableSnrLoopTestEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table allows configuration of automatically
+             repeated SNR tests, using a specified loop count
+             and a specified center frequency. 
+             These tests are performed on the ninth receiver for 
+             diagnostic purposes.
+
+             This table applies to CMTS 2x8 cards, and to BSR2000.
+            "
+        ::= { rdnCableSnrGroup 7 }
+ 
+rdnCableSnrLoopTestEntry OBJECT-TYPE
+        SYNTAX      RdnCableSnrLoopTestEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+              "List of attributes for an entry in the
+               rdnCableSnrLoopTestEntry. An entry in this table exists
+               for each slot/port of 2x8 CMTS."
+        INDEX {
+                ifIndex
+              }
+        ::= { rdnCableSnrLoopTestTable 1}
+ 
+RdnCableSnrLoopTestEntry ::= SEQUENCE 
+        {
+           rdnCableSnrLoopTestLoopCount                   INTEGER,
+           rdnCableSnrLoopTestCenterFrequency             Integer32,
+           rdnCableSnrLoopTestChannelWidth                INTEGER,
+           rdnCableSnrLoopTestCmMac                       MacAddress,                     
+           rdnCableSnrLoopTestIngressCancellation         INTEGER,
+           rdnCableSnrLoopTestEqualization                INTEGER,
+           rdnCableSnrLoopTestDataPattern                 INTEGER,
+           rdnCableSnrLoopStart                           TruthValue
+        }
+ 
+rdnCableSnrLoopTestLoopCount       OBJECT-TYPE
+        SYNTAX      INTEGER  (0 | 1..100)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Number of times to repeat SNR measurements, using a configuration
+             as specified by the rdnCableSnrLoopTestTable.
+
+             A value of 0 is read-only, and means that the loop test 
+             is not configured"
+         ::= { rdnCableSnrLoopTestEntry 1 }
+
+rdnCableSnrLoopTestCenterFrequency OBJECT-TYPE
+        SYNTAX      Integer32  (0 |  5000000..65000000 )
+        UNITS       "hertz"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The center frequency from 5 MHZ to 42
+            MHZ for North American standard, or 65 MHz for European
+            standard.
+
+            If value 0 is retrieved for GET operation, it indicates this parameter
+            has never been set. Value 0 is not allowed for SET operation."
+        ::= { rdnCableSnrLoopTestEntry 2 }
+ 
+rdnCableSnrLoopTestChannelWidth OBJECT-TYPE
+        SYNTAX      INTEGER 
+        {
+            channelWidthNotConfiged(0),
+            channelWidth2(400000),
+            channelWidth3(800000),
+            channelWidth4(1600000),
+            channelWidth5(3200000),
+            channelWidth6(6400000)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The spectrum channel width that the SNR tests will be evaluated.
+             If value 0 is retrieved for GET operation, it indicates this parameter
+            has never been set. Value 0 is not allowed for SET operation. "
+        DEFVAL      { 3200000 }
+        ::= { rdnCableSnrLoopTestEntry 3 }
+ 
+rdnCableSnrLoopTestCmMac OBJECT-TYPE
+        SYNTAX      MacAddress
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "MAC address of the reference modem to be used for this SNR 
+             loop test. If left to default, then a CM will be selected from 
+             a pool of registered CMs on this ifIndex. "
+        DEFVAL      { '000000000000'H }
+        ::= { rdnCableSnrLoopTestEntry 4 }
+
+rdnCableSnrLoopTestIngressCancellation OBJECT-TYPE
+        SYNTAX      INTEGER 
+        {
+            on(1),
+            off(2)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Indicates whether ingress cancellation will be used for this SNR test."
+        DEFVAL      { off } 
+        ::= { rdnCableSnrLoopTestEntry 5 }
+ 
+rdnCableSnrLoopTestEqualization OBJECT-TYPE
+        SYNTAX      INTEGER 
+        {
+            on(1),
+            off(2)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Indicates whether equalization will be used for this SNR test."
+        DEFVAL      { on }
+        ::= { rdnCableSnrLoopTestEntry 6 }
+
+rdnCableSnrLoopTestDataPattern OBJECT-TYPE
+        SYNTAX      INTEGER 
+        {
+            ranging(1)
+--          Other patterns will be provided in future
+        }
+
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Data pattern to use for the SNR loop measurements." 
+        DEFVAL      { ranging }
+
+        ::= { rdnCableSnrLoopTestEntry 7 }
+
+rdnCableSnrLoopStart OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Setting this object to true(1) causes repeated SNR measurements,
+             with a loop count as indicated by rdnCableSnrLoopTestLoopCount,
+             and using a configuration as specified by the other row members
+             of rdnCableSnrLoopTestTable.
+             Reading the object with value true(1) indicates test in
+             progress, and false(2) indicates no test in progress."
+
+        ::= { rdnCableSnrLoopTestEntry 8 }
+
+
+
+--
+--   rdnCableSnrLoopResultTable
+--
+ 
+rdnCableSnrLoopResultTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnCableSnrLoopResultEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table provides the SNR loop test results,
+             for a test previously initiated through the 
+             rdnCableSnrLoopTestTable.   Results are reported 
+             directly from the CMTS card(s).
+
+             This table applies to CMTS 2x8 cards, and to BSR2000.
+            "
+        ::= { rdnCableSnrGroup 8 }
+ 
+rdnCableSnrLoopResultEntry OBJECT-TYPE
+        SYNTAX      RdnCableSnrLoopResultEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of results from SNR loop test measurements."
+        INDEX {
+                 ifIndex
+              }
+        ::= { rdnCableSnrLoopResultTable 1 }
+ 
+RdnCableSnrLoopResultEntry ::= SEQUENCE {
+            rdnCableSnrLoopResultLoopCount                INTEGER,
+            rdnCableSnrLoopResultCenterFreq               Integer32,
+            rdnCableSnrLoopResultChannelWidth             INTEGER,
+            rdnCableSnrLoopResultModulationProfile        Integer32,
+            rdnCableSnrLoopResultCmMac                    MacAddress,
+            rdnCableSnrLoopResultIngressCancellation      INTEGER,
+            rdnCableSnrLoopResultEqualization             INTEGER,
+            rdnCableSnrLoopResultDataPattern              INTEGER,
+            rdnCableSnrLoopResultMaxSnrValue              TenthdB,
+            rdnCableSnrLoopResultMinSnrValue              TenthdB,
+            rdnCableSnrLoopResultAvSnrValue               TenthdB,
+            rdnCableSnrLoopResultLastTime                 DateAndTime
+        }
+ 
+rdnCableSnrLoopResultLoopCount   OBJECT-TYPE
+        SYNTAX      INTEGER  (1..100)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Number of times that SNR looping test repeated measurements."
+         ::= { rdnCableSnrLoopResultEntry 1 }
+
+rdnCableSnrLoopResultCenterFreq OBJECT-TYPE
+        SYNTAX      Integer32 ( 5000000..65000000 )
+        UNITS       "hertz"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Center frequency associated with the
+             max/min/average SNR values."
+        ::= { rdnCableSnrLoopResultEntry 2 }
+ 
+rdnCableSnrLoopResultChannelWidth OBJECT-TYPE
+        SYNTAX      INTEGER 
+        {
+            channelWidthNotConfiged(0),
+            channelWidth2(400000),
+            channelWidth3(800000),
+            channelWidth4(1600000),
+            channelWidth5(3200000),
+            channelWidth6(6400000)
+        }
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The spectrum channel width associated with the SNR max/min/average values. "
+        ::= { rdnCableSnrLoopResultEntry 3 }
+
+rdnCableSnrLoopResultModulationProfile OBJECT-TYPE
+        SYNTAX      Integer32 ( 1..600 )
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Modulation profile associated with the SNR max/min/average values."
+        ::= { rdnCableSnrLoopResultEntry 4 }
+
+rdnCableSnrLoopResultCmMac OBJECT-TYPE
+        SYNTAX      MacAddress
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "MAC address of the reference modem that was selected
+             for  this SNR loop test."
+        ::= { rdnCableSnrLoopResultEntry 5 }
+
+ 
+rdnCableSnrLoopResultIngressCancellation OBJECT-TYPE
+        SYNTAX      INTEGER 
+        {
+            on(1),
+            off(2)
+        }
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Indicates whether ingress cancellation used for this
+             SNR loop test."
+        ::= { rdnCableSnrLoopResultEntry 6 }
+ 
+rdnCableSnrLoopResultEqualization OBJECT-TYPE
+        SYNTAX      INTEGER 
+        {
+            on(1),
+            off(2)
+        }
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Indicates whether equalization was used for this SNR loop test."
+        ::= { rdnCableSnrLoopResultEntry 7 }
+
+rdnCableSnrLoopResultDataPattern OBJECT-TYPE
+        SYNTAX      INTEGER 
+        {
+            ranging(1)
+--          Other patterns will be provided in future
+        }
+
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Data pattern that was used for the SNR loop measurements." 
+
+        ::= { rdnCableSnrLoopResultEntry 8 }
+
+ 
+rdnCableSnrLoopResultMaxSnrValue OBJECT-TYPE
+        SYNTAX      TenthdB
+        UNITS       "dB"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Maximum SNR value for this loop test"
+        ::= { rdnCableSnrLoopResultEntry 9 }
+
+rdnCableSnrLoopResultMinSnrValue OBJECT-TYPE
+        SYNTAX      TenthdB
+        UNITS       "dB"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Minimum SNR value for this loop test"
+        ::= { rdnCableSnrLoopResultEntry 10 }
+
+rdnCableSnrLoopResultAvSnrValue OBJECT-TYPE
+        SYNTAX      TenthdB
+        UNITS       "dB"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Average SNR value for this loop test"
+        ::= { rdnCableSnrLoopResultEntry 11 }
+
+
+rdnCableSnrLoopResultLastTime OBJECT-TYPE
+        SYNTAX      DateAndTime
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The date and time when last SNR loop test began."
+        ::= { rdnCableSnrLoopResultEntry 12 }
+
+---
+--- mod prof table
+---
+
+rdnCableSnrModulationProfileTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnCableSnrModulationProfileEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table allows configuration of the modulation profile 
+             for SNR and LOOP tests.
+
+             This table applies to CMTS 2x8 cards, and to BSR2000.
+            " 
+        ::= { rdnCableSnrGroup 9 }
+ 
+rdnCableSnrModulationProfileEntry OBJECT-TYPE
+        SYNTAX      RdnCableSnrModulationProfileEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of modulation profiles for the CMTS cards.
+             The table is indexed by slotNo (0 to 15)."
+        INDEX {
+                 rdnSlotNumber
+              }
+        ::= { rdnCableSnrModulationProfileTable 1 }
+ 
+RdnCableSnrModulationProfileEntry ::= SEQUENCE {
+            rdnCableSnrModulationProfile              Integer32
+            }
+
+rdnCableSnrModulationProfile OBJECT-TYPE
+        SYNTAX      Integer32 (1..600)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The modulation profile used for any SNR / LOOP test on this card. 
+             If this object has not be set, default value 1 will be displayed."
+        DEFVAL     { 1 }
+        ::= { rdnCableSnrModulationProfileEntry 1 }
+ 
+ 
+END
+

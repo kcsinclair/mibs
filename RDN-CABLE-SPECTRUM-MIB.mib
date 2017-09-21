@@ -1,0 +1,836 @@
+-- *****************************************************************
+-- RDN-CABLE-SPECTRUM-MIB.mib:
+-- Motorola's Cable Spectrum MIB  
+--
+-- Copyright (C) 1989, 2008 by Motorola, Inc.
+-- All rights reserved.
+-- *****************************************************************
+RDN-CABLE-SPECTRUM-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS   
+        riverdelta
+                FROM RDN-MIB
+        MODULE-IDENTITY,
+        OBJECT-TYPE,
+        Integer32,
+        Unsigned32,
+        Gauge32,
+        Counter32,
+        NOTIFICATION-TYPE
+                FROM SNMPv2-SMI
+        MacAddress,
+        RowStatus,
+        DateAndTime,
+        TruthValue
+                FROM SNMPv2-TC
+        OBJECT-GROUP,
+        MODULE-COMPLIANCE
+                FROM SNMPv2-CONF
+        InterfaceIndex,
+        ifIndex,
+        ifAdminStatus,
+        ifOperStatus
+                FROM IF-MIB
+        ChannelList
+                FROM DOCS-IF3-MIB;
+                
+        
+  rdnCableSpectrum MODULE-IDENTITY
+        LAST-UPDATED "201112300000Z" -- 30 DEC 2011
+        ORGANIZATION "Motorola"
+        CONTACT-INFO "Motorola        
+                      Customer Service
+		      101 Tournament Drive
+                      Horsham, PA 19044
+                      US Tel: +1 888 944 4357
+                      Int Tel: +1 215 323 0044
+	              Fax: +1 215 323 1502
+                      Email: CPSSupport@Motorola.com"
+        DESCRIPTION
+            "This is the MIB Module for Cable Spectrum Management for 
+             MCNS compliant Cable Modem Termination Systems (CMTS).
+
+	     Copyright (C) 1989, 2008 by Motorola, Inc.
+	     All rights reserved."
+     
+	REVISION    "200808080000Z" -- August 8, 2008
+	DESCRIPTION
+	    "Added Copyright Statement into MIB modules's
+	     description."   
+
+        REVISION     "200508020000Z" -- 08 Aug 2005
+        DESCRIPTION
+            "Adding rdnSpectrumAgilityStatisticsTable for Advanced
+             Spectrum Management Frequency/Modulation Agility Feature"
+        REVISION     "200311050000Z"
+        DESCRIPTION
+                "Updated the CONTACT-INFO."  
+        REVISION     "200307200000Z" 
+        DESCRIPTION
+	    "MIB compilation error where the next to last sub-identifier 
+	    for the notifications is not zero. This can cause problem when
+	    notifications are translated to SMIv1 for SNMPv1. The previous 
+	    versions of the notifications have been removed rather than 
+	    obsoleting them because the MIB compilation errors would still 
+	    have  existed even with the notification in the obsolete status."
+	REVISION     "200306090000Z" 
+        DESCRIPTION
+                "Fix MIB compiler error in the compliance statement."
+        REVISION     "201112300000Z" -- 30 DEC 2011
+        DESCRIPTION
+            "Added new table rdnFlapCmtsCmUsStatusTable to show the CM flap
+            parameters for US bonded CM."
+        ::= { riverdelta 6 }
+
+
+rdnCableSpectrumObjects  OBJECT IDENTIFIER ::= { rdnCableSpectrum 1 }
+
+rdnFlapObjects OBJECT IDENTIFIER ::= { rdnCableSpectrumObjects 1 }
+
+rdnFlapCmCmtsStatusTable  OBJECT-TYPE 
+        SYNTAX      SEQUENCE OF RdnFlapCmCmtsStatusEntry                  
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table keeps the status of the flap modems for per CMTS.
+
+             This table applies to all CMTS card types.
+            "
+        ::= { rdnFlapObjects 1 }
+
+rdnFlapCmCmtsStatusEntry OBJECT-TYPE
+        SYNTAX      RdnFlapCmCmtsStatusEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of attributes for an entry in the rdnFlapCmCmtsStatusTable."
+        INDEX { flapCmCmtsIfIndex }
+        ::= { rdnFlapCmCmtsStatusTable 1 }
+
+RdnFlapCmCmtsStatusEntry ::= SEQUENCE {
+        flapCmCmtsIfIndex                      Integer32,
+        flapListMaxSize	                       Integer32,
+        flapListCurrentSize                    Gauge32,
+        flapAgingOutTime                       Integer32,
+        flapInsertionTime                      Integer32,
+        flapMissThreshold                      Integer32,
+        flapPowerAdjThreshold                  Integer32,
+        flapListPercentageThreshold            INTEGER,
+        flapListTrapEnable                     INTEGER
+	}
+
+flapCmCmtsIfIndex OBJECT-TYPE
+        SYNTAX      Integer32 
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "The CMTS Interface Index."
+        ::= { rdnFlapCmCmtsStatusEntry 1 }
+
+flapListMaxSize OBJECT-TYPE
+        SYNTAX      Integer32 (1..8191)
+        UNITS       "modems"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The maximum number of flap modems. 
+             The user could configure this number according to the number of 
+             downstreams and the number of modem line cards in the CMTS.
+             The number can range from 1 to 8191.  The default value is 100.
+ 
+             When the number of modems exceeds the max flap list size, 
+             the additional modems are ignored."
+        DEFVAL { 100 }
+        ::= { rdnFlapCmCmtsStatusEntry 2 }
+
+flapListCurrentSize OBJECT-TYPE
+        SYNTAX      Gauge32 (0..8191) 
+        UNITS       "modems"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The current number of modems in the flap list.  Its value 
+             will be less than or equal to flapListMaxSize."
+        ::= { rdnFlapCmCmtsStatusEntry 3 }
+
+flapAgingOutTime OBJECT-TYPE
+        SYNTAX      Integer32 (1..86400) 
+        UNITS       "minutes"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The age out time in minutes for modems in the flap table.  The number 
+             of minutes range from 1 to 86400.  The default value is 1440."
+        DEFVAL { 1440 }  
+        ::= { rdnFlapCmCmtsStatusEntry 4 }
+
+flapInsertionTime OBJECT-TYPE
+        SYNTAX      Integer32 (1..86400)
+        UNITS       "seconds"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+           "The interval of time that begins when the cable modem initially 
+            ranges, reboots, and ends when it starts initial maintenance again.
+            If the interval of time is less than what is specified in
+            flapInsertionTime, the flapCmInsertionFails and cmFlapCounts 
+            will increment. 
+
+            The valid range is from 1 to 86400 seconds.  The default value is 60."
+
+        DEFVAL { 60 }
+        ::= { rdnFlapCmCmtsStatusEntry 5 }
+
+flapMissThreshold OBJECT-TYPE
+        SYNTAX      Integer32 (1..12)
+        UNITS       "modem"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION 
+             "Specifies the maximum threshold for the number of consecutive miss
+              counts during a polling cycle.  If the flap miss counts goes over 
+              this threshold, the modem will be added into the flap list. 
+              
+              Polling is maintained between the CMTS and the cable modem  
+              every 10 seconds.  The flapMissThreshold specifies the maximum 
+              number of consecutive missed counts during one station maintenance
+              poll interval.  If there are more than 16 consecutive miss counts 
+              during one polling cycle, the modem will de-insert and attempt to 
+              range again.
+                                  
+              The value ranges from 1 to 12 consecutive counts. 
+              The default value is 6." 
+        DEFVAL { 6 }
+        ::= { rdnFlapCmCmtsStatusEntry 6 }
+        
+flapPowerAdjThreshold OBJECT-TYPE
+        SYNTAX      Integer32 (1..10)
+        UNITS       "dB"
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            " The power adjustment threshold for a CM
+              to raise and lower it's transmit power during
+              normal operation.
+
+              When a modem's power adjustment goes above or below 
+              the flapPowerAdjThreshold the CM will be added into
+              the flap list.  The flapCmPowerAdjustments and cmFlapCounts
+              will be incremented as well.
+           
+              flapPowerAdjThreshold values of 2 dB and below are low
+              enough to continuously increment the flapCmPowerAdjustments
+              under normal conditions. 
+              
+              The values range from 1 to 10.  The default is 2. "
+         DEFVAL { 2 }
+        ::= { rdnFlapCmCmtsStatusEntry 7 }     
+
+flapListPercentageThreshold OBJECT-TYPE
+        SYNTAX      INTEGER (1..100)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION " The percentage CM miss threshold.
+                      If CM miss percentage goes over this threshold and
+                      flapListTrapEnable is set, a flap list trap will 
+                      be send out to notify this event
+                    "
+        DEFVAL {10}
+        ::= { rdnFlapCmCmtsStatusEntry 8 }
+
+flapListTrapEnable OBJECT-TYPE
+        SYNTAX     INTEGER { enabled(1), disabled(2) }
+        MAX-ACCESS read-write
+        STATUS     current
+        DESCRIPTION
+            "This object controls flap list trap. If its value is set to 
+             enabled(1), a trap will be sent out when the CM miss
+             percentage goes over the flapListPercentageThreshold;
+             Otherwise no flap list trap will be sent out.
+             By default, this object has the value enabled(1).
+            "
+        DEFVAL { enabled }
+        ::= { rdnFlapCmCmtsStatusEntry 9 }
+                                        
+-- The flap CM table holds the CM flap information for each CMTS                                        
+rdnFlapCmTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnFlapCmEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table keeps the records of modem state changes. 
+             An entry can be deleted from the table but can not be 
+             added to the table.
+
+             This table applies to all CMTS card types.
+
+            "
+        ::= { rdnFlapObjects 2 }
+
+rdnFlapCmEntry OBJECT-TYPE
+        SYNTAX      RdnFlapCmEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of attributes for an entry in the rdnFlapTable."
+        INDEX { flapCmIndex }
+        ::= { rdnFlapCmTable 1 }
+
+RdnFlapCmEntry ::= SEQUENCE {
+            flapCmIndex                INTEGER,
+            cmtsIfIndex                InterfaceIndex,
+            flapCmMacAddress           MacAddress,
+            flapCmUpstreamChSet        ChannelList,
+            flapCmDownstreamChSet      ChannelList,
+            flapCmInsertionFails       Counter32, 
+            flapCmHits                 Counter32,
+            flapCmMisses               Counter32,
+            flapCmPowerAdjustments     Counter32,
+            cmFlapCounts                Counter32,
+            cmLastFlapTime             DateAndTime,
+            cmFlapCreateTime           DateAndTime,
+            cmFlapRowStatus            RowStatus
+        }
+
+flapCmIndex OBJECT-TYPE
+        SYNTAX      INTEGER (1..1048575)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            " Index for Cable Modem."
+        ::= { rdnFlapCmEntry 1 }
+
+cmtsIfIndex OBJECT-TYPE
+        SYNTAX      InterfaceIndex
+        MAX-ACCESS  read-only 
+        STATUS      current
+        DESCRIPTION
+            "The CMTS Interface Index."
+        ::= { rdnFlapCmEntry 2 }
+
+
+flapCmMacAddress OBJECT-TYPE
+        SYNTAX      MacAddress
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "MAC address of the Cable Modem's Cable interface. Identifies 
+             a flap-list entry for a flapping Cable Modem."
+        ::= { rdnFlapCmEntry 3 }
+
+
+flapCmUpstreamChSet OBJECT-TYPE
+        SYNTAX      ChannelList
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The list of the upstream channels.This shows the list of UCID's.
+             The CMTS detects a flapping Cable Modem from its Cable upstream interface."
+        ::= { rdnFlapCmEntry 4 }
+
+flapCmDownstreamChSet OBJECT-TYPE
+        SYNTAX      ChannelList
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The list of the downstream channels.This shows the list of DCID's."
+        ::= { rdnFlapCmEntry 5 }
+
+flapCmInsertionFails OBJECT-TYPE
+        SYNTAX      Counter32 
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "When the Cable Modem initially ranges, reboots and initially
+            ranges again within the specified insertion time, this counter
+            will increment.
+
+              The cmFlapCounts increment along with this counter."
+
+        REFERENCE
+            "Data over Cable Radio Frequency Interface specification,
+             Section 7.2."
+        ::= { rdnFlapCmEntry 6 }
+        
+
+flapCmHits OBJECT-TYPE
+        SYNTAX      Counter32 
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The number of times the CMTS receives the Ranging request 
+             from the Cable Modem."
+        ::= { rdnFlapCmEntry 7 }
+
+flapCmMisses OBJECT-TYPE
+        SYNTAX      Counter32 
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The number of times the CMTS misses the Ranging request 
+             from the Cable Modem. The CMTS can check up to 16 consecutive 
+             times for a ranging request message during one polling cycle.
+
+             Misses are not desirable since this is usually an 
+             indication of a return path problem; however, 
+             having a small number of misses is normal.
+
+             Ideally, the Hit should be much greater than the Miss counts."
+        ::= { rdnFlapCmEntry 8 }
+
+flapCmPowerAdjustments OBJECT-TYPE
+        SYNTAX      Counter32 
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            " When the power adjustment changed above or below the 
+             power adjustment threshold this counter will increment.
+             
+             The Flap Count (cmFlapCounts) will increment when this
+             counter increments."
+        REFERENCE
+            "Data over Cable Radio Frequency Interface specification,
+             Section 7.2."
+        ::= { rdnFlapCmEntry 9 }
+
+cmFlapCounts OBJECT-TYPE
+        SYNTAX      Counter32 
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of times a CM flaps 
+             Under following three situations, this counter 
+             will increase:  
+             (1) When flapCmInsertionFails is increased the flap counts
+                 will increase.
+             (2) When the CMTS receives the number of consecutive misses
+                 specified in the flapMissThreshold, the flap counts 
+                 will increase. 
+             (3) When flapPowerAdjustments is increased the flap counts 
+                 will increase."
+        REFERENCE
+            "Data over Cable Radio Frequency Interface specification,
+             Appendix B."
+        ::= { rdnFlapCmEntry 10  }
+        
+        
+cmLastFlapTime OBJECT-TYPE
+        SYNTAX      DateAndTime 
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The last time stamp cm flaps"
+          
+        ::= { rdnFlapCmEntry 11 }
+
+cmFlapCreateTime OBJECT-TYPE
+        SYNTAX      DateAndTime 
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The time stamp when new flap CM is added to the table. "
+
+        ::= { rdnFlapCmEntry 12 }
+
+cmFlapRowStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Controls and reflects the status of rows in this table.
+
+             When a new flap cable modem is detected, and does 
+             not exist in flap list and
+             flapListCurrentSize is less than flapListMaxSize,
+             an entry will be created in this table. 
+             The instance of this object will be set to active(1).  
+             All flapping modems have the status of active(1).
+
+             Active entries are removed from the table if they are aged out.
+             The age out time is defined in flapAgingOutTime
+             When a row is set to destroy(6), it will remove the entry 
+             immediately.
+
+             To prevent an entry from being aged out, the entry should be
+             set to notInService(2). The entry will remain in the table
+             until this instance is set to destroy. 
+             
+             The user is allowed set an entry from active to notInService 
+             or from notInService to destroy
+             A user is not allowed to change a notInService entry to active.
+
+             createAndGo(4) and createAndWait(5) are not supported."
+        ::= { rdnFlapCmEntry 13 }
+
+flapTrapType OBJECT-TYPE
+        SYNTAX       INTEGER {
+                        power(1),
+                        ranging(2),
+                        insertion(3)
+                     }
+        MAX-ACCESS   accessible-for-notify
+        STATUS       current
+        DESCRIPTION
+        "Reason for flapping
+         power       - The power threshold was exceeded.
+         ranging     - Missing ranging requests went beyond threshold
+         insertion   - Modem re-ranged within insertion time threshold.
+
+         This is a place holder for the reason parameter for the modem to go
+         into flap list. This should return ZERO when read. This just allows us
+         to include a flapping reason in the modem flap trap varbind.
+        " 
+        ::= { rdnFlapObjects 4 }
+
+
+--
+-- rdnFlapCmtsCmUsStatusTable
+-- This table holds the CM logical channel flap parametrs in case of the upstream bonded modems.
+-- In case of Upstream bonded modems this table shows the flap stats of all the channels in bonding-group
+-- for upstream non-bonded modems, there is a table(rdnCmFlapTable) to show the flap stats.
+
+rdnFlapCmtsCmUsStatusTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnFlapCmtsCmUsStatusEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+             "This table holds the CM logical channel flap parameters incase of the US bonded modmes.
+              This table applies to DOCSIS 3.0 CMTS card types.
+             "
+        ::= {rdnFlapObjects 5 }
+
+rdnFlapCmtsCmUsStatusEntry OBJECT-TYPE
+	SYNTAX      RdnFlapCmtsCmUsStatusEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+             "List of attributes for an entry in the rdnFlapCmtsCmUsStatusTable."
+        INDEX { rdnFlapCmtsCmIndex,
+                rdnFlapCmtsCmUsIfIndex }
+        ::= { rdnFlapCmtsCmUsStatusTable 1}
+
+RdnFlapCmtsCmUsStatusEntry ::= SEQUENCE {
+		rdnFlapCmtsCmIndex		INTEGER,
+		rdnFlapCmtsCmUsIfIndex 		InterfaceIndex,
+		rdnFlapCmtsCmMacAddress		MacAddress,
+		rdnFlapCmtsCmInsertionFails	Counter32,
+		rdnFlapCmtsCmHits		Counter32,
+		rdnFlapCmtsCmMisses		Counter32,
+		rdnFlapCmtsCmPowerAdjustments	Counter32,
+		rdnFlapCmtsCmFlapCounts		Counter32
+	}
+
+rdnFlapCmtsCmIndex OBJECT-TYPE
+	SYNTAX      INTEGER (1..1048575)
+	MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+             "Index for the cable modem registered on DOCSIS 3.0 CMTS card."
+	::= {rdnFlapCmtsCmUsStatusEntry 1}
+
+rdnFlapCmtsCmUsIfIndex OBJECT-TYPE
+	SYNTAX	    InterfaceIndex
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+             "The CMTS US channel interface index."
+	::= {rdnFlapCmtsCmUsStatusEntry 2}
+
+rdnFlapCmtsCmMacAddress OBJECT-TYPE
+	SYNTAX      MacAddress
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+             "MAC address of the US bonded Cable Modem.
+              This identifies a flap-list entry for a flapping Cable Modem per logical channel."
+	::= {rdnFlapCmtsCmUsStatusEntry 3}
+
+rdnFlapCmtsCmInsertionFails OBJECT-TYPE
+	SYNTAX      Counter32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+             "When the Cable Modem initially ranges, reboots and initially ranges again within the 
+              specified insertion time,this counter will increment.
+              The cmFlapCounts increment along with this counter."
+        ::= {rdnFlapCmtsCmUsStatusEntry 4}
+
+rdnFlapCmtsCmHits OBJECT-TYPE
+	SYNTAX	    Counter32
+	MAX-ACCESS  read-only
+	STATUS      current
+        DESCRIPTION
+             "The number of times the CMTS receives the Ranging request from the Cable Modem."
+        ::= {rdnFlapCmtsCmUsStatusEntry 5}
+
+rdnFlapCmtsCmMisses OBJECT-TYPE
+	SYNTAX      Counter32
+	MAX-ACCESS  read-only
+	STATUS	    current
+	DESCRIPTION
+             "The number of times the CMTS misses the Ranging request from the Cable Modem.
+              The CMTS can check up to 16 consecutive times for a ranging request message during 
+              one polling cycle."
+        ::= {rdnFlapCmtsCmUsStatusEntry 6}
+
+rdnFlapCmtsCmPowerAdjustments OBJECT-TYPE
+	SYNTAX      Counter32
+	MAX-ACCESS  read-only
+	STATUS      current
+	DESCRIPTION
+	     "When the power adjustment changed above or below the power adjustment threshold this 
+              counter will increment."
+	::= {rdnFlapCmtsCmUsStatusEntry 7} 
+
+rdnFlapCmtsCmFlapCounts	OBJECT-TYPE
+	SYNTAX      Counter32
+	MAX-ACCESS  read-only
+	STATUS	    current
+	DESCRIPTION
+             "The total number of times a CM flaps Under following three situations.
+              This counter will increase
+              (1) When flapCmInsertionFails is increased the flap counts will increase.
+              (2) When the CMTS receives the number of consecutive misses specified
+                  in the flapMissThreshold, the flap counts will increase.
+              (3) When flapPowerAdjustments is increased the flap counts will increase."
+	::= {rdnFlapCmtsCmUsStatusEntry 8}
+
+
+-- NOTE:  {rdnCableSpectrumObjects 2} is defined in RDN-SpectrumGroup.mib 
+--        for Spectrum Group definitions (rdnCableSpectrumGroup)
+
+--
+-- Frequency/Modulation Agility Statistics Table
+--
+
+rdnSpectrumAgilityStatisticsTable  OBJECT-TYPE 
+        SYNTAX      SEQUENCE OF RdnSpectrumAgilityStatisticsEntry                  
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table contains statistics related to Advanced Spectrum
+             Management's Frequency and Modulation Agility feature
+
+             This table applies to all CMTS card types.
+
+             For CMTS 2x8 cards, frequency and modulation agility
+             hop decisions are made on the basis of SNR measurements.   
+             For older, 1x8 and 1x4 cards, hop decisions are made on the 
+             basis of error thresholds, or modem flapping.
+
+             This table displays all upstream channels, regardless of whether
+             they members of spectrum groups, or not.   Agility actions
+             can take place only for those channels belonging to spectrum
+             groups that have hop actions configured.
+            "
+        ::= { rdnCableSpectrumObjects 3 }
+
+
+rdnSpectrumAgilityStatisticsEntry OBJECT-TYPE
+        SYNTAX      RdnSpectrumAgilityStatisticsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of objects in a row of rdnSpectrumAgilityStatisticsTable
+             The index values for this table are the ifIndex values for
+             upstream physical channels"
+        INDEX { ifIndex }
+        ::= { rdnSpectrumAgilityStatisticsTable 1 }
+
+RdnSpectrumAgilityStatisticsEntry ::= SEQUENCE 
+        {
+            rdnSpectrumQualityCurrentChannelState     INTEGER,
+            rdnSpectrumQualityLastStateTransitionTime DateAndTime,
+            rdnSpectrumQualityElapsedTimeCurrentState     Unsigned32,
+            rdnSpectrumQualityNumberStateTransitions  Counter32,
+            rdnSpectrumQualityResetStatistics         TruthValue
+        }
+
+rdnSpectrumQualityCurrentChannelState OBJECT-TYPE
+        SYNTAX      INTEGER  
+        {
+            normal(1),
+            impaired(2),
+            pending(3)
+        }
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+           "Current Channel Status:
+
+                normal:   channel quality is within rdnSnrThresholdValue.
+                          This is the optimum operational status of the channel.
+
+                impaired: channel quality is below rdnSnrThresholdValue.
+                          The channel continues to operate is this state,
+                          but is degraded.
+
+                          If the channel remains in this state, it means
+                          that the quality of the spare spectrum is inadequate
+                          to allow a hop. 
+
+                pending:  This is the operational status of the channel pending 
+                          SNR signal quality assessment.  The quality of the channel
+                          is unknown in this state.  A channel will remain in this
+                          state, if no modems are registered and available for
+                          performing SNR measurement.  When modems are available,
+                          then the channel will transition to either normal, 
+                          or impaired, based on the SNR measurement."
+
+        ::= { rdnSpectrumAgilityStatisticsEntry 1 }
+
+rdnSpectrumQualityLastStateTransitionTime OBJECT-TYPE
+
+        SYNTAX DateAndTime
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "Timestamp indicating when rdnSpectrumQualityCurrentChannelState
+             made its most recent transition"
+        ::= { rdnSpectrumAgilityStatisticsEntry 2 }
+
+
+rdnSpectrumQualityElapsedTimeCurrentState OBJECT-TYPE
+        SYNTAX      Unsigned32  
+        UNITS       "tenths of seconds"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Elapsed time in tenths of seconds that the channel has been
+             in its current state (rdnSpectrumQualityCurrentChannelState)"
+        ::= { rdnSpectrumAgilityStatisticsEntry 3 }
+
+rdnSpectrumQualityNumberStateTransitions OBJECT-TYPE
+        SYNTAX      Counter32  
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The number of transitions in rdnSpectrumQualityCurrentChannelState
+             that have occurred since the time of system boot, or since the
+             time of the last statistics reset (rdnSpectrumQualityResetStatistics)"
+        ::= { rdnSpectrumAgilityStatisticsEntry 4 }
+
+
+rdnSpectrumQualityResetStatistics OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Setting this object to TRUE(1) will reset 
+             rdnSpectrumQualityNumberStateTransitions.
+             No other table objects are affected.
+
+             A query of this object is not meaningful, but will always
+             return FALSE"
+        ::= { rdnSpectrumAgilityStatisticsEntry 5 }
+
+        
+--
+-- Notification group 
+-- 
+
+rdnCableSpectrumNotifications OBJECT IDENTIFIER ::= { rdnCableSpectrum 2 }
+rdnCableSpectrumNotificationPrefix OBJECT IDENTIFIER 
+                                    ::= { rdnCableSpectrumNotifications 0 }
+
+rdnFlapListNotification NOTIFICATION-TYPE
+        OBJECTS { ifIndex, 
+	          ifAdminStatus, 
+                  ifOperStatus }
+        STATUS  current
+        DESCRIPTION "a flap list trap signifies that SNMPv2 entity,
+                     acting in an agent role, has detected that the
+                     percentage of flap cm for one of the cmts board
+                     has gone over the flapListPercentageThreshold."
+        ::= { rdnCableSpectrumNotificationPrefix 1 }
+
+rdnFlapModemNotification NOTIFICATION-TYPE
+        OBJECTS  { flapCmMacAddress,
+                   flapTrapType }
+        STATUS   current
+        DESCRIPTION "This Trap will be sent whenever the modem goes into the
+                     flapping list for some reason. 'flapCmMacAddress'
+                     gives the Mac Address of the modem. 'flapTrapType' gives
+                     the cause for the modem to go into the flap list."
+        ::= { rdnCableSpectrumNotificationPrefix 2 }
+
+
+
+--
+-- Conformance statement
+--
+
+rdnCableSpectrumConformance  OBJECT IDENTIFIER ::= 
+                                        { rdnCableSpectrum 3 }
+rdnCableSpectrumCompliances  OBJECT IDENTIFIER ::= 
+                                        { rdnCableSpectrumConformance 1 }
+rdnCableSpectrumGroups       OBJECT IDENTIFIER ::= 
+                                        { rdnCableSpectrumConformance 2 }
+
+-- compliance statements
+
+compliance MODULE-COMPLIANCE
+        STATUS     current
+        DESCRIPTION
+            "The compliance statement for devices that implement MCNS
+             compliant Radio Frequency Interfaces and Spectrum Management
+             features."
+        MODULE  -- rdnCableSpectrum
+        MANDATORY-GROUPS {
+                rdnFlapGroup,
+                rdnAgilityGroup
+        }
+
+        ::= { rdnCableSpectrumCompliances 1 }
+
+-- units of conformance
+
+rdnFlapGroup OBJECT-GROUP
+        OBJECTS {
+                flapListMaxSize,
+                flapListCurrentSize,
+                flapAgingOutTime,
+                flapInsertionTime, 
+                flapMissThreshold,
+                flapPowerAdjThreshold,
+                cmtsIfIndex,
+                flapCmMacAddress,
+                flapCmUpstreamChSet,
+                flapCmDownstreamChSet,
+                flapCmInsertionFails, 
+                flapCmHits,
+                flapCmMisses,
+                flapCmPowerAdjustments,
+                cmFlapCounts,
+                cmLastFlapTime,
+                cmFlapCreateTime,
+                cmFlapRowStatus,
+                flapListPercentageThreshold,
+                flapListTrapEnable
+               }
+        STATUS    current
+        DESCRIPTION
+            "Group of objects implemented in Cable Modem Termination Systems
+             providing Flap List information."
+        ::= { rdnCableSpectrumGroups 1 }
+
+
+rdnAgilityGroup OBJECT-GROUP
+        OBJECTS 
+        {
+            rdnSpectrumQualityCurrentChannelState,
+            rdnSpectrumQualityLastStateTransitionTime,
+            rdnSpectrumQualityElapsedTimeCurrentState,
+            rdnSpectrumQualityNumberStateTransitions,
+            rdnSpectrumQualityResetStatistics         
+
+        }
+        STATUS    current
+        DESCRIPTION
+            "Group of objects implemented in Cable Modem Termination Systems
+             providing Statistics for Frequency/Modulation Agility"
+        ::= { rdnCableSpectrumGroups 2 }
+
+
+END
+

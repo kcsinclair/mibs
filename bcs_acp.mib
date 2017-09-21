@@ -1,0 +1,469 @@
+ACP-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+        giproducts      
+                FROM BCS-IDENT-MIB
+
+        OBJECT-TYPE, MODULE-IDENTITY     
+                FROM SNMPv2-SMI;
+
+
+acpStatus    MODULE-IDENTITY
+
+      LAST-UPDATED "200306100000Z"
+
+      ORGANIZATION "Motorola"
+
+      CONTACT-INFO "Charles Zimmerman
+                    Motorola
+                    Broadband Communications Sector
+                    101 Tournament Drive
+                    Horsham, PA  19044
+
+                    Tel: +1 215 323 1524
+                    E-mail: czimmerman@gic.gi.com"
+
+      DESCRIPTION  "The MIB module for the Access Control Processor (TSODA, MC1).
+                    Revision Number 1.40"
+
+      REVISION    "200306100000Z"
+        
+      DESCRIPTION "Rev 1.40 make SMIv2 compliant by adding MODULE-IDENTITY clause"
+
+         ::= {giproducts 11}
+
+
+-- groups in the ACP MIB
+--        None
+
+
+ acpNumberofEncryptTypes         OBJECT-TYPE
+                 SYNTAX          INTEGER
+                 MAX-ACCESS      read-only
+                 STATUS          current
+                 DESCRIPTION  "The total number of encrypt type ACPs in the system. "
+                 REFERENCE " -- "
+ ::= { acpStatus 1}
+
+ acpNumberofDecryptTypes         OBJECT-TYPE
+                 SYNTAX          INTEGER
+                 MAX-ACCESS          read-only
+                 STATUS          current
+                 DESCRIPTION  "The total number of decrypt type ACPs in the system. "
+                 REFERENCE " -- "
+ ::= { acpStatus 2}
+
+
+acpStatusTable          OBJECT-TYPE
+                SYNTAX          SEQUENCE OF AcpStatusEntry
+                MAX-ACCESS          not-accessible
+                STATUS          current
+                DESCRIPTION  "A table of ACP entries giving health, status and mode"
+                REFERENCE " -- "
+::= { acpStatus 3}
+
+acpStatusEntry          OBJECT-TYPE
+                SYNTAX          AcpStatusEntry
+                MAX-ACCESS          not-accessible
+                STATUS          current
+                DESCRIPTION  "A row in the ACP Entry Table"
+                INDEX { acpEncryptType,acpUnitIndex, acpServiceIndex}
+::= { acpStatusTable 1}
+
+AcpStatusEntry ::= SEQUENCE
+        {
+                acpEncryptType                          INTEGER,
+                acpUnitIndex                            INTEGER,
+                acpServiceIndex                         INTEGER,
+                acpScramblingMode                       INTEGER,
+                acpUnitAddress                          OCTET STRING,
+                acpInputInterface                       INTEGER,
+                acpOutputInterface                      INTEGER,
+                acpServNumber                           INTEGER,
+                acpServAuthorization                    INTEGER,
+                acpServAuthReaCode                      INTEGER,
+                acpServEncryption                       INTEGER,
+                acpCatSeqNums                           INTEGER,
+                acpEmmCount                             INTEGER,
+                acpProgramEpochNumber                   INTEGER,
+                acpNextProgramEpochNumber               INTEGER,
+                acpNextServAuthorization                INTEGER,
+                acpNextServAuthReasonCode               INTEGER,
+                acpInputSourceIdA                       INTEGER,
+                acpInputSourceIdB                       INTEGER
+        }
+
+acpEncryptType          OBJECT-TYPE
+                SYNTAX          INTEGER
+                                        {
+                                           encryptAcp (1),
+                                           decryptAcp (2)
+                                        }
+                MAX-ACCESS          not-accessible
+                STATUS          current
+                DESCRIPTION  "The type of ACP in the system.  It is either an
+                          encryptAcp or decryptAcp device. "
+                REFERENCE " -- "
+::= { acpStatusEntry 1}
+
+
+acpUnitIndex            OBJECT-TYPE
+                SYNTAX          INTEGER
+                MAX-ACCESS          not-accessible
+                STATUS          current
+                DESCRIPTION  "The ACP unit index for this encrypt/decrypt type. 
+            For each type of ACP, encryptAcp or decryptAcp, the physical 
+            unit number of the ACP in the containing product, starting at 1."
+                REFERENCE " -- "
+::= { acpStatusEntry 2}
+
+
+
+acpServiceIndex         OBJECT-TYPE
+                SYNTAX          INTEGER
+                MAX-ACCESS          not-accessible
+                STATUS          current
+                DESCRIPTION  "For a specified ACP, identified by the both
+            acpEncryptType and acpUnitIndex, this index specifies the
+            sequential service capabilities of this ACP, found in the
+            following objects:
+                acpServNumber
+                acpServAuthorization
+                acpServAuthReaCode
+                acpServEncryption
+            The maximum limit on the value of this index is determined by the
+            Max number of services supported by this ACP (for a TSODA, it is 2).
+            For all other objects in the acpStatusTable, this index is not used.
+            (it must be valid, but will not be used to access the object
+            uniquely specified by acpEncryptType and acpUnitIndex)
+
+                REFERENCE " -- "
+::= { acpStatusEntry 3}
+
+
+acpScramblingMode               OBJECT-TYPE
+                SYNTAX          INTEGER 
+                                        { des (1),
+                                          csa (2)
+                                        }
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  "The Scrambling Mode of the ACP
+                                                1 - North American DES
+                                                2 - DVB Common Scrambling Algorithm "
+                REFERENCE " -- "
+::= { acpStatusEntry 4}
+
+acpUnitAddress          OBJECT-TYPE
+                SYNTAX          OCTET STRING
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  "The 40 bit ACP address in Human-readable format 
+                          3-5-5-3"
+                REFERENCE " -- "
+::= { acpStatusEntry 5}
+
+acpInputInterface  OBJECT-TYPE
+                SYNTAX          INTEGER 
+                                        {
+                                        acpInterfaceSerial (1),
+                                        acpInterfaceParallel (2)
+                                        }
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  "The interface for MPEG input to this ACP."
+                REFERENCE " -- "
+::= { acpStatusEntry 6}
+
+acpOutputInterface  OBJECT-TYPE
+                SYNTAX          INTEGER 
+                                        {
+                                        acpInterfaceSerial (1),
+                                        acpInterfaceParallel (2)
+                                        }
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  "The interface for MPEG output from this ACP."
+                REFERENCE " -- "
+::= { acpStatusEntry 7}
+
+
+
+acpServNumber  OBJECT-TYPE
+                SYNTAX          INTEGER (0..65535)
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  "MPEG service number (0=unknown) for encrypted service
+            N, where N is specified by acpServiceIndex."
+                REFERENCE " -- "
+::= { acpStatusEntry 8}
+
+acpServAuthorization OBJECT-TYPE
+                SYNTAX          INTEGER
+                                        {
+                                         unauthorized (1),
+                                         authorized (2),
+                                         unknown (255)
+                                        }
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  "ACP authorization status for service specified by    
+             acpServiceIndex"
+                REFERENCE " -- "
+::= { acpStatusEntry 9}
+
+acpServAuthReaCode OBJECT-TYPE
+                SYNTAX          INTEGER
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  "ACP authorization reason code for service specified
+            By acpServiceIndex."
+                REFERENCE " -- "
+::= { acpStatusEntry 10}
+
+acpServEncryption       OBJECT-TYPE
+                SYNTAX          INTEGER
+                                        { unknown (255),
+                                          fixedwk (1),
+                                          fixedpk (2),
+                                          unencrypted (3),
+                                          fullencryption (4)
+                                        }
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  "ACP encryption status for service specified by
+            The index acpServiceIndex."
+                REFERENCE " -- "
+::= { acpStatusEntry 11}
+
+
+acpCatSeqNums           OBJECT-TYPE
+                SYNTAX          INTEGER
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  "The current and next Category Sequence Numbers"
+                REFERENCE " -- "
+::= { acpStatusEntry 12}
+
+acpEmmCount             OBJECT-TYPE
+                SYNTAX          INTEGER
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  "The number of Category Rekey messages sent to this
+            ACP."
+                REFERENCE " -- "
+::= { acpStatusEntry 13}
+
+acpProgramEpochNumber   OBJECT-TYPE
+                SYNTAX          INTEGER
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  "The current program epoch number for the service on this side of the ACP."
+                REFERENCE " -- "
+::= { acpStatusEntry 14}
+
+acpNextProgramEpochNumber   OBJECT-TYPE
+                SYNTAX          INTEGER
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  "The next program epoch number for the service on this side of the ACP."
+                REFERENCE " -- "
+::= { acpStatusEntry 15}
+
+acpNextServAuthorization OBJECT-TYPE
+                SYNTAX          INTEGER
+                                        {
+                                         unauthorized (1),
+                                         authorized (2),
+                                         unknown (255)
+                                        }
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  "ACP authorization status for the next Program Epoch for the service specified by    
+             acpServiceIndex"
+                REFERENCE " -- "
+::= { acpStatusEntry 16}
+
+acpNextServAuthReasonCode OBJECT-TYPE
+                SYNTAX          INTEGER
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  "ACP authorization reason code for the next Program Epoch for the service specified
+            By acpServiceIndex."
+                REFERENCE " -- "
+::= { acpStatusEntry 17}
+
+acpInputSourceIdA OBJECT-TYPE
+                SYNTAX          INTEGER
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  
+                "The Input Source Id is used to identify the input source for
+                 this ACP in different products.  One or both parts of the Id
+                 may be used in identifying where the input for the ACP comes
+                 from.  When the Input Source Id A is set to 255 then the Id is
+                 invalid.  If Id A is invalid the Id B is assumed invalid also.
+                 For example, the MPS uses the input source id to 
+                 designate the location of the physical connector that is
+                 mapped to the ACP. In the case of the decrypt ACPs, InputSourceIdA
+                 is used to indicate the slot, and InputSourceIdB is used to
+                 indicate the port.  Only decrypt ACPs have their source 
+                 identified in this way.  Encrypt ACPs do not have an identified 
+                 source and their IdA is always set to Invalid (255).
+                 
+                "
+                REFERENCE " -- "
+::= { acpStatusEntry 18}
+
+acpInputSourceIdB OBJECT-TYPE
+                SYNTAX          INTEGER
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  
+                "The Input Source Id is used to identify the input source for
+                 this ACP in different products.  One or both parts of the Id
+                 may be used in identifying where the input for the ACP comes
+                 from.  
+                 For example, the MPS uses the input source id to 
+                 designate the location of the physical connector that is
+                 mapped to the ACP. In the case of the decrypt ACPs, InputSourceIdA
+                 is used to indicate the slot, and InputSourceIdB is used to
+                 indicate the port.  Only decrypt ACPs have their source 
+                 identified in this way.  Encrypt ACPs do not have an identified 
+                 source. 
+                "
+                REFERENCE " -- "
+::= { acpStatusEntry 19}
+
+acpPidTable     OBJECT-TYPE
+                SYNTAX          SEQUENCE OF AcpPidEntry
+                MAX-ACCESS          not-accessible
+                STATUS          current
+                DESCRIPTION  "A table of ACP entries giving assigned pid values"
+                REFERENCE " -- "
+::= { acpStatus 4}
+
+acpPidEntry          OBJECT-TYPE
+                SYNTAX          AcpPidEntry
+                MAX-ACCESS          not-accessible
+                STATUS          current
+                DESCRIPTION  "A row in the ACP Pid Table"
+                INDEX { acpPidTblEncryptType,acpPidTblUnitIndex, acpPidTblServiceIndex, acpPidTblPidIndex}
+::= { acpPidTable 1}
+
+AcpPidEntry ::= SEQUENCE
+        {
+                acpPidTblEncryptType                          INTEGER,
+                acpPidTblUnitIndex                            INTEGER,
+                acpPidTblServiceIndex                         INTEGER,
+                acpPidTblPidIndex                             INTEGER,
+                acpPidTblAssignedPid                          INTEGER,
+                acpPidTblEcmPid                               INTEGER,
+                acpPidTblPidMask                              INTEGER
+        }
+
+acpPidTblEncryptType          OBJECT-TYPE
+                SYNTAX          INTEGER
+                                        {
+                                           encryptAcp (1),
+                                           decryptAcp (2)
+                                        }
+                MAX-ACCESS          not-accessible
+                STATUS          current
+                DESCRIPTION  "The type of ACP in the system.  It is either an
+                          encryptAcp or decryptAcp device. "
+                REFERENCE " -- "
+::= { acpPidEntry 1}
+
+
+acpPidTblUnitIndex            OBJECT-TYPE
+                SYNTAX          INTEGER
+                MAX-ACCESS          not-accessible
+                STATUS          current
+                DESCRIPTION  "The ACP unit index for this encrypt/decrypt type. 
+            For each type of ACP, encryptAcp or decryptAcp, the physical 
+            unit number of the ACP in the containing product, starting at 1."
+                REFERENCE " -- "
+::= { acpPidEntry 2}
+
+acpPidTblServiceIndex         OBJECT-TYPE
+                SYNTAX          INTEGER
+                MAX-ACCESS          not-accessible
+                STATUS          current
+                DESCRIPTION  "For a specified ACP, identified by the both
+            acpEncryptType and acpUnitIndex.
+            The maximum limit on the value of this index is determined by the
+            Max number of services supported by this ACP (for a TSODA, it is 2).
+            For all other objects in the acpStatusTable, this index is not used.
+            (it must be valid, but will not be used to access the object
+            uniquely specified by acpEncryptType and acpUnitIndex)"
+
+                REFERENCE " -- "
+::= { acpPidEntry 3}
+
+acpPidTblPidIndex            OBJECT-TYPE
+                SYNTAX          INTEGER
+                MAX-ACCESS          not-accessible
+                STATUS          current
+                DESCRIPTION  "The PID index of the requested assigned PID value. 
+                  multiple PIDs can be assigned per service" 
+                REFERENCE " -- "
+::= { acpPidEntry 4}
+
+acpPidTblAssignedPid               OBJECT-TYPE
+                SYNTAX          INTEGER 
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  
+                  "The PID assigned.  If 0x1fff is returned then no PID is
+                   assigned."
+                REFERENCE " -- "
+::= { acpPidEntry 5}
+
+acpPidTblEcmPid               OBJECT-TYPE
+                SYNTAX          INTEGER 
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  
+                  "The ECM PID cooresponding to the assigned PID. Value
+                   set to 0x1fff when no ECM PID is programmed." 
+                REFERENCE " -- "
+::= { acpPidEntry 6}
+
+acpPidTblPidMask               OBJECT-TYPE
+                SYNTAX          INTEGER 
+                MAX-ACCESS          read-only
+                STATUS          current
+                DESCRIPTION  
+                  "The PID mask used in conjunction with the assigned PID.
+                   Bits that are set in the PID Mask field of the ACP are
+                   'dont cares' when comparing the PID of a received packet
+                   to the PID value configured in the ACP.  For example, if 
+                   the PID 0x0040 is configured in the ACP and the PID Mask
+                   is set to 0x000F, then any received packet with a PID 
+                   from 0x0040 to 0x004F inclusive will be processed by the
+                   ACP.
+                  "
+                REFERENCE " -- "
+::= { acpPidEntry 7}
+
+
+
+acpMibRevision                   OBJECT-TYPE
+                 SYNTAX          INTEGER
+                 MAX-ACCESS          read-only
+                 STATUS          current
+                 DESCRIPTION  "The current revision number of acp.mib multiplied by 100. 
+                               To extract the major revision number divide by 100. The 
+                               remainder is the minor revision number. The major rev number
+                               should be bumped whenever structural changes occur that require
+                               coresponding manager changes. Small changes like editing a 
+                               description should bump the minor rev. The mib revision is 
+                               matches the one found at the top of acp.mib"
+                 REFERENCE " -- "
+ ::= { acpStatus 99}
+
+
+
+END
+

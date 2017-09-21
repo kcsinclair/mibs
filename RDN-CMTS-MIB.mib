@@ -1,0 +1,2920 @@
+-- *****************************************************************
+-- RDN-CMTS-MIB.mib:
+-- Motorola BSR's Cable Modem Termination Systems (CMTS) MIB
+--
+-- Copyright (C) 2000, 2008 by Motorola, Inc.
+-- All rights reserved.
+-- *****************************************************************
+RDN-CMTS-MIB DEFINITIONS ::= BEGIN
+
+  IMPORTS
+
+        riverdelta
+                FROM RDN-MIB
+
+        NOTIFICATION-TYPE,
+        MODULE-IDENTITY,
+        OBJECT-TYPE,
+        Integer32,
+        IpAddress,
+	Counter32,
+        Counter64,
+        Unsigned32
+                FROM SNMPv2-SMI
+		
+        MODULE-COMPLIANCE,
+        OBJECT-GROUP
+                FROM SNMPv2-CONF
+
+	RowStatus,	
+        MacAddress, 
+        TruthValue,
+        DisplayString,
+        TimeInterval,
+        TimeStamp
+                FROM SNMPv2-TC
+                
+        ifIndex, InterfaceIndexOrZero, InterfaceIndex,
+	ifDescr, ifType, ifAdminStatus, ifOperStatus
+                FROM IF-MIB
+        InetAddressType,
+	InetPortNumber,
+        InetAddress,
+        InetAddressIPv6
+                FROM INET-ADDRESS-MIB
+        docsIfCmtsCmStatusIndex,
+        docsIfCmtsCmStatusMacAddress,
+	docsIfCmtsCmStatusIpAddress,
+        docsIfUpChannelId,
+        docsIfCmtsCmStatusEntry,
+	docsIfDownChannelId,
+        docsIfCmtsCmStatusDocsisRegMode,
+        TenthdBmV,
+        TenthdB,
+        DocsisQosVersion,
+        DocsisUpstreamType
+                FROM DOCS-IF-MIB   -- rfc4546
+        docsIf3CmtsCmRegStatusIPv6Addr
+                FROM DOCS-IF3-MIB
+
+        IfDirection
+                FROM DOCS-IF3-MIB
+        docsQosServiceClassName
+                FROM DOCS-QOS3-MIB
+
+        rdnPktDQoSClassName
+                FROM RDN-PKTCABLE-GROUP-MIB  -- rdn-pktcable.mib 
+
+        rdnSpectrumGroupName
+                FROM RDN-CABLE-SPECTRUM-GROUP-MIB  -- RDN-SpectrumGroup.mib
+		
+        IpV4orV6Addr
+	        FROM DOCS-SUBMGT-MIB; -- DOCS-SUBMGT-MIB.mib
+
+rdnCmtsMib MODULE-IDENTITY
+        LAST-UPDATED    "201103080000Z"  -- 8 March 2011
+        ORGANIZATION    "Motorola"
+        CONTACT-INFO
+                    "Motorola
+		     Customer Service
+                     101 Tournament Drive
+                     Horsham, PA 19044
+                     US Tel: +1 888 944 4357
+                     Int Tel: +1 215 323 0044
+	             Fax: +1 215 323 1502
+                     Email: CPSSupport@Motorola.com" 
+
+        DESCRIPTION
+            "This is the enterprise MIB Module for Motorola's 
+             Cable Modem Termination Systems (CMTS).
+
+	     Copyright (C) 2000, 2008 by Motorola, Inc.
+	     All rights reserved."
+
+        REVISION "201103080000Z"   -- 8 March 2011
+        DESCRIPTION
+             "Added scalar rdnCmtsCmResetByIpv6Addr to reset IPv6 CMs and
+              rdnCmToCpeIPv6Addr member to rdnCmToCpeTable to display CPE IPv6 Addr.
+              Added extra varbind docsIf3CmtsCmRegStatusIPv6Addr 
+              to rdnCmtsCmRegisteredNotification, to report CM's IPv6 Addr."
+
+        REVISION "201102230000Z"  -- 23 Feb 2011
+        DESCRIPTION
+             "Update rdnServiceClassBondingStatsTable to support upstream channel bonding"
+
+	REVISION "200911200000Z"  -- 20 November 2009
+        DESCRIPTION
+             "Added rdnRQueryCmtsCmStatusExt Table to include rdnRQueryServerConfigFile"
+
+	REVISION "200808080000Z"  -- 08 August 2008
+	DESCRIPTION
+		"Added Copyright Statement into MIB modules's
+	       	 description."	     
+
+        REVISION "200706210000Z"
+        DESCRIPTION
+             "Added rdnIfCmtsCmStatusDSBondingGroupId and 
+              rdnServiceClassBondingStatsTable"
+
+        REVISION "200605250000Z"
+        DESCRIPTION
+             "Added AdmittedBwThreshold trap and reason mib object"
+
+        REVISION "200605240000Z"
+        DESCRIPTION
+             "Included rdnPktDQoSClassName to resolve reference."
+
+        REVISION "200604170000Z"
+        DESCRIPTION
+             "Changed description for rdnIfCmtsCmStatusTxUnicastKbytes, 
+	     rdnIfCmtsCmStatusRxUnicastKbytes, 
+	     rdnIfCmtsCmStatusTxUnicastExtKbytes, and
+	     rdnIfCmtsCmStatusRxUnicastExtKbytes counters to indicate the 
+             correct direction.  These counters are implemented from the CMTS 
+             perspective."
+
+        REVISION "200601250000Z"
+        DESCRIPTION
+             "Added rdnRQueryCmtsCmStatusExt Table to include rdnRQuerySwCurrentVers"
+
+        REVISION "200601230000Z"
+        DESCRIPTION
+             "Added rdnUgsStatsWindow, rdnCableUgsStatsTable"
+
+	REVISION "200601130000Z"
+        DESCRIPTION 
+             "Added rdnCmtsServiceClass"
+
+        REVISION "200503180000Z"
+        DESCRIPTION
+             "Added rdnRQueryCmtsCmStatusTable"
+
+	REVISION "200502220000Z"
+        DESCRIPTION 
+             "clarifying descriptive text related to proprietary linkUp/Down traps"
+
+	REVISION "200408170000Z"
+        DESCRIPTION 
+             "added rdnCmtsCardType"
+
+        REVISION "0404140000Z"
+        DESCRIPTION
+            " Bhupendra Singh-A15782,
+              Modified the descriptions of rdnIfCmtsCmStatusTxUnicastKbytes and 
+              rdnIfCmtsCmStatusRxUnicastKbytes objects to fix CQBSR00012760"
+
+        REVISION "200312160000Z"
+        DESCRIPTION 
+             "added rdnCmtsCmRegisteredTrapEnable"
+
+	REVISION "200311050000Z"
+        DESCRIPTION
+            "Updated the CONTACT-INFO."
+    
+        REVISION "200311030000Z"
+        DESCRIPTION
+            "Rename rdnLinkUpDownTrapEnable to rdnCmtsLinkUpDownTrapEnable"
+
+        REVISION "200307200000Z"
+        DESCRIPTION
+            "MIB compilation error where the next to last sub-identifier 
+	    for the notifications is not zero. This can cause problem when
+	    notifications are translated to SMIv1 for SNMPv1. The previous 
+	    versions of the notifications have been removed rather than 
+	    obsoleting them because the MIB compilation errors would still 
+	    have  existed even with the notification in the obsolete status."
+
+        REVISION "200305010000Z"
+        DESCRIPTION
+            " David Wang,
+              Clean up rdnCmtsMib definitions."
+
+        REVISION "200004030000Z"
+        DESCRIPTION
+            "Initial Version.
+             1/30/01 add rdnCmtsCpeToCmTable . XQ
+             Updated by JP Brahma
+             May-28-2002 add rdmIfCmtsCmStatusTable
+             Add CMTS Upstream Average Utilization support.  By David Wang"
+
+        ::= { riverdelta 2  }
+
+
+
+rdnCmtsIfObjects  OBJECT IDENTIFIER ::= { rdnCmtsMib 1 }
+rdnCmtsMiscObjects   OBJECT IDENTIFIER ::= { rdnCmtsMib 2 }
+
+
+--
+-- Upstream GROUP
+--
+
+--
+-- The following table is implemented on 
+-- the Cable Modem Termination System (CMTS).
+--
+
+rdnCmtsDownstreamChannelTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnCmtsDownstreamChannelEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table describes the attributes of downstream 
+            channel in addition to those specified by the docsIfMib."
+        REFERENCE
+            "Proprietary MIB."
+        ::= { rdnCmtsIfObjects 1 }
+
+rdnCmtsDownstreamChannelEntry OBJECT-TYPE
+        SYNTAX      RdnCmtsDownstreamChannelEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry provides a list of attributes for a single
+             Downstream channel.
+             An entry in this table exists for each ifEntry with an
+             ifType of docsCableDownstream(128)."
+        INDEX { ifIndex }
+        ::= { rdnCmtsDownstreamChannelTable 1 }
+
+RdnCmtsDownstreamChannelEntry ::= SEQUENCE {
+            rdnCmtsDSModulation               TruthValue
+--            rdnCmtsDSAvgUtil                  INTEGER
+        }
+
+rdnCmtsDSModulation OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The attribute to control the down stream modulation. When this 
+             object is set to FALSE(2), the downstream transmitter will output
+             a CW, or tonal signal at the tuned RF frequency."
+        ::= { rdnCmtsDownstreamChannelEntry 1 }
+
+--rdnCmtsDSAvgUtil OBJECT-TYPE
+--        SYNTAX      INTEGER 
+--        MAX-ACCESS  read-only
+--        STATUS      current
+--        DESCRIPTION
+--            "The average usage of this downstream channel"
+--        ::= { rdnCmtsDownstreamChannelEntry 2 }
+
+
+
+--
+-- The following table is implemented for the upstream control.
+--
+
+rdnCmtsUpstreamChannelTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnCmtsUpstreamChannelEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table describes the attributes of upstream 
+            channel in addition to those specified by the docsIfMib."
+        ::= { rdnCmtsIfObjects 2 }
+
+rdnCmtsUpstreamChannelEntry OBJECT-TYPE
+        SYNTAX      RdnCmtsUpstreamChannelEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "List of attributes for a single upstream channel.
+             An entry in this table exists for each ifEntry with an
+             ifType of docsCableUpstreamInterface (129) for DOCSIS1.x 
+             CMTSs, and ifType of docsCableUpstreamChannel (205) for
+             DOCSIS2.0 CMTSs."
+        INDEX { ifIndex }
+        ::= { rdnCmtsUpstreamChannelTable 1 }
+
+RdnCmtsUpstreamChannelEntry ::= SEQUENCE {
+            rdnCmtsUSNominalRxPower               Integer32,
+            rdnCmtsUSInvitedRangingInterval       Integer32,
+            rdnCmtsUSRangingResponseControl       INTEGER,
+            rdnCmtsUSRangingPowerOverride         TruthValue,
+            rdnCmtsUSNominalRxPowerMode           INTEGER,
+--            rdnCmtsUSChannelAvgUtil               INTEGER,
+            rdnCmtsUSTotalModemCount              Integer32,
+            rdnCmtsUSRegisteredModemCount         Integer32,
+            rdnCmtsUSUnregisteredModemCount       Integer32,
+            rdnCmtsUSOfflineModemCount            Integer32
+        }
+
+
+rdnCmtsUSNominalRxPower OBJECT-TYPE
+        SYNTAX      Integer32 (-160..290)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The attribute to program the target, or nominal, receive power of
+             each upstream RF port. The range is channel width dependent:
+
+             Power Level     Channel Width
+             -160,+140        200 kHz
+             -130,+170        400 kHz
+             -100,+200        800 kHz
+             -70,+230        1600 kHz
+             -40,+260        3200 kHz
+             -30,+290        6400 kHz"
+
+        ::= { rdnCmtsUpstreamChannelEntry 1 }
+
+
+rdnCmtsUSNominalRxPowerMode OBJECT-TYPE
+    SYNTAX      INTEGER {
+                              default(0),
+                              absolute(1)
+    }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This object describes the setting mode for rdnCmtsUSNomialRxPower.
+        The default setting is the absolute mode."
+    ::= { rdnCmtsUpstreamChannelEntry 2 }
+
+rdnCmtsUSInvitedRangingInterval OBJECT-TYPE
+        SYNTAX      Integer32 ( 0..30000 )
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "To fix Invited(Periodic) Ranging Intervals as in input to the 
+             Bandwidth Allocator algorithm."
+        DEFVAL { 0 }
+        ::= { rdnCmtsUpstreamChannelEntry 3 }
+
+rdnCmtsUSRangingResponseControl OBJECT-TYPE
+        SYNTAX      INTEGER {
+        normal(0),
+        override(1)
+    }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The attribute to force all RNG-Resp messages to issue a 'Continue' 
+             Ranging Status indefinitely regardless of timing, power, etc. accuracy
+             of previous incoming Ranging Request. Value 0 means Normal Ranging Mode,
+             value 1 means Status Override"
+        ::= { rdnCmtsUpstreamChannelEntry 4 }
+
+rdnCmtsUSRangingPowerOverride  OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The attribute overrides upstream power adjustments performed by the 
+             CMTS to CM's. When this object is set to TRUE(1), the  override is
+             activated, all Ranging Response message will be transmitted with 
+             ZERO power adjustment, regardless of received upstream power 
+             levels."
+        ::= { rdnCmtsUpstreamChannelEntry 5 } 
+
+rdnCmtsUSTotalModemCount OBJECT-TYPE
+        SYNTAX      Integer32 (0..2147483647)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "When read, this object returns the total number of Cable Modems per
+             upstream."
+        ::= { rdnCmtsUpstreamChannelEntry 6 }
+
+rdnCmtsUSRegisteredModemCount OBJECT-TYPE
+        SYNTAX      Integer32 (0..2147483647)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "When read, this object returns the number of registered Cable Modems
+             per upstream."
+        ::= { rdnCmtsUpstreamChannelEntry 7 }
+
+rdnCmtsUSUnregisteredModemCount OBJECT-TYPE
+        SYNTAX      Integer32 (0..2147483647)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "When read, this object returns the number of unregistered 
+             Cable Modems per upstream.  This count reflects modems
+             that are in the process of attempting to join the network.   
+             Note that this does not include offline modems, see
+             rdnCmtsUSOfflineModemCount for offline modems."
+        ::= { rdnCmtsUpstreamChannelEntry 8 }
+
+rdnCmtsUSOfflineModemCount OBJECT-TYPE
+        SYNTAX      Integer32 (0..2147483647)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "When read, this object returns the number of offline Cable Modems
+             per upstream."
+        ::= { rdnCmtsUpstreamChannelEntry 9 }
+
+         
+
+--rdnCmtsUSChannelAvgUtil  OBJECT-TYPE
+--        SYNTAX      INTEGER   ( 0..100 ) 
+--        MAX-ACCESS  read-only
+--        STATUS      current
+--        DESCRIPTION
+--            "The percentage of the average usage of this upstream channel. The 
+--             average interval is 30 seconds." 
+--        ::= { rdnCmtsUpstreamChannelEntry 6 }
+
+--
+-- STP control group
+-- The below two mibs will be used to control the operation of the MIB
+--
+rdnCmtsStpObjects    OBJECT IDENTIFIER ::= { rdnCmtsIfObjects 3 }
+
+rdnCmtsStpEnable OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This object controls the activation of DOCSIS Spanning Tree Protocol
+             Bridging functionality. The Spanning Tree Bridging is disabled/enabled
+             by setting this object to FALSE/TRUE."
+        ::= { rdnCmtsStpObjects  1 }
+
+rdnCmtsStpTCNEnable OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "This object controls the generation of Topology Change Notification
+             messages for DOCSIS Spanning Tree Protocol Bridge. "
+        ::= { rdnCmtsStpObjects  2 }
+
+
+
+rdnCmtsLinkUpDownTrapEnableTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnCmtsLinkUpDownTrapEnableEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table has the object to enable or disable the generation of
+             proprietary CMTS LinkUp and Link Down traps"
+        ::= { rdnCmtsIfObjects 4 }
+
+rdnCmtsLinkUpDownTrapEnableEntry OBJECT-TYPE
+        SYNTAX      RdnCmtsLinkUpDownTrapEnableEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+             "An entry in this table exists for each ifEntry with an
+             ifType of docsCableUpstream(129) or docsCableUpstreamChannel(205)."
+        INDEX { ifIndex }
+        ::= { rdnCmtsLinkUpDownTrapEnableTable 1 }
+
+RdnCmtsLinkUpDownTrapEnableEntry ::= SEQUENCE {
+             rdnCmtsLinkUpDownTrapEnable        INTEGER
+        }
+
+rdnCmtsLinkUpDownTrapEnable  OBJECT-TYPE
+        SYNTAX       INTEGER { enabled(1), disabled(2) }
+        MAX-ACCESS   read-write
+        STATUS       current
+        DESCRIPTION "Indicates whether rdnCmtsUpstreamIfLinkUpTrap and 
+                     rdnCmtsUpstreamIfLinkDownTrap traps should be 
+                     generated for this interface.  By default, this object
+                     has the value disabled(2).  These traps are convenient
+                     for knowing the Spectrum Group name whenever the 
+                     link state changes, and are therefore related only
+                     to the upstream direction"
+        DEFVAL { disabled }
+        ::= { rdnCmtsLinkUpDownTrapEnableEntry 1 }
+
+
+
+--
+-- This entry is used to save the current configuration into the flash
+--
+
+rdnCmtsSaveConfig OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This object when set to TRUE will save the current configuration of 
+         the CMTS.  When this object is read it will return FALSE"
+    ::= { rdnCmtsMiscObjects  1 }
+
+--
+-- The following three entries are used to control the CM reset through CMTS
+--
+rdnCmtsCmResetByMacAddr OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The CM MAC address that the operator wants to reset. When this object 
+         is set, it will cause the CMTS to reset that CM.  When this object is 
+         read it will return zero"
+    ::= { rdnCmtsMiscObjects  2 }
+
+rdnCmtsCmResetByIpAddr OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The CM IP address that the operator wants to reset. When this object 
+         is set, it will cause the CMTS to reset that CM.  When this object is 
+         read it will return zero"
+    ::= { rdnCmtsMiscObjects  3 }
+
+rdnCmtsCmResetAll OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This object when set to TRUE will cause the CMTS to reset all the CM that
+         are registered with this CMTS. When this object is read it will return 
+         FALSE"
+    ::= { rdnCmtsMiscObjects  4 }
+
+rdnCmtsHostAuthControl OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE (17))
+    MAX-ACCESS  read-write
+    STATUS      obsolete
+    DESCRIPTION
+        "This object is used to add or delete entry in CMTS host authorization
+         table. The first octet is for action, add (1) or delete (2), the rest
+         are composed with CM MAC address (6 octets), CPE MAC address (6 octets), 
+         and the CPE IP address (4 octets).
+         Zero is returned for read on this object"
+    ::= { rdnCmtsMiscObjects  5 }
+
+
+rdnCmtsModemAgingTimer OBJECT-TYPE
+    SYNTAX      Integer32 ( 0 | 10..30240 )
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "The Time in minutes of modem inactivity after which the modem is
+                 deleted from the registration table. The minimum is 10 minutes
+                 and the maximum is 21 days. A value of '0' will disable the 
+                 aging timer"
+    ::= { rdnCmtsMiscObjects  6 }
+
+
+rdnCmtsCpeToCmObject OBJECT IDENTIFIER ::= { rdnCmtsMiscObjects 7 }
+
+--
+-- CMTS CPE table
+--
+
+rdnCmtsCpeToCmTable OBJECT-TYPE
+  SYNTAX      SEQUENCE OF RdnCmtsCpeToCmEntry
+  MAX-ACCESS  not-accessible
+  STATUS      current
+  DESCRIPTION
+      "This table describes the mapping between CPE's MAC address
+       and MAC address of the cable modem these CPEs are attached to.
+       This table does not support the walk/getNext. It is not intended
+       to use this mib to walk the list of cpe's in the system."
+  REFERENCE
+      " "
+  ::= { rdnCmtsCpeToCmObject 1 }
+
+rdnCmtsCpeToCmEntry OBJECT-TYPE
+  SYNTAX            RdnCmtsCpeToCmEntry
+  MAX-ACCESS  not-accessible
+  STATUS      current
+  DESCRIPTION
+      "An entry describes the mapping between one CPE's MAC address
+       and MAC address of the cable modem this CPE is attached to."
+  INDEX { rdnCmtsCpeMac }
+  ::= { rdnCmtsCpeToCmTable 1 }
+
+RdnCmtsCpeToCmEntry ::= SEQUENCE {
+        rdnCmtsCpeMac     MacAddress,
+        rdnCmtsCmMac      MacAddress
+      }
+
+rdnCmtsCpeMac OBJECT-TYPE
+  SYNTAX      MacAddress
+  MAX-ACCESS  not-accessible 
+  STATUS      current
+  DESCRIPTION
+      "This object is the MAC address of the CPE (host) that a cable
+       modem is attached to."
+  ::= { rdnCmtsCpeToCmEntry  1 }
+
+rdnCmtsCmMac OBJECT-TYPE
+  SYNTAX      MacAddress
+  MAX-ACCESS  read-only 
+  STATUS      current
+  DESCRIPTION
+      "This object returns the MAC address of the cable modem that a CPE
+       (host) is attached to. If the CPE is not found being attached to any
+       cable modem registered on this CMTS, the read of this object will 
+       return zero."
+  ::= { rdnCmtsCpeToCmEntry  2 }
+
+
+--
+-- End of CMTS CPE table
+--
+
+
+--
+-- Start of rdnIfCmtsCmStatusTable
+--
+
+rdnIfCmtsCmStatusTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RdnIfCmtsCmStatusEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "This table is an extension of the docsIfCmtsCmStatusTable. 
+                 It provides additional information about the CM."
+    ::={ rdnCmtsMiscObjects  8 }
+
+rdnIfCmtsCmStatusEntry OBJECT-TYPE
+    SYNTAX      RdnIfCmtsCmStatusEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Each entry of the table rdnIfCmtsCmStatusTable. 
+                 Each entry provides some additional information about the CM."
+
+    AUGMENTS    { docsIfCmtsCmStatusEntry }
+    ::= { rdnIfCmtsCmStatusTable 1 }
+
+RdnIfCmtsCmStatusEntry ::= SEQUENCE
+    {
+        rdnIfCmtsCmStatusRegistrationTime  Integer32,
+        rdnIfCmtsCmStatusTxUnicastKbytes   Counter32,
+        rdnIfCmtsCmStatusRxUnicastKbytes   Counter32,
+        rdnIfCmtsCmStatusTxUnicastExtKbytes   Counter64,
+        rdnIfCmtsCmStatusRxUnicastExtKbytes   Counter64,
+        rdnIfCmtsCmStatusSpectrumGroupName DisplayString,
+        rdnIfCmtsCmStatusUpstreamPort      INTEGER,
+        rdnIfCmtsCmStatusDownStreamPort    INTEGER,
+	rdnIfCmtsCmStatusValue                INTEGER,
+        rdnIfCmtsCmStatusDSBondingGroupId     Integer32,
+        rdnIfCmtsCmStatusOnlineTimes          Counter32,
+        rdnIfCmtsCmStatusPercentOnline        Integer32,
+        rdnIfCmtsCmStatusMinOnlineTime        TimeInterval,
+        rdnIfCmtsCmStatusAvgOnlineTime        TimeInterval,
+        rdnIfCmtsCmStatusMaxOnlineTime        TimeInterval,
+        rdnIfCmtsCmStatusMinOfflineTime       TimeInterval,
+        rdnIfCmtsCmStatusAvgOfflineTime       TimeInterval,
+        rdnIfCmtsCmStatusMaxOfflineTime       TimeInterval
+    }
+
+rdnIfCmtsCmStatusRegistrationTime OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "When read, this object will return the time in seconds since
+                 the modem registered. If the modem is unregistered, it will
+                 return ZERO"
+    ::= { rdnIfCmtsCmStatusEntry 1 }
+                
+rdnIfCmtsCmStatusTxUnicastKbytes OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "When read, this object will return the number of unicast 
+                 KBytes (1024 bytes) the CMTS has transmitted to the modem 
+                 (Downstream direction). For offline modems this value is the 
+                 total number of unicast KBytes when it was online. This
+                 object is never reset as long as the CMTS is up. It does not
+                 need to be restored across reboots . However, when the CM
+                 reregisters into a new spectrum group, this data must be
+                 restored.
+                 This is 32-bit version of rdnIfCmtsCmStatusTxUnicastExtKbytes,
+                 included to provide back compatability with  SNMPv1 managers"
+    ::= { rdnIfCmtsCmStatusEntry 2 }
+ 
+rdnIfCmtsCmStatusRxUnicastKbytes OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "When read, this object will return the number of unicast
+                 KBytes (1024 bytes) the CMTS has received from the modem 
+                 (Upstream direction). For offline modems this value is the
+                 total number of unicast KBytes when it was online. This
+                 object is never reset as long as the CMTS is up. It does not
+                 need to be restored across reboots.  However, when the CM
+                 reregisters into a new spectrum group, this data must be
+                 restored.
+                 This is 32-bit version of rdnIfCmtsCmStatusRxUnicastExtKbytes,
+                 included to provide back compatability with  SNMPv1 managers."
+    ::= { rdnIfCmtsCmStatusEntry 3 }
+ 
+rdnIfCmtsCmStatusTxUnicastExtKbytes OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "When read, this object will return the number of unicast 
+                 KBytes (1024 bytes) the CMTS has transmitted to the modem 
+                 (Downstream direction). For offline modems this value is the
+                 the total number of unicast KBytes when it was online. This
+                 object is never reset as long as the CMTS is up. It does not
+                 need to be restored across reboots . However, when the CM
+                 reregisters into a new spectrum group, this data must be
+                 restored."
+    ::= { rdnIfCmtsCmStatusEntry 4 }
+                 
+rdnIfCmtsCmStatusRxUnicastExtKbytes OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "When read, this object will return the number of unicast 
+                 KBytes (1024 bytes) the CMTS has received from the modem 
+                 (Upstream Direction). For offline modems this value is the
+                 the total number of unicast KBytes when it was online. This
+                 object is never reset as long as the CMTS is up. It does not
+                 need to be restored across reboots.  However, when the CM
+                 reregisters into a new spectrum group, this data must be
+                 restored."
+    ::= { rdnIfCmtsCmStatusEntry 5 }
+
+rdnIfCmtsCmStatusSpectrumGroupName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "When read, this object will return the spectrum group name. If
+                 data not available, return NULL string"
+    ::= { rdnIfCmtsCmStatusEntry 6 }
+
+rdnIfCmtsCmStatusUpstreamPort  OBJECT-TYPE
+    SYNTAX      INTEGER (0..7)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The Upstream Port Number the modem is using. For offline modems
+                 this value is meaningless."
+    ::= { rdnIfCmtsCmStatusEntry 7 }
+
+rdnIfCmtsCmStatusDownStreamPort  OBJECT-TYPE
+    SYNTAX      INTEGER (0..7)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The downstream port number the modem is using, For offline
+                 modems this value is meaningless."
+    ::= { rdnIfCmtsCmStatusEntry 8 }
+
+
+
+rdnIfCmtsCmStatusValue OBJECT-TYPE
+        SYNTAX      INTEGER {
+            init-o(1),
+            init-t(2), 
+            init-r1(3),
+            init-r2(4), 
+            init-rc(5),
+            dhcp-d(6),
+            dhcp-o(7),
+            dhcp-req(8),
+            dhcp-ack(9), 
+            online(10),
+            online-d(11),
+            online-un(12),
+            online-pk(13),
+            online-pt(14),
+            reject-m(15), 
+            reject-c(16),
+            reject-r(17),
+            reject-pk(18),
+            reject-pt(19),
+            offline(20)
+        }
+
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Current Cable Modem connectivity state. Returned status
+             information is the CM status as assumed by the CMTS,
+             and indicates the following events:
+             
+             init-o(1)
+                Option file transfer was started.
+             init-t(2) 
+                Time-of-day (TOD) exchange was started.
+             init-r1(3) 
+                CM sent initial ranging parameters.
+             init-r2(4) 
+                CM is ranging.
+             init-rc(5) 
+                Ranging is complete.
+             dhcp-d (6) 
+                DHCP Discover was sent by CM.
+             dhcp-o (7) 
+                DHCP Offer was received.
+             dhcp-req(8) 
+                DHCP Request was sent by CM.
+             dhcp-ack(9) 
+                DHCP Ack was received, IP address was assigned by DHCP 
+                server.
+             online(10)
+                CM registered; enabled for data.
+             online-d(11)
+                CM registered, but network access for the CM is disabled.
+             online-un(12)
+                CM registered, but not enabled data. Fail to verify modems 
+                Identity by BPI module.
+            online-pk(13)
+               CM registered; baseline privacy interface (BPI) enabled, and key 
+               encryption key (KEK)is assigned.
+            online-pt(14)
+               CM registered; BPI enabled, and traffic encryption key (TEK) is 
+               assigned.
+            reject-m(15) 
+               CM did attempt to register; registration was refused due to bad 
+               mic.
+            reject-c(16)
+               CM did attempt to register; registration was refused due to bad 
+               COS.
+            reject-r(17)
+               CM did attempt to register, registration was refused due to 
+               unavailable resource.
+            reject-pk(18)
+               KEK modem key assignment is rejected.
+            reject-pt(19)
+               TEK modem key assignment is rejected.
+            offline(20)
+               CM is considered to be offline."
+        ::= { rdnIfCmtsCmStatusEntry 9 }
+
+rdnIfCmtsCmStatusDSBondingGroupId  OBJECT-TYPE
+        SYNTAX      Integer32 (0..65535)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "The downstream channel bonding group ID of primary 
+                    service flow.  This value is zero if not registered 
+                    for channel bonding."
+        ::= { rdnIfCmtsCmStatusEntry 10 }
+
+rdnIfCmtsCmStatusOnlineTimes  OBJECT-TYPE
+        SYNTAX      Counter32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "Number of times a modem has gone from offline to 
+                     online since the modem was first seen ranging."
+        ::= { rdnIfCmtsCmStatusEntry 11 }
+
+rdnIfCmtsCmStatusPercentOnline  OBJECT-TYPE
+        SYNTAX      Integer32 (0..65535)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "A percentage of time the modem has been in an online state
+                     since the modem was first seen ranging.  This value 
+                     is displayed as (percent value x 100) in order to show 
+                     precision.  i.e. 99.34% will be displayed as 9934."
+        ::= { rdnIfCmtsCmStatusEntry 12 }
+
+rdnIfCmtsCmStatusMinOnlineTime  OBJECT-TYPE
+        SYNTAX      TimeInterval
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "Shortest period of time this modem has been online since 
+                     the modem was first seen ranging."
+        ::= { rdnIfCmtsCmStatusEntry 13 }
+
+rdnIfCmtsCmStatusAvgOnlineTime  OBJECT-TYPE
+        SYNTAX      TimeInterval
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "Average period of time this modem has been online since
+                     the modem was first seen ranging."
+        ::= { rdnIfCmtsCmStatusEntry 14 }
+
+rdnIfCmtsCmStatusMaxOnlineTime  OBJECT-TYPE
+        SYNTAX      TimeInterval
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "Longest period of time this modem has been online since
+                     the modem was first seen ranging."
+        ::= { rdnIfCmtsCmStatusEntry 15 }
+
+rdnIfCmtsCmStatusMinOfflineTime  OBJECT-TYPE
+        SYNTAX      TimeInterval
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "Shortest period of time this modem has been offline since
+                     the modem was first seen ranging."
+        ::= { rdnIfCmtsCmStatusEntry 16 }
+
+rdnIfCmtsCmStatusAvgOfflineTime  OBJECT-TYPE
+        SYNTAX      TimeInterval
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "Average period of time this modem has been offline since
+                     the modem was first seen ranging."
+        ::= { rdnIfCmtsCmStatusEntry 17 }
+
+rdnIfCmtsCmStatusMaxOfflineTime  OBJECT-TYPE
+        SYNTAX      TimeInterval
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "Longest period of time this modem has been offline since
+                     the modem was first seen ranging."
+        ::= { rdnIfCmtsCmStatusEntry 18 }
+
+--
+-- End of rdnIfCmtsCmStatusTable
+--
+
+
+rdnModemDeregReason OBJECT-TYPE
+   SYNTAX       INTEGER {
+                   normal(1),
+                   operatorReset(2),
+                   operatorDisabled(3),
+                   operatorDeleted(4),
+                   transmissionFailed(5),
+                   transmissionDisabled(6),
+                   transmissionDeleted(7),
+                   servingGroupChanged(8),
+                   receiverFailed(9),
+                   receiverDisabled(10),
+                   receiverDeleted(11),
+                   channelDeleted(12),
+                   channelErrors(13),
+                   incompleteReg(14),
+                   profileUpdateComplete(15),
+                   skeyFailure(16),
+                   dnChanChangeFailure(17),
+                   noDeregReason(18),
+                   powerTolerance(19),
+                   freqTolerance(20),
+                   timingTolerance(21),
+                   rangingTolerance(22),
+                   noResponseUCC(23)
+                }
+   MAX-ACCESS   read-only
+   STATUS       current
+   DESCRIPTION
+   "Modem Deregistration Reason 
+    normal                - the CMTS has lost contact with the modem.
+    operatorReset         - reset by the operator
+    operatorDisabled      - operator has disabled the modem
+    operatorDeleted       - was removed from the system 
+    transmissionFailed    - the transmitter communicating to the modem
+                            has failed
+    transmissionDisabled  - the transmitter communicating to the modem
+                            has been disabled
+    transmissionDeleted   - the transmitter communicating to the modem
+                            has been deleted
+    servingGroupChanged   - the assignment of the serving groups for the
+                            modem has changed
+    receiverFailed        - the receiver communicating with the modem has
+                            failed
+    receiverDisabled      - the receiver communicating with the modem has
+                            been disabled
+    receiverDeleted       - the receiver communicating with the modem has
+                            beeb deleted
+    channelDeleted        - a channel has changed on the receiver that has
+                            caused the modem to deregister
+    channelErrors         - deregistered due to unacceptable amount of channel
+                            errors
+    incompleteReg         - deregistered due to incomplete registration
+    profileUpdateComplete - deregistered after profile update
+    skeyFailure           - deregistered due to session key failure
+    dnChanChangeFailure   - due to downstream transmission channel change failure
+    noDeregReason         - no deregistration reason available
+    powerTolerance        - power ranging corrections were out of tolerance
+    freqTolerance         - frequency ranging corrections were out of tolerance
+    timingTolerance       - timing ranging correction were out of tolerance
+    rangingTolerance      - multiple ranging corrections were out of tolerance
+    noResponseUCC         - modem did not respond to the UCC request
+
+
+    This is a place holder for the modem deregistration reason. This should
+    return ZERO when read. This just allows us to include a deregistration
+    reason in the modem deregistration trap varbind.
+   " 
+   ::= { rdnCmtsMiscObjects 9 }
+                       
+rdnModemRegIndex OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "This is place holder for CMId which is the index to the CM table.
+                 This table WILL contain the CM information. Right now the table is
+                 not implemented yet. When read it returns ZERO.  But in future this
+                 should be part of the CM information table and this should be
+                 removed from here. This is required now to support the varbind
+                 in Registration and Deregistration Traps. "
+    ::= { rdnCmtsMiscObjects 11 }
+
+
+--
+-- Start of rdnCmToCpeTable
+--
+
+rdnCmToCpeTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RdnCmToCpeEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "This table provides the information about the CPEs attached to the
+                 CM."
+    ::={ rdnCmtsMiscObjects 12 }
+
+rdnCmToCpeEntry OBJECT-TYPE
+    SYNTAX      RdnCmToCpeEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "An entry of the table rdnCmToCpeTable. Each entry provides the 
+                 CPE Mac and IP addresses."
+    INDEX       { docsIfCmtsCmStatusIndex,
+                  rdnCmToCpeIndex }
+    ::= { rdnCmToCpeTable 1 }
+
+RdnCmToCpeEntry ::= SEQUENCE
+    {
+        rdnCmToCpeIndex          Integer32,
+        rdnCmToCpeMacAddress     MacAddress,
+        rdnCmToCpeIpAddress      IpAddress,
+        rdnCmToCpeIPv6Addr       InetAddressIPv6
+    }
+
+rdnCmToCpeIndex   OBJECT-TYPE
+    SYNTAX      Integer32 (1..2147483647)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Index Value for an individual CPE, This index value is not
+                 guaranteed to remain same during CMTS uptime.  "
+    ::= { rdnCmToCpeEntry 1 }
+
+rdnCmToCpeMacAddress  OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The Mac Address of the CPE attached to the CM"
+    ::= { rdnCmToCpeEntry 2 }
+    
+
+rdnCmToCpeIpAddress   OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The IP Address of the CPE attached to the CM"
+    ::= { rdnCmToCpeEntry 3 }
+
+rdnCmToCpeIPv6Addr OBJECT-TYPE
+    SYNTAX      InetAddressIPv6
+    MAX-ACCESS read-only
+    STATUS      current
+    DESCRIPTION "This attribute represents the IPv6 address of the CPE.
+                 If the CPE has no IPv6 address assigned, or the
+                 Internet address is unknown, the value of this attribute
+                 is the all zeros address."
+    ::= { rdnCmToCpeEntry 4 }
+
+--
+-- End of rdnCmToCpeTable
+--
+
+
+
+rdnCmtsCmRegisteredTrapEnable OBJECT-TYPE
+    SYNTAX     INTEGER { enabled(1), disabled(2) }
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+         "This object controls SNMP traps for CM registration
+          and deregistration traps (rdnCmtsCmRegisteredNotification
+          and rdnCmtsCmDeregisteredNotification). 
+          If its value is set to enabled(1), then traps 
+          are generated. If the value is disabled(2), then traps 
+          are not generated.
+          By default, this object has the value enabled(1).
+         "
+    DEFVAL { enabled }
+
+    ::= { rdnCmtsMiscObjects 13 }
+
+
+
+rdnCmtsCardType OBJECT-TYPE
+    SYNTAX     INTEGER { domestic(1), japan(2) }
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+         "This object toggles the CMTS card type between Domestic
+          and Japan.  When set to Japan card type, upstream 
+          frequency range of the CMTS card will change from 10MHz
+          to 55MHz.  Downstream RF frequency will change from 
+          555MHz to 557MHz.
+          By default, this object has the value domestic(1).
+         "
+    DEFVAL { domestic }
+
+    ::= { rdnCmtsMiscObjects 14 }
+
+-- Remote Query Tables
+--
+-- The Remote Query feature allows the BSR to act as an SNMP Manager,
+-- collecting statistics from cable modems, using SNMP get/next requests.
+--
+-- 
+
+rdnRQueryCmtsCmStatusTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnRQueryCmtsCmStatusEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            " The Remote Query feature allows the BSR to act as an SNMP Manager,
+              periodically collecting statistics from cable modems, using SNMP 
+              get/next requests.  The rdnRQueryCmtsCmStatusTable displays the
+              collected statistics.
+
+              Remote Query polling is enabled and configured using the BSR's
+              command line interface.   The frequency of polling should be
+              selected with care, so as not to introduce excessive
+              overhead that would degrade performance.
+            "
+        ::= { rdnCmtsMiscObjects 15 }
+
+rdnRQueryCmtsCmStatusEntry OBJECT-TYPE
+        SYNTAX      RdnRQueryCmtsCmStatusEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry in the rdnRQueryCmtsCmStatusTable. Each entry
+             represents a set physical-layer status values for a
+             specific cable modem.  The table is indexed by a DOCSIS
+             cable modem index value (docsIfCmtsCmStatusIndex).
+            "
+        INDEX { docsIfCmtsCmStatusIndex }
+        ::= { rdnRQueryCmtsCmStatusTable 1 }
+
+RdnRQueryCmtsCmStatusEntry ::= SEQUENCE 
+        {
+            rdnRQueryCmtsCmDownChannelPower              TenthdBmV,
+            rdnRQueryCmStatusTxPower                     TenthdBmV,
+            rdnRQueryUpChannelTxTimingOffset             Unsigned32,
+            rdnRQuerySigQSignalNoise                     TenthdB,
+            rdnRQuerySigQMicroreflections                Integer32,
+            rdnRQueryPollTime                            TimeStamp
+        }
+
+rdnRQueryCmtsCmDownChannelPower OBJECT-TYPE
+        SYNTAX      TenthdBmV
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The last polled value of the CM's docsIfdownChannelPower MIB 
+             object, the received downstream power level at the CM, 
+             in TenthdbMv.
+             DOCSIS specifies this to be between +5.0 and - 15.0 dBmv.
+            "
+        ::= { rdnRQueryCmtsCmStatusEntry 1 }
+
+rdnRQueryCmStatusTxPower OBJECT-TYPE
+        SYNTAX      TenthdBmV
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The last polled value of the  CM's docsIfCmStatusTxPower MIB
+             object, the CMs upstream transmit power level, in TenthdBmv.  
+             DOCSIS specifies this to be between 8.0 and 54.0 dbMv.
+            "
+        ::= { rdnRQueryCmtsCmStatusEntry 2 }
+
+rdnRQueryUpChannelTxTimingOffset OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The last polled value of the CM's docsIfUpChannelTxTimingOffset MIB
+             object.  This is the CM's estimate of the current round trip time 
+             obtained from the ranging offset (initial ranging offset + ranging 
+             offset adjustments). 
+             The CM uses this offset for timing upstream transmissions to ensure 
+             synchronized arrivals at  the CMTS. Units are in terms of 
+             (6.25 microseconds/64). 
+            "
+        ::= { rdnRQueryCmtsCmStatusEntry 3 }
+
+rdnRQuerySigQSignalNoise OBJECT-TYPE
+        SYNTAX      TenthdB
+        UNITS       "dB"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The last polled value of the CM's docsIfSigQSignalNoise MIB object,
+             the downstream signal to noise ratio in TenthdB.
+            "
+        ::= { rdnRQueryCmtsCmStatusEntry 4 }
+
+rdnRQuerySigQMicroreflections OBJECT-TYPE
+        SYNTAX      Integer32 (0..255)
+        UNITS       "dBc"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The last polled value of the CM's docsIfSigQMicroreflections MIB
+             object, which is its estimate of the total microreflections 
+             including in-channel responses perceived on the upstream interface, 
+             measured in dBc below the signal level.
+            "
+        ::= { rdnRQueryCmtsCmStatusEntry 5 }
+
+rdnRQueryPollTime OBJECT-TYPE
+        SYNTAX      TimeStamp
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The value of sysUpTime at the time when the
+             rdnRQueryCmtsCmStatusTable values for this CM
+             were last polled.
+            "
+        ::= { rdnRQueryCmtsCmStatusEntry 6 }
+
+rdnCmtsServiceClassObjects OBJECT IDENTIFIER ::= { rdnCmtsMiscObjects 19 }
+
+
+--
+-- CMTS Service Class Table
+--
+
+rdnCmtsServiceClassTable OBJECT-TYPE
+  SYNTAX      SEQUENCE OF RdnCmtsServiceClassEntry
+  MAX-ACCESS  not-accessible
+  STATUS      current
+  DESCRIPTION
+      "This table describes the set of Motorola-QoS Services in a CMTS"
+  REFERENCE
+      " "
+  ::= { rdnCmtsServiceClassObjects 1 }
+
+rdnCmtsServiceClassEntry OBJECT-TYPE
+  SYNTAX      RdnCmtsServiceClassEntry
+  MAX-ACCESS  not-accessible
+  STATUS      current
+  DESCRIPTION
+      "List of attributes of private service class."
+  INDEX { rdnCmtsServiceClassName }
+  ::= { rdnCmtsServiceClassTable 1 }
+
+RdnCmtsServiceClassEntry ::= SEQUENCE {
+        rdnCmtsServiceClassName                 DisplayString(SIZE(1..15)),
+	rdnCmtsServiceClassMab                  Unsigned32,
+	rdnCmtsServiceClassCap                  Unsigned32,
+	rdnCmtsServiceClassSchedulingPriority   Unsigned32,
+	rdnCmtsServiceClassAdmittedBWThreshold  Unsigned32,
+	rdnCmtsServiceClassAllowShare           TruthValue
+    }
+
+rdnCmtsServiceClassName OBJECT-TYPE
+  SYNTAX    DisplayString(SIZE(1..15))
+  MAX-ACCESS  not-accessible
+  STATUS      current
+  DESCRIPTION
+      "This object is the Service Class Name. DOCSIS specifies that the
+       maximum size is 15 printable ASCII characters with
+       a terminating zero. The terminating Zero is not
+       represented in this DisplayString syntax object."
+  ::= { rdnCmtsServiceClassEntry  1 }
+ 
+rdnCmtsServiceClassMab OBJECT-TYPE
+  SYNTAX    Unsigned32
+  MAX-ACCESS  read-write
+  STATUS      current
+  DESCRIPTION
+      "This object is get/set Maximum Assigned Bandwidth(MAB) for
+       specified ServiceClass."
+  ::= { rdnCmtsServiceClassEntry  2 }
+
+rdnCmtsServiceClassCap OBJECT-TYPE
+  SYNTAX    Unsigned32
+  MAX-ACCESS  read-write
+  STATUS      current
+  DESCRIPTION
+      "This object is get/set Configured Active Percent(CAP) for
+       specified ServiceClass."
+  ::= { rdnCmtsServiceClassEntry  3 }
+
+rdnCmtsServiceClassSchedulingPriority OBJECT-TYPE
+  SYNTAX      Unsigned32
+  MAX-ACCESS  read-write
+  STATUS      current
+  DESCRIPTION
+      "This object is to get/set Scheduling Priority for
+       specified ServiceClass."
+  ::= { rdnCmtsServiceClassEntry 4 }
+
+rdnCmtsServiceClassAdmittedBWThreshold OBJECT-TYPE
+  SYNTAX      Unsigned32
+  MAX-ACCESS  read-write
+  STATUS      current
+  DESCRIPTION
+      "This object is to get/set Admitted Bandwidth Threshold for
+       specified ServiceClass."
+  ::= { rdnCmtsServiceClassEntry 5 }
+
+rdnCmtsServiceClassAllowShare OBJECT-TYPE
+  SYNTAX      TruthValue
+  MAX-ACCESS  read-write
+  STATUS      current
+  DESCRIPTION
+      "This object is to get/set allow bandwidth share with other class for
+       specified ServiceClass."
+  DEFVAL      { false }
+  ::= { rdnCmtsServiceClassEntry  6 }
+
+
+
+---
+--- UGS Call Monitoring Statistics Sample Window
+---
+
+
+rdnUgsStatsWindow OBJECT-TYPE
+    SYNTAX  Integer32 (0 | 5..120)
+    UNITS       "minutes"
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+       "The sliding, sampling time window to collect statistics
+        for the rdnServiceClassStatsTable.  This timer interval
+        is global, applying to all service classes and
+        chassis slots.  A value of zero disables the timer.
+       "
+    DEFVAL { 60 }
+    ::= { rdnCmtsMiscObjects 16 }
+
+
+---
+---  UGS Call Monitoring Statistics Table
+---
+
+rdnCableUgsStatsTable  OBJECT-TYPE
+    SYNTAX          SEQUENCE OF RdnCableUgsStatsEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "This table contains statistics summarizing UGS flows
+                     per CMTS slot/port on the BSR. "
+
+    ::= { rdnCmtsMiscObjects 17 }
+
+
+rdnCableUgsStatsEntry OBJECT-TYPE
+        SYNTAX      RdnCableUgsStatsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A row in the rdnCableUgsStatsTable.  Each row
+             contains a set of statistics, totaled for all UGS flows 
+             on a particular upstream port.  The table is indexed by
+             values of ifIndex that are associated with CMTS 
+             upstream ports (ifType = 129). 
+
+             This includes the DefUGS and DefUGSAD service
+             classes, plus any other UGS classes that the 
+             operator may have configured.
+            "
+        INDEX { ifIndex }
+        ::= { rdnCableUgsStatsTable 1 }
+
+
+RdnCableUgsStatsEntry ::= SEQUENCE 
+        {
+            rdnCableUgsStatsSlot                     Integer32,
+            rdnCableUgsStatsPort                     Integer32,
+            rdnCableUgsCurrentTotalFlows             Integer32,
+            rdnCableUgsMaxFlowsLastFiveMinutes       Integer32,
+            rdnCableUgsAvFlowsLastFiveMinutes        Integer32,
+            rdnCableUgsMinFlowsLastFiveMinutes       Integer32,
+            rdnCableUgsMaxFlowsLastWindow            Integer32,
+            rdnCableUgsAvFlowsLastWindow             Integer32,
+            rdnCableUgsMinFlowsLastWindow            Integer32,
+            rdnCableUgsResetStats                    TruthValue
+        }
+
+ rdnCableUgsStatsSlot OBJECT-TYPE
+    SYNTAX  Integer32 (0..15)
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The physical chasis slot number relative to the 
+         containing card or chassis, to which this row
+         of UGS statistics is applying.
+        "
+    ::= { rdnCableUgsStatsEntry 1 }
+
+rdnCableUgsStatsPort OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Chassis port number, on the associated card,
+         to which this row of UGS statistics 
+         is applying.
+        "
+   ::= { rdnCableUgsStatsEntry 2 }
+
+rdnCableUgsCurrentTotalFlows OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Snap shot of the current, total number of UGS flows that are 
+             active, for the associated ifIndex.
+            "
+        ::= { rdnCableUgsStatsEntry 3 }
+
+rdnCableUgsMaxFlowsLastFiveMinutes OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Maximum number of UGS flows that were active, 
+             during the last 5 minutes, for the associated 
+             ifIndex.
+            "
+        ::= { rdnCableUgsStatsEntry 4 }
+
+rdnCableUgsAvFlowsLastFiveMinutes OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Average number of UGS flows that were active, 
+             during the last 5 minutes, for the associated 
+             ifIndex.
+            "
+        ::= { rdnCableUgsStatsEntry 5 }
+
+rdnCableUgsMinFlowsLastFiveMinutes OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Minimum number of UGS flows that were active, 
+             during the last 5 minutes,  for the associated 
+             ifIndex.
+            "
+        ::= { rdnCableUgsStatsEntry 6 }
+
+
+rdnCableUgsMaxFlowsLastWindow OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Maximum number of UGS flows that were active, 
+             during the rdnUgsStatsWindow,
+             for the associated ifIndex.
+            "
+        ::= { rdnCableUgsStatsEntry 7 }
+
+rdnCableUgsAvFlowsLastWindow OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Average number of UGS flows that were active, 
+             during the rdnUgsStatsWindow, for the associated ifIndex.
+            "
+        ::= { rdnCableUgsStatsEntry 8 }
+
+rdnCableUgsMinFlowsLastWindow OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Minimum number of UGS flows that were active, 
+             during the rdnUgsStatsWindow, for the associated ifIndex interface.
+            "
+        ::= { rdnCableUgsStatsEntry 9 }
+
+
+rdnCableUgsResetStats OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION "A 'set' of this object to TRUE(1) will cause
+                     all statistics in the row to be reset to zero.
+                     This object will always return FALSE(2) when read.
+                    "
+        ::= { rdnCableUgsStatsEntry 10 }
+
+
+---
+--- Service Class Statistics Table
+---
+
+rdnServiceClassStatsTable OBJECT-TYPE
+    SYNTAX          SEQUENCE OF RdnServiceClassStatsEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "This table contains statistics summarizing 
+                     non-bonded flows within Service Classes on the BSR. "
+
+    ::= { rdnCmtsMiscObjects 18 }
+
+
+
+rdnServiceClassStatsEntry OBJECT-TYPE
+        SYNTAX      RdnServiceClassStatsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A row in the rdnServiceClassStatsTable.  Each row
+             contains a set of statistics related to flows within
+             a particular service class, and associated with a
+             particular value of ifIndex.   The table is indexed by:
+
+             1) ifIndex, associated with a CMTS upstream port (ifType = 129)
+                or CMTS downstream port (ifType = 128).
+
+                The rdnServiceClassStatsTable applies only to non-bonded
+                downstream channels.   For bonded downstreams, please
+                refer to the rdnServiceClassBondingStatsTable
+
+             2) docsQosServiceClassName = Service Class Name.
+            "
+        INDEX { ifIndex, docsQosServiceClassName }
+        ::= { rdnServiceClassStatsTable 1 }
+
+
+RdnServiceClassStatsEntry ::= SEQUENCE 
+        {
+            rdnServiceClassStatsIfDirection              IfDirection,
+            rdnServiceClassStatsSlot                     Integer32,
+            rdnServiceClassStatsPort                     Integer32,
+            rdnServiceClassStatsTotalPackets             Counter32,
+            rdnServiceClassStatsTotalBytes               Counter32,
+            rdnServiceClassCurrentTotalFlows             Integer32,
+            rdnServiceClassDeferredFlows                 Integer32,
+            rdnServiceClassRestrictedFlows               Integer32,
+            rdnServiceClassRejectedFlows                 Integer32,
+            rdnServiceClassBandWidth                     Integer32,
+            rdnServiceClassResetStats                    TruthValue
+        }
+
+rdnServiceClassStatsIfDirection OBJECT-TYPE
+    SYNTAX          IfDirection
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION    
+        "Specifies whether the associated service class template
+         applies to upstream or downstream service flows.
+        "
+
+    ::= { rdnServiceClassStatsEntry 1 }
+
+ rdnServiceClassStatsSlot OBJECT-TYPE
+    SYNTAX  Integer32 (0..15)
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The physical chasis slot number relative to the 
+         containing card or chassis, to which this row
+         of service class statistics is applying.
+        "
+    ::= { rdnServiceClassStatsEntry 2 }
+
+rdnServiceClassStatsPort OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Chassis port number, on the associated card,
+         to which this row of service class statistics 
+         is applying.
+        "
+   ::= { rdnServiceClassStatsEntry 3 }
+
+
+rdnServiceClassStatsTotalPackets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Count of total packets that have been transmitted,
+         for the associated ifIndex and service class.
+        "
+   ::= { rdnServiceClassStatsEntry 4 }
+
+rdnServiceClassStatsTotalBytes OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Count of total bytes that have been transmitted,
+         for the associated ifIndex and service class.
+        "
+   ::= { rdnServiceClassStatsEntry 5 }
+
+
+rdnServiceClassCurrentTotalFlows OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Snap shot of the current, total number of flows that are admitted
+             and active, for the associated ifIndex and service class.
+            "
+        ::= { rdnServiceClassStatsEntry 6 }
+
+
+rdnServiceClassDeferredFlows OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Count of deferred flows for the associated 
+             ifIndex and service class.
+            "
+        ::= { rdnServiceClassStatsEntry 7 }
+
+rdnServiceClassRestrictedFlows  OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Count of restricted flows for the associated 
+             ifIndex and service class.
+            "
+        ::= { rdnServiceClassStatsEntry 8 }
+
+rdnServiceClassRejectedFlows  OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Count of rejected flows for the associated 
+             ifIndex and service class.
+            "
+        ::= { rdnServiceClassStatsEntry 9 }
+
+rdnServiceClassBandWidth   OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Admitted bandwidth, in bits per second, for this
+             ifIndex and service class.
+            "
+        ::= { rdnServiceClassStatsEntry 10 }
+
+rdnServiceClassResetStats OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION "A 'set' of this object to TRUE(1) will cause
+                     all statistics in the row to be reset to zero.
+                     This applies to BOTH non-bonded and bonded statistics
+                     for the specified ifIndex and service class.a
+                     This object will always return FALSE(2) when read.
+                    "
+        ::= { rdnServiceClassStatsEntry 11 }
+
+
+
+--
+-- Start of rdnRQueryCmtsCmStatusExtTable
+--
+-- Remote Query Tables
+--
+-- The Remote Query feature allows the BSR to act as an SNMP Manager,
+-- collecting statistics from cable modems, using SNMP get/next requests.
+--
+-- 
+
+rdnRQueryCmtsCmStatusExtTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnRQueryCmtsCmStatusExtEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            " This is an extension of the rdnRQueryCmtsCmStatusTable.
+            "
+        ::= { rdnCmtsMiscObjects 20 }
+
+rdnRQueryCmtsCmStatusExtEntry OBJECT-TYPE
+        SYNTAX      RdnRQueryCmtsCmStatusExtEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry in the rdnRQueryCmtsCmStatusExtTable.  
+	     The table is indexed by a rdnRQueryCmtsCmStatusEntry.
+            "
+        AUGMENTS { rdnRQueryCmtsCmStatusEntry }
+        ::= { rdnRQueryCmtsCmStatusExtTable 1 }
+
+RdnRQueryCmtsCmStatusExtEntry ::= SEQUENCE 
+        {
+	    rdnRQuerySwCurrentVers  DisplayString,
+	    rdnRQueryServerConfigFile DisplayString
+        }
+
+rdnRQuerySwCurrentVers OBJECT-TYPE
+        SYNTAX      DisplayString
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The model and software version of this CM  
+	     as parsed from its sysDescr.
+            "
+        ::= { rdnRQueryCmtsCmStatusExtEntry 1 }
+
+rdnRQueryServerConfigFile OBJECT-TYPE
+        SYNTAX      DisplayString
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The configuration file of the modem.
+            "
+        ::= { rdnRQueryCmtsCmStatusExtEntry 2 }
+      
+--
+-- End of rdnRQueryCmtsCmStatusExtTable
+--
+--CMTS-CM Table to provide additional information about a registered CM
+
+rdnIfCmtsCmTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RdnIfCmtsCmEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "This table is an extension of the docsIfCmtsCmTable. It
+                 provides additional information about the CM."
+    ::={ rdnCmtsMiscObjects  21 }
+
+rdnIfCmtsCmEntry OBJECT-TYPE
+    SYNTAX      RdnIfCmtsCmEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Each entry of the table rdnIfCmtsCmTable. Each entry 
+                 Provides some additional information about the CM."
+    AUGMENTS    { docsIfCmtsCmStatusEntry }
+    ::= { rdnIfCmtsCmTable 1 }
+
+RdnIfCmtsCmEntry ::= SEQUENCE
+    {
+        rdnIfCmtsCmMaxCpeNumber   Integer32,
+        rdnIfCmtsCmCurrCpeNumber  Integer32
+        
+    }
+
+rdnIfCmtsCmMaxCpeNumber OBJECT-TYPE
+        SYNTAX      Integer32 (0..255) 
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            " The maximum number of permitted CPEs connecting to the modem. 
+            The value 0 means no maximum limit. By default maximum of 16 CPEs
+            are allowed behind a single CM.
+            Setting the value will not affect the already connected CPEs to the 
+            modem"
+             
+        ::= { rdnIfCmtsCmEntry 1 }
+
+rdnIfCmtsCmCurrCpeNumber OBJECT-TYPE
+        SYNTAX      Integer32 (0..255) 
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            " The current number of CPEs connecting to the modem.
+              The value 0 means no hosts connecting to the modem"
+             
+        ::= { rdnIfCmtsCmEntry 2 }
+
+
+
+--
+-- MTA ONLY status table (within CMTS).
+-- This table is implemented only at the CMTS.
+-- Similar to docsIfCmtsCmStatusTable but with CM ONLY info
+--
+
+rdnIfCmtsMTAOnlyStatusTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RdnIfCmtsMTAOnlyStatusEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A set of objects in the CMTS, maintained for each
+             MTA ONLY connected to this CMTS."
+        ::= { rdnCmtsMiscObjects 23 }
+
+rdnIfCmtsMTAOnlyStatusEntry OBJECT-TYPE
+        SYNTAX      RdnIfCmtsMTAOnlyStatusEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Status information for a single MTA.
+             An entry in this table exists for each Cable Modem Only
+             that is connected to the CMTS implementing this table."
+        INDEX { rdnIfCmtsMTAOnlyStatusIndex }
+        ::= { rdnIfCmtsMTAOnlyStatusTable 1 }
+
+RdnIfCmtsMTAOnlyStatusEntry ::= SEQUENCE {
+            rdnIfCmtsMTAOnlyStatusIndex               Integer32,
+            rdnIfCmtsMTAOnlyStatusMacAddress          MacAddress,
+            rdnIfCmtsMTAOnlyStatusIpAddress           IpAddress,   -- Deprecated
+            rdnIfCmtsMTAOnlyStatusDownChannelIfIndex  InterfaceIndexOrZero,
+            rdnIfCmtsMTAOnlyStatusUpChannelIfIndex    InterfaceIndexOrZero,
+            rdnIfCmtsMTAOnlyStatusRxPower             TenthdBmV,
+            rdnIfCmtsMTAOnlyStatusTimingOffset        Unsigned32,
+            rdnIfCmtsMTAOnlyStatusEqualizationData    OCTET STRING,
+            rdnIfCmtsMTAOnlyStatusValue               INTEGER,
+            rdnIfCmtsMTAOnlyStatusUnerroreds          Counter32,
+            rdnIfCmtsMTAOnlyStatusCorrecteds          Counter32,
+            rdnIfCmtsMTAOnlyStatusUncorrectables      Counter32,
+            rdnIfCmtsMTAOnlyStatusSignalNoise         TenthdB,
+            rdnIfCmtsMTAOnlyStatusMicroreflections    Integer32,
+            rdnIfCmtsMTAOnlyStatusExtUnerroreds       Counter64,
+            rdnIfCmtsMTAOnlyStatusExtCorrecteds       Counter64,
+            rdnIfCmtsMTAOnlyStatusExtUncorrectables   Counter64,
+            rdnIfCmtsMTAOnlyStatusDocsisRegMode       DocsisQosVersion,
+            rdnIfCmtsMTAOnlyStatusModulationType      DocsisUpstreamType,
+            rdnIfCmtsMTAOnlyStatusInetAddressType     InetAddressType,
+            rdnIfCmtsMTAOnlyStatusInetAddress         InetAddress,
+            rdnIfCmtsMTAOnlyStatusValueLastUpdate     TimeStamp
+        }
+
+rdnIfCmtsMTAOnlyStatusIndex OBJECT-TYPE
+        SYNTAX      Integer32 (1..2147483647)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Index value to uniquely identify an entry in this table.
+             For an individual MTA Only, this index value should
+             not change during CMTS uptime."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 1 }
+
+rdnIfCmtsMTAOnlyStatusMacAddress OBJECT-TYPE
+        SYNTAX      MacAddress
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "MAC address of this MTA. If the MTA has
+             multiple MAC addresses, this is the MAC address associated
+             with the Cable interface."
+        REFERENCE
+            "Document [25] from References, Section 8.2.2."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 2 }
+
+rdnIfCmtsMTAOnlyStatusIpAddress OBJECT-TYPE
+        SYNTAX      IpAddress
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "IP address of this MTA. If the MTA has no
+             IP address assigned, or the IP address is unknown, this
+             object returns a value of 0.0.0.0. If the MTA has
+             multiple IP addresses, this object returns the IP address
+             associated with the Cable interface.
+             This object has been deprecated and replaced by
+             docsIfCmtsCmStatusInetAddressType and
+             docsIfCmtsCmStatusInetAddress, to enable IPv6 addressing
+             in the future."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 3 }
+
+rdnIfCmtsMTAOnlyStatusDownChannelIfIndex OBJECT-TYPE
+        SYNTAX      InterfaceIndexOrZero
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "IfIndex of the downstream channel this MTA is connected
+             to. If the downstream channel is unknown, this object
+             returns a value of zero."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 4 }
+
+rdnIfCmtsMTAOnlyStatusUpChannelIfIndex OBJECT-TYPE
+        SYNTAX      InterfaceIndexOrZero
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "IfIndex of the upstream channel this MTA is connected
+             to. If the upstream channel is unknown, this object
+             returns a value of zero."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 5 }
+
+rdnIfCmtsMTAOnlyStatusRxPower OBJECT-TYPE
+        SYNTAX      TenthdBmV
+        UNITS       "dBmV"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The receive power as perceived for upstream data from
+             this MTA.
+             If the receive power is unknown, this object returns
+             a value of zero."
+        REFERENCE
+            "Document [25] from References, Table 6-11."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 6 }
+
+rdnIfCmtsMTAOnlyStatusTimingOffset OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "A measure of the current round trip time for this MTA.
+             Used for timing of CM upstream transmissions to ensure
+             synchronized arrivals at the CMTS. Units are in terms
+             of 6.25 microseconds/(64*256). Returns zero if the value
+             is unknown."
+        REFERENCE
+            "Document [25] from References, Section 6.2.18."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 7 }
+
+rdnIfCmtsMTAOnlyStatusEqualizationData OBJECT-TYPE
+        SYNTAX      OCTET STRING
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Equalization data for this MTA. Returns an empty string
+             if the value is unknown or if there is no equalization
+             data available or defined."
+        REFERENCE
+            "Document [25] from References, Figure 8-23."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 8 }
+
+rdnIfCmtsMTAOnlyStatusValue OBJECT-TYPE
+        SYNTAX      INTEGER {
+            other(1),
+            ranging(2),
+            rangingAborted(3),
+            rangingComplete(4),
+            ipComplete(5),
+            registrationComplete(6),
+            accessDenied(7),
+            operational(8), --deprecated
+	    registeredBPIInitializing(9)
+        }
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Current MTA connectivity state, as specified
+             in the RF Interface Specification. Returned status
+             information is the CM status as assumed by the CMTS,
+             and indicates the following events:
+             other(1)
+                Any state other than below.
+             ranging(2)
+                The CMTS has received an Initial Ranging Request
+                message from the CM, and the ranging process is not
+                yet complete.
+             rangingAborted(3)
+                The CMTS has sent a Ranging Abort message to the CM.
+             rangingComplete(4)
+                The CMTS has sent a Ranging Complete message to the CM.
+             ipComplete(5)
+                The CMTS has received a DHCP reply message and forwarded
+                it to the CM.
+             registrationComplete(6)
+                The CMTS has sent a Registration Response message to
+                the CM.
+             accessDenied(7)
+                The CMTS has sent a Registration Aborted message
+                to the CM.
+             operational(8)    -- deprecated value
+                If Baseline Privacy is enabled for the CM, the CMTS has 
+                completed Baseline Privacy initialization. If Baseline 
+                Privacy is not enabled, equivalent to registrationComplete.
+	     registeredBPIInitializing(9)
+                Baseline Privacy is enabled, CMTS is in the process of
+                completing the Baseline Privacy initialization. This state
+                can last for a significant time in the case of failures
+                during The process. After Baseline Privacy initialization
+                Complete, the CMTS will report back the value
+                registrationComplete(6).
+
+             The CMTS only needs to report states it is able to detect."
+        REFERENCE
+            "Document [25] from References, Section 11.2."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 9 }
+
+rdnIfCmtsMTAOnlyStatusUnerroreds OBJECT-TYPE
+        SYNTAX      Counter32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Codewords received without error from this MTA."
+        REFERENCE
+            "Document [25] from References, Section 6.2.5."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 10 }
+
+rdnIfCmtsMTAOnlyStatusCorrecteds OBJECT-TYPE
+        SYNTAX      Counter32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Codewords received with correctable errors from this
+             MTA."
+        REFERENCE
+            "Document [25] from References, Section 6.2.5."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 11 }
+
+rdnIfCmtsMTAOnlyStatusUncorrectables OBJECT-TYPE
+        SYNTAX      Counter32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Codewords received with uncorrectable errors from this
+             MTA."
+        REFERENCE
+            "Document [25] from References, Section 6.2.5."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 12 }
+
+rdnIfCmtsMTAOnlyStatusSignalNoise OBJECT-TYPE
+        SYNTAX      TenthdB
+        UNITS       "dB"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Signal/Noise ratio as perceived for upstream data from
+             this MTA.
+             If the Signal/Noise is unknown, this object returns
+             a value of zero."
+        REFERENCE
+            "Document [25] from References, Tables 4-1 and 4-2."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 13 }
+
+rdnIfCmtsMTAOnlyStatusMicroreflections OBJECT-TYPE
+        SYNTAX      Integer32 (0..255)
+        UNITS       "dBc"
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Total microreflections including in-channel response
+             as perceived on this interface, measured in dBc below
+             the signal level.
+             This object is not assumed to return an absolutely
+             accurate value, but should give a rough indication
+             of microreflections received on this interface.
+             It is up to the implementer to provide information
+             as accurate as possible."
+        REFERENCE
+            "Document [25] from References, Tables 4-1 and 4-2"
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 14 }
+
+rdnIfCmtsMTAOnlyStatusExtUnerroreds OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Codewords received without error from this MTA."
+        REFERENCE
+            "Document [25] from References, Section 6.2.5."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 15 }
+
+rdnIfCmtsMTAOnlyStatusExtCorrecteds OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+             "Codewords received with correctable errors from this
+              MTA."
+        REFERENCE
+             "Document [25] from References, Section 6.2.5."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 16 }
+
+rdnIfCmtsMTAOnlyStatusExtUncorrectables OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+             "Codewords received with uncorrectable errors from this
+              MTA."
+        REFERENCE
+          "Document [25] from References, Section 6.2.5."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 17 }
+
+rdnIfCmtsMTAOnlyStatusDocsisRegMode OBJECT-TYPE
+        SYNTAX      DocsisQosVersion
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+             "Indication whether the MTA has registered using 1.0 Class of
+              Service or 1.1 Quality of Service.
+              This object mirrors docsIfCmtsCmStatusDocsisMode from the 
+              docsIfExt mib."
+        REFERENCE
+          "Document [25] from References, Annex G."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 18 }
+
+rdnIfCmtsMTAOnlyStatusModulationType OBJECT-TYPE
+        SYNTAX      DocsisUpstreamType
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+             "Indicates modulation type currently used by the MTA. Since
+              this object specifically identifies PHY mode, the shared
+              type is not permitted. If the upstream channel is unknown, 
+              this object returns a value of zero."
+        REFERENCE
+          "Document [25] from References, Table 8-19."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 19 }
+
+rdnIfCmtsMTAOnlyStatusInetAddressType OBJECT-TYPE
+        SYNTAX      InetAddressType
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+             "The type of internet address of
+              docsIfCmtsCmStatusInetAddress. If the MTA
+              Internet address is unassigned or unknown, then the
+              value of this object is unknown(0)."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 20 }
+
+rdnIfCmtsMTAOnlyStatusInetAddress OBJECT-TYPE
+        SYNTAX      InetAddress
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+             "Internet address of this MTA. If the MTA
+              has no Internet address assigned, or the Internet address
+              is unknown, the value of this object is the empty string.
+              If the MTA has multiple Internet addresses, this
+              object returns the Internet address associated with the
+              Cable (i.e. RF MAC) interface."
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 21 }
+
+rdnIfCmtsMTAOnlyStatusValueLastUpdate OBJECT-TYPE 
+        SYNTAX      TimeStamp 
+        MAX-ACCESS  read-only 
+        STATUS      current 
+        DESCRIPTION 
+             "The value of sysUpTime when docsIfCmtsCmStatusValue 
+              was last updated." 
+        ::= { rdnIfCmtsMTAOnlyStatusEntry 22 } 
+
+
+
+
+
+
+
+---
+--- Service Class Downstream Bonding Group Statistics Table
+---
+
+rdnServiceClassBondingStatsTable OBJECT-TYPE
+    SYNTAX          SEQUENCE OF RdnServiceClassBondingStatsEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "This table contains statistics summarizing flows
+                     within Service Classes for bonded upstreams and downstreams 
+                     on the BSR.  For non-bonded upstream/downstream stats, 
+                     please refer to rdnServiceClassStatsTable"
+
+    ::= { rdnCmtsMiscObjects 24 }
+
+
+
+rdnServiceClassBondingStatsEntry OBJECT-TYPE
+        SYNTAX      RdnServiceClassBondingStatsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A row in the rdnServiceClassBondingStatsTable.  Each row
+             contains a set of statistics related to flows within
+             a particular service class, and associated with a
+             particular value of ifIndex.   The table is indexed by:
+
+             1) ifIndex, associated with a bonded CMTS downstream (ifType = 128)
+                or upstream (ifType = 129)
+                
+             2) rdnServiceClassBondingStatsIfDirection (upstream or downstream)
+
+             3) docsQosServiceClassName = Service Class Name.
+
+             4) rdnServiceClassBondingStatsMacIfIndex, 
+                the macIfIndex under which the downstream or upstream channel's
+                bonding group is configured.
+
+             5) rdnServiceClassBondingStatsGroupId, the Motorola proprietary 
+                bonding group id.  
+            "
+        INDEX { ifIndex, 
+                rdnServiceClassBondingStatsIfDirection,
+                docsQosServiceClassName, 
+                rdnServiceClassBondingStatsMacIfIndex,
+                rdnServiceClassBondingStatsGroupId 
+              }
+
+        ::= { rdnServiceClassBondingStatsTable 1 }
+
+
+RdnServiceClassBondingStatsEntry ::= SEQUENCE 
+        {
+            rdnServiceClassBondingStatsMacIfIndex               InterfaceIndex,
+            rdnServiceClassBondingStatsGroupId                  Integer32,
+            rdnServiceClassBondingStatsIfDirection              IfDirection,
+            rdnServiceClassBondingStatsSlot                     Integer32,
+            rdnServiceClassBondingStatsChan                     Integer32,
+            rdnServiceClassBondingCurrentTotalFlows             Integer32,
+            rdnServiceClassBondingDeferredFlows                 Integer32,
+            rdnServiceClassBondingRestrictedFlows               Integer32,
+            rdnServiceClassBondingRejectedFlows                 Integer32,
+            rdnServiceClassBondingBandWidth                     Integer32
+        }
+
+rdnServiceClassBondingStatsMacIfIndex  OBJECT-TYPE
+        SYNTAX      InterfaceIndex
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION 
+            "The MAC interface index under which this
+             downstream channel's bonding group is configured. 
+             This will be an ifType of docsCableMaclayer(127).
+            "
+
+       ::= { rdnServiceClassBondingStatsEntry 1 }
+
+
+rdnServiceClassBondingStatsGroupId  OBJECT-TYPE
+        SYNTAX      Integer32 (1..65535)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The downstream or upstream bonding group identifier."
+
+       ::= { rdnServiceClassBondingStatsEntry 2 }
+
+
+rdnServiceClassBondingStatsIfDirection OBJECT-TYPE
+    SYNTAX          IfDirection
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION    
+        "Specifies whether the associated service class template
+         applies to downstream(1) or upstream(2)  service flows.
+        "
+
+    ::= { rdnServiceClassBondingStatsEntry 3 }
+
+ rdnServiceClassBondingStatsSlot OBJECT-TYPE
+    SYNTAX  Integer32 (0..15)
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The physical chasis slot number relative to the 
+         containing card or chassis, to which this row
+         of service class statistics is applying.
+        "
+    ::= { rdnServiceClassBondingStatsEntry 4 }
+
+rdnServiceClassBondingStatsChan OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Channel number on the associated card,
+         to which this row of service class statistics 
+         is applying.
+        "
+   ::= { rdnServiceClassBondingStatsEntry 5 }
+
+
+rdnServiceClassBondingCurrentTotalFlows OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Snap shot of the current, total number of flows that are admitted
+             and active, for the associated ifIndex and service class.
+            "
+        ::= { rdnServiceClassBondingStatsEntry 6 }
+
+
+rdnServiceClassBondingDeferredFlows OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Count of deferred flows for the associated 
+             ifIndex and service class.
+            "
+        ::= { rdnServiceClassBondingStatsEntry 7 }
+
+rdnServiceClassBondingRestrictedFlows  OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Count of restricted flows for the associated 
+             ifIndex and service class.
+            "
+        ::= { rdnServiceClassBondingStatsEntry 8 }
+
+rdnServiceClassBondingRejectedFlows  OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Count of rejected flows for the associated 
+             ifIndex and service class.
+            "
+        ::= { rdnServiceClassBondingStatsEntry 9 }
+
+rdnServiceClassBondingBandWidth   OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Admitted bandwidth, in bits per second, for this
+             ifIndex and service class.
+            "
+        ::= { rdnServiceClassBondingStatsEntry 10 }
+
+rdnCmtsCmResetByIpv6Addr OBJECT-TYPE
+        SYNTAX      InetAddressIPv6
+        MAX-ACCESS read-write
+        STATUS      current
+        DESCRIPTION
+            "The CM IPv6 address that the operator wants to reset. When this object
+             Is set, it will cause the CMTS to reset that CM.  When this object is
+             Read it will return zero"
+        ::= { rdnCmtsMiscObjects  25 }
+
+
+-- notifications
+
+rdnCmtsMibNotifications OBJECT IDENTIFIER ::= { rdnCmtsMib 4 }
+rdnCmtsMibNotificationPrefix OBJECT IDENTIFIER ::= { rdnCmtsMibNotifications 0 }
+rdnCmtsMibNotificationObjects OBJECT IDENTIFIER ::= { rdnCmtsMibNotifications 1 }
+
+rdnCmtsCmRegisteredNotification NOTIFICATION-TYPE
+    OBJECTS  { docsIfCmtsCmStatusDocsisRegMode,
+               docsIfCmtsCmStatusMacAddress,
+               docsIfCmtsCmStatusIpAddress,
+               docsIf3CmtsCmRegStatusIPv6Addr,
+               docsIfUpChannelId,
+               docsIfDownChannelId,
+               rdnModemRegIndex,
+               rdnSpectrumGroupName }
+    STATUS   current
+    DESCRIPTION
+             "An event to report the registration of a modem. The
+              values of docsDevEvLevel, docsDevId, and DocsDevEvText
+              are from the entry which logs this event in the
+              docsDevEventTable, DocsIfCmtsCmStatusDocsisMode and
+              docsIfCmtsCmStatusMacAddress indicate the docsis
+              version and the MAC address of the registered CM.The
+              docsIfCmtsCmStatusIpAddress indicates the ip address of
+              the registered modem
+              docsIfDocsisCapability indicate the docsis version of
+              the CMTS , docsIfUpChannelId, docsIfDownChannelId gives
+              the upstream and downstream channel id respectively
+              for the CM.  rdnSpectrumGroupName gives the spectrum
+              group name."
+    ::= { rdnCmtsMibNotificationPrefix 1 }
+
+
+rdnCmtsCmDeregisteredNotification NOTIFICATION-TYPE
+    OBJECTS  { docsIfCmtsCmStatusDocsisRegMode,
+               docsIfCmtsCmStatusMacAddress,
+               docsIfUpChannelId,
+               docsIfDownChannelId,
+               rdnModemRegIndex,
+               rdnModemDeregReason,
+               rdnSpectrumGroupName }
+    STATUS   current
+    DESCRIPTION
+             "An event to report the registration of a modem. The
+              values of docsDevEvLevel, docsDevId, and DocsDevEvText
+              are from the entry which logs this event in the
+              docsDevEventTable, DocsIfCntsCmStatusDocsisMode and
+              docsIfCmtsCmStatusMacAddress indicate the docsis
+              version and the MAC address of the registered CM.
+              docsIfDocsisCapability indicate the docsis version of
+              the CMTS , docsIfUpChannelId, docsIfDownChannelId gives
+              the upstream and downstream channel id respectively
+              for the CM.  rdnSpectrumGroupId gives the spectrum
+              group name."
+    ::= { rdnCmtsMibNotificationPrefix 2 }
+
+
+rdnCmtsUpstreamIfLinkUpTrap NOTIFICATION-TYPE
+    OBJECTS   { ifIndex, 
+                ifDescr,
+                ifType,
+                ifAdminStatus, 
+                ifOperStatus, 
+                rdnSpectrumGroupName }
+    STATUS    current
+    DESCRIPTION
+              "This trap provides more information than the standard linkUp trap,
+               by adding varbinds to include the spectrum group name, 
+               ifDescr, and ifType. "
+    ::= { rdnCmtsMibNotificationPrefix 3 }
+
+ 
+rdnCmtsUpstreamIfLinkDownTrap NOTIFICATION-TYPE
+    OBJECTS   { ifIndex, 
+                ifDescr,
+                ifType,
+                ifAdminStatus, 
+                ifOperStatus, 
+                rdnSpectrumGroupName }
+    STATUS    current
+    DESCRIPTION
+              "This trap provides more information than the standard linkDown trap,
+               by adding varbinds to include the spectrum group name, 
+               ifDescr, and ifType. "
+    ::= { rdnCmtsMibNotificationPrefix 4 }
+
+
+rdnRQueryPollDoneNotification NOTIFICATION-TYPE
+    OBJECTS   { rdnRQueryLastPollStartTime, 
+                rdnRQueryLastPollStopTime
+              }
+    STATUS    current
+    DESCRIPTION
+              "This notification indicates that the BSR has completed
+               a Remote Query polling cycle, collect information for
+               all objects in the rdnRQueryCmtsCmStatusTable, for all
+               registered cable modems.  The rdnRQueryLastPollStartTime and
+               rdnRQueryLastPollStopTime respectively indicate the beginning
+               and ending times for the polling cycle.
+              "
+
+    ::= { rdnCmtsMibNotificationPrefix 5 }
+
+rdnPktDQoSAdmittedBwThresholdTrap NOTIFICATION-TYPE
+    OBJECTS  { rdnPktDQoSAdmittedBwThresholdReason,
+               rdnPktDQoSClassName}
+    STATUS   current
+    DESCRIPTION
+             "This notification indicates that the admitted bandwidth has
+              either exceeded the admitted bandwidth threshold or cleared
+              of the condition since it is within the admitted bandwidth
+              threshold. The reason code and the Service Class name provide 
+              detailed information regarding this trap."
+    ::= { rdnCmtsMibNotificationPrefix 6 }
+
+-- RDN CMTS Trap Varbinds
+--  The following objects are defined only for use in notifications,
+--  as defined in this MIB.
+--
+
+rdnRQueryLastPollStartTime OBJECT-TYPE
+    SYNTAX     TimeStamp
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+          "The value of sysUpTime when the BSR last began a
+           Remote Query polling cycle, to read values for
+           the rdnRQueryCmtsCmStatusTable from registered 
+           cable modems.   This object has an initial value of
+           zero, if no polls have been sent.  Once that it has
+           been set to a nonzero value, it is never reset to
+           zero again for any reason, unless the BSR reboots.
+
+           If rdnRQueryLastPollStartTime is greater than
+           rdnRQueryLastPollStopTime, it means that a new
+           polling cycle is in progress.   
+          "
+
+    ::= { rdnCmtsMibNotificationObjects 1 }
+
+ rdnRQueryLastPollStopTime OBJECT-TYPE
+    SYNTAX     TimeStamp
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+          "The value of sysUpTime when the BSR last began a
+           Remote Query polling cycle, to read values for
+           the rdnRQueryCmtsCmStatusTable from registered 
+           cable modems.   This object has an initial value of
+           zero, if no polls have been sent.  Once that it has
+           been set to a nonzero value, it is never reset to
+           zero again for any reason, unless the BSR reboots.
+          "
+
+    ::= { rdnCmtsMibNotificationObjects 2 }
+
+ rdnPktDQoSAdmittedBwThresholdReason OBJECT-TYPE
+    SYNTAX      INTEGER {
+    admittedBwExceedsThreshold(1),
+    admittedBwClearsOfThreshold(2)
+    } 
+    MAX-ACCESS  accessible-for-notify 
+    STATUS      current
+    DESCRIPTION
+          "This entry contains the rdnPktDQosAdmittedBwThresholdTrap reason code 
+           1 = Admitted BW exceeded the admitted BW Threshold.
+           2 = Admitted BW cleared within the admitted BW Threshold. "
+    ::= { rdnCmtsMibNotificationObjects 3 }
+
+-- conformance information
+
+rdnCmtsMibConformance OBJECT IDENTIFIER ::= { rdnCmtsMib 5 }
+rdnCmtsCompliances OBJECT IDENTIFIER ::= { rdnCmtsMibConformance 1 }
+rdnCmtsMibGroups OBJECT IDENTIFIER ::=  { rdnCmtsMibConformance 2 } 
+
+rdnCmtsMibCompliance  MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for entities which implement
+        the Motorola Cable Docsis Extension (CMTS) MIB."
+    MODULE  -- this module
+        MANDATORY-GROUPS { rdnCmtsIfGroup, rdnCmtsMiscGroup, rdnCmtsNotificationsGroup}
+
+    ::= { rdnCmtsCompliances 1 }
+
+-- units of conformance
+
+rdnCmtsIfGroup OBJECT-GROUP
+    OBJECTS {
+        rdnCmtsDSModulation,
+--        rdnCmtsDSAvgUtil,
+        rdnCmtsUSNominalRxPower,
+        rdnCmtsUSInvitedRangingInterval,
+        rdnCmtsUSRangingResponseControl,
+        rdnCmtsUSRangingPowerOverride,
+        rdnCmtsUSNominalRxPowerMode,
+--        rdnCmtsUSChannelAvgUtil,
+        rdnCmtsStpTCNEnable,
+        rdnCmtsLinkUpDownTrapEnable
+    }
+    STATUS  current
+    DESCRIPTION
+        "A collection of objects providing Motorola CMTS interface related
+         extensions."
+    ::= { rdnCmtsMibGroups 1 }
+
+rdnCmtsMiscGroup OBJECT-GROUP
+    OBJECTS {
+        rdnCmtsSaveConfig,
+        rdnCmtsCmResetByMacAddr,
+        rdnCmtsCmResetByIpAddr,
+        rdnCmtsCmResetAll,
+--        rdnCmtsHostAuthControl,
+        rdnCmtsModemAgingTimer,
+        rdnCmtsCmMac,
+        rdnIfCmtsCmStatusRegistrationTime,
+        rdnIfCmtsCmStatusTxUnicastKbytes,
+        rdnIfCmtsCmStatusRxUnicastKbytes,
+        rdnIfCmtsCmStatusTxUnicastExtKbytes,
+        rdnIfCmtsCmStatusRxUnicastExtKbytes,
+        rdnIfCmtsCmStatusSpectrumGroupName,
+        rdnIfCmtsCmStatusUpstreamPort,
+        rdnIfCmtsCmStatusDownStreamPort,
+        rdnIfCmtsCmStatusValue,
+        rdnIfCmtsCmStatusDSBondingGroupId,
+        rdnIfCmtsCmStatusOnlineTimes,
+        rdnIfCmtsCmStatusPercentOnline,
+        rdnIfCmtsCmStatusMinOnlineTime,
+        rdnIfCmtsCmStatusAvgOnlineTime,
+        rdnIfCmtsCmStatusMaxOnlineTime,
+        rdnIfCmtsCmStatusMinOfflineTime,
+        rdnIfCmtsCmStatusAvgOfflineTime,
+        rdnIfCmtsCmStatusMaxOfflineTime,
+        rdnModemDeregReason,
+        rdnModemRegIndex,
+        rdnCmToCpeMacAddress,
+        rdnCmToCpeIpAddress,
+        rdnCmtsCmRegisteredTrapEnable,
+	rdnCmtsCardType,
+        rdnRQueryCmtsCmDownChannelPower,
+        rdnRQueryCmStatusTxPower,
+        rdnRQueryUpChannelTxTimingOffset,
+        rdnRQuerySigQSignalNoise,
+        rdnRQuerySigQMicroreflections,
+        rdnRQueryPollTime,
+        rdnUgsStatsWindow,
+        rdnCableUgsStatsSlot,
+        rdnCableUgsStatsPort,
+        rdnCableUgsCurrentTotalFlows,
+        rdnCableUgsMaxFlowsLastFiveMinutes,
+        rdnCableUgsAvFlowsLastFiveMinutes,
+        rdnCableUgsMinFlowsLastFiveMinutes,
+        rdnCableUgsMaxFlowsLastWindow,
+        rdnCableUgsAvFlowsLastWindow,
+        rdnCableUgsMinFlowsLastWindow,
+        rdnCableUgsResetStats,
+        rdnServiceClassStatsIfDirection,
+        rdnServiceClassStatsSlot,
+        rdnServiceClassStatsPort,
+        rdnServiceClassStatsTotalPackets,
+        rdnServiceClassStatsTotalBytes,
+        rdnServiceClassCurrentTotalFlows,
+        rdnServiceClassDeferredFlows,
+        rdnServiceClassRestrictedFlows,
+        rdnServiceClassRejectedFlows,
+        rdnServiceClassBandWidth,
+        rdnServiceClassResetStats,
+        rdnServiceClassBondingStatsSlot,
+        rdnServiceClassBondingStatsChan,
+        rdnServiceClassBondingCurrentTotalFlows,
+        rdnServiceClassBondingDeferredFlows,
+        rdnServiceClassBondingRestrictedFlows,
+        rdnServiceClassBondingRejectedFlows,
+        rdnServiceClassBondingBandWidth,
+	rdnRQuerySwCurrentVers,
+        rdnCmtsCmResetByIpv6Addr
+    }
+    STATUS  current
+    DESCRIPTION
+        "A collection of objects providing Motorola CMTS misc option 
+         extensions."
+    ::= { rdnCmtsMibGroups 2 }
+
+rdnCmtsNotificationsGroup NOTIFICATION-GROUP
+       NOTIFICATIONS { rdnCmtsCmRegisteredNotification, 
+                       rdnCmtsCmDeregisteredNotification,
+                       rdnCmtsUpstreamIfLinkUpTrap,
+                       rdnCmtsUpstreamIfLinkDownTrap,
+                       rdnRQueryPollDoneNotification,
+                       rdnPktDQoSAdmittedBwThresholdTrap
+                     }
+       STATUS        current
+       DESCRIPTION
+          "A collection of Motorola proprietary traps/notifications
+           providing enhanced information concerning modem 
+           registration/deregistration, link up/down, and
+           Remote Query polling of modems.
+          "
+       ::= { rdnCmtsMibGroups 3 }
+
+
+
+rdnCableInterceptScalars OBJECT IDENTIFIER ::= { rdnCmtsMiscObjects 26}
+
+rdnCableInterceptAccessPermitted OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "This object provides indication whether the SNMP user
+	         or SNMP community who issued the SNMP request has access
+		 to the rdnCableInterceptTable."
+    ::= { rdnCableInterceptScalars 1}
+
+--
+-- Start of rdnCableInterceptTable
+--
+
+rdnCableInterceptTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RdnCableInterceptEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "This table provides the information about the configured cable
+	intercepts"
+    ::={ rdnCmtsMiscObjects 27 }
+
+rdnCableInterceptEntry OBJECT-TYPE
+    SYNTAX      RdnCableInterceptEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "An entry of the table rdnCableInterceptTable.
+                 The table is indexed by ifIndex and CPE MAC address.
+		 For bridged cable intercept entries the ifIndex is 0.
+		 For routed cable intercept entries the ifIndex is the
+		 index of the cable mac-domain the cable intercept is 
+		 configured on."
+    INDEX       { ifIndex,
+                  rdnCableInterceptCpeMac}
+    ::= { rdnCableInterceptTable 1 }
+
+RdnCableInterceptEntry ::= SEQUENCE {
+
+        rdnCableInterceptCpeMac            MacAddress,
+        rdnCableInterceptCmMac             MacAddress,
+        rdnCableInterceptDestination1Type  InetAddressType,
+	rdnCableInterceptDestination1Ip    InetAddress,
+	rdnCableInterceptDestination1Port  InetPortNumber,
+        rdnCableInterceptDestination2Type  InetAddressType,
+	rdnCableInterceptDestination2Ip    InetAddress,
+	rdnCableInterceptDestination2Port  InetPortNumber,
+        rdnCableInterceptDestination3Type  InetAddressType,
+	rdnCableInterceptDestination3Ip    InetAddress,
+	rdnCableInterceptDestination3Port  InetPortNumber,
+	rdnCableInterceptSourceType        InetAddressType,
+	rdnCableInterceptSourceIp          InetAddress,
+	rdnCableInterceptPktCnt            Counter64,
+	rdnCableInterceptByteCnt           Counter64,
+	rdnCableInterceptRowStatus	   RowStatus	
+    }
+
+
+
+rdnCableInterceptCpeMac  OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "The Mac Address of the CPE being intercepted. 
+	         Also being used as index."
+    ::= { rdnCableInterceptEntry 1 }
+    
+rdnCableInterceptCmMac  OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "The Mac Address of the CM being intercepted.
+	         For bridged cable intercept entries, the MAC address
+		 of the bridged CM. For routed cable intercept entries,
+		 the octet string of '000000000000'"
+    ::= { rdnCableInterceptEntry 2 }
+
+rdnCableInterceptDestination1Type OBJECT-TYPE
+    SYNTAX	InetAddressType
+    MAX-ACCESS  read-create
+    STATUS	current
+    DESCRIPTION "Type of the address of the first lawful intercept collector. 
+	         Currently only IPv4 is supported."
+    ::= { rdnCableInterceptEntry 3 }
+	     
+rdnCableInterceptDestination1Ip  OBJECT-TYPE
+    SYNTAX      InetAddress
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "Ip destination 1 of 3 for captured data."
+    ::= { rdnCableInterceptEntry 4 }
+
+rdnCableInterceptDestination1Port  OBJECT-TYPE
+    SYNTAX      InetPortNumber
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "Port destination 1 of 3 for captured data."
+    ::= { rdnCableInterceptEntry 5 }
+
+rdnCableInterceptDestination2Type OBJECT-TYPE
+    SYNTAX	InetAddressType
+    MAX-ACCESS  read-create
+    STATUS	current
+    DESCRIPTION "Type of the address of the second lawful intercept collector. 
+	         Currently only IPv4 is supported."
+    ::= { rdnCableInterceptEntry 6 }
+rdnCableInterceptDestination2Ip  OBJECT-TYPE
+    SYNTAX      InetAddress
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "Ip destination 2 of 3 for captured data."
+    ::= { rdnCableInterceptEntry 7 }
+
+rdnCableInterceptDestination2Port  OBJECT-TYPE
+    SYNTAX      InetPortNumber
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "Port destination 2 of 3 for captured data."
+    ::= { rdnCableInterceptEntry 8 }
+
+rdnCableInterceptDestination3Type OBJECT-TYPE
+    SYNTAX	InetAddressType
+    MAX-ACCESS  read-create
+    STATUS	current
+    DESCRIPTION "Type of the address of the third lawful intercept collector. 
+	         Currently only IPv4 is supported."
+    ::= { rdnCableInterceptEntry 9 }
+
+rdnCableInterceptDestination3Ip  OBJECT-TYPE
+    SYNTAX      InetAddress
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "Ip destination 3 of 3 for captured data."
+    ::= { rdnCableInterceptEntry 10 }
+
+rdnCableInterceptDestination3Port  OBJECT-TYPE
+    SYNTAX      InetPortNumber
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "Port destination 3 of 3 for captured data."
+    ::= { rdnCableInterceptEntry 11 }
+
+rdnCableInterceptSourceType OBJECT-TYPE
+    SYNTAX	InetAddressType
+    MAX-ACCESS  read-create
+    STATUS	current
+    DESCRIPTION "Type of the address of the source addr. 
+	         Currently only IPv4 is supported"
+    ::= { rdnCableInterceptEntry 12 }
+
+rdnCableInterceptSourceIp  OBJECT-TYPE
+    SYNTAX      InetAddress
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "Source ip of intercepted data."
+    ::= { rdnCableInterceptEntry 13 }
+
+rdnCableInterceptPktCnt  OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Number of packets intercepted."
+    ::= { rdnCableInterceptEntry 14 }
+
+rdnCableInterceptByteCnt  OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Number of bytes intercepted."
+    ::= { rdnCableInterceptEntry 15 }
+
+rdnCableInterceptRowStatus OBJECT-TYPE
+    SYNTAX	RowStatus
+    MAX-ACCESS  read-create
+    STATUS	current
+    DESCRIPTION "Controls and reflects the status of rows in this table. This
+	         field is used to control the addition and deletion of a cable
+		 intercept entry."
+    ::= { rdnCableInterceptEntry 16 }
+
+
+--
+-- End of rdnCableInterceptTable
+--
+
+--
+-- Start of rdnCmtsUpChannelCounterTable
+--
+
+rdnCmtsUpChannelCounterTable OBJECT-TYPE
+    SYNTAX	SEQUENCE OF RdnCmtsUpChannelCounterEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION 
+                "This table contains 32 bit and 64 bit 
+                 IUC-1 Noise and NoEnergy mini-slots counters 
+                 for upstream channels."
+    ::={ rdnCmtsMiscObjects 28 }
+
+rdnCmtsUpChannelCounterEntry OBJECT-TYPE
+    SYNTAX	RdnCmtsUpChannelCounterEntry
+    MAX-ACCESS  not-accessible
+    STATUS	current
+    DESCRIPTION
+	"List of noise/collision statistics for a single upstream channel.
+         For DOCSIS 3.0 or 2.0 CMTSs, an entry in this table
+         exists for each ifEntry with an ifType of docsCableUpstreamChannel(205).
+
+         For DOCSIS 1.x CMTSs, an entry in this table
+         exists for each ifEntry with an ifType of docsCableUpstream (129)."
+    INDEX { ifIndex }
+    ::= { rdnCmtsUpChannelCounterTable 1 }
+
+RdnCmtsUpChannelCounterEntry ::= SEQUENCE {
+	rdnIfCmtsUpChCtrReqNoise 		Counter32,
+	rdnIfCmtsUpChCtrReqNoEnergy		Counter32,
+        rdnIfCmtsUpChCtrExtReqNoise		Counter64,
+	rdnIfCmtsUpChCtrExtReqNoEnergy 		Counter64
+    }
+
+rdnIfCmtsUpChCtrReqNoise OBJECT-TYPE
+    SYNTAX 	Counter32
+    MAX-ACCESS  read-only
+    STATUS	current
+    DESCRIPTION
+	"Current count, from CMTS initialization, of contention
+         request mini-slots subjected to Noise on this upstream
+         logical channel. This includes all contention mini-slots
+         for IUC1 applicable to bursts that the CMTS detected but
+         found as noisy.
+         Discontinuities in the value of this counter can occur
+         at reinitialization of the managed system, and at other
+         times as indicated by the value of 
+         ifCounterDiscontinuityTime for the associated ifIndex."
+    ::= { rdnCmtsUpChannelCounterEntry 1 }
+
+rdnIfCmtsUpChCtrReqNoEnergy OBJECT-TYPE
+    SYNTAX 	Counter32
+    MAX-ACCESS	read-only
+    STATUS	current
+    DESCRIPTION
+	"Current count, from CMTS initialization, of contention
+         request mini-slots subjected to No Energy on this upstream
+         logical channel. This includes all contention mini-slots
+         for IUC1 applicable to bursts that the CMTS detected but
+         found as no energy.
+         Discontinuities in the value of this counter can occur
+         at reinitialization of the managed system, and at other
+         times as indicated by the value of
+         ifCounterDiscontinuityTime for the associated ifIndex."
+    ::= { rdnCmtsUpChannelCounterEntry 2 }
+
+rdnIfCmtsUpChCtrExtReqNoise OBJECT-TYPE
+    SYNTAX 	Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+	"Current count, from CMTS initialization, of contention
+         request mini-slots for which no energy was detected  on 
+         this upstream logical channel.This includes all contention 
+         mini-slots for IUC1 applicable to bursts that the CMTS 
+         detected but found as noisy.
+         This is a 64 bit version of rdnIfCmtsUpChCtrReqNoise and
+         will not be accessible to SNMPv1 managers.
+         Discontinuities in the value of this counter can occur
+         at reinitialization of the managed system, and at other
+         times as indicated by the value of
+         ifCounterDiscontinuityTime for the associated ifIndex."
+    ::= { rdnCmtsUpChannelCounterEntry 3 }
+        
+rdnIfCmtsUpChCtrExtReqNoEnergy OBJECT-TYPE
+    SYNTAX 	Counter64
+    MAX-ACCESS	read-only
+    STATUS	current
+    DESCRIPTION
+	"Current count, from CMTS initialization, of contention
+         request mini-slots for which no energy was detected 
+         on this upstream logical channel. This includes all 
+         contention mini-slots for IUC1 applicable to bursts 
+         that the CMTS detected but found as no energy.
+         This is a 64 bit version of rdnIfCmtsUpChCtrReqNoEnergy and
+         will not be accessible to SNMPv1 managers.
+         Discontinuities in the value of this counter can occur
+         at reinitialization of the managed system, and at other
+         times as indicated by the value of
+         ifCounterDiscontinuityTime for the associated ifIndex."
+    ::= { rdnCmtsUpChannelCounterEntry 4 }
+
+--
+-- end of rdnCmtsUpChannelCounterTable
+--
+  
+END
+
+
