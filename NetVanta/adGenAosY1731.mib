@@ -1,0 +1,208 @@
+ADTRAN-AOS-Y1731-MIB    DEFINITIONS ::= BEGIN
+
+--  TITLE:      THE ADTRAN OPERATING SYSTEM PORT SECURITY MIB
+--  FILENAME:   AdGenAosY1731.mib
+--  AUTHOR:     Sai Mukund Sagar Deshpande
+--  DATE:       18/01/2018
+
+--  HISTORY
+--  18/01/2018  First draft.
+
+IMPORTS
+    MODULE-IDENTITY,
+    OBJECT-TYPE, Unsigned32
+           FROM SNMPv2-SMI
+    MODULE-COMPLIANCE,
+    OBJECT-GROUP
+           FROM SNMPv2-CONF 
+    TEXTUAL-CONVENTION
+           FROM SNMPv2-TC     -- [RFC2579]
+    adIdentity
+           FROM ADTRAN-MIB
+    adGenAOS,
+    adGenAOSMef,
+    adGenAOSConformance
+           FROM ADTRAN-AOS
+    dot1agCfmMdIndex,
+    dot1agCfmMaIndex
+           FROM IEEE8021-CFM-MIB;
+
+
+adGenAosY1731Mib    MODULE-IDENTITY
+        LAST-UPDATED "201801180000Z"
+        ORGANIZATION "ADTRAN, Inc."
+        CONTACT-INFO
+                "Technical Support Dept.
+                 Postal: ADTRAN, Inc.
+                         901 Explorer Blvd.
+                         Huntsville, AL 35806
+
+                         Tel: +1 800 726-8663
+                         Fax: +1 256 963 6217
+                         E-mail: support@adtran.com"
+        DESCRIPTION
+                "The MIB module defines Y.1731 alarms implementation
+                 for AdtranOS and its products."
+        ::= { adIdentity 10000 53 9 9 }
+
+
+-- OBJECT IDENTIFIERS
+
+    adGenAosY1731 OBJECT IDENTIFIER ::= { adGenAOSMef 9 }
+
+--
+-- Conformance information
+--
+
+adGenAosY1731Conformance OBJECT IDENTIFIER
+   ::= { adGenAOSConformance 34 }
+
+adGenAosY1731Groups OBJECT IDENTIFIER
+   ::= { adGenAosY1731Conformance 1 }
+
+adGenAosY1731Compliances OBJECT IDENTIFIER
+   ::= { adGenAosY1731Conformance 2 }
+
+
+
+-- ******************************************************************
+-- Textual conventions
+-- ******************************************************************
+
+
+AdGenAosY1731Alarms ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+       "A MEP can detect and report a number of defects, and multiple
+        defects can be present at the same time. These defects are:
+
+        bDefY1731CcmRxRDIAlarm(0) A remote MEP is reported the RDI bit in its
+                     last CCM.
+        bDefY1731CcmLossOfContinuityAlarm (1) The MEP is not receiving valid CCMs from at
+                     least one of the remote MEPs.
+        bDefY1731CcmUnexpectedMepAlarm (2) The MEP has received at least one invalid CCM
+                     whose CCM Interval has not yet timed out.
+        bDefY1731CcmUnexpectedPeriodAlarm (3) The MEP has received at least one CCM from
+                     either another MAID or a lower MD Level whose
+                     CCM Interval has not yet timed out.
+        bDefY1731CcmMismergeAlarm(4) Either some remote MEP is reporting its
+                     Interface Status TLV as not isUp, or all remote
+                     MEPs are reporting a Port Status TLV that
+                     contains some value other than psUp.
+        bDefY1731CcmUnexpectedMegLevelAlarm (5) If a CCM frame with the same MEG level but
+                     a MEG ID different than the receiving MEP's own MEG ID is received.
+       "
+    REFERENCE
+       "Y.1731 7.1.2 clause"
+    SYNTAX BITS {
+                bDefY1731CcmRxRDIAlarm (0),
+                bDefY1731CcmLossOfContinuityAlarm (1),
+                bDefY1731CcmUnexpectedMepAlarm (2),
+                bDefY1731CcmUnexpectedPeriodAlarm (3),
+                bDefY1731CcmMismergeAlarm (4),
+                bDefY1731CcmUnexpectedMegLevelAlarm (5)
+               }
+
+
+
+
+--
+-- Y1731 Local Mep Table
+--
+
+adGenAosY1731LocalMepTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF AdGenAosY1731LocalMepEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The Local Maintenance End Point Group (MEP) table.
+
+       "
+    REFERENCE
+       "Y.1731 standard"
+    ::= { adGenAosY1731 1 }
+
+adGenAosY1731LocalMepEntry OBJECT-TYPE
+    SYNTAX      AdGenAosY1731LocalMepEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The Y1731 Local MEP table entry
+        The indexes used in this table are similar to indexes in dot1agCfmMepTable.
+       "
+    INDEX { dot1agCfmMdIndex,
+            dot1agCfmMaIndex,
+            adGenAosY1731LocalMepId
+          }
+    ::= { adGenAosY1731LocalMepTable 1 }
+
+AdGenAosY1731LocalMepEntry ::= SEQUENCE {
+     adGenAosY1731LocalMepId      Unsigned32,
+     adGenAosY1731Alarms          AdGenAosY1731Alarms
+    }
+
+
+adGenAosY1731LocalMepId OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..8191)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "Local MEP Identifier also known as LMEP ID.
+       "
+    REFERENCE
+       "Y1731 Mep table"
+    ::= { adGenAosY1731LocalMepEntry 1 }
+
+adGenAosY1731Alarms OBJECT-TYPE
+    SYNTAX      AdGenAosY1731Alarms
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "A vector of Boolean error conditions, any of
+        which may be true:
+
+                DefY1731CcmRxRDIAlarm (0),
+                DefY1731CcmLossOfContinuityAlarm (1),
+                DefY1731CcmUnexpectedMepAlarm (2),
+                DefY1731CcmUnexpectedPeriodAlarm (3),
+                DefY1731CcmMismergeAlarm (4),
+                DefY1731CcmUnexpectedMegLevelAlarm (5)
+
+       "
+    ::= { adGenAosY1731LocalMepEntry 2 }
+
+--
+-- Compliance statements
+--
+
+-- Full compliance statement
+     adGenAosY1731FullCompliance MODULE-COMPLIANCE
+        STATUS  current
+        DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+        version 1 of the adGenAosY1731 MIB. When the implementation of this MIB 
+        supports adGenAosY1731Group, then such an implementation can claim
+        full compliance."
+
+        MODULE  -- this module
+
+        GROUP  adGenAosY1731Group
+         DESCRIPTION
+            "This optional group defines the notification generated by Y1731 Alarms"
+            ::= { adGenAosY1731Compliances 1 }
+
+    adGenAosY1731Group OBJECT-GROUP
+    OBJECTS
+    {
+        adGenAosY1731Alarms
+
+    }
+
+         STATUS  current
+         DESCRIPTION
+            "Objects for adGenAosY1731 Group"
+         ::= { adGenAosY1731Groups 1 }
+
+
+END
+
