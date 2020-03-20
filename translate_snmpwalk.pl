@@ -71,6 +71,7 @@ sub main {
 
 			#get the OID into a variable
 			my ($oid,$rest) = split(" = ",$_);
+			my $rawoid = $oid;
 
 	        if ( $oid =~ /$needsTranslate/ ) {
 				my $oidTranslated = 0;
@@ -106,7 +107,7 @@ sub main {
 						$oid = shortenOid($oid);
 						if ( defined $mibs->{$oid} and $mibs->{$oid} ne "" ) {
 							$oidTranslated = 1;
-							$_ =~ s/$oid/$mibs->{$oid}/;
+							$_ =~ s/$oid/$mibs->{$oid} \($rawoid\)/;
 							last;
 						}
 					}
@@ -129,7 +130,7 @@ sub main {
 					$oid = shortenOid($oid);
 					if ( defined $mibs->{$oid} and $mibs->{$oid} ne "" ) {
 						$oidTranslated = 1;
-						$_ =~ s/$oid/$mibs->{$oid}/;
+						$_ =~ s/$oid/$mibs->{$oid} $rawoid/;
 						# remove the leading . from the line.
 						$_ =~ s/^\.//;
 						last;
