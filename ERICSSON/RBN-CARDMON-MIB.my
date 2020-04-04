@@ -1,0 +1,626 @@
+-- %DNP% $Id: RBN-CARDMON-MIB.my,v 1.1.2.8.154.2 2011/02/22 17:26:16 thatcher Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-CARDMON-MIB.my,v $
+-- *****************************************************************
+-- RBN-CARDMON-MIB              Card Monitor MIB
+--
+-- Copyright (c) 2004-2006, 2011 Ericsson AB
+-- All rights reserved.
+-- 
+-- *****************************************************************
+
+RBN-CARDMON-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+        MODULE-IDENTITY,
+        OBJECT-TYPE,
+        NOTIFICATION-TYPE,
+        Gauge32,
+        Unsigned32
+                FROM SNMPv2-SMI
+        MODULE-COMPLIANCE,
+        OBJECT-GROUP,
+        NOTIFICATION-GROUP
+                FROM SNMPv2-CONF
+        SnmpAdminString
+                FROM SNMP-FRAMEWORK-MIB
+        DateAndTime
+                FROM SNMPv2-TC
+        RbnSlot
+                FROM RBN-TC
+        RbnAlarmType,
+        RbnAlarmProbableCause,
+        RbnAlarmPerceivedSeverity,
+        RbnAlarmId,
+        RbnAlarmServiceAffecting
+                FROM RBN-ALARM-TC
+        rbnMgmt
+                FROM RBN-SMI;
+
+rbnCardMonMIB MODULE-IDENTITY
+        LAST-UPDATED    "201101191800Z" -- Jan 19, 2011
+        ORGANIZATION    "Ericsson AB."
+        CONTACT-INFO
+                "       Ericsson AB.
+
+                Postal: 100 Headquarters Dr
+                        San Jose, CA  95134
+                        USA
+
+                 Phone: +1 408 750 5000
+                   Fax: +1 408 750 5599
+                "
+        DESCRIPTION
+                "The MIB used to manage the Controller, I/O and
+                System Card Monitor functionality on network devices."
+
+        REVISION        "201101191800Z" -- Jan 19, 2011
+        DESCRIPTION
+                "Update CONTACT-INFO & ORGANIZATION. "
+
+        REVISION        "200610020000Z" -- October 2, 2006
+        DESCRIPTION
+                "Added new MIB objects:
+                    rbnCardStatsVplsCircuits
+                    rbnCardStatsIpipCircuits
+                    rbnCardStatsIpv6v4ManualCircuits
+                    rbnCardStatsIpv6v4AutoCircuits
+                "
+
+        REVISION        "200505090000Z" -- May 9, 2005
+        DESCRIPTION
+                "Added rbnCardAlarmServiceAffecting."
+
+        REVISION        "200409270000Z" -- September 27, 2004
+        DESCRIPTION
+                "Added rbnCardStatsTable and updated conformance 
+                 information."
+
+        REVISION        "200406290000Z" -- Jun 29, 2004
+        DESCRIPTION
+                "Initial version."
+        ::= { rbnMgmt 31 }
+
+rbnCardMonMIBNotifications OBJECT IDENTIFIER
+        ::= { rbnCardMonMIB 0 }
+
+rbnCardMonMIBObjects OBJECT IDENTIFIER
+        ::= { rbnCardMonMIB 1 }
+
+rbnCardMonMIBConformance OBJECT IDENTIFIER
+        ::= { rbnCardMonMIB 2 }
+
+
+-- Textual Conventions
+
+
+-- MIB Objects
+
+rbnCardAlarmActiveTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RbnCardAlarmActiveEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+                "This table contains the card alarms currently
+                active on the system."
+        ::= { rbnCardMonMIBObjects 1 }
+
+rbnCardAlarmActiveEntry OBJECT-TYPE
+        SYNTAX      RbnCardAlarmActiveEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+                "Entries appear in this table when alarms are
+                raised. They are removed when the alarms are cleared."
+        INDEX   { rbnCardAlarmSlot, rbnCardAlarmActiveIndex }
+        ::= { rbnCardAlarmActiveTable 1 }
+
+RbnCardAlarmActiveEntry ::= SEQUENCE {
+        rbnCardAlarmSlot                RbnSlot,
+        rbnCardAlarmActiveIndex         Unsigned32,
+        rbnCardAlarmId                  RbnAlarmId,
+        rbnCardAlarmType                RbnAlarmType,
+        rbnCardAlarmDateAndTime         DateAndTime,
+        rbnCardAlarmDescription         SnmpAdminString,
+        rbnCardAlarmProbableCause       RbnAlarmProbableCause,
+        rbnCardAlarmSeverity            RbnAlarmPerceivedSeverity,
+        rbnCardAlarmServiceAffecting    RbnAlarmServiceAffecting
+}
+
+rbnCardAlarmSlot OBJECT-TYPE
+        SYNTAX      RbnSlot
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+                "The chassis slot number in which the card is present."
+        ::= { rbnCardAlarmActiveEntry 1 }
+
+rbnCardAlarmActiveIndex OBJECT-TYPE
+        SYNTAX      Unsigned32 (1..4294967295)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+                "A monotonically increasing integer index. It wraps
+                back to 1 after it reaches its maximum value."
+        ::= { rbnCardAlarmActiveEntry 2 }
+
+rbnCardAlarmId OBJECT-TYPE 
+        SYNTAX      RbnAlarmId
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "An identifier for the alarm."
+        ::= { rbnCardAlarmActiveEntry 3 }
+
+rbnCardAlarmType OBJECT-TYPE 
+        SYNTAX      RbnAlarmType
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The type of the alarm."
+        ::= { rbnCardAlarmActiveEntry 4 }
+
+rbnCardAlarmDateAndTime OBJECT-TYPE 
+        SYNTAX      DateAndTime
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The local date and time when the alarm was raised"
+        ::= { rbnCardAlarmActiveEntry 5 }
+
+rbnCardAlarmDescription OBJECT-TYPE 
+        SYNTAX      SnmpAdminString (SIZE(0..64))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "A text string which conveys additional information
+                about the alarm."
+        ::= { rbnCardAlarmActiveEntry 6 }
+
+rbnCardAlarmProbableCause OBJECT-TYPE 
+        SYNTAX      RbnAlarmProbableCause
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The probable cause for this alarm."
+        ::= { rbnCardAlarmActiveEntry 7 }
+
+rbnCardAlarmSeverity OBJECT-TYPE 
+        SYNTAX      RbnAlarmPerceivedSeverity
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The perceived severity of the alarm."
+        ::= { rbnCardAlarmActiveEntry 8 }
+
+rbnCardAlarmServiceAffecting OBJECT-TYPE
+        SYNTAX      RbnAlarmServiceAffecting
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "Indicates whether the alarm is perceived to be
+                service impacting."
+        ::= { rbnCardAlarmActiveEntry 9 }
+
+rbnCardStatsTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RbnCardStatsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+                "This table contains per card statistics for traffic 
+                 cards. This table also provides an entry for the card
+                 that contains the ethernet management port."
+        ::= { rbnCardMonMIBObjects 2 }
+
+rbnCardStatsEntry OBJECT-TYPE
+        SYNTAX      RbnCardStatsEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+                "A table providing per card statistics."
+        INDEX   { rbnCardStatsSlot}
+        ::= { rbnCardStatsTable 1 }
+
+RbnCardStatsEntry ::= SEQUENCE {
+        rbnCardStatsSlot                   RbnSlot,
+        rbnCardStatsTotalCircuits          Gauge32,
+        rbnCardStatsUpCircuits             Gauge32,
+        rbnCardStatsDownCircuits           Gauge32,
+        rbnCardStatsUnboundCircuits        Gauge32,
+        rbnCardStatsNoBindCircuits         Gauge32,
+        rbnCardStatsBindTotalCircuits      Gauge32,
+        rbnCardStatsBindIfCircuits         Gauge32,
+        rbnCardStatsBindAuthCircuits       Gauge32,
+        rbnCardStatsBindSubCircuits        Gauge32,
+        rbnCardStatsAtmCircuits            Gauge32,
+        rbnCardStatsEthCircuits            Gauge32,
+        rbnCardStatsPppCircuits            Gauge32,
+        rbnCardStatsPppoeCircuits          Gauge32,
+        rbnCardStatsDot1qCircuits          Gauge32,
+        rbnCardStatsFrCircuits             Gauge32,
+        rbnCardStatsChdlcCircuits          Gauge32,
+        rbnCardStatsGreCircuits            Gauge32,
+        rbnCardStatsMplsCircuits           Gauge32,
+        rbnCardStatsClipsCircuits          Gauge32,
+        rbnCardStatsVplsCircuits           Gauge32,
+        rbnCardStatsIpipCircuits           Gauge32,
+        rbnCardStatsIpv6v4ManualCircuits   Gauge32,
+        rbnCardStatsIpv6v4AutoCircuits     Gauge32
+}
+
+rbnCardStatsSlot OBJECT-TYPE
+        SYNTAX      RbnSlot
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+                "The chassis slot number in which the card is present."
+        ::= { rbnCardStatsEntry 1 }
+
+rbnCardStatsTotalCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of all circuits configured on the card."
+        ::= { rbnCardStatsEntry  2}
+
+rbnCardStatsUpCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of circuits in an up state configured on the 
+                 card."
+        ::= { rbnCardStatsEntry  3}
+
+rbnCardStatsDownCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of circuits in a down state configured on the
+                 card."
+        ::= { rbnCardStatsEntry  4}
+
+rbnCardStatsUnboundCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of circuits not bound to an interface that 
+                 are configured on the card."
+        ::= { rbnCardStatsEntry  5}
+
+rbnCardStatsNoBindCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of circuits configured on the card that are 
+                 not bound to an interface and are not subscriber or
+                 clips circuits."
+        ::= { rbnCardStatsEntry  6}
+
+rbnCardStatsBindTotalCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of all circuits bound to an interface that
+                 are configured on the card." 
+        ::= { rbnCardStatsEntry  7}
+
+rbnCardStatsBindIfCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of circuits configured on the card that are 
+                 bound to an interface and are not subscriber circuits."
+        ::= { rbnCardStatsEntry  8} 
+
+rbnCardStatsBindAuthCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of subscriber and clips bind authentication 
+                 circuits configured on the card."
+        ::= { rbnCardStatsEntry  9}
+
+rbnCardStatsBindSubCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of bind subscriber, including clips, and bind
+                 auto-subscriber circuits configured on the card." 
+        ::= { rbnCardStatsEntry  10}
+
+rbnCardStatsAtmCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of atm circuits configured on the card."
+        ::= { rbnCardStatsEntry  11}
+
+rbnCardStatsEthCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of ethernet circuits configured on the card."
+        ::= { rbnCardStatsEntry  12}
+
+rbnCardStatsPppCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of ppp circuits configured on the card."
+        ::= { rbnCardStatsEntry  13}
+
+rbnCardStatsPppoeCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of pppoe circuits configured on the card."
+        ::= { rbnCardStatsEntry  14}
+
+rbnCardStatsDot1qCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of dot1q circuits configured on the card."
+        ::= { rbnCardStatsEntry  15}
+
+rbnCardStatsFrCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of frame relay circuits configured on the 
+                 card."
+        ::= { rbnCardStatsEntry  16}
+
+rbnCardStatsChdlcCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of chdlc circuits configured on the card."
+        ::= { rbnCardStatsEntry  17}
+
+rbnCardStatsGreCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of gre circuits configured on the card."
+        ::= { rbnCardStatsEntry  18}
+
+rbnCardStatsMplsCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of mpls circuits configured on the card."
+        ::= { rbnCardStatsEntry  19}
+
+rbnCardStatsClipsCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of clips circuits configured on the card."
+        ::= { rbnCardStatsEntry  20}
+
+rbnCardStatsVplsCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of vpls circuits configured on the card."
+        ::= { rbnCardStatsEntry  21}
+
+rbnCardStatsIpipCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of IP-in-IP tunnel circuits configured on the
+                card."
+        ::= { rbnCardStatsEntry  22}
+
+rbnCardStatsIpv6v4ManualCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of IPv6v4-manual tunnel circuits configured
+                on the card."
+        ::= { rbnCardStatsEntry  23}
+
+rbnCardStatsIpv6v4AutoCircuits OBJECT-TYPE
+        SYNTAX      Gauge32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The count of IPv6v4-auto tunnel circuits configured on
+                the card."
+        ::= { rbnCardStatsEntry  24}
+
+-- Notifications
+
+rbnCardAlarm NOTIFICATION-TYPE
+        OBJECTS     {
+                        rbnCardAlarmId,
+                        rbnCardAlarmType,
+                        rbnCardAlarmDateAndTime,
+                        rbnCardAlarmDescription,
+                        rbnCardAlarmProbableCause,
+                        rbnCardAlarmSeverity
+                    }
+        STATUS      current
+        DESCRIPTION
+                "An rbnCardAlarm notification signifies that an
+                alarm has been raised/cleared on a controller,
+                system or i/o card."
+        ::= { rbnCardMonMIBNotifications 1 }
+
+-- Conformance Statements
+
+rbnCardMonMIBGroups OBJECT IDENTIFIER
+        ::= { rbnCardMonMIBConformance 1 }
+
+rbnCardMonMIBCompliances OBJECT IDENTIFIER
+        ::= { rbnCardMonMIBConformance 2 }
+
+rbnCardMonMIBObjectGroup OBJECT-GROUP
+      OBJECTS     {   rbnCardAlarmId, rbnCardAlarmType,
+                      rbnCardAlarmDateAndTime, rbnCardAlarmDescription,
+                      rbnCardAlarmProbableCause, rbnCardAlarmSeverity
+                  }
+      STATUS      current
+      DESCRIPTION
+              "A collection of objects providing card monitor
+              information."
+      ::= { rbnCardMonMIBGroups 1 }
+
+rbnCardMonMIBObjectGroup2 OBJECT-GROUP
+      OBJECTS     {   rbnCardAlarmId, rbnCardAlarmType,
+                      rbnCardAlarmDateAndTime, rbnCardAlarmDescription,
+                      rbnCardAlarmProbableCause, rbnCardAlarmSeverity,
+                      rbnCardAlarmServiceAffecting
+                  }
+      STATUS      current
+      DESCRIPTION
+              "A collection of objects providing card monitor
+              information."
+      ::= { rbnCardMonMIBGroups 4 }
+
+rbnCardMonMIBNotificationGroup NOTIFICATION-GROUP
+      NOTIFICATIONS   {   rbnCardAlarm
+                      }
+      STATUS      current
+      DESCRIPTION
+              "A collection of notifications providing card
+              monitor information."
+      ::= { rbnCardMonMIBGroups 2 }
+
+rbnCardStatsMIBObjectGroup OBJECT-GROUP
+      OBJECTS     {
+                   rbnCardStatsTotalCircuits,          
+                   rbnCardStatsUpCircuits,             
+                   rbnCardStatsDownCircuits,           
+                   rbnCardStatsUnboundCircuits,        
+                   rbnCardStatsNoBindCircuits,         
+                   rbnCardStatsBindTotalCircuits,      
+                   rbnCardStatsBindIfCircuits,         
+                   rbnCardStatsBindAuthCircuits,       
+                   rbnCardStatsBindSubCircuits,        
+                   rbnCardStatsAtmCircuits,            
+                   rbnCardStatsEthCircuits,            
+                   rbnCardStatsPppCircuits,            
+                   rbnCardStatsPppoeCircuits,          
+                   rbnCardStatsDot1qCircuits,          
+                   rbnCardStatsFrCircuits,             
+                   rbnCardStatsChdlcCircuits,          
+                   rbnCardStatsGreCircuits,            
+                   rbnCardStatsMplsCircuits,           
+                   rbnCardStatsClipsCircuits
+                  }
+      STATUS      current
+      DESCRIPTION
+              "A group of objects providing card statistics."
+      ::= { rbnCardMonMIBGroups 3 }
+
+rbnCardStatsMIBObjectGroup2 OBJECT-GROUP
+      OBJECTS     {
+                   rbnCardStatsTotalCircuits,          
+                   rbnCardStatsUpCircuits,             
+                   rbnCardStatsDownCircuits,           
+                   rbnCardStatsUnboundCircuits,        
+                   rbnCardStatsNoBindCircuits,         
+                   rbnCardStatsBindTotalCircuits,      
+                   rbnCardStatsBindIfCircuits,         
+                   rbnCardStatsBindAuthCircuits,       
+                   rbnCardStatsBindSubCircuits,        
+                   rbnCardStatsAtmCircuits,            
+                   rbnCardStatsEthCircuits,            
+                   rbnCardStatsPppCircuits,            
+                   rbnCardStatsPppoeCircuits,          
+                   rbnCardStatsDot1qCircuits,          
+                   rbnCardStatsFrCircuits,             
+                   rbnCardStatsChdlcCircuits,          
+                   rbnCardStatsGreCircuits,            
+                   rbnCardStatsMplsCircuits,           
+                   rbnCardStatsClipsCircuits,
+                   rbnCardStatsVplsCircuits,
+                   rbnCardStatsIpipCircuits,
+                   rbnCardStatsIpv6v4ManualCircuits,
+                   rbnCardStatsIpv6v4AutoCircuits
+                  }
+      STATUS      current
+      DESCRIPTION
+              "A group of objects providing card statistics."
+      ::= { rbnCardMonMIBGroups 5 }
+
+rbnCardMonMIBCompliance MODULE-COMPLIANCE
+      STATUS      current
+      DESCRIPTION
+              "The compliance statement for the Card Monitor MIB"
+      MODULE      -- this module
+      GROUP       rbnCardMonMIBObjectGroup
+      DESCRIPTION
+              "This group is mandatory for devices which contain
+              Card Monitoring capabilities"
+      GROUP       rbnCardMonMIBNotificationGroup
+      DESCRIPTION
+              "This group is mandatory for devices which contain
+              Card Monitoring capabilities"
+
+      ::= { rbnCardMonMIBCompliances 1 }
+
+rbnCardMonMIBCompliance2 MODULE-COMPLIANCE
+      STATUS      current
+      DESCRIPTION
+              "The compliance statement for the Card Monitor MIB, 
+               including card statistics."
+      MODULE      -- this module
+      MANDATORY-GROUPS {
+              rbnCardMonMIBObjectGroup,
+              rbnCardMonMIBNotificationGroup,
+              rbnCardStatsMIBObjectGroup
+      }
+      ::= { rbnCardMonMIBCompliances 2 }
+
+rbnCardMonMIBCompliance3 MODULE-COMPLIANCE
+      STATUS      current
+      DESCRIPTION
+              "The compliance statement for the Card Monitor MIB, 
+               including card statistics."
+      MODULE      -- this module
+      MANDATORY-GROUPS {
+              rbnCardMonMIBObjectGroup2,
+              rbnCardMonMIBNotificationGroup,
+              rbnCardStatsMIBObjectGroup
+      }
+      ::= { rbnCardMonMIBCompliances 3 }
+
+rbnCardMonMIBCompliance4 MODULE-COMPLIANCE
+      STATUS      current
+      DESCRIPTION
+              "The compliance statement for the Card Monitor MIB, 
+               including card statistics."
+      MODULE      -- this module
+      MANDATORY-GROUPS {
+              rbnCardMonMIBObjectGroup2,
+              rbnCardMonMIBNotificationGroup,
+              rbnCardStatsMIBObjectGroup2
+      }
+      ::= { rbnCardMonMIBCompliances 4 }
+
+END

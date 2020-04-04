@@ -1,0 +1,2951 @@
+-- %DNP% $Id: RBN-QOS-MIB.my,v 1.1.4.12.92.2 2011/02/22 17:26:17 thatcher Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-QOS-MIB.my,v $
+-- *****************************************************************
+-- RBN-QOS-MIB
+--
+-- Copyright (c) 2015 Ericsson AB.
+-- Copyright (c) 2002-2003, 2005-2007, 2011 Ericsson AB.
+-- All rights reserved.
+--
+-- *****************************************************************
+
+RBN-QOS-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    ifIndex
+            FROM IF-MIB
+
+    Counter32,
+    Counter64,
+    MODULE-IDENTITY,
+    OBJECT-TYPE,
+    Unsigned32
+            FROM SNMPv2-SMI
+
+    MODULE-COMPLIANCE,
+    OBJECT-GROUP
+            FROM SNMPv2-CONF
+
+    SnmpAdminString
+            FROM SNMP-FRAMEWORK-MIB
+
+    rbnSubsActiveName,
+    rbnSubsActiveSessionId
+            FROM RBN-SUBSCRIBER-ACTIVE-MIB
+
+    rbnMgmt
+            FROM RBN-SMI
+
+    TEXTUAL-CONVENTION
+            FROM SNMPv2-TC;
+
+
+rbnQosMib MODULE-IDENTITY
+    LAST-UPDATED "201407210000Z" -- July 21, 2014
+    ORGANIZATION "Ericsson AB."
+    CONTACT-INFO
+        "         Ericsson AB.
+          Postal: 100 Headquarters Dr.
+                  San Jose, CA  95134
+                  USA
+
+           Phone: +1 408 750 5000
+             Fax: +1 408 750 5599
+        "
+    DESCRIPTION
+        "This MIB defines statistical counters that may be used to monitor
+         subscriber circuits and those IF-MIB layers, which support
+         ifPacketGroup, ifHCPacketGroup or ifVHCPacketGroup, that have
+         Quality Of Service enabled.
+        "
+
+    REVISION      "201407210000Z" -- July 21, 2014
+    DESCRIPTION
+        "Added new entries for tables, rbnQosInterfaceQueueStatsTable,
+         rbnQosSubscriberQueueStatsTable, rbnQosIntfRLClassStatsTable and
+         rbnQosSubscriberRLClassStatsTable, to support separate IPv4/v6
+         counts for QoS.
+        "
+
+    REVISION      "201101191800Z" -- Jan 19, 2011
+    DESCRIPTION
+        "Update CONTACT-INFO & ORGANIZATION. "
+
+    REVISION      "200707300000Z" -- July 30, 2007
+    DESCRIPTION
+        "Added two new tables, rbnQosHierarchicalPolicyStatsTable and
+         rbnQosHierarchicalPClassStatsTable, containing drop counts
+         due to hierarchical policies or policy classes applied to a
+         child circuit.
+        "
+
+    REVISION      "200609120000Z" -- September 12, 2006
+    DESCRIPTION
+        "Added two new tables, rbnQosIntfRLClassStatsTable and
+         rbnQosSubscriberRLClassStatsTable, to monitor interfaces and
+         subscriber circuits that have policing/metering policy class
+         counters enabled.
+        "
+
+    REVISION      "200509260000Z" -- September 26, 2005
+    DESCRIPTION
+        "Added a new table rbnQosSubscriberQueueStatsTable to monitor the
+         qos statistics per transmit queue on a subscriber circuit.
+        "
+
+    REVISION      "200307180000Z" -- July 18, 2003
+    DESCRIPTION
+        "Added a new table rbnQosInterfaceQueueStatsTable to monitor the
+         qos statistics per transmit queue on an interface.
+        "
+
+    REVISION      "200203220000Z" -- March 22, 2002
+    DESCRIPTION
+        "Initial version."
+    ::= { rbnMgmt 22 }
+
+
+rbnQosMibObjects
+        OBJECT IDENTIFIER ::= { rbnQosMib 1 }
+
+rbnQosMibConformance
+        OBJECT IDENTIFIER ::= { rbnQosMib 2 }
+
+--
+-- Textual Conventions
+--
+
+RbnQosPolicyType ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION
+        "QoS policy type"
+    SYNTAX      INTEGER {
+                    policing(1), -- inbound policing
+                    metering(2), -- outbound
+                    edrr(3),     -- enhanced deficit round robin
+                    mdrr(4),     -- modified deficit round robin
+                    pq(5),       -- priority queuing
+                    atmwfq(6),   -- ATM weighted fair queuing
+                    pwfq(7)      -- priority weighted fair queuing
+                }
+
+RbnQosClassId ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "d"
+    STATUS       current
+    DESCRIPTION
+        "A unique QoS class identifier."
+    SYNTAX  Unsigned32 (1..8)
+
+--
+-- QoS interface objects
+--
+
+rbnQosInterfaceTable   OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnQosInterfaceEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table contains entries for every packet oriented 
+         IF-MIB layer for which QoS is enabled."
+    ::= { rbnQosMibObjects 1 }
+
+rbnQosInterfaceEntry OBJECT-TYPE
+    SYNTAX      RbnQosInterfaceEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the rbnQosInterfaceTable."
+    INDEX { ifIndex }
+    ::= { rbnQosInterfaceTable 1 }
+    
+RbnQosInterfaceEntry ::= SEQUENCE {
+    rbnQosIfInOctets            Counter32,
+    rbnQosIfHCInOctets          Counter64,
+    rbnQosIfOutOctets           Counter32,
+    rbnQosIfHCOutOctets         Counter64,
+    rbnQosIfInDroppedOctets     Counter32,
+    rbnQosIfHCInDroppedOctets   Counter64,
+    rbnQosIfOutDroppedOctets    Counter32,
+    rbnQosIfHCOutDroppedOctets  Counter64
+}
+
+rbnQosIfInOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The total number of post-limited octets received on the interface,
+            including framing characters.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceEntry 1}
+
+rbnQosIfHCInOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The total number of post-limited octets received on the interface,
+            including framing characters.  This object is 64-bit version of
+            rbnQosIfInOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceEntry 2}
+
+rbnQosIfOutOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The total number of pre-limited octets transmitted out of the
+            interface, including framing characters.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceEntry 3}
+
+rbnQosIfHCOutOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The total number of pre-limited octets transmitted out of the
+            interface, including framing characters.  This object is a
+            64-bit version of rbnQosIfOutOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceEntry 4 }
+
+rbnQosIfInDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The total number of received octets that were dropped on the 
+            interface, including but not limited to octets dropped due to 
+            limiting.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceEntry 5 }
+
+rbnQosIfHCInDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The total number of received octets that were dropped on the 
+            interface, including but not limited to octets dropped due to 
+            limiting. This object is a 64-bit version of 
+            rbnQosIfInDroppedOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceEntry 6 }
+
+
+rbnQosIfOutDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The total number of outbound octets that were dropped on the 
+            interface, including but not limited to octets dropped due to 
+            limiting.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceEntry 7 }
+
+rbnQosIfHCOutDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The total number of outbound octets that were dropped on the 
+            interface, including but not limited to octets dropped due to 
+            limiting. This object is a 64-bit version of 
+            rbnQosIfOutDroppedOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceEntry 8 }
+
+--
+-- QoS interface transmit queue objects
+--
+
+rbnQosInterfaceQueueStatsTable   OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnQosInterfaceQueueStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table specifies per transmit queue statistical information.
+         It contains the transmit queue packet/octet counts for each
+         packet oriented IF-MIB layer for which QoS is enabled."
+    ::= { rbnQosMibObjects 2 }
+
+rbnQosInterfaceQueueStatsEntry OBJECT-TYPE
+    SYNTAX      RbnQosInterfaceQueueStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the rbnQosInterfaceQueueStatsTable. Each row
+         contains the transmitted and dropped packets/octets count for
+         each transmit queue on an interface."
+    INDEX { ifIndex, rbnQosIfQueueId }
+    ::= { rbnQosInterfaceQueueStatsTable 1 }
+    
+RbnQosInterfaceQueueStatsEntry ::= SEQUENCE {
+    rbnQosIfQueueId                         Unsigned32,
+    rbnQosIfQueueOutOctets                  Counter32,
+    rbnQosIfQueueOutPkts                    Counter32,
+    rbnQosIfQueueWredDroppedOctets          Counter32,
+    rbnQosIfQueueWredDroppedPkts            Counter32,
+    rbnQosIfQueueTailDroppedOctets          Counter32,
+    rbnQosIfQueueTailDroppedPkts            Counter32,
+    rbnQosIfQueueHCOutOctets                Counter64,
+    rbnQosIfQueueHCOutPkts                  Counter64,
+    rbnQosIfQueueHCWredDroppedOctets        Counter64,
+    rbnQosIfQueueHCWredDroppedPkts          Counter64,
+    rbnQosIfQueueHCTailDroppedOctets        Counter64,
+    rbnQosIfQueueHCTailDroppedPkts          Counter64,
+    rbnQosIfQueueIPv4OutOctets              Counter32,
+    rbnQosIfQueueIPv4OutPkts                Counter32,
+    rbnQosIfQueueIPv4WredDroppedOctets      Counter32,
+    rbnQosIfQueueIPv4WredDroppedPkts        Counter32,
+    rbnQosIfQueueIPv4TailDroppedOctets      Counter32,
+    rbnQosIfQueueIPv4TailDroppedPkts        Counter32,
+    rbnQosIfQueueHCIPv4OutOctets            Counter64,
+    rbnQosIfQueueHCIPv4OutPkts              Counter64,
+    rbnQosIfQueueHCIPv4WredDroppedOctets    Counter64,
+    rbnQosIfQueueHCIPv4WredDroppedPkts      Counter64,
+    rbnQosIfQueueHCIPv4TailDroppedOctets    Counter64,
+    rbnQosIfQueueHCIPv4TailDroppedPkts      Counter64,
+    rbnQosIfQueueIPv6OutOctets              Counter32,
+    rbnQosIfQueueIPv6OutPkts                Counter32,
+    rbnQosIfQueueIPv6WredDroppedOctets      Counter32,
+    rbnQosIfQueueIPv6WredDroppedPkts        Counter32,
+    rbnQosIfQueueIPv6TailDroppedOctets      Counter32,
+    rbnQosIfQueueIPv6TailDroppedPkts        Counter32,
+    rbnQosIfQueueHCIPv6OutOctets            Counter64,
+    rbnQosIfQueueHCIPv6OutPkts              Counter64,
+    rbnQosIfQueueHCIPv6WredDroppedOctets    Counter64,
+    rbnQosIfQueueHCIPv6WredDroppedPkts      Counter64,
+    rbnQosIfQueueHCIPv6TailDroppedOctets    Counter64,
+    rbnQosIfQueueHCIPv6TailDroppedPkts      Counter64,
+    rbnQosIfQueueGreenOutOctets             Counter64,
+    rbnQosIfQueueGreenOutPkts               Counter64,
+    rbnQosIfQueueYellowOutOctets            Counter64,
+    rbnQosIfQueueYellowOutPkts              Counter64,
+    rbnQosIfQueueRedOutOctets               Counter64,
+    rbnQosIfQueueRedOutPkts                 Counter64,
+    rbnQosIfQueueGreenDroppedOctets         Counter64,
+    rbnQosIfQueueGreenDroppedPkts           Counter64,
+    rbnQosIfQueueYellowDroppedOctets        Counter64,
+    rbnQosIfQueueYellowDroppedPkts          Counter64,
+    rbnQosIfQueueRedDroppedOctets           Counter64,
+    rbnQosIfQueueRedDroppedPkts             Counter64,
+    rbnQosIfQueueTotalDroppedOctets         Counter64,
+    rbnQosIfQueueTotalDroppedPkts           Counter64
+}
+
+rbnQosIfQueueId OBJECT-TYPE
+    SYNTAX      Unsigned32 (0..4294967295)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+           "A unique identifier for a transmit queue within an
+            interface."
+    ::= { rbnQosInterfaceQueueStatsEntry 1}
+
+rbnQosIfQueueOutOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 2}
+
+rbnQosIfQueueOutPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 3}
+
+rbnQosIfQueueWredDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets dropped due to the application of a
+            weighted random early detection algorithm.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 4}
+
+rbnQosIfQueueWredDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets dropped due to the application of a
+            weighted random early detection algorithm.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 5}
+
+rbnQosIfQueueTailDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets dropped when the total number of packets
+            in this queue was greater than the maximum threshold.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 6}
+
+rbnQosIfQueueTailDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets dropped when the total number of
+            packets in this queue was greater than the maximum threshold.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 7}
+
+rbnQosIfQueueHCOutOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets transmitted out of this queue. This
+            object is a 64-bit version of rbnQosIfQueueOutOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 8}
+
+rbnQosIfQueueHCOutPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets transmitted out of this queue. This
+            object is a 64-bit version of rbnQosIfQueueOutPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 9}
+
+rbnQosIfQueueHCWredDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets dropped due to the application of a
+            weighted random early detection algorithm. This object is
+            a 64-bit version of rbnQosIfQueueWredDroppedOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 10}
+
+rbnQosIfQueueHCWredDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets dropped due to the application of a
+            weighted random early detection algorithm. This object is
+            a 64-bit version of rbnQosIfQueueWredDroppedPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 11}
+
+rbnQosIfQueueHCTailDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets dropped when the total number of packets
+            in this queue was greater than the maximum threshold. This
+            object is a 64-bit version of rbnQosIfQueueTailDroppedOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 12}
+
+rbnQosIfQueueHCTailDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets dropped when the total number of
+            packets in this queue was greater than the maximum
+            threshold. This object is a 64-bit version of
+            rbnQosIfQueueTailDroppedPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 13}
+
+rbnQosIfQueueIPv4OutOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 14 }
+
+rbnQosIfQueueIPv4OutPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 15 }
+
+rbnQosIfQueueIPv4WredDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets dropped due to the application
+            of a weighted random early detection algorithm.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 16 }
+
+rbnQosIfQueueIPv4WredDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets dropped due to the application
+            of a weighted random early detection algorithm.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 17 }
+
+rbnQosIfQueueIPv4TailDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets dropped when the total number of
+            packets in this queue was greater than the maximum threshold.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 18 }
+
+rbnQosIfQueueIPv4TailDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets dropped when the total number of
+            packets in this queue was greater than the maximum threshold.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 19 }
+
+rbnQosIfQueueHCIPv4OutOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets transmitted out of this queue.
+            This object is a 64-bit version of rbnQosIfQueueIPv4OutOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 20 }
+
+rbnQosIfQueueHCIPv4OutPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets transmitted out of this queue.
+            This object is a 64-bit version of rbnQosIfQueueIPv4OutPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 21 }
+
+rbnQosIfQueueHCIPv4WredDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets dropped due to the application of a
+            weighted random early detection algorithm. This object is a
+            64-bit version of rbnQosIfQueueIPv4WredDroppedOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 22 }
+
+rbnQosIfQueueHCIPv4WredDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets dropped due to the application of a
+            weighted random early detection algorithm. This object is a
+            64-bit version of rbnQosIfQueueIPv4WredDroppedPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 23 }
+
+rbnQosIfQueueHCIPv4TailDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets dropped when the total number of packets
+            in this queue was greater than the maximum threshold. This
+            object is a 64-bit version of rbnQosIfQueueIPv4TailDroppedOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 24 }
+
+rbnQosIfQueueHCIPv4TailDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets dropped when the total number of
+            packets in this queue was greater than the maximum threshold.
+            This object is a 64-bit version of rbnQosIfQueueIPv4TailDroppedPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 25 }
+
+rbnQosIfQueueIPv6OutOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 26 }
+
+rbnQosIfQueueIPv6OutPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 27 }
+
+rbnQosIfQueueIPv6WredDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets dropped due to the application
+            of a weighted random early detection algorithm.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 28 }
+
+rbnQosIfQueueIPv6WredDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets dropped due to the application
+            of a weighted random early detection algorithm.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 29 }
+
+rbnQosIfQueueIPv6TailDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets dropped when the total number of
+            packets in this queue was greater than the maximum threshold.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 30 }
+
+rbnQosIfQueueIPv6TailDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets dropped when the total number of
+            packets in this queue was greater than the maximum threshold.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 31 }
+
+rbnQosIfQueueHCIPv6OutOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets transmitted out of this queue.
+            This object is a 64-bit version of rbnQosIfQueueIPv6OutOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 32 }
+
+rbnQosIfQueueHCIPv6OutPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets transmitted out of this queue.
+            This object is a 64-bit version of rbnQosIfQueueIPv6OutPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 33 }
+
+rbnQosIfQueueHCIPv6WredDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets dropped due to the application of a
+            weighted random early detection algorithm. This object is a
+            64-bit version of rbnQosIfQueueIPv6WredDroppedOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 34 }
+
+rbnQosIfQueueHCIPv6WredDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets dropped due to the application of a
+            weighted random early detection algorithm. This object is a
+            64-bit version of rbnQosIfQueueIPv6WredDroppedPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 35 }
+
+rbnQosIfQueueHCIPv6TailDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets dropped when the total number of packets
+            in this queue was greater than the maximum threshold. This
+            object is a 64-bit version of rbnQosIfQueueIPv6TailDroppedOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 36 }
+
+rbnQosIfQueueHCIPv6TailDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets dropped when the total number of
+            packets in this queue was greater than the maximum threshold.
+            This object is a 64-bit version of rbnQosIfQueueIPv6TailDroppedPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 37 }
+
+rbnQosIfQueueGreenOutOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of conformed octets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 38}
+    
+rbnQosIfQueueGreenOutPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of conformed packets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 39}
+    
+rbnQosIfQueueYellowOutOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of exceeded octets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 40}
+    
+rbnQosIfQueueYellowOutPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of exceeded packets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 41}
+    
+rbnQosIfQueueRedOutOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of violated octets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 42}
+    
+rbnQosIfQueueRedOutPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of violated packets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 43}
+    
+rbnQosIfQueueGreenDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of conformed octets dropped in this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 44}
+    
+rbnQosIfQueueGreenDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of conformed packets dropped in this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 45}
+    
+rbnQosIfQueueYellowDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of exceeded octets dropped in this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 46}
+    
+rbnQosIfQueueYellowDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of exceeded packets dropped in this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 47}
+    
+rbnQosIfQueueRedDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of violated octets dropped in this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 48}
+    
+rbnQosIfQueueRedDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of violated packets dropped in this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 49}
+    
+rbnQosIfQueueTotalDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The total number of octets dropped in this queue, 
+            either by the WRED (Weighted Random Early Detection)
+            algorithm, or because the total number of packets
+            in this queue was greater than the maximum threshold.
+            The value is the sum of rbnQosIfQueueWredDroppedOctets and
+            rbnQosIfQueueTailDroppedOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 50}
+        
+rbnQosIfQueueTotalDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The total number of packets dropped in this queue, 
+            either by the WRED (Weighted Random Early Detection)
+            algorithm, or because the total number of packets
+            in this queue was greater than the maximum threshold.
+            The value is the sum of rbnQosIfQueueWredDroppedPkts and
+            rbnQosIfQueueTailDroppedPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system, and at other
+            times as indicated by the value of
+            ifCounterDiscontinuityTime."
+    ::= { rbnQosInterfaceQueueStatsEntry 51}
+
+--
+-- QoS subscriber transmit queue objects
+--
+
+rbnQosSubscriberQueueStatsTable   OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnQosSubscriberQueueStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table specifies per transmit queue statistical information.
+         It contains the transmit queue packet/octet counts for each active
+         subscriber session for which QoS queuing policy is enabled."
+    ::= { rbnQosMibObjects 3 }
+
+rbnQosSubscriberQueueStatsEntry OBJECT-TYPE
+    SYNTAX      RbnQosSubscriberQueueStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the rbnQosSubscriberQueueStatsTable. Each row
+         contains the transmitted and dropped packets/octets count for
+         each transmit queue used on a subscriber circuit."
+    INDEX { rbnSubsActiveName, rbnSubsActiveSessionId, rbnQosSubsQueueId }
+    ::= { rbnQosSubscriberQueueStatsTable 1 }
+    
+RbnQosSubscriberQueueStatsEntry ::= SEQUENCE {
+    rbnQosSubsQueueId                         Unsigned32,
+    rbnQosSubsQueuePolicyName                 SnmpAdminString,
+    rbnQosSubsQueueOutOctets                  Counter32,
+    rbnQosSubsQueueOutPkts                    Counter32,
+    rbnQosSubsQueueWredDroppedOctets          Counter32,
+    rbnQosSubsQueueWredDroppedPkts            Counter32,
+    rbnQosSubsQueueTailDroppedOctets          Counter32,
+    rbnQosSubsQueueTailDroppedPkts            Counter32,
+    rbnQosSubsQueueHCOutOctets                Counter64,
+    rbnQosSubsQueueHCOutPkts                  Counter64,
+    rbnQosSubsQueueHCWredDroppedOctets        Counter64,
+    rbnQosSubsQueueHCWredDroppedPkts          Counter64,
+    rbnQosSubsQueueHCTailDroppedOctets        Counter64,
+    rbnQosSubsQueueHCTailDroppedPkts          Counter64,
+    rbnQosSubsQueueIPv4OutOctets              Counter32,
+    rbnQosSubsQueueIPv4OutPkts                Counter32,
+    rbnQosSubsQueueIPv4WredDroppedOctets      Counter32,
+    rbnQosSubsQueueIPv4WredDroppedPkts        Counter32,
+    rbnQosSubsQueueIPv4TailDroppedOctets      Counter32,
+    rbnQosSubsQueueIPv4TailDroppedPkts        Counter32,
+    rbnQosSubsQueueHCIPv4OutOctets            Counter64,
+    rbnQosSubsQueueHCIPv4OutPkts              Counter64,
+    rbnQosSubsQueueHCIPv4WredDroppedOctets    Counter64,
+    rbnQosSubsQueueHCIPv4WredDroppedPkts      Counter64,
+    rbnQosSubsQueueHCIPv4TailDroppedOctets    Counter64,
+    rbnQosSubsQueueHCIPv4TailDroppedPkts      Counter64,
+    rbnQosSubsQueueIPv6OutOctets              Counter32,
+    rbnQosSubsQueueIPv6OutPkts                Counter32,
+    rbnQosSubsQueueIPv6WredDroppedOctets      Counter32,
+    rbnQosSubsQueueIPv6WredDroppedPkts        Counter32,
+    rbnQosSubsQueueIPv6TailDroppedOctets      Counter32,
+    rbnQosSubsQueueIPv6TailDroppedPkts        Counter32,
+    rbnQosSubsQueueHCIPv6OutOctets            Counter64,
+    rbnQosSubsQueueHCIPv6OutPkts              Counter64,
+    rbnQosSubsQueueHCIPv6WredDroppedOctets    Counter64,
+    rbnQosSubsQueueHCIPv6WredDroppedPkts      Counter64,
+    rbnQosSubsQueueHCIPv6TailDroppedOctets    Counter64,
+    rbnQosSubsQueueHCIPv6TailDroppedPkts      Counter64
+}
+
+rbnQosSubsQueueId OBJECT-TYPE
+    SYNTAX      Unsigned32 (0..7)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+           "A unique identifier for a transmit queue used by the circuit."
+    ::= { rbnQosSubscriberQueueStatsEntry 1 }
+
+rbnQosSubsQueuePolicyName OBJECT-TYPE
+       SYNTAX      SnmpAdminString (SIZE(1..39))
+       MAX-ACCESS  read-only
+       STATUS      current
+       DESCRIPTION
+           "The name of the queuing policy the subscriber circuit is using."
+    ::= { rbnQosSubscriberQueueStatsEntry 2 }
+
+rbnQosSubsQueueOutOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 3 }
+
+rbnQosSubsQueueOutPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 4 }
+
+rbnQosSubsQueueWredDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets dropped due to the application of a
+            weighted random early detection algorithm.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 5 }
+
+rbnQosSubsQueueWredDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets dropped due to the application of a
+            weighted random early detection algorithm.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 6 }
+
+rbnQosSubsQueueTailDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets dropped when the total number of packets
+            in this queue was greater than the maximum threshold.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 7 }
+
+rbnQosSubsQueueTailDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets dropped when the total number of
+            packets in this queue was greater than the maximum threshold.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 8 }
+
+rbnQosSubsQueueHCOutOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets transmitted out of this queue. This
+            object is a 64-bit version of rbnQosSubsQueueOutOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 9 }
+
+rbnQosSubsQueueHCOutPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets transmitted out of this queue. This
+            object is a 64-bit version of rbnQosSubsQueueOutPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 10 }
+
+rbnQosSubsQueueHCWredDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets dropped due to the application of a
+            weighted random early detection algorithm. This object is
+            a 64-bit version of rbnQosSubsQueueWredDroppedOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 11 }
+
+rbnQosSubsQueueHCWredDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets dropped due to the application of a
+            weighted random early detection algorithm. This object is
+            a 64-bit version of rbnQosSubsQueueWredDroppedPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 12 }
+
+rbnQosSubsQueueHCTailDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets dropped when the total number of packets
+            in this queue was greater than the maximum threshold. This
+            object is a 64-bit version of rbnQosSubsQueueTailDroppedOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 13 }
+
+rbnQosSubsQueueHCTailDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets dropped when the total number of
+            packets in this queue was greater than the maximum
+            threshold. This object is a 64-bit version of
+            rbnQosSubsQueueTailDroppedPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 14 }
+
+rbnQosSubsQueueIPv4OutOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 15 }
+
+rbnQosSubsQueueIPv4OutPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 16 }
+
+rbnQosSubsQueueIPv4WredDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets dropped due to the application
+            of a weighted random early detection algorithm.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 17 }
+
+rbnQosSubsQueueIPv4WredDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets dropped due to the application
+            of a weighted random early detection algorithm.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 18 }
+
+rbnQosSubsQueueIPv4TailDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets dropped when the total number of
+            packets in this queue was greater than the maximum threshold.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 19 }
+
+rbnQosSubsQueueIPv4TailDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets dropped when the total number of
+            packets in this queue was greater than the maximum threshold.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 20 }
+
+rbnQosSubsQueueHCIPv4OutOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets transmitted out of this queue. This
+            object is a 64-bit version of rbnQosSubsQueueIPv4OutOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 21 }
+
+rbnQosSubsQueueHCIPv4OutPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets transmitted out of this queue. This
+            object is a 64-bit version of rbnQosSubsQueueIPv4OutPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 22 }
+
+rbnQosSubsQueueHCIPv4WredDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets dropped due to the application of
+            a weighted random early detection algorithm. This object is
+            a 64-bit version of rbnQosSubsQueueIPv4WredDroppedOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 23 }
+
+rbnQosSubsQueueHCIPv4WredDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets dropped due to the application of
+            a weighted random early detection algorithm. This object is
+            a 64-bit version of rbnQosSubsQueueIPv4WredDroppedPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 24 }
+
+rbnQosSubsQueueHCIPv4TailDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets dropped when the total number of packets
+            in this queue was greater than the maximum threshold. This object
+            is a 64-bit version of rbnQosSubsQueueIPv4TailDroppedOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 25 }
+
+rbnQosSubsQueueHCIPv4TailDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets dropped when the total number of packets
+            in this queue was greater than the maximum threshold. This object
+            is a 64-bit version of rbnQosSubsQueueIPv4TailDroppedPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 26 }
+
+rbnQosSubsQueueIPv6OutOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 27 }
+
+rbnQosSubsQueueIPv6OutPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets transmitted out of this queue.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 28 }
+
+rbnQosSubsQueueIPv6WredDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets dropped due to the application
+            of a weighted random early detection algorithm.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 29 }
+
+rbnQosSubsQueueIPv6WredDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets dropped due to the application
+            of a weighted random early detection algorithm.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 30 }
+
+rbnQosSubsQueueIPv6TailDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets dropped when the total number of
+            packets in this queue was greater than the maximum threshold.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 31 }
+
+rbnQosSubsQueueIPv6TailDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets dropped when the total number of
+            packets in this queue was greater than the maximum threshold.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 32 }
+
+rbnQosSubsQueueHCIPv6OutOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets transmitted out of this queue. This
+            object is a 64-bit version of rbnQosSubsQueueIPv6OutOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 33 }
+
+rbnQosSubsQueueHCIPv6OutPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets transmitted out of this queue. This
+            object is a 64-bit version of rbnQosSubsQueueIPv6OutPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 34 }
+
+rbnQosSubsQueueHCIPv6WredDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets dropped due to the application of
+            a weighted random early detection algorithm. This object is
+            a 64-bit version of rbnQosSubsQueueIPv6WredDroppedOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 35 }
+
+rbnQosSubsQueueHCIPv6WredDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets dropped due to the application of
+            a weighted random early detection algorithm. This object is
+            a 64-bit version of rbnQosSubsQueueIPv6WredDroppedPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 36 }
+
+rbnQosSubsQueueHCIPv6TailDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets dropped when the total number of packets
+            in this queue was greater than the maximum threshold. This object
+            is a 64-bit version of rbnQosSubsQueueIPv6TailDroppedOctets.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 37 }
+
+rbnQosSubsQueueHCIPv6TailDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets dropped when the total number of packets
+            in this queue was greater than the maximum threshold. This object
+            is a 64-bit version of rbnQosSubsQueueIPv6TailDroppedPkts.
+
+            Discontinuities in the value of this counter can occur at
+            re-initialization of the management system."
+    ::= { rbnQosSubscriberQueueStatsEntry 38 }
+
+--
+-- QoS interface rate-limit class objects
+--
+
+rbnQosIntfRLClassStatsTable   OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnQosIntfRLClassStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+           "This table specifies per class statistical information.
+            It contains the class packet/octet counts for each packet
+            oriented IF-MIB layer to which the class-based policing/
+            metering policy is applied."
+    ::= { rbnQosMibObjects 4 }
+
+rbnQosIntfRLClassStatsEntry OBJECT-TYPE
+    SYNTAX      RbnQosIntfRLClassStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+           "An entry containing statistical information before and after
+            the class-based rate-limit action is taken on the interface."
+    INDEX { ifIndex,
+            rbnQosIfRLPolicyType,
+            rbnQosIfRLClassId }
+    ::= { rbnQosIntfRLClassStatsTable 1 }
+    
+RbnQosIntfRLClassStatsEntry ::= SEQUENCE {
+    rbnQosIfRLPolicyType                    RbnQosPolicyType,
+    rbnQosIfRLClassId                       RbnQosClassId,
+    rbnQosIfRLPolicyName                    SnmpAdminString,
+    rbnQosIfRLClassName                     SnmpAdminString,
+    rbnQosIfRLClassConformOctets            Counter64,
+    rbnQosIfRLClassConformPkts              Counter64,
+    rbnQosIfRLClassConformDroppedOctets     Counter64,
+    rbnQosIfRLClassConformDroppedPkts       Counter64,
+    rbnQosIfRLClassExceedOctets             Counter64,
+    rbnQosIfRLClassExceedPkts               Counter64,
+    rbnQosIfRLClassExceedDroppedOctets      Counter64,
+    rbnQosIfRLClassExceedDroppedPkts        Counter64,
+    rbnQosIfRLClassViolateOctets            Counter64,
+    rbnQosIfRLClassViolatePkts              Counter64,
+    rbnQosIfRLClassViolateDroppedOctets     Counter64,
+    rbnQosIfRLClassViolateDroppedPkts       Counter64,
+    rbnQosIfRLClassIPv4ConformOctets        Counter64,
+    rbnQosIfRLClassIPv4ConformPkts          Counter64,
+    rbnQosIfRLClassIPv4ConformDroppedOctets Counter64,
+    rbnQosIfRLClassIPv4ConformDroppedPkts   Counter64,
+    rbnQosIfRLClassIPv4ExceedOctets         Counter64,
+    rbnQosIfRLClassIPv4ExceedPkts           Counter64,
+    rbnQosIfRLClassIPv4ExceedDroppedOctets  Counter64,
+    rbnQosIfRLClassIPv4ExceedDroppedPkts    Counter64,
+    rbnQosIfRLClassIPv4ViolateOctets        Counter64,
+    rbnQosIfRLClassIPv4ViolatePkts          Counter64,
+    rbnQosIfRLClassIPv4ViolateDroppedOctets Counter64,
+    rbnQosIfRLClassIPv4ViolateDroppedPkts   Counter64,
+    rbnQosIfRLClassIPv6ConformOctets        Counter64,
+    rbnQosIfRLClassIPv6ConformPkts          Counter64,
+    rbnQosIfRLClassIPv6ConformDroppedOctets Counter64,
+    rbnQosIfRLClassIPv6ConformDroppedPkts   Counter64,
+    rbnQosIfRLClassIPv6ExceedOctets         Counter64,
+    rbnQosIfRLClassIPv6ExceedPkts           Counter64,
+    rbnQosIfRLClassIPv6ExceedDroppedOctets  Counter64,
+    rbnQosIfRLClassIPv6ExceedDroppedPkts    Counter64,
+    rbnQosIfRLClassIPv6ViolateOctets        Counter64,
+    rbnQosIfRLClassIPv6ViolatePkts          Counter64,
+    rbnQosIfRLClassIPv6ViolateDroppedOctets Counter64,
+    rbnQosIfRLClassIPv6ViolateDroppedPkts   Counter64
+}
+
+rbnQosIfRLPolicyType OBJECT-TYPE
+    SYNTAX      RbnQosPolicyType
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+           "The type of the rate-limit policy which is applied to the
+            interface."
+    ::= { rbnQosIntfRLClassStatsEntry 1 }
+
+rbnQosIfRLClassId OBJECT-TYPE
+    SYNTAX      RbnQosClassId
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+           "A value that uniquely identifies a class defined in the 
+            rate-limit policy access list."
+    ::= { rbnQosIntfRLClassStatsEntry 2 }
+
+rbnQosIfRLPolicyName OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE(1..39))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "Name of the rate-limit policy."
+    ::= { rbnQosIntfRLClassStatsEntry 3 }
+
+rbnQosIfRLClassName OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE(1..39))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "Name of the class in the rate-limit policy access list."
+    ::= { rbnQosIntfRLClassStatsEntry 4 }
+
+rbnQosIfRLClassConformOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets that conform to the rate limit set on
+            the interface for which class counters are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 5 }
+
+rbnQosIfRLClassConformPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets that conform to the rate limit set on
+            the interface for which class counters are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 6 }
+
+rbnQosIfRLClassConformDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets that were dropped due to the application
+            of a conform action on packets that conform to the rate limit
+            set on the interface for which class counters are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 7 }
+
+rbnQosIfRLClassConformDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets that were dropped due to the application
+            of a conform action on packets that conform to the rate limit
+            set on the interface for which class counters are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 8 }
+
+rbnQosIfRLClassExceedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets that exceed the rate limit set on the
+            interface for which class counters are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 9 }
+
+rbnQosIfRLClassExceedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets that exceed the rate limit set on the
+            interface."
+    ::= { rbnQosIntfRLClassStatsEntry 10 }
+
+rbnQosIfRLClassExceedDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets that were dropped due to the application
+            of an exceed action on packets that exceed the rate limit set
+            on the interface for which class counters are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 11 }
+
+rbnQosIfRLClassExceedDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets that were dropped due to the application
+            of an exceed action on packets that exceed the rate limit set
+            on the interface for which class counters are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 12 }
+
+rbnQosIfRLClassViolateOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets that violate the normal and maximum burst
+            sizes on the interface for which class counters are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 13 }
+
+rbnQosIfRLClassViolatePkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets that violate the normal and maximum burst
+            sizes on the interface for which class counters are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 14 }
+
+rbnQosIfRLClassViolateDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets that were dropped due to the application
+            of a violate action on packets that violate the normal and
+            maximum burst sizes on the interface for which class counters
+            are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 15 }
+
+rbnQosIfRLClassViolateDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets that were dropped due to the application
+            of a violate action on packets that violate the normal and
+            maximum burst sizes on the interface for which class counters
+            are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 16 }
+
+rbnQosIfRLClassIPv4ConformOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets that conform to the rate limit set on
+            the interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 17 }
+
+rbnQosIfRLClassIPv4ConformPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets that conform to the rate limit set on
+            the interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 18 }
+
+rbnQosIfRLClassIPv4ConformDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets that were dropped due to the application
+            of a conform action on packets that conform to the rate limit set
+            on the interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 19 }
+
+rbnQosIfRLClassIPv4ConformDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets that were dropped due to the application
+            of a conform action on packets that conform to the rate limit set
+            on the interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 20 }
+
+rbnQosIfRLClassIPv4ExceedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets that exceed the rate limit set on the
+            interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 21 }
+
+rbnQosIfRLClassIPv4ExceedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets that exceed the rate limit set on the
+            interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 22 }
+
+rbnQosIfRLClassIPv4ExceedDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets that were dropped due to the application
+            of an exceed action on packets that exceed the rate limit set on
+            the interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 23 }
+
+rbnQosIfRLClassIPv4ExceedDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets that were dropped due to the application
+            of an exceed action on packets that exceed the rate limit set on
+            the interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 24 }
+
+rbnQosIfRLClassIPv4ViolateOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets that violate the normal and maximum burst
+            sizes on the interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 25 }
+
+rbnQosIfRLClassIPv4ViolatePkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets that violate the normal and maximum burst
+            sizes on the interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 26 }
+
+rbnQosIfRLClassIPv4ViolateDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets that were dropped due to the application
+            of a violate action on packets that violate the normal and maximum
+            burst sizes on the interface for which class counters dual-stack
+            are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 27 }
+
+rbnQosIfRLClassIPv4ViolateDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets that were dropped due to the application
+            of a violate action on packets that violate the normal and maximum
+            burst sizes on the interface for which class counters dual-stack
+            are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 28 }
+
+rbnQosIfRLClassIPv6ConformOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets that conform to the rate limit set on
+            the interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 29 }
+
+rbnQosIfRLClassIPv6ConformPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets that conform to the rate limit set on
+            the interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 30 }
+
+rbnQosIfRLClassIPv6ConformDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets that were dropped due to the application
+            of a conform action on packets that conform to the rate limit set
+            on the interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 31 }
+
+rbnQosIfRLClassIPv6ConformDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets that were dropped due to the application
+            of a conform action on packets that conform to the rate limit set
+            on the interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 32 }
+
+rbnQosIfRLClassIPv6ExceedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets that exceed the rate limit set on the
+            interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 33 }
+
+rbnQosIfRLClassIPv6ExceedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets that exceed the rate limit set on the
+            interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 34 }
+
+rbnQosIfRLClassIPv6ExceedDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets that were dropped due to the application
+            of an exceed action on packets that exceed the rate limit set on
+            the interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 35 }
+
+rbnQosIfRLClassIPv6ExceedDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets that were dropped due to the application
+            of an exceed action on packets that exceed the rate limit set on
+            the interface for which class counters dual-stack are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 36 }
+
+rbnQosIfRLClassIPv6ViolateOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets that violate the normal and maximum burst
+            sizes on the interface for which class dual-stack counters are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 37 }
+
+rbnQosIfRLClassIPv6ViolatePkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets that violate the normal and maximum burst
+            sizes on the interface for which class dual-stack counters are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 38 }
+
+rbnQosIfRLClassIPv6ViolateDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets that were dropped due to the application
+            of a violate action on packets that violate the normal and maximum
+            burst sizes on the interface for which class counters dual-stack
+            are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 39 }
+
+rbnQosIfRLClassIPv6ViolateDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets that were dropped due to the application
+            of a violate action on packets that violate the normal and maximum
+            burst sizes on the interface for which class counters dual-stack
+            are enabled."
+    ::= { rbnQosIntfRLClassStatsEntry 40 }
+
+--
+-- QoS subscriber rate-limit class objects
+--
+
+rbnQosSubscriberRLClassStatsTable   OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnQosSubscriberRLClassStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+           "This table specifies per class statistical information on
+            the subscriber circuits.  It contains the class packet/octet
+            counts for each active subscriber session to which the
+            class-based policing/metering policy is applied when the
+            counters are enabled for the class.
+
+            All MIB objects defined in the table are viewed within the
+            context identified in the SNMP protocol (i.e. the community
+            string in v1/v2c or the contextName in v3)."
+    ::= { rbnQosMibObjects 5 }
+
+rbnQosSubscriberRLClassStatsEntry OBJECT-TYPE
+    SYNTAX      RbnQosSubscriberRLClassStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+           "An entry containing statistical information before and after
+            the class-based rate-limit action is taken on the subscriber
+            session."
+    INDEX { rbnSubsActiveName,
+            rbnSubsActiveSessionId,
+            rbnQosSubsRLPolicyType,
+            rbnQosSubsRLClassId }
+    ::= { rbnQosSubscriberRLClassStatsTable 1 }
+
+RbnQosSubscriberRLClassStatsEntry ::= SEQUENCE {
+    rbnQosSubsRLPolicyType                    RbnQosPolicyType,
+    rbnQosSubsRLClassId                       RbnQosClassId,
+    rbnQosSubsRLPolicyName                    SnmpAdminString,
+    rbnQosSubsRLClassName                     SnmpAdminString,
+    rbnQosSubsRLClassConformOctets            Counter64,
+    rbnQosSubsRLClassConformPkts              Counter64,
+    rbnQosSubsRLClassConformDroppedOctets     Counter64,
+    rbnQosSubsRLClassConformDroppedPkts       Counter64,
+    rbnQosSubsRLClassExceedOctets             Counter64,
+    rbnQosSubsRLClassExceedPkts               Counter64,
+    rbnQosSubsRLClassExceedDroppedOctets      Counter64,
+    rbnQosSubsRLClassExceedDroppedPkts        Counter64,
+    rbnQosSubsRLClassViolateOctets            Counter64,
+    rbnQosSubsRLClassViolatePkts              Counter64,
+    rbnQosSubsRLClassViolateDroppedOctets     Counter64,
+    rbnQosSubsRLClassViolateDroppedPkts       Counter64,
+    rbnQosSubsRLClassIPv4ConformOctets        Counter64,
+    rbnQosSubsRLClassIPv4ConformPkts          Counter64,
+    rbnQosSubsRLClassIPv4ConformDroppedOctets Counter64,
+    rbnQosSubsRLClassIPv4ConformDroppedPkts   Counter64,
+    rbnQosSubsRLClassIPv4ExceedOctets         Counter64,
+    rbnQosSubsRLClassIPv4ExceedPkts           Counter64,
+    rbnQosSubsRLClassIPv4ExceedDroppedOctets  Counter64,
+    rbnQosSubsRLClassIPv4ExceedDroppedPkts    Counter64,
+    rbnQosSubsRLClassIPv4ViolateOctets        Counter64,
+    rbnQosSubsRLClassIPv4ViolatePkts          Counter64,
+    rbnQosSubsRLClassIPv4ViolateDroppedOctets Counter64,
+    rbnQosSubsRLClassIPv4ViolateDroppedPkts   Counter64,
+    rbnQosSubsRLClassIPv6ConformOctets        Counter64,
+    rbnQosSubsRLClassIPv6ConformPkts          Counter64,
+    rbnQosSubsRLClassIPv6ConformDroppedOctets Counter64,
+    rbnQosSubsRLClassIPv6ConformDroppedPkts   Counter64,
+    rbnQosSubsRLClassIPv6ExceedOctets         Counter64,
+    rbnQosSubsRLClassIPv6ExceedPkts           Counter64,
+    rbnQosSubsRLClassIPv6ExceedDroppedOctets  Counter64,
+    rbnQosSubsRLClassIPv6ExceedDroppedPkts    Counter64,
+    rbnQosSubsRLClassIPv6ViolateOctets        Counter64,
+    rbnQosSubsRLClassIPv6ViolatePkts          Counter64,
+    rbnQosSubsRLClassIPv6ViolateDroppedOctets Counter64,
+    rbnQosSubsRLClassIPv6ViolateDroppedPkts   Counter64
+}
+
+rbnQosSubsRLPolicyType OBJECT-TYPE
+    SYNTAX      RbnQosPolicyType
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+           "The type of the rate-limit policy which is applied to the
+            circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 1 }
+
+rbnQosSubsRLClassId OBJECT-TYPE
+    SYNTAX      RbnQosClassId
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+           "A value that uniquely identifies a class defined in the
+            rate-limit policy access list."
+    ::= { rbnQosSubscriberRLClassStatsEntry 2 }
+
+rbnQosSubsRLPolicyName OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE(1..39))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "Name of the rate-limit policy."
+    ::= { rbnQosSubscriberRLClassStatsEntry 3 }
+
+rbnQosSubsRLClassName OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE(1..39))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "Name of the class in the rate-limit policy access list."
+    ::= { rbnQosSubscriberRLClassStatsEntry 4 }
+
+rbnQosSubsRLClassConformOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets that conform to the rate limit set on
+            the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 5 }
+
+rbnQosSubsRLClassConformPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets that conform to the rate limit set on
+            the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 6 }
+
+rbnQosSubsRLClassConformDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets that were dropped due to the application
+            of a conform action on packets that conform to the rate limit
+            set on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 7 }
+
+rbnQosSubsRLClassConformDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets that were dropped due to the application
+            of a conform action on packets that conform to the rate limit
+            set on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 8 }
+
+rbnQosSubsRLClassExceedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets that exceed the rate limit set on the
+            subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 9 }
+
+rbnQosSubsRLClassExceedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets that exceed the rate limit set on the
+            subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 10 }
+
+rbnQosSubsRLClassExceedDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets that were dropped due to the application
+            of an exceed action on packets that exceed the rate limit set
+            on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 11 }
+
+rbnQosSubsRLClassExceedDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets that were dropped due to the application
+            of an exceed action on packets that exceed the rate limit set
+            on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 12 }
+
+rbnQosSubsRLClassViolateOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets that violate the normal and maximum burst
+            sizes on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 13 }
+
+rbnQosSubsRLClassViolatePkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets that violate the normal and maximum burst
+            sizes on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 14 }
+
+rbnQosSubsRLClassViolateDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets that were dropped due to the application
+            of a violate action on packets that violate the normal and
+            maximum burst sizes on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 15 }
+
+rbnQosSubsRLClassViolateDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets that were dropped due to the application
+            of a violate action on packets that violate the normal and
+            maximum burst sizes on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 16 }
+
+rbnQosSubsRLClassIPv4ConformOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets that conform to the rate limit set on
+            the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 17 }
+
+rbnQosSubsRLClassIPv4ConformPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets that conform to the rate limit set on
+            the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 18 }
+
+rbnQosSubsRLClassIPv4ConformDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets that were dropped due to the application
+            of a conform action on packets that conform to the rate limit set
+            on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 19 }
+
+rbnQosSubsRLClassIPv4ConformDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets that were dropped due to the application
+            of a conform action on packets that conform to the rate limit set
+            on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 20 }
+
+rbnQosSubsRLClassIPv4ExceedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets that exceed the rate limit set on the
+            subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 21 }
+
+rbnQosSubsRLClassIPv4ExceedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets that exceed the rate limit set on the
+            subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 22 }
+
+rbnQosSubsRLClassIPv4ExceedDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets that were dropped due to the application
+            of an exceed action on packets that exceed the rate limit set on
+            the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 23 }
+
+rbnQosSubsRLClassIPv4ExceedDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets that were dropped due to the application
+            of an exceed action on packets that exceed the rate limit set on
+            the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 24 }
+
+rbnQosSubsRLClassIPv4ViolateOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets that violate the normal and maximum
+            burst sizes on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 25 }
+
+rbnQosSubsRLClassIPv4ViolatePkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets that violate the normal and maximum
+            burst sizes on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 26 }
+
+rbnQosSubsRLClassIPv4ViolateDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 octets that were dropped due to the application
+            of a violate action on packets that violate the normal and maximum
+            burst sizes on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 27 }
+
+rbnQosSubsRLClassIPv4ViolateDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv4 packets that were dropped due to the application
+            of a violate action on packets that violate the normal and maximum
+            burst sizes on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 28 }
+
+rbnQosSubsRLClassIPv6ConformOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets that conform to the rate limit set on
+            the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 29 }
+
+rbnQosSubsRLClassIPv6ConformPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets that conform to the rate limit set on
+            the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 30 }
+
+rbnQosSubsRLClassIPv6ConformDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets that were dropped due to the application
+            of a conform action on packets that conform to the rate limit set
+            on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 31 }
+
+rbnQosSubsRLClassIPv6ConformDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets that were dropped due to the application
+            of a conform action on packets that conform to the rate limit set
+            on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 32 }
+
+rbnQosSubsRLClassIPv6ExceedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets that exceed the rate limit set on the
+            subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 33 }
+
+rbnQosSubsRLClassIPv6ExceedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets that exceed the rate limit set on the
+            subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 34 }
+
+rbnQosSubsRLClassIPv6ExceedDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets that were dropped due to the application
+            of an exceed action on packets that exceed the rate limit set on
+            the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 35 }
+
+rbnQosSubsRLClassIPv6ExceedDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets that were dropped due to the application
+            of an exceed action on packets that exceed the rate limit set on
+            the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 36 }
+
+rbnQosSubsRLClassIPv6ViolateOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets that violate the normal and maximum
+            burst sizes on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 37 }
+
+rbnQosSubsRLClassIPv6ViolatePkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets that violate the normal and maximum
+            burst sizes on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 38 }
+
+rbnQosSubsRLClassIPv6ViolateDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 octets that were dropped due to the application
+            of a violate action on packets that violate the normal and maximum
+            burst sizes on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 39 }
+
+rbnQosSubsRLClassIPv6ViolateDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of IPv6 packets that were dropped due to the application
+            of a violate action on packets that violate the normal and maximum
+            burst sizes on the subscriber circuit."
+    ::= { rbnQosSubscriberRLClassStatsEntry 40 }
+
+--
+-- Hierarchical Policies
+--
+
+rbnQosHierarchicalPolicyStatsTable  OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnQosHierarchicalPolicyStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+           "A table of drop counters for child circuits of hierarchical 
+           qos policies applied to the child."
+    ::= { rbnQosMibObjects 6 }
+
+rbnQosHierarchicalPolicyStatsEntry    OBJECT-TYPE
+    SYNTAX      RbnQosHierarchicalPolicyStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+           "An entry containing the drop counters for one child circuit
+           of hierarchical qos policies applied to the child."
+    INDEX { ifIndex, rbnQosHierarchicalPolicyType }
+    ::=  {rbnQosHierarchicalPolicyStatsTable 1 }
+    
+RbnQosHierarchicalPolicyStatsEntry ::=  SEQUENCE {
+    rbnQosHierarchicalPolicyType              RbnQosPolicyType,
+    rbnQosHierarchicalPolicyName              SnmpAdminString,
+    rbnQosHierarchicalPolicyDroppedOctets     Counter64,
+    rbnQosHierarchicalPolicyDroppedPkts       Counter64
+}
+
+rbnQosHierarchicalPolicyType OBJECT-TYPE
+    SYNTAX      RbnQosPolicyType
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+          "The type of the hierarchical parent rate-limit policy which 
+           is applied to the child circuit."
+    ::= { rbnQosHierarchicalPolicyStatsEntry 1 }
+
+rbnQosHierarchicalPolicyName OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE(1..39))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+          "Name of the hierarchical parent policy applied to the child
+           circuit."
+    ::= { rbnQosHierarchicalPolicyStatsEntry 2 }
+
+rbnQosHierarchicalPolicyDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of octets that were dropped due to the hierarchical
+            parent's policy applied to the child circuit."
+    ::= { rbnQosHierarchicalPolicyStatsEntry 3 }
+
+rbnQosHierarchicalPolicyDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+           "The number of packets that dropped due to the hierarchical
+           parent's policy applied to the child circuit."
+    ::= { rbnQosHierarchicalPolicyStatsEntry 4 }
+
+--
+--
+--
+rbnQosHierarchicalPClassStatsTable  OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnQosHierarchicalPClassStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+           "A table of drop counters for child circuits of hierarchical 
+            qos policy classes applied to the child."
+    ::= { rbnQosMibObjects 7 }
+
+rbnQosHierarchicalPClassStatsEntry    OBJECT-TYPE
+    SYNTAX      RbnQosHierarchicalPClassStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+          "An entry containing the drop counters for one child circuit
+           of hierarchical qos policy classes applied to the child."
+    INDEX { ifIndex, rbnQosHierarchicalPolicyType, rbnQosHierarchicalPClassId }
+    ::=  { rbnQosHierarchicalPClassStatsTable 1 }
+    
+RbnQosHierarchicalPClassStatsEntry ::=  SEQUENCE {
+    rbnQosHierarchicalPClassId              RbnQosClassId,
+    rbnQosHierarchicalPClassName            SnmpAdminString,
+    rbnQosHierarchicalPClassDroppedOctets   Counter64,
+    rbnQosHierarchicalPClassDroppedPkts     Counter64
+}
+
+rbnQosHierarchicalPClassId OBJECT-TYPE
+    SYNTAX      RbnQosClassId
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+          "The class id of the hierarchical parent policy class which 
+           is applied to the child circuit."
+    ::= { rbnQosHierarchicalPClassStatsEntry 1 }
+
+rbnQosHierarchicalPClassName OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE(1..39))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+          "Name of the hierarchical parent policy class which
+           is applied to the child circuit."
+    ::= { rbnQosHierarchicalPClassStatsEntry 2 }
+
+rbnQosHierarchicalPClassDroppedOctets OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+          "The number of octets that were dropped due to the hierarchical
+           parent's policy class applied to the child circuit."
+    ::= { rbnQosHierarchicalPClassStatsEntry 3 }
+
+rbnQosHierarchicalPClassDroppedPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+          "The number of packets that dropped due to the hierarchical
+           parent's policy class applied to the child circuit."
+    ::= { rbnQosHierarchicalPClassStatsEntry 4 }
+
+
+
+--
+-- compliance statements
+--
+
+rbnQosCompliances
+        OBJECT IDENTIFIER ::= { rbnQosMibConformance 1 }
+rbnQosGroups
+        OBJECT IDENTIFIER ::= { rbnQosMibConformance 2 }
+
+rbnQosCompliance MODULE-COMPLIANCE
+    STATUS  deprecated
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         this QOS MIB."
+    MODULE  -- this module
+        MANDATORY-GROUPS {
+            rbnQosIfGroup
+        }
+    ::= { rbnQosCompliances  1 }
+
+rbnQosCompliance2 MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         this QOS MIB."
+    MODULE  -- this module
+        MANDATORY-GROUPS {
+            rbnQosIfGroup,
+            rbnQosIfQueueGroup
+        }
+    ::= { rbnQosCompliances  2 }
+
+rbnQosCompliance3 MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         this QOS MIB."
+    MODULE  -- this module
+        MANDATORY-GROUPS {
+            rbnQosIfGroup,
+            rbnQosIfQueueGroup,
+            rbnQosSubscriberQueueGroup
+        }
+    ::= { rbnQosCompliances  3 }
+
+rbnQosCompliance4 MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         this QOS MIB."
+    MODULE  -- this module
+        MANDATORY-GROUPS {
+            rbnQosIfGroup,
+            rbnQosIfQueueGroup,
+            rbnQosSubscriberQueueGroup,
+            rbnQosIfRLClassStatsGroup,
+            rbnQosSubscriberRLClassStatsGroup
+        }
+    ::= { rbnQosCompliances  4 }
+
+rbnQosCompliance5 MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         this QOS MIB."
+    MODULE  -- this module
+        MANDATORY-GROUPS {
+            rbnQosIfGroup,
+            rbnQosIfQueueGroup,
+            rbnQosSubscriberQueueGroup,
+            rbnQosIfRLClassStatsGroup,
+            rbnQosSubscriberRLClassStatsGroup,
+            rbnQosHierarchicalPolicyStatsGroup
+        }
+    ::= { rbnQosCompliances 5 }
+
+rbnQosIfGroup OBJECT-GROUP
+    OBJECTS {
+        rbnQosIfInOctets,
+        rbnQosIfHCInOctets,
+        rbnQosIfOutOctets,
+        rbnQosIfHCOutOctets,
+        rbnQosIfInDroppedOctets,
+        rbnQosIfHCInDroppedOctets,
+        rbnQosIfOutDroppedOctets,
+        rbnQosIfHCOutDroppedOctets
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects which allow monitoring of interfaces
+         with QoS enabled."
+    ::= { rbnQosGroups 1 }
+
+rbnQosIfQueueGroup OBJECT-GROUP
+    OBJECTS {
+        rbnQosIfQueueOutOctets,
+        rbnQosIfQueueHCOutOctets,
+        rbnQosIfQueueOutPkts,
+        rbnQosIfQueueHCOutPkts,
+        rbnQosIfQueueWredDroppedOctets,
+        rbnQosIfQueueHCWredDroppedOctets,
+        rbnQosIfQueueWredDroppedPkts,
+        rbnQosIfQueueHCWredDroppedPkts,
+        rbnQosIfQueueTailDroppedOctets,
+        rbnQosIfQueueHCTailDroppedOctets,
+        rbnQosIfQueueTailDroppedPkts,
+        rbnQosIfQueueHCTailDroppedPkts,
+        rbnQosIfQueueIPv4OutOctets,
+        rbnQosIfQueueHCIPv4OutOctets,
+        rbnQosIfQueueIPv4OutPkts,
+        rbnQosIfQueueHCIPv4OutPkts,
+        rbnQosIfQueueIPv4WredDroppedOctets,
+        rbnQosIfQueueHCIPv4WredDroppedOctets,
+        rbnQosIfQueueIPv4WredDroppedPkts,
+        rbnQosIfQueueHCIPv4WredDroppedPkts,
+        rbnQosIfQueueIPv4TailDroppedOctets,
+        rbnQosIfQueueHCIPv4TailDroppedOctets,
+        rbnQosIfQueueIPv4TailDroppedPkts,
+        rbnQosIfQueueHCIPv4TailDroppedPkts,
+        rbnQosIfQueueIPv6OutOctets,
+        rbnQosIfQueueHCIPv6OutOctets,
+        rbnQosIfQueueIPv6OutPkts,
+        rbnQosIfQueueHCIPv6OutPkts,
+        rbnQosIfQueueIPv6WredDroppedOctets,
+        rbnQosIfQueueHCIPv6WredDroppedOctets,
+        rbnQosIfQueueIPv6WredDroppedPkts,
+        rbnQosIfQueueHCIPv6WredDroppedPkts,
+        rbnQosIfQueueIPv6TailDroppedOctets,
+        rbnQosIfQueueHCIPv6TailDroppedOctets,
+        rbnQosIfQueueIPv6TailDroppedPkts,
+        rbnQosIfQueueHCIPv6TailDroppedPkts,
+        rbnQosIfQueueGreenOutOctets,
+        rbnQosIfQueueGreenOutPkts,
+        rbnQosIfQueueYellowOutOctets,
+        rbnQosIfQueueYellowOutPkts,
+        rbnQosIfQueueRedOutOctets,
+        rbnQosIfQueueRedOutPkts,
+        rbnQosIfQueueGreenDroppedOctets,
+        rbnQosIfQueueGreenDroppedPkts,
+        rbnQosIfQueueYellowDroppedOctets,
+        rbnQosIfQueueYellowDroppedPkts,
+        rbnQosIfQueueRedDroppedOctets,
+        rbnQosIfQueueRedDroppedPkts,
+        rbnQosIfQueueTotalDroppedOctets,
+        rbnQosIfQueueTotalDroppedPkts
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects which allow monitoring of transmit
+         queues on interfaces with QoS enabled."
+    ::= { rbnQosGroups 2 }
+
+rbnQosSubscriberQueueGroup OBJECT-GROUP
+    OBJECTS {
+        rbnQosSubsQueuePolicyName,
+        rbnQosSubsQueueOutOctets,
+        rbnQosSubsQueueOutPkts,
+        rbnQosSubsQueueWredDroppedOctets,
+        rbnQosSubsQueueWredDroppedPkts,
+        rbnQosSubsQueueTailDroppedOctets,
+        rbnQosSubsQueueTailDroppedPkts,
+        rbnQosSubsQueueHCOutOctets,
+        rbnQosSubsQueueHCOutPkts,
+        rbnQosSubsQueueHCWredDroppedOctets,
+        rbnQosSubsQueueHCWredDroppedPkts,
+        rbnQosSubsQueueHCTailDroppedOctets,
+        rbnQosSubsQueueHCTailDroppedPkts,
+        rbnQosSubsQueueIPv4OutOctets,
+        rbnQosSubsQueueIPv4OutPkts,
+        rbnQosSubsQueueIPv4WredDroppedOctets,
+        rbnQosSubsQueueIPv4WredDroppedPkts,
+        rbnQosSubsQueueIPv4TailDroppedOctets,
+        rbnQosSubsQueueIPv4TailDroppedPkts,
+        rbnQosSubsQueueHCIPv4OutOctets,
+        rbnQosSubsQueueHCIPv4OutPkts,
+        rbnQosSubsQueueHCIPv4WredDroppedOctets,
+        rbnQosSubsQueueHCIPv4WredDroppedPkts,
+        rbnQosSubsQueueHCIPv4TailDroppedOctets,
+        rbnQosSubsQueueHCIPv4TailDroppedPkts,
+        rbnQosSubsQueueIPv6OutOctets,
+        rbnQosSubsQueueIPv6OutPkts,
+        rbnQosSubsQueueIPv6WredDroppedOctets,
+        rbnQosSubsQueueIPv6WredDroppedPkts,
+        rbnQosSubsQueueIPv6TailDroppedOctets,
+        rbnQosSubsQueueIPv6TailDroppedPkts,
+        rbnQosSubsQueueHCIPv6OutOctets,
+        rbnQosSubsQueueHCIPv6OutPkts,
+        rbnQosSubsQueueHCIPv6WredDroppedOctets,
+        rbnQosSubsQueueHCIPv6WredDroppedPkts,
+        rbnQosSubsQueueHCIPv6TailDroppedOctets,
+        rbnQosSubsQueueHCIPv6TailDroppedPkts
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects which allow monitoring of transmit
+         queues on subscriber circuits with QoS queuing enabled."
+    ::= { rbnQosGroups 3 }
+
+rbnQosIfRLClassStatsGroup OBJECT-GROUP
+    OBJECTS {
+        rbnQosIfRLPolicyName,
+        rbnQosIfRLClassName,
+        rbnQosIfRLClassConformOctets,
+        rbnQosIfRLClassConformPkts,
+        rbnQosIfRLClassConformDroppedOctets,
+        rbnQosIfRLClassConformDroppedPkts,
+        rbnQosIfRLClassExceedOctets,
+        rbnQosIfRLClassExceedPkts,
+        rbnQosIfRLClassExceedDroppedOctets,
+        rbnQosIfRLClassExceedDroppedPkts,
+        rbnQosIfRLClassViolateOctets,
+        rbnQosIfRLClassViolatePkts,
+        rbnQosIfRLClassViolateDroppedOctets,
+        rbnQosIfRLClassViolateDroppedPkts,
+        rbnQosIfRLClassIPv4ConformOctets,
+        rbnQosIfRLClassIPv4ConformPkts,
+        rbnQosIfRLClassIPv4ConformDroppedOctets,
+        rbnQosIfRLClassIPv4ConformDroppedPkts,
+        rbnQosIfRLClassIPv4ExceedOctets,
+        rbnQosIfRLClassIPv4ExceedPkts,
+        rbnQosIfRLClassIPv4ExceedDroppedOctets,
+        rbnQosIfRLClassIPv4ExceedDroppedPkts,
+        rbnQosIfRLClassIPv4ViolateOctets,
+        rbnQosIfRLClassIPv4ViolatePkts,
+        rbnQosIfRLClassIPv4ViolateDroppedOctets,
+        rbnQosIfRLClassIPv4ViolateDroppedPkts,
+        rbnQosIfRLClassIPv6ConformOctets,
+        rbnQosIfRLClassIPv6ConformPkts,
+        rbnQosIfRLClassIPv6ConformDroppedOctets,
+        rbnQosIfRLClassIPv6ConformDroppedPkts,
+        rbnQosIfRLClassIPv6ExceedOctets,
+        rbnQosIfRLClassIPv6ExceedPkts,
+        rbnQosIfRLClassIPv6ExceedDroppedOctets,
+        rbnQosIfRLClassIPv6ExceedDroppedPkts,
+        rbnQosIfRLClassIPv6ViolateOctets,
+        rbnQosIfRLClassIPv6ViolatePkts,
+        rbnQosIfRLClassIPv6ViolateDroppedOctets,
+        rbnQosIfRLClassIPv6ViolateDroppedPkts
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects which allow monitoring interfaces
+         that have class-based policing/metering policies enabled."
+    ::= { rbnQosGroups 4 }
+
+rbnQosSubscriberRLClassStatsGroup OBJECT-GROUP
+    OBJECTS {
+        rbnQosSubsRLPolicyName,
+        rbnQosSubsRLClassName,
+        rbnQosSubsRLClassConformOctets,
+        rbnQosSubsRLClassConformPkts,
+        rbnQosSubsRLClassConformDroppedOctets,
+        rbnQosSubsRLClassConformDroppedPkts,
+        rbnQosSubsRLClassExceedOctets,
+        rbnQosSubsRLClassExceedPkts,
+        rbnQosSubsRLClassExceedDroppedOctets,
+        rbnQosSubsRLClassExceedDroppedPkts,
+        rbnQosSubsRLClassViolateOctets,
+        rbnQosSubsRLClassViolatePkts,
+        rbnQosSubsRLClassViolateDroppedOctets,
+        rbnQosSubsRLClassViolateDroppedPkts,
+        rbnQosSubsRLClassIPv4ConformOctets,
+        rbnQosSubsRLClassIPv4ConformPkts,
+        rbnQosSubsRLClassIPv4ConformDroppedOctets,
+        rbnQosSubsRLClassIPv4ConformDroppedPkts,
+        rbnQosSubsRLClassIPv4ExceedOctets,
+        rbnQosSubsRLClassIPv4ExceedPkts,
+        rbnQosSubsRLClassIPv4ExceedDroppedOctets,
+        rbnQosSubsRLClassIPv4ExceedDroppedPkts,
+        rbnQosSubsRLClassIPv4ViolateOctets,
+        rbnQosSubsRLClassIPv4ViolatePkts,
+        rbnQosSubsRLClassIPv4ViolateDroppedOctets,
+        rbnQosSubsRLClassIPv4ViolateDroppedPkts,
+        rbnQosSubsRLClassIPv6ConformOctets,
+        rbnQosSubsRLClassIPv6ConformPkts,
+        rbnQosSubsRLClassIPv6ConformDroppedOctets,
+        rbnQosSubsRLClassIPv6ConformDroppedPkts,
+        rbnQosSubsRLClassIPv6ExceedOctets,
+        rbnQosSubsRLClassIPv6ExceedPkts,
+        rbnQosSubsRLClassIPv6ExceedDroppedOctets,
+        rbnQosSubsRLClassIPv6ExceedDroppedPkts,
+        rbnQosSubsRLClassIPv6ViolateOctets,
+        rbnQosSubsRLClassIPv6ViolatePkts,
+        rbnQosSubsRLClassIPv6ViolateDroppedOctets,
+        rbnQosSubsRLClassIPv6ViolateDroppedPkts
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects which allow monitoring subscriber
+         circuits that have class-based policing/metering policies
+         enabled."
+    ::= { rbnQosGroups 5 }
+
+rbnQosHierarchicalPolicyStatsGroup OBJECT-GROUP
+    OBJECTS {
+        rbnQosHierarchicalPolicyName,
+        rbnQosHierarchicalPolicyDroppedOctets,
+        rbnQosHierarchicalPolicyDroppedPkts,
+        rbnQosHierarchicalPClassName,
+        rbnQosHierarchicalPClassDroppedOctets,
+        rbnQosHierarchicalPClassDroppedPkts
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects which allow monitoring circuits
+         that have hierarchical policies enabled."
+    ::= { rbnQosGroups 6 }
+
+END

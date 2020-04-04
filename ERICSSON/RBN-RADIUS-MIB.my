@@ -1,0 +1,680 @@
+-- %DNP% $Id: RBN-RADIUS-MIB.my,v 1.1.2.4.274.2 2011/02/22 17:26:17 thatcher Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-RADIUS-MIB.my,v $
+-- *****************************************************************
+-- RBN-RADIUS-MIB               RADIUS MIB
+--
+-- Copyright (c) 2003-2005, 2011 Ericsson AB.
+-- All rights reserved.
+--
+-- *****************************************************************
+
+RBN-RADIUS-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, Unsigned32, Counter32,
+    NOTIFICATION-TYPE                      FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION, TimeStamp,
+    TruthValue                             FROM SNMPv2-TC
+    MODULE-COMPLIANCE, OBJECT-GROUP,
+    NOTIFICATION-GROUP                     FROM SNMPv2-CONF
+    SnmpAdminString                        FROM SNMP-FRAMEWORK-MIB
+    radiusAuthServerEntry, radiusAuthServerAddress,
+    radiusAuthClientServerPortNumber       FROM RADIUS-AUTH-CLIENT-MIB
+    radiusAccServerEntry, radiusAccServerAddress,
+    radiusAccClientServerPortNumber        FROM RADIUS-ACC-CLIENT-MIB
+    rbnMgmt                                FROM RBN-SMI;
+
+rbnRadiusMib MODULE-IDENTITY
+    LAST-UPDATED "201101191800Z" -- Jan 19, 2011
+    ORGANIZATION "Ericsson AB."
+    CONTACT-INFO
+        "       Ericsson AB.
+
+        Postal: 100 Headquarters Dr.
+                San Jose, CA  95134
+                USA
+
+         Phone: +1 408 750-5000
+           Fax: +1 408 750-5599
+        "
+    DESCRIPTION
+        "This enterprise MIB supplements the standard Remote Access
+         Dialin User Service (RADIUS) MIBs, namely:
+             RADIUS-AUTH-CLIENT-MIB (RFC 2618)
+             RADIUS-ACC-CLIENT-MIB  (RFC 2620)
+
+         This module defines additional objects and notifications for
+         managing the RADIUS authentication and accounting servers
+         in use by the enterprise system.
+
+         All mib objects defined in this module are viewed within the
+         context identified in the SNMP protocol (i.e. the community
+         string in v1/v2c or the contextName in v3)."
+
+    REVISION     "201101191800Z" -- Jan 19, 2011
+    DESCRIPTION
+        "Update CONTACT-INFO & ORGANIZATION. "
+
+    REVISION     "200503291700Z" -- Mar 29, 2005
+    DESCRIPTION
+        "Added new objects:
+            rbnRadiusAuthStripDomain
+            rbnRadiusAcctStripDomain
+        Added new groups:
+            rbnRadiusAuthGroup2
+            rbnRadiusAcctGroup2
+        Added new compliance:
+            rbnRadiusCompliance2."
+
+    REVISION     "200312160000Z" -- Dec 16, 2003
+    DESCRIPTION
+        "Initial verison."
+
+    ::= { rbnMgmt 32 }
+
+rbnRadiusMIBNotifications OBJECT IDENTIFIER ::= { rbnRadiusMib 0 }
+rbnRadiusMIBObjects       OBJECT IDENTIFIER ::= { rbnRadiusMib 1 }
+rbnRadiusMIBConformance   OBJECT IDENTIFIER ::= { rbnRadiusMib 2 }
+
+rbnRadiusAuthObjects      OBJECT IDENTIFIER ::= { rbnRadiusMIBObjects 1 }
+rbnRadiusAcctObjects      OBJECT IDENTIFIER ::= { rbnRadiusMIBObjects 2 }
+rbnRadiusNotifyObjects    OBJECT IDENTIFIER ::= { rbnRadiusMIBObjects 3 }
+
+--
+-- Textual Conventions
+--
+
+RbnRadiusServerState ::= TEXTUAL-CONVENTION
+    STATUS current
+    DESCRIPTION
+        "The current state of a RADIUS server. When a server is
+         initially configured its state is 'unknown'. When requests
+         are sent to this server it will transition to either 'up' or
+         'down', depending on whether the server replies to the
+         requests. It will then transition between 'up' and 'down'
+         accordingly. It will never transition back to 'unknown'."
+    SYNTAX INTEGER {
+        unknown(1),            -- state on initial creation
+        up(2),                 -- server is responding
+        down(3)                -- server is not responding
+    }
+
+RbnRadiusServerReason ::= TEXTUAL-CONVENTION
+    STATUS current
+    DESCRIPTION
+        "When a RADIUS transitions to a new state, this identifies the
+         reason for the transition.
+
+         Note that there are two types of timeouts: packet-level and
+         server-level. The packet-level timeout is managed via
+         rbnRadiusAuthPktTimeout and rbnRadiusAcctPktTimeout. The
+         server-level timeout is managed via rbnRadiusAuthSrvTimeout
+         and rbnRadiusAcctSrvTimeout.
+
+         All requests will timeout if no response is received within
+         the packet-level timeout window. If there is no configured
+         server-level timeout the server will be transitioned to 'down'
+         immediately. Otherwise the server will transition to 'down'
+         only if no replies have been received from the server within
+         the server-level timeout window."
+    SYNTAX INTEGER {
+        -- the following are only valid for a transition to 'up'
+        responding(1),          -- server is responding
+
+        -- the following are only valid for a transition to 'down'
+        packetTimeout(2),       -- the server is not responding and a
+                                -- packet-level timeout has occurred
+        serverTimeout(3),       -- the server is not responding and a
+                                -- server-level timeout has occurred
+        portDown(4)             -- the physical port used to access the server
+                                -- has been shutdown
+    }
+
+--
+-- RADIUS authorization objects
+--
+-- these objects supplement the RADIUS-AUTH-CLIENT-MIB (RFC 2618)
+--
+
+rbnRadiusAuthPktTimeout OBJECT-TYPE
+    SYNTAX     Unsigned32 (1..2147483647)
+    UNITS      "seconds"
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The maximum amount of time to wait for a response from a
+         RADIUS authorization server before assuming the packet was
+         lost."
+    ::= { rbnRadiusAuthObjects 1 }
+
+rbnRadiusAuthSrvTimeout OBJECT-TYPE
+    SYNTAX     Unsigned32 (0..2147483647)
+    UNITS      "seconds"
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The maximum amount of time to wait for any response from a
+         RADIUS authorization server before assuming the server is
+         unreachable.
+
+         A value of '0' indicates that there is no timeout value. In
+         this case a server is considered to be unreachable when no
+         response is received within the rbnRadiusAuthPktTimeout
+         window."
+    ::= { rbnRadiusAuthObjects 2 }
+
+rbnRadiusAuthDeadtime OBJECT-TYPE
+    SYNTAX     Unsigned32 (0..65535)
+    UNITS      "minutes"
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "After a RADIUS authorization server has been transitioned to
+         'down' it will be assumed to be unreachable for this
+         interval. After that point the system may start sending
+         requests to the server again.
+
+         A value of '0' indicates the system may start sending
+         requests to the server immediately."
+    ::= { rbnRadiusAuthObjects 3 }
+
+rbnRadiusAuthTries OBJECT-TYPE
+    SYNTAX     Unsigned32 (1..2147483647)
+    UNITS      "tries"
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The number of times the system will attempt to transmit
+         an authorization request to a RADIUS server. If multiple
+         RADIUS authorization servers have been configured
+         retransmissions will cycle through the other servers before
+         being retransmitted to the server that originally failed to
+         respond."
+    ::= { rbnRadiusAuthObjects 4 }
+
+rbnRadiusAuthStripDomain OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "If this object is false, the entire username, including the
+        domain name is sent to the RADIUS server.  If true, the
+        domain portion of a structured username is stripped before
+        relaying a request to a RADIUS server."
+    ::= { rbnRadiusAuthObjects 6 }
+
+rbnRadiusAuthSrvTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF RbnRadiusAuthSrvEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+        "This table augments the radiusAuthServerTable. All entries
+         that exist in that table will have a corresponding entry in
+         this table."
+    ::= { rbnRadiusAuthObjects 5 }
+
+rbnRadiusAuthSrvEntry OBJECT-TYPE
+    SYNTAX     RbnRadiusAuthSrvEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+        "A proprietary extension to the radiusAuthServerEntry."
+    AUGMENTS { radiusAuthServerEntry }
+    ::= { rbnRadiusAuthSrvTable 1 }
+
+RbnRadiusAuthSrvEntry ::= SEQUENCE {
+    rbnRadiusAuthSrvState            RbnRadiusServerState,
+    rbnRadiusAuthSrvLastChange       TimeStamp,
+    rbnRadiusAuthSrvCounterResetTime TimeStamp,
+    rbnRadiusAuthSrvSendErrors       Counter32
+}
+
+rbnRadiusAuthSrvState OBJECT-TYPE
+    SYNTAX     RbnRadiusServerState
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The current state of the RADIUS server."
+    ::= { rbnRadiusAuthSrvEntry 1 }
+
+rbnRadiusAuthSrvLastChange OBJECT-TYPE
+    SYNTAX     TimeStamp
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The value of sysUpTime when this server last changed
+         state. If rbnRadiusAuthSrvState is 'unknown' this is
+         effectively the value of sysUpTime when this server was
+         initially configured."
+    ::= { rbnRadiusAuthSrvEntry 2 }
+
+rbnRadiusAuthSrvCounterResetTime OBJECT-TYPE
+    SYNTAX     TimeStamp
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The value of sysUpTime on the most recent occasion when any
+         of the counters for this RADIUS server experienced a
+         discontinuity.
+
+         Note: this includes counters in this table as well as those in
+         radiusAuthServerTable."
+    ::= { rbnRadiusAuthSrvEntry 3 }
+
+rbnRadiusAuthSrvSendErrors OBJECT-TYPE
+    SYNTAX     Counter32
+    UNITS      "packets"
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The number of packets destined to this RADIUS server which
+         could not be transmitted due to an error.
+
+         Discontinuities in the value of this counter are indicated by
+         the value of rbnRadiusAuthSrvCounterResetTime."
+    ::= { rbnRadiusAuthSrvEntry 4 }
+
+--
+-- RADIUS accounting objects
+--
+-- these objects supplement the RADIUS-ACCT-CLIENT-MIB (RFC 2620)
+--
+
+rbnRadiusAcctPktTimeout OBJECT-TYPE
+    SYNTAX     Unsigned32 (1..2147483647)
+    UNITS      "seconds"
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The maximum amount of time to wait for a response from a
+         RADIUS accounting server before assuming the packet was lost.
+
+         Note: if the system is using a RADIUS server for both
+         authorization and accounting, this object's value will be
+         ignored for that server. Instead the rbnRadiusAuthPktTimeout
+         value will be used for all requests going to that server."
+    ::= { rbnRadiusAcctObjects 1 }
+
+rbnRadiusAcctSrvTimeout OBJECT-TYPE
+    SYNTAX     Unsigned32 (0..2147483647)
+    UNITS      "seconds"
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The maximum amount of time to wait for any response from a
+         RADIUS accounting server before assuming the server is
+         unreachable.
+
+         A value of '0' indicates that there is no timeout value. In
+         this case a server is considered to be unreachable when no
+         response is received within the rbnRadiusAcctPktTimeout
+         window.
+
+         Note: if the system is using a RADIUS server for both
+         authorization and accounting, this object's value will be
+         ignored for that server. Instead the rbnRadiusAuthSrvTimeout
+         value will be used for that server."
+    ::= { rbnRadiusAcctObjects 2 }
+
+rbnRadiusAcctDeadtime OBJECT-TYPE
+    SYNTAX     Unsigned32 (0..65535)
+    UNITS      "minutes"
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "After a RADIUS accounting server has been transitioned to
+         'down' it will be assumed to be unreachable for this
+         interval. After that point the system may start sending
+         accounting records to the server again.
+
+         A value of '0' indicates the system may start sending
+         records to the server immediately.
+
+         Note: if the system is using a RADIUS server for both
+         authorization and accounting, this object's value will be
+         ignored for that server. Instead the rbnRadiusAuthDeadtime
+         value will be used for that server."
+    ::= { rbnRadiusAcctObjects 3 }
+
+rbnRadiusAcctTries OBJECT-TYPE
+    SYNTAX     Unsigned32 (1..2147483647)
+    UNITS      "retries"
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The number of times the system will attempt to transmit
+         an accounting record to a RADIUS server. If multiple RADIUS
+         accounting servers have been configured retransmissions will
+         cycle through the other servers before being retransmitted to
+         the server that originally failed to respond.
+
+         Note: if the system is using a RADIUS server for both
+         authorization and accounting, this object's value will be
+         ignored for that server. Instead the rbnRadiusAuthTries
+         value will be used for that server."
+    ::= { rbnRadiusAcctObjects 4 }
+
+rbnRadiusAcctStripDomain OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "If this object is false, the entire username, including the
+        domain name is sent to the RADIUS server.  If true, the
+        domain portion of a structured username is stripped before
+        relaying a request to a RADIUS server."
+    ::= { rbnRadiusAcctObjects 6 }
+
+rbnRadiusAcctSrvTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF RbnRadiusAcctSrvEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+        "This table augments the radiusAccServerTable. All entries
+         that exist in that table will have a corresponding entry in
+         this table."
+    ::= { rbnRadiusAcctObjects 5 }
+
+rbnRadiusAcctSrvEntry OBJECT-TYPE
+    SYNTAX     RbnRadiusAcctSrvEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+        "A proprietary extension to the radiusAccServerEntry."
+    AUGMENTS { radiusAccServerEntry }
+    ::= { rbnRadiusAcctSrvTable 1 }
+
+RbnRadiusAcctSrvEntry ::= SEQUENCE {
+    rbnRadiusAcctSrvState            RbnRadiusServerState,
+    rbnRadiusAcctSrvLastChange       TimeStamp,
+    rbnRadiusAcctSrvCounterResetTime TimeStamp,
+    rbnRadiusAcctSrvSendErrors       Counter32
+}
+
+rbnRadiusAcctSrvState OBJECT-TYPE
+    SYNTAX     RbnRadiusServerState
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The current state of the RADIUS server."
+    ::= { rbnRadiusAcctSrvEntry 1 }
+
+rbnRadiusAcctSrvLastChange OBJECT-TYPE
+    SYNTAX     TimeStamp
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The value of sysUpTime when this server last changed
+         state. If rbnRadiusAcctSrvState is 'unknown' this is effectively
+         the value of sysUpTime when this server was initially
+         configured."
+    ::= { rbnRadiusAcctSrvEntry 2 }
+
+rbnRadiusAcctSrvCounterResetTime OBJECT-TYPE
+    SYNTAX     TimeStamp
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The value of sysUpTime on the most recent occasion when any
+         of the counters for this RADIUS server experienced a
+         discontinuity.
+
+         Note: this includes counters in this table as well as those in
+         radiusAccServerTable."
+    ::= { rbnRadiusAcctSrvEntry 3 }
+
+rbnRadiusAcctSrvSendErrors OBJECT-TYPE
+    SYNTAX     Counter32
+    UNITS      "packets"
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The number of packets destined to this RADIUS server which
+         could not be transmitted due to an error.
+
+         Discontinuities in the value of this counter are indicated by
+         the value of rbnRadiusAcctSrvCounterResetTime."
+    ::= { rbnRadiusAcctSrvEntry 4 }
+
+--
+-- RADIUS notification objects
+--
+-- these objects will only appear in notifications
+--
+
+rbnRadiusClientPort OBJECT-TYPE
+    SYNTAX     Unsigned32 (1024..65535)
+    MAX-ACCESS accessible-for-notify
+    STATUS     current
+    DESCRIPTION
+        "A system may be configured to use a range of source TCP/IP
+         ports when sending requests to a RADIUS server. When a server
+         transitions to 'up' or 'down' and a state-change notification
+         is generated, an instance of this object is included to
+         indicate which source port was being used when the server
+         changed state."
+    ::= { rbnRadiusNotifyObjects 1 }
+
+rbnRadiusContext OBJECT-TYPE
+    SYNTAX     SnmpAdminString (SIZE (1..63))
+    MAX-ACCESS accessible-for-notify
+    STATUS     current
+    DESCRIPTION
+        "The name of the context in which this server is configured."
+    ::= { rbnRadiusNotifyObjects 2 }
+
+rbnRadiusReason OBJECT-TYPE
+    SYNTAX     RbnRadiusServerReason
+    MAX-ACCESS accessible-for-notify
+    STATUS     current
+    DESCRIPTION
+        "The reason for the server's last state change."
+    ::= { rbnRadiusNotifyObjects 3 }
+
+rbnRadiusUsername OBJECT-TYPE
+    SYNTAX     SnmpAdminString (SIZE (0..128))
+    MAX-ACCESS accessible-for-notify
+    STATUS     current
+    DESCRIPTION
+        "The name of the user the system was trying to authenticate
+         or send accouting information for when the RADIUS server
+         transitioned to 'down'.
+
+         Note: the 'username' is only valid when transitioning due to
+         a packet-level timeout.
+
+         When transitioning due to any other reason the value for this
+         object will be a zero-length string."
+    ::= { rbnRadiusNotifyObjects 4 }
+
+--
+-- RADIUS notifications
+--
+
+rbnRadiusAuthStateChange NOTIFICATION-TYPE
+    OBJECTS {
+        rbnRadiusAuthSrvState,
+        radiusAuthServerAddress,
+        radiusAuthClientServerPortNumber,
+        rbnRadiusClientPort,
+        rbnRadiusContext,
+        rbnRadiusReason,
+        rbnRadiusUsername
+    }
+    STATUS  current
+    DESCRIPTION
+        "This notification signifies that a RADIUS authorization
+         server has transitioned to 'up' or 'down'.
+
+         Note: if rbnRadiusAuthSrvState's value is 'down' and
+         rbnRadiusReason's value is 'packetTimeout', then
+         rbnRadiusUsername's value will be a username. For all other
+         cases, rbnRadiusUsername's value will be a zero-length
+         string."
+    ::= { rbnRadiusMIBNotifications 1 }
+
+rbnRadiusAcctStateChange NOTIFICATION-TYPE
+    OBJECTS {
+        rbnRadiusAcctSrvState,
+        radiusAccServerAddress,
+        radiusAccClientServerPortNumber,
+        rbnRadiusClientPort,
+        rbnRadiusContext,
+        rbnRadiusReason,
+        rbnRadiusUsername
+    }
+    STATUS  current
+    DESCRIPTION
+        "This notification signifies that a RADIUS accounting
+         server has transitioned to 'up' or 'down'.
+
+         Note: if rbnRadiusAcctSrvState's value is 'down' and
+         rbnRadiusReason's value is 'packetTimeout', then
+         rbnRadiusUsername's value will be a username. For all other
+         cases, rbnRadiusUsername's value will be a zero-length
+         string."
+    ::= { rbnRadiusMIBNotifications 2 }
+
+--
+-- compliance statements
+--
+rbnRadiusCompliances OBJECT IDENTIFIER ::= { rbnRadiusMIBConformance 1 }
+rbnRadiusGroups      OBJECT IDENTIFIER ::= { rbnRadiusMIBConformance 2 }
+
+rbnRadiusCompliance2 MODULE-COMPLIANCE
+    STATUS current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+        this MIB."
+    MODULE  -- this module
+    MANDATORY-GROUPS {
+        rbnRadiusAuthGroup2,
+        rbnRadiusAcctGroup2,
+        rbnRadiusNotifyGroup,
+        rbnRadiusAuthNotifyGroup,
+        rbnRadiusAcctNotifyGroup
+    }
+    ::= { rbnRadiusCompliances 2 }
+
+rbnRadiusAuthGroup2 OBJECT-GROUP
+    OBJECTS {
+        rbnRadiusAuthPktTimeout,
+        rbnRadiusAuthSrvTimeout,
+        rbnRadiusAuthDeadtime,
+        rbnRadiusAuthTries,
+        rbnRadiusAuthSrvState,
+        rbnRadiusAuthSrvLastChange,
+        rbnRadiusAuthSrvCounterResetTime,
+        rbnRadiusAuthSrvSendErrors,
+        rbnRadiusAuthStripDomain
+    }
+    STATUS current
+    DESCRIPTION
+        "The collection of objects used to manage RADIUS
+         authentication servers."
+    ::= { rbnRadiusGroups 6 }
+
+rbnRadiusAcctGroup2 OBJECT-GROUP
+    OBJECTS {
+        rbnRadiusAcctPktTimeout,
+        rbnRadiusAcctSrvTimeout,
+        rbnRadiusAcctDeadtime,
+        rbnRadiusAcctTries,
+        rbnRadiusAcctSrvState,
+        rbnRadiusAcctSrvLastChange,
+        rbnRadiusAcctSrvCounterResetTime,
+        rbnRadiusAcctSrvSendErrors,
+        rbnRadiusAcctStripDomain
+    }
+    STATUS current
+    DESCRIPTION
+        "The collection of objects used to manage RADIUS
+         accounting servers."
+    ::= { rbnRadiusGroups 7 }
+
+rbnRadiusNotifyGroup OBJECT-GROUP
+    OBJECTS {
+        rbnRadiusClientPort,
+        rbnRadiusContext,
+        rbnRadiusReason,
+        rbnRadiusUsername
+    }
+    STATUS current
+    DESCRIPTION
+        "The collection of objects used only in notifications."
+    ::= { rbnRadiusGroups 3 }
+
+rbnRadiusAuthNotifyGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        rbnRadiusAuthStateChange
+    }
+    STATUS current
+    DESCRIPTION
+        "Notification for tracking the status of RADIUS authentication
+         servers."
+    ::= { rbnRadiusGroups 4 }
+
+rbnRadiusAcctNotifyGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        rbnRadiusAcctStateChange
+    }
+    STATUS current
+    DESCRIPTION
+        "Notification for tracking the status of RADIUS accounting
+         servers."
+    ::= { rbnRadiusGroups 5 }
+
+--
+-- Deprecated Compliances and Groups
+--
+
+rbnRadiusCompliance MODULE-COMPLIANCE
+    STATUS deprecated
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+        this MIB."
+    MODULE  -- this module
+    MANDATORY-GROUPS {
+        rbnRadiusAuthGroup,
+        rbnRadiusAcctGroup,
+        rbnRadiusNotifyGroup,
+        rbnRadiusAuthNotifyGroup,
+        rbnRadiusAcctNotifyGroup
+    }
+    ::= { rbnRadiusCompliances 1 }
+
+rbnRadiusAuthGroup OBJECT-GROUP
+    OBJECTS {
+        rbnRadiusAuthPktTimeout,
+        rbnRadiusAuthSrvTimeout,
+        rbnRadiusAuthDeadtime,
+        rbnRadiusAuthTries,
+        rbnRadiusAuthSrvState,
+        rbnRadiusAuthSrvLastChange,
+        rbnRadiusAuthSrvCounterResetTime,
+        rbnRadiusAuthSrvSendErrors
+    }
+    STATUS deprecated
+    DESCRIPTION
+        "The collection of objects used to manage RADIUS
+         authentication servers."
+    ::= { rbnRadiusGroups 1 }
+
+rbnRadiusAcctGroup OBJECT-GROUP
+    OBJECTS {
+        rbnRadiusAcctPktTimeout,
+        rbnRadiusAcctSrvTimeout,
+        rbnRadiusAcctDeadtime,
+        rbnRadiusAcctTries,
+        rbnRadiusAcctSrvState,
+        rbnRadiusAcctSrvLastChange,
+        rbnRadiusAcctSrvCounterResetTime,
+        rbnRadiusAcctSrvSendErrors
+    }
+    STATUS deprecated
+    DESCRIPTION
+        "The collection of objects used to manage RADIUS
+         accounting servers."
+    ::= { rbnRadiusGroups 2 }
+
+END

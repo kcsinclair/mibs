@@ -1,0 +1,194 @@
+-- %DNP% $Id: RBN-IP-BIND-MIB.my,v 1.1.2.2.444.2 2011/02/22 17:26:17 thatcher Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-IP-BIND-MIB.my,v $
+-- *****************************************************************
+-- RBN-IP-BIND-MIB
+--
+-- Copyright (c) 2002, 2011 Ericsson AB.
+-- All rights reserved.
+--
+-- *****************************************************************
+
+RBN-IP-BIND-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+	MODULE-IDENTITY, OBJECT-TYPE
+		FROM SNMPv2-SMI
+
+	MODULE-COMPLIANCE, OBJECT-GROUP
+		FROM SNMPv2-CONF
+
+	SnmpAdminString
+		FROM SNMP-FRAMEWORK-MIB
+
+	RbnCircuitHandle
+		FROM RBN-TC
+
+        ifIndex, InterfaceIndexOrZero
+                FROM IF-MIB
+
+	rbnMgmt
+		FROM RBN-SMI;
+
+rbnIpBindMib MODULE-IDENTITY
+        LAST-UPDATED    "201101191800Z" -- Jan 19, 2011
+        ORGANIZATION    "Ericsson AB."
+        CONTACT-INFO
+                "       Ericsson AB.
+
+                Postal: 100 Headquarters Dr
+                        San Jose, CA  95134
+                        USA
+
+                 Phone: +1 408 750 5000
+                   Fax: +1 408 750 5599
+                "
+	DESCRIPTION
+		"The MIB module for monitoring IP interface binding
+                 to physical ports and circuits as they are represented 
+                 in the IF-MIB."
+
+        REVISION        "201101191800Z" -- Jan 19, 2011
+        DESCRIPTION
+                "Update CONTACT-INFO & ORGANIZATION."
+
+        REVISION        "200208201200Z" -- August 20, 2002
+        DESCRIPTION
+                "Initial version."
+
+         ::= { rbnMgmt 26 } 
+
+rbnIpBindMibNotifications OBJECT IDENTIFIER ::= { rbnIpBindMib 0 }
+
+rbnIpBindMibObjects       OBJECT IDENTIFIER ::= { rbnIpBindMib 1 }
+
+rbnIpBindMibConformance   OBJECT IDENTIFIER ::= { rbnIpBindMib 2 }
+
+rbnIpBindTable OBJECT-TYPE
+	SYNTAX       SEQUENCE OF RbnIpBindEntry
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+      		"
+                A table that shows IP interface bindings to physical ports 
+                and circuit encapsulation layers as they are represented in 
+                the IF-MIB. This table displays all IP interface bindings 
+                in all contexts but is only visible from the local context.
+                "
+	::= { rbnIpBindMibObjects 1 }
+
+rbnIpBindEntry OBJECT-TYPE
+	SYNTAX       RbnIpBindEntry
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"A conceptual row in the rbnIpBindTable.
+
+                 Each ifIndex instance that is included as an INDEX component 
+                 represents an IP interface and has an ifType value of 
+                 propVirtual.
+                 "
+	INDEX        { ifIndex, rbnIpBindCircuitHandle }
+	::= { rbnIpBindTable 1 }
+
+RbnIpBindEntry ::=
+	SEQUENCE {
+		rbnIpBindCircuitHandle	     RbnCircuitHandle,
+                rbnIpBindIfIndex             InterfaceIndexOrZero,
+                rbnIpBindHierarchicalIfIndex InterfaceIndexOrZero,
+		rbnIpBindCircuitDescr	     SnmpAdminString,
+                rbnIpBindContextName         SnmpAdminString
+	}
+
+rbnIpBindCircuitHandle OBJECT-TYPE
+	SYNTAX       RbnCircuitHandle
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+        "A unique identifier for the circuit the IP interface is bound to.
+         Note that the term circuit as defined in this table can represent 
+         a port, channel, subchannel or a virtual circuit configured to run 
+         over a port, channel or subchannel.
+        "
+	::= { rbnIpBindEntry 1 }
+
+rbnIpBindIfIndex   OBJECT-TYPE
+     SYNTAX        InterfaceIndexOrZero
+     MAX-ACCESS    read-only
+     STATUS        current
+     DESCRIPTION
+            "If the IP interface is bound to a port, channel, subchannel,
+             or virtual circuit that is included in the IF-MIB, this object 
+             contains the ifIndex of that layer, otherwise this object is 
+             set to zero.
+            "
+	::= { rbnIpBindEntry 2 }
+
+rbnIpBindHierarchicalIfIndex   OBJECT-TYPE
+     SYNTAX        InterfaceIndexOrZero
+     MAX-ACCESS    read-only
+     STATUS        current
+     DESCRIPTION
+            "If the IP interface is bound to a port, channel, subchannel,
+             or virtual circuit that is not included in the IF-MIB, but 
+             that interface is part of a port stack that is included in the
+             IF-MIB, this object contains the ifIndex of the port encapsulation 
+             layer that sits on top of that port stack. If rbnIpBindIfIndex
+             is set to a non-zero value this object is set to zero. 
+            "
+	::= { rbnIpBindEntry 3 }
+
+rbnIpBindCircuitDescr OBJECT-TYPE
+	SYNTAX       SnmpAdminString (SIZE (0..192))
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"A descriptive version of rbnIpBindCircuitHandle that is 
+                 consistent with information displayed in the CLI.
+
+                 On the SE router this string is formatted as
+                 slot/port:channel:subchannel authority/level/index,
+                 with the exception that channel and subchannel are
+                 only included when appropriate. For example,
+                 4/1 1/2/7, 4/1:1 1/2/7 or 4/1:1:1 1/2/7.                  
+                 "
+	::= { rbnIpBindEntry 4 }
+
+rbnIpBindContextName OBJECT-TYPE
+	SYNTAX       SnmpAdminString (SIZE (0..63))
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The name of the context in which this IP interface is defined."
+	::= { rbnIpBindEntry 5 }
+
+
+rbnIpBindCompliances OBJECT IDENTIFIER ::= { rbnIpBindMibConformance 1 }
+rbnIpBindGroups      OBJECT IDENTIFIER ::= { rbnIpBindMibConformance 2 }
+
+rbnIpBindCompliance MODULE-COMPLIANCE
+	STATUS       current
+	DESCRIPTION
+		"The compliance statement for SNMP entities which implement
+		 the RBN-IP-BIND-MIB."
+	MODULE      -- this module
+	MANDATORY-GROUPS {
+		rbnIpBindDisplayGroup
+	}
+	::= { rbnIpBindCompliances 1}
+
+rbnIpBindDisplayGroup	OBJECT-GROUP
+	OBJECTS {
+                rbnIpBindIfIndex,
+                rbnIpBindHierarchicalIfIndex,
+		rbnIpBindCircuitDescr,
+                rbnIpBindContextName
+	}
+	STATUS       current
+	DESCRIPTION
+		"A collection of objects that shows IP interface bindings
+                 to physical ports and circuits as represented in the 
+                 IF-MIB."
+	::= { rbnIpBindGroups 1}
+
+END
+ 

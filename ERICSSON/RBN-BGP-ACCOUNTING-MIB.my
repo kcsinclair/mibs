@@ -1,0 +1,224 @@
+-- %DNP% $Id: RBN-BGP-ACCOUNTING-MIB.my,v 1.1.4.3.272.2 2011/02/22 17:26:16 thatcher Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-BGP-ACCOUNTING-MIB.my,v $
+-- *****************************************************************
+-- RBN-BGP-ACCOUNTING-MIB
+--
+-- Copyright (c) 2002, 2004-2005, 2011 Ericsson AB.
+-- All rights reserved.
+--
+-- *****************************************************************
+
+RBN-BGP-ACCOUNTING-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+        MODULE-IDENTITY, OBJECT-TYPE, Integer32,
+        Counter64
+                FROM SNMPv2-SMI
+        MODULE-COMPLIANCE, OBJECT-GROUP
+                FROM SNMPv2-CONF
+        rbnMgmt
+                FROM RBN-SMI
+        ifIndex
+                FROM IF-MIB
+        SnmpAdminString
+                FROM SNMP-FRAMEWORK-MIB;
+
+        
+rbnBgpPolAcctMIB MODULE-IDENTITY
+        LAST-UPDATED    "201101191800Z" -- Jan 19, 2011
+        ORGANIZATION    "Ericsson AB."
+        CONTACT-INFO    
+                "       Ericsson AB.
+
+                Postal: 100 Headquarters Dr
+                        San Jose, CA  95134
+                        USA
+        
+                 Phone: +1 408 750 5000
+                   Fax: +1 408 750 5599
+                "
+        DESCRIPTION
+                "The BGP policy based accounting MIB defines necessary objects
+                 to account for IP traffic differentially via the BGP policies
+                 (e.g., community list, AS path).
+                 
+                 All mib objects defined in the module are viewed within the
+                 context identified in the SNMP protocol (i.e. the community
+                 string in v1/v2c or the contextName in v3)."
+       
+        REVISION        "201101191800Z" -- Jan 19, 2011
+        DESCRIPTION
+                "Update CONTACT-INFO & ORGANIZATION."
+
+        REVISION        "200509200000Z"  -- Sep 20, 2005
+        DESCRIPTION
+                "Added a circuit descriptor object, interface name object,  
+                 context name object and updated conformation information"
+
+        REVISION        "200203150000Z"  --  Mar 15, 2002
+        DESCRIPTION
+                "Initial version of this MIB module."
+
+        ::= { rbnMgmt 20 }
+
+rbnBgpPolAcctMIBObjects OBJECT IDENTIFIER ::= { rbnBgpPolAcctMIB 1 }
+
+rbnBpaTable    OBJECT-TYPE
+      SYNTAX      SEQUENCE OF RbnBpaEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+        "A list of BGP Policy Accounting entries"
+      ::= { rbnBgpPolAcctMIBObjects 1 }
+
+rbnBpaEntry OBJECT-TYPE
+        SYNTAX     RbnBpaEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+        "An entry contains statistics applicable to a particular bgp based
+        routing policy set on a particular interface.
+        
+        The ifIndex instances referenced by this table represent a 
+        port, channel, sub-channel or circuit layer that supports
+        the IF-MIB ifPacketGroup, ifHCPacketGroup or ifVHCPacketGroup,
+        and is bound to an IP interface for which BGP policy based
+        accounting is enabled. Since the IF-MIB may provide support for
+        a subset of the physical interfaces available on the system,
+        it follows that support for BGP policy based accounting
+        information in this MIB is limited to the same subset of physical
+        interfaces supported in the IF-MIB."
+        INDEX {ifIndex, rbnBpaBucketIndex}
+        ::= { rbnBpaTable 1 }
+
+RbnBpaEntry ::= SEQUENCE {
+        rbnBpaBucketIndex       Integer32,
+        rbnBpaInPacketCount     Counter64,
+        rbnBpaInOctetCount      Counter64,
+        rbnBpaCircuitDescr      SnmpAdminString,
+        rbnBpaInterfaceName     SnmpAdminString,
+        rbnBpaContextName       SnmpAdminString 
+        }
+
+rbnBpaBucketIndex     OBJECT-TYPE
+      SYNTAX       Integer32 (1..2147483647)
+      MAX-ACCESS   read-only 
+      STATUS       current
+      DESCRIPTION
+        "An integer value greater than 0, that uniquely identifies
+        a bgp routing policy set on this interface. "
+      ::= { rbnBpaEntry 1}
+
+rbnBpaInPacketCount    OBJECT-TYPE
+      SYNTAX       Counter64
+      MAX-ACCESS   read-only
+      STATUS       current
+      DESCRIPTION
+        "The total number of packets received for a particular
+        bgp routing policy on an interface."
+      ::= { rbnBpaEntry 2}
+
+rbnBpaInOctetCount     OBJECT-TYPE
+      SYNTAX       Counter64
+      MAX-ACCESS   read-only
+      STATUS       current
+      DESCRIPTION
+        "The total number of octets received for a particular
+        bgp routing policy on an interface."
+      ::= { rbnBpaEntry 3}
+
+rbnBpaCircuitDescr     OBJECT-TYPE
+      SYNTAX       SnmpAdminString (SIZE (0..192))
+      MAX-ACCESS   read-only
+      STATUS       current
+      DESCRIPTION
+        "A descriptive version of the interface that is consistent 
+        with information displayed in the CLI. This string is formatted as
+        slot/port:channel:subchannel authority/level/index,
+        with the exception that channel and subchannel are
+        only included when appropriate. For example,
+        4/1 1/2/7, 4/1:1 1/2/7 or 4/1:1:1 1/2/7.
+        
+        If a circuit description is not available then this object
+        contains a zero-length string"
+      ::= { rbnBpaEntry 4}
+
+rbnBpaInterfaceName    OBJECT-TYPE
+      SYNTAX       SnmpAdminString (SIZE (0..127))
+      MAX-ACCESS   read-only
+      STATUS       current
+      DESCRIPTION
+        "The name of the ip interface bound to a circuit.
+        If ip interface name is not available then this object contains a
+        zero length string"
+      ::= { rbnBpaEntry 5}
+
+rbnBpaContextName     OBJECT-TYPE
+      SYNTAX       SnmpAdminString (SIZE (0..63))
+      MAX-ACCESS   read-only
+      STATUS       current
+      DESCRIPTION
+        "The name of context in which this IP interface is defined.
+        If context information is not available then this object contains a
+        zero lenght string"
+      ::= { rbnBpaEntry 6}
+
+-- Conformance Information
+ 
+rbnBgpPolAcctMIBConformance OBJECT IDENTIFIER ::= { rbnBgpPolAcctMIB 3 }
+rbnBgpPolAcctMIBCompliances OBJECT IDENTIFIER ::= { rbnBgpPolAcctMIBConformance 1 }
+rbnBgpPolAcctMIBGroups      OBJECT IDENTIFIER ::= { rbnBgpPolAcctMIBConformance 2 }
+
+-- Compliance Statement 
+rbnBgpPolAcctMIBCompliance MODULE-COMPLIANCE
+        STATUS  deprecated 
+        DESCRIPTION
+                "The compliance statement for entities which implement
+                this BGP Policy Traffic Accounting MIB."
+        MODULE  -- this module
+                MANDATORY-GROUPS {
+                                rbnBpaTableGroup
+                }
+        ::= { rbnBgpPolAcctMIBCompliances 1 }
+
+        
+rbnBgpPolAcctMIBCompliance1 MODULE-COMPLIANCE
+        STATUS  current
+        DESCRIPTION
+                "The compliance statement for entities which implement
+                this BGP Policy Traffic Accounting MIB."
+        MODULE  -- this module
+                MANDATORY-GROUPS {
+                                rbnBpaTableGroup1
+                }
+        ::= { rbnBgpPolAcctMIBCompliances 2 }
+ 
+-- units of conformance
+ 
+rbnBpaTableGroup OBJECT-GROUP
+        OBJECTS {
+                rbnBpaBucketIndex,
+                rbnBpaInPacketCount,
+                rbnBpaInOctetCount
+        }
+        STATUS  deprecated
+        DESCRIPTION
+                "A collection of objects providing customer traffic 
+                related parameters."
+        ::= { rbnBgpPolAcctMIBGroups 1 }
+
+rbnBpaTableGroup1 OBJECT-GROUP
+        OBJECTS {
+                rbnBpaBucketIndex,
+                rbnBpaInPacketCount,
+                rbnBpaInOctetCount,
+                rbnBpaCircuitDescr,
+                rbnBpaInterfaceName,
+                rbnBpaContextName
+        }           
+        STATUS  current
+        DESCRIPTION
+                "Collection of objects providing more information 
+                about traffic-index"
+        ::= { rbnBgpPolAcctMIBGroups 2 }         
+END

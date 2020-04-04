@@ -1,0 +1,712 @@
+-- %DNP% $Id: RBN-OPTICAL-TRANSCEIVER-MIB.my,v 1.1.4.3.62.2 2015/06/25 17:26:18 $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/RBN-OPTICAL-TRANSCEIVER-MIB.my,v $
+-- *****************************************************************
+-- RBN-OPTICAL-TRANSCEIVER-MIB
+--
+-- %DNP% Copyright (c) 2015 Ericsson AB.
+-- %DNP% All rights reserved.
+--
+-- *****************************************************************
+
+RBN-OPTICAL-TRANSCEIVER-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE,
+    Integer32, transmission,
+    Unsigned32, NOTIFICATION-TYPE
+          FROM SNMPv2-SMI
+    DisplayString, TruthValue,
+    DateAndTime, TEXTUAL-CONVENTION
+          FROM SNMPv2-TC
+    MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+          FROM SNMPv2-CONF
+    SnmpAdminString
+        FROM SNMP-FRAMEWORK-MIB
+    IANAItuProbableCause
+          FROM IANA-ITU-ALARM-TC-MIB
+    ifIndex
+          FROM IF-MIB
+    rbnMgmt
+            FROM RBN-SMI
+    RbnSlot, RbnPort
+            FROM RBN-TC
+    RbnAlarmId, RbnAlarmServiceAffecting,
+    RbnAlarmPerceivedSeverity
+          FROM RBN-ALARM-TC
+    rbnSfpMonMIBObjects,rbnSfpMonMIBNotifications,
+    rbnSfpAlarmId, rbnSfpAlarmType, rbnSfpAlarmDescription,
+    rbnSfpMonMIBConformance, rbnSfpAlarmSeverity,
+    rbnSfpAlarmDateAndTime, rbnSfpAlarmProbableCause
+          FROM RBN-SFP-MIB;
+
+rbnOpticalTransceiver MODULE-IDENTITY
+        LAST-UPDATED    "201506250000Z" -- June 25, 2015
+        ORGANIZATION    "Ericsson AB"
+        CONTACT-INFO
+                "       Ericsson AB.
+
+                Postal: 200 Headquarters Dr
+                        San Jose, CA  95134
+                        USA
+
+                 Phone: +1 408 750 5000
+                   Fax: +1 408 750 5599
+
+                "
+
+        DESCRIPTION
+                "The MIB used to manage the Optical Transceivers 
+                 in Line Card ports in SSR 
+                "
+        REVISION        "201506250000Z" -- June 25, 2015
+        DESCRIPTION
+                "Initial version."
+        ::= { rbnMgmt 50 }
+
+rbnOpticalTransceiverDetails OBJECT IDENTIFIER
+        ::= { rbnOpticalTransceiver 1 }
+
+rbnOpticalTransceiverPortTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RbnOpticalTransceiverPortEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+                "This table contains the ports with optical transceivers 
+		 and corresponding parameters"
+        ::= { rbnOpticalTransceiverDetails 1 }
+
+rbnOpticalTransceiverPortEntry OBJECT-TYPE
+        SYNTAX      RbnOpticalTransceiverPortEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+                "Line Card port optical transceiver parameter
+                 description. 
+                "
+        INDEX   {ifIndex }
+        ::= { rbnOpticalTransceiverPortTable 1 }
+
+
+RbnOpticalTransceiverPortEntry ::= SEQUENCE {
+        rbnOpticalTransceiverCardSlot                 RbnSlot,
+        rbnOpticalTransceiverPort                     RbnPort,
+        rbnOpticalTransceiverType                     OCTET STRING,
+        rbnOpticalTransceiverMediaType                OCTET STRING,
+        rbnOpticalTransceiverRbnEricssonApproved      TruthValue,
+        rbnOpticalTransceiverDiagMonitoring           TruthValue,
+        rbnOpticalTransceiverCLEIcode                 OCTET STRING,
+        rbnOpticalTransceiverSerialNo                 OCTET STRING,
+        rbnOpticalTransceiverFrequency                OCTET STRING,
+        rbnOpticalTransceiverWaveLength               RbnOpticalTransceiverParamWaveLength,
+        rbnOpticalTransceiverAdditionalFeatures       OCTET STRING,
+        rbnOpticalTransceiverFrequencyStart           OCTET STRING,
+        rbnOpticalTransceiverFrequencyEnd             OCTET STRING,
+        rbnOpticalTransceiverFrequencySpacing         OCTET STRING,
+        rbnOpticalTransceiverOTNFramer                OCTET STRING,
+        rbnOpticalTransceiverOTNFEC                   OCTET STRING,
+        rbnOpticalTransceiverPowerLevel               OCTET STRING,
+        rbnOpticalTransceiverActiveAlarmCount         INTEGER,
+        rbnOpticalTransceiverParamBitMask             Integer32,
+        rbnOpticalTransceiverLaneCount                INTEGER
+}
+
+
+rbnOpticalTransceiverCardSlot OBJECT-TYPE
+        SYNTAX          RbnSlot
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "The chassis slot number in which the card is
+                 present where the Optical Transceiver plugged in.
+		"
+        ::= { rbnOpticalTransceiverPortEntry 1 }
+
+
+rbnOpticalTransceiverPort OBJECT-TYPE
+        SYNTAX          RbnPort
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "The port number where the Optical Transceiver 
+		 plugged in.
+		"
+        ::= { rbnOpticalTransceiverPortEntry 2 }
+
+rbnOpticalTransceiverType OBJECT-TYPE
+        SYNTAX          OCTET STRING (SIZE(0..255))
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "Type and category of Optical Transceiver"
+        ::= { rbnOpticalTransceiverPortEntry 3 }
+
+rbnOpticalTransceiverMediaType OBJECT-TYPE
+        SYNTAX          OCTET STRING (SIZE(0..255))
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "Optical Transceiver Media Type"
+        ::= { rbnOpticalTransceiverPortEntry 4 }
+
+rbnOpticalTransceiverRbnEricssonApproved OBJECT-TYPE
+        SYNTAX          TruthValue
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "Is the Optical Transceiver n this port approved 
+		 by Ericsson, Yes/No?
+		"
+        ::= { rbnOpticalTransceiverPortEntry 5 }
+
+rbnOpticalTransceiverDiagMonitoring OBJECT-TYPE
+        SYNTAX          TruthValue
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "Is Optical Transceiver Diag Monitoring On or Off?"
+        ::= { rbnOpticalTransceiverPortEntry 6 }
+
+rbnOpticalTransceiverCLEIcode OBJECT-TYPE
+        SYNTAX          OCTET STRING (SIZE(0..255))
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "Optical Transceiver Common Language Equipment 
+		 Identifier (CLEI) code.
+		"
+        ::= { rbnOpticalTransceiverPortEntry 7 }
+
+rbnOpticalTransceiverSerialNo OBJECT-TYPE
+        SYNTAX          OCTET STRING (SIZE(0..255))
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "Optical Transceiver serial number"
+        ::= { rbnOpticalTransceiverPortEntry 8 }
+
+rbnOpticalTransceiverFrequency OBJECT-TYPE
+        SYNTAX          OCTET STRING (SIZE(0..255))
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "Optical Transceiver Frequency"
+        ::= { rbnOpticalTransceiverPortEntry 9 }
+
+rbnOpticalTransceiverWaveLength OBJECT-TYPE
+        SYNTAX          RbnOpticalTransceiverParamWaveLength
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "Optical Transceiver Wave Length"
+        ::= { rbnOpticalTransceiverPortEntry 10 }
+
+rbnOpticalTransceiverAdditionalFeatures OBJECT-TYPE
+        SYNTAX          OCTET STRING (SIZE(0..255))
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "Optical Transceiver Additional Features such as, 
+		 Is Optical Transceiver OTN capable? 
+		 and/or Is Optical Transceiver Tunable?"
+        ::= { rbnOpticalTransceiverPortEntry 11 }
+
+rbnOpticalTransceiverFrequencyStart OBJECT-TYPE
+        SYNTAX          OCTET STRING (SIZE(0..255))
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "Frequency Start for tunable optical transceiver.
+                 Not applicable if optical transceiver is not tunable"
+        ::= { rbnOpticalTransceiverPortEntry 12 }
+
+rbnOpticalTransceiverFrequencyEnd OBJECT-TYPE
+        SYNTAX          OCTET STRING (SIZE(0..255))
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "Frequency End for tunable optical transceiver.
+                 Not applicable if optical transceiver is not tunable"
+        ::= { rbnOpticalTransceiverPortEntry 13 }
+
+rbnOpticalTransceiverFrequencySpacing OBJECT-TYPE
+        SYNTAX          OCTET STRING (SIZE(0..255))
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "Frequency Spacing for tunable optical transceiver.
+                 Not applicable if optical transceiver is not tunable"
+        ::= { rbnOpticalTransceiverPortEntry 14 }
+
+rbnOpticalTransceiverOTNFramer OBJECT-TYPE
+        SYNTAX          OCTET STRING (SIZE(0..255))
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "Framer of OTN if optical transceiver is OTN capable.
+                 Not applicable if optical transceiver is not OTN 
+		 capable
+		"
+        ::= { rbnOpticalTransceiverPortEntry 15 }
+
+rbnOpticalTransceiverOTNFEC OBJECT-TYPE
+        SYNTAX          OCTET STRING (SIZE(0..255))
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "FEC of OTN if optical transceiver is OTN capable.
+                 Not applicable if optical transceiver is not OTN 
+		 capable
+		"
+        ::= { rbnOpticalTransceiverPortEntry 16 }
+
+rbnOpticalTransceiverPowerLevel OBJECT-TYPE
+        SYNTAX          OCTET STRING (SIZE(0..255))
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "Optical Transceiver Power Level"
+        ::= { rbnOpticalTransceiverPortEntry 17 }
+
+rbnOpticalTransceiverActiveAlarmCount OBJECT-TYPE
+        SYNTAX          INTEGER
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "Number of alarms active on the Optical Transceiver
+                "
+        ::= { rbnOpticalTransceiverPortEntry 18 }
+
+rbnOpticalTransceiverParamBitMask OBJECT-TYPE
+        SYNTAX          Integer32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "This Bit Mask indicates which values are valid for
+                 RbnOpticalTransceiverParamType in
+                 rbnOpticalTransceiverParamTable:
+                     0x0001 optical transceiver txpower valid
+                     0x0002 optical transceiver rxpower valid
+                     0x0004 optical transceiver temperature valid
+                     0x0008 optical transceiver laserBiasCurrent valid
+                     0x0010 optical transceiver soaBiasCurrent valid
+                     0x0020 optical transceiver Vcc valid
+                     0x0040 optical transceiver aux1 valid
+                     0x0080 optical transceiver aux2 valid
+                     0x0100 optical transceiver lane txpower valid
+                     0x0200 optical transceiver lane rxpower valid
+                     0x0400 optical transceiver lane temperature valid
+                     0x0800 optical transceiver lane laserBiasCurrent valid
+                "
+        ::= { rbnOpticalTransceiverPortEntry 19 }
+
+rbnOpticalTransceiverLaneCount OBJECT-TYPE
+        SYNTAX          INTEGER
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+                "Number of Lanes in optical transceiver"
+        ::= { rbnOpticalTransceiverPortEntry 20 }
+
+RbnOpticalTransceiverParamType ::= TEXTUAL-CONVENTION
+    STATUS          current
+    DESCRIPTION
+		"Enums for optical transceiver parameters
+
+		 txpower (1)           : transmitter power
+		 rxpower (2)           : receiver power
+		 temperature (3)       : Temperature
+		 laserBiasCurrent (4)  : Laser bias current in 100s of microamperes
+		 soaBiasCurrent (5)    : SOA Bias Current in 100s of microamperes
+					 Applicable for CFP and similar types of optical 
+					 transceivers.
+		 Vcc (6)               : Voltage
+		 aux1 (7)              : Auxiliary measurement 1 for XFP/CFP and similar types 
+					 of optical transceivers defined in Byte 222 in
+					 INF-8077i: 10 Gigabit Small Form Factor
+					 Pluggable Module.
+		 aux2 (8)              : Auxiliary measurement 2 for XFP/CFP and similar types
+					 of optical transceivers defined in Byte 222 in
+					 INF-8077i: 10 Gigabit Small Form Factor
+					 Pluggable Module
+		"
+    SYNTAX          INTEGER  {
+                        txpower(1),
+                        rxpower(2),
+                        temperature(3),
+                        laserBiasCurrent(4),
+                        soaBiasCurrent(5),
+                        vcc(6),
+                        aux1 (7),
+                        aux2 (8)
+                    }
+
+
+RbnOpticalTransceiverParamWaveLength ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT    "d-2"
+    STATUS          current
+    DESCRIPTION
+                    "Wave Length in NM in 1/100th"
+    SYNTAX          Integer32 (-1000000..1000000 )
+
+
+RbnOpticalTransceiverParameterValue ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT    "d-3"
+    STATUS          current
+    DESCRIPTION
+		"Tx power value or threshold value     - unit milli dbm
+		 Rx power value or threshold value     - unit milli dbm
+		 temperature value or threshold value  - Represents a temperature,
+			   in degrees Celsius (0..(100.000))
+		 Bias Current value or threshold value - unit 100s of microamperes
+		 Vcc value or threshold value in millivolts
+		 AUX1 if measured will be one of the following
+			APD Bias Voltage value or threshold value
+			TEC Current value or threshold value
+			Laser Temperature value or threshold value
+			Laser Wavelength value or threshold value
+			Supply voltage options (+5V or +3.3V or + 1.8V or -5.2V)
+			  value or threshold value
+			Supply current options (+5V or +3.3V or + 1.8V or -5.2V)
+			  value or threshold value
+			Reserved
+		AUX2 if measured will be one of the following
+			APD Bias Voltage value or threshold value
+			TEC Current value or threshold value
+			Laser Temperature value or threshold value
+			Laser Wavelength value or threshold value
+			Supply voltage options (+5V or +3.3V or + 1.8V or -5.2V)
+			value or threshold value
+		  Supply current options (+5V or +3.3V or + 1.8V or -5.2V)
+			value or threshold value
+		  Reserved
+		"
+    SYNTAX          Integer32 (-1000000..1000000 )
+
+
+rbnOpticalTransceiverParamTable OBJECT-TYPE
+    SYNTAX          SEQUENCE OF RbnOpticalTransceiverParamEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+		"This table provides objects to monitor optical
+		 transceiver parameters in a network element. It also
+		 provides objects for monitoring high and low warning and
+		 alarm threshold on these monitored parameters.
+		"
+    ::= { rbnOpticalTransceiverDetails 2 }
+
+
+rbnOpticalTransceiverParamEntry OBJECT-TYPE
+        SYNTAX      RbnOpticalTransceiverParamEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+                "OpticalTransceiver Parameter Entries in Table"
+        INDEX   { ifIndex, rbnOpticalTransceiverParamType }
+        ::= { rbnOpticalTransceiverParamTable 1 }
+
+
+RbnOpticalTransceiverParamEntry ::= SEQUENCE {
+        rbnOpticalTransceiverParamType            RbnOpticalTransceiverParamType,
+        rbnOpticalTransceiverParamDescription     OCTET STRING,
+        rbnOpticalTransceiverCurrentValue         RbnOpticalTransceiverParameterValue,
+        rbnOpticalTransceiverMaxAlarmValue        RbnOpticalTransceiverParameterValue,
+        rbnOpticalTransceiverMaxWarningValue      RbnOpticalTransceiverParameterValue,
+        rbnOpticalTransceiverMinAlarmValue        RbnOpticalTransceiverParameterValue,
+        rbnOpticalTransceiverMinWarningValue      RbnOpticalTransceiverParameterValue
+}
+
+
+rbnOpticalTransceiverParamType OBJECT-TYPE
+    SYNTAX          RbnOpticalTransceiverParamType
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+		"This object specifies the optical parameter type that
+		 is being monitored in this entry.
+		"
+    ::= { rbnOpticalTransceiverParamEntry 1 }
+
+rbnOpticalTransceiverParamDescription OBJECT-TYPE
+    SYNTAX          OCTET STRING (SIZE(0..128))
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+		"This object specifies the optical parameter description 
+		 including units that is being monitored in this entry.
+		"
+    ::= { rbnOpticalTransceiverParamEntry 2 }
+
+
+
+rbnOpticalTransceiverCurrentValue OBJECT-TYPE
+    SYNTAX          RbnOpticalTransceiverParameterValue
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+		"The current value of tx power, rx power, temperature,
+		 bias current and Vcc
+		"
+    ::= { rbnOpticalTransceiverParamEntry 3 }
+
+
+rbnOpticalTransceiverMaxAlarmValue OBJECT-TYPE
+    SYNTAX          RbnOpticalTransceiverParameterValue
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+		"The alarm high threshold value of tx power, rx power,
+		 temperature, bias current and Vcc
+		"
+    ::= { rbnOpticalTransceiverParamEntry 4 }
+
+
+rbnOpticalTransceiverMaxWarningValue OBJECT-TYPE
+    SYNTAX          RbnOpticalTransceiverParameterValue
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+		"The warning high threshold value of tx power, rx power,
+		 temperature, bias current and Vcc
+		"
+    ::= { rbnOpticalTransceiverParamEntry 5 }
+
+
+rbnOpticalTransceiverMinAlarmValue OBJECT-TYPE
+    SYNTAX          RbnOpticalTransceiverParameterValue
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+		"The alarm low threshold value of tx power, rx power,
+		 temperature, bias current and Vcc
+		"
+    ::= { rbnOpticalTransceiverParamEntry 6 }
+
+
+rbnOpticalTransceiverMinWarningValue OBJECT-TYPE
+    SYNTAX          RbnOpticalTransceiverParameterValue
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+		"The warning low threshold value of tx power, rx power,
+		 temperature, bias current and Vcc
+		"
+    ::= { rbnOpticalTransceiverParamEntry 7 }
+
+
+RbnLaneInOpticalTransceiverParamType ::= TEXTUAL-CONVENTION
+    STATUS          current
+    DESCRIPTION
+        "Enums for optical transceiver parameters
+
+        laneTxPower (1)           : transmitter power
+        laneRxPower (2)           : receiver power
+        laneTemperature (3)       : Temperature
+        laneLaserBiasCurrent (4)  : Laser bias current in 100s of microamperes
+        "
+    SYNTAX          INTEGER  {
+                        laneTxPower(1),
+                        laneRxPower(2),
+                        laneTemperature(3),
+                        laneLaserBiasCurrent(4)
+                    }
+
+
+RbnLaneInOpticalTransceiverParameterValue ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT    "d-3"
+    STATUS          current
+    DESCRIPTION
+		"Tx power range     - unit milli dbm
+		Rx power range     - unit milli dbm
+		temperature range  - Represents a temperature,
+			   in degrees Celsius (0..(100.000))
+		Bias Current Range - unit 100s of microamperes"
+    SYNTAX          Integer32 (-1000000..1000000 )
+
+
+rbnLaneInOpticalTransceiverParamTable OBJECT-TYPE
+    SYNTAX          SEQUENCE OF RbnLaneInOpticalTransceiverParamEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+		"This table provides objects to monitor optical
+		 transceiver parameters in a network element. It also
+		 provides objects for monitoring high and low warning and
+		 alarm threshold on these monitored parameters.
+		"
+    ::= { rbnOpticalTransceiverDetails 3 }
+
+
+rbnLaneInOpticalTransceiverParamEntry OBJECT-TYPE
+        SYNTAX      RbnLaneInOpticalTransceiverParamEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+                "LaneInOpticalTransceiver Parameter Entries in Table"
+        INDEX   { ifIndex, rbnLaneInOpticalTransceiverParamType, rbnLaneInOpticalTransceiver }
+        ::= { rbnLaneInOpticalTransceiverParamTable 1 }
+
+
+RbnLaneInOpticalTransceiverParamEntry ::= SEQUENCE {
+        rbnLaneInOpticalTransceiver                     Integer32,
+        rbnLaneInOpticalTransceiverParamType            RbnLaneInOpticalTransceiverParamType,
+        rbnLaneInOpticalTransceiverCurrentValue         RbnLaneInOpticalTransceiverParameterValue,
+        rbnLaneInOpticalTransceiverMaxAlarmValue        RbnLaneInOpticalTransceiverParameterValue,
+        rbnLaneInOpticalTransceiverMaxWarningValue      RbnLaneInOpticalTransceiverParameterValue,
+        rbnLaneInOpticalTransceiverMinAlarmValue        RbnLaneInOpticalTransceiverParameterValue,
+        rbnLaneInOpticalTransceiverMinWarningValue      RbnLaneInOpticalTransceiverParameterValue
+}
+
+
+rbnLaneInOpticalTransceiver OBJECT-TYPE
+    SYNTAX          Integer32 (1..16)
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+		"This object specifies the optical transceiver lane that
+		 is being monitored in this entry.
+		"
+    ::= { rbnLaneInOpticalTransceiverParamEntry 1 }
+
+
+rbnLaneInOpticalTransceiverParamType OBJECT-TYPE
+    SYNTAX          RbnLaneInOpticalTransceiverParamType
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+		"This object specifies the optical parameter type that
+		 is being monitored in this entry.
+		"
+    ::= { rbnLaneInOpticalTransceiverParamEntry 2 }
+
+rbnLaneInOpticalTransceiverCurrentValue OBJECT-TYPE
+    SYNTAX          RbnLaneInOpticalTransceiverParameterValue
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+		"The current value of tx power, rx power, temperature,
+		 bias current and Vcc
+		"
+    ::= { rbnLaneInOpticalTransceiverParamEntry 3 }
+
+
+rbnLaneInOpticalTransceiverMaxAlarmValue OBJECT-TYPE
+    SYNTAX          RbnLaneInOpticalTransceiverParameterValue
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+		"The alarm high threshold value of tx power, rx power,
+		 temperature, bias current and Vcc
+		"
+    ::= { rbnLaneInOpticalTransceiverParamEntry 4 }
+
+
+rbnLaneInOpticalTransceiverMaxWarningValue OBJECT-TYPE
+    SYNTAX          RbnLaneInOpticalTransceiverParameterValue
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+		"The warning high threshold value of tx power, rx power,
+		 temperature, bias current and Vcc
+		"
+    ::= { rbnLaneInOpticalTransceiverParamEntry 5 }
+
+
+rbnLaneInOpticalTransceiverMinAlarmValue OBJECT-TYPE
+    SYNTAX          RbnLaneInOpticalTransceiverParameterValue
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The alarm low threshold value of tx power, rx power,
+         temperature, bias current and Vcc"
+    ::= { rbnLaneInOpticalTransceiverParamEntry 6 }
+
+
+rbnLaneInOpticalTransceiverMinWarningValue OBJECT-TYPE
+    SYNTAX          RbnLaneInOpticalTransceiverParameterValue
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+		"The warning low threshold value of tx power, rx power,
+		 temperature, bias current and Vcc
+		"
+    ::= { rbnLaneInOpticalTransceiverParamEntry 7 }
+
+-- MIB Objects
+
+
+rbnOpticalTransceiverAlarm NOTIFICATION-TYPE
+        OBJECTS     {
+                      ifIndex,
+                      rbnOpticalTransceiverCardSlot,
+                      rbnOpticalTransceiverPort,
+                      rbnOpticalTransceiverParamType,
+                      rbnSfpAlarmId,
+                      rbnSfpAlarmSeverity,
+                      rbnSfpAlarmType,
+                      rbnSfpAlarmDateAndTime,
+                      rbnSfpAlarmDescription,
+                      rbnSfpAlarmProbableCause
+                    }
+        STATUS      current
+        DESCRIPTION
+                "An rbnOpticalTransceiverAlarm notification signifies that an
+                alarm has been raised or cleared on a Optical Transceiver"
+        ::= { rbnSfpMonMIBNotifications 2 }
+
+
+rbnOpticalTransceiverLaneAlarm NOTIFICATION-TYPE
+        OBJECTS     {
+                      ifIndex,
+                      rbnOpticalTransceiverCardSlot,
+                      rbnOpticalTransceiverPort,
+                      rbnLaneInOpticalTransceiver,
+                      rbnLaneInOpticalTransceiverParamType,
+                      rbnSfpAlarmId,
+                      rbnSfpAlarmSeverity,
+                      rbnSfpAlarmType,
+                      rbnSfpAlarmDateAndTime,
+                      rbnSfpAlarmDescription,
+                      rbnSfpAlarmProbableCause
+                    }
+        STATUS      current
+        DESCRIPTION
+                "An rbnOpticalTransceiverLaneAlarm notification signifies that an
+                alarm has been raised or cleared in a lane on a Optical Transceiver"
+        ::= { rbnSfpMonMIBNotifications 3 }
+
+
+-- Conformance Statements
+
+rbnOpticalTransceiverMonMIBGroups OBJECT IDENTIFIER
+        ::= { rbnSfpMonMIBConformance 3 }
+
+rbnOpticalTransceiverMonMIBCompliances OBJECT IDENTIFIER
+        ::= { rbnSfpMonMIBConformance 4 }
+
+rbnOpticalTransceiverMonMIBNotificationGroup NOTIFICATION-GROUP
+      NOTIFICATIONS   {   rbnOpticalTransceiverAlarm,
+                          rbnOpticalTransceiverLaneAlarm
+                      }
+      STATUS      current
+      DESCRIPTION
+		"A collection of notifications providing Optical Transceiver 
+		 fault condition
+		"
+      ::= {rbnOpticalTransceiverMonMIBGroups 2 }
+
+rbnOpticalTransceiverMonMIBCompliance MODULE-COMPLIANCE
+      STATUS      current
+      DESCRIPTION
+              "The compliance statement for the OpticalTransceiver MIB"
+      MODULE      -- this module
+      GROUP      rbnOpticalTransceiverMonMIBNotificationGroup
+      DESCRIPTION
+                "This group is mandatory for devices which contain
+                 Optical Transceiver alarm monitoring capabilities
+		"
+
+      ::= { rbnOpticalTransceiverMonMIBCompliances 1 }
+
+
+END

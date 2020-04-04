@@ -1,0 +1,1078 @@
+-- %DNP% $Id: RBN-PVC-MIB.my,v 1.1.4.8.82.2 2011/02/22 17:26:17 thatcher Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-PVC-MIB.my,v $
+-- *****************************************************************
+-- RBN-PVC-MIB	
+--
+-- Copyright (c) 2000-2004, 2006-2007, 2011 Ericsson AB.
+-- All rights reserved.
+-- 
+-- *****************************************************************
+
+RBN-PVC-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+	MODULE-IDENTITY, OBJECT-TYPE,
+	Unsigned32
+		FROM SNMPv2-SMI
+
+	TEXTUAL-CONVENTION, RowStatus,
+	TruthValue
+		FROM SNMPv2-TC
+
+	MODULE-COMPLIANCE, OBJECT-GROUP
+		FROM SNMPv2-CONF
+
+	SnmpAdminString
+		FROM SNMP-FRAMEWORK-MIB
+
+	rbnMgmt
+		FROM RBN-SMI
+
+	RbnSlot, RbnPort, RbnCircuitHandle,
+	RbnVidOrUntagged
+		FROM RBN-TC;
+
+rbnPvcMib MODULE-IDENTITY
+	LAST-UPDATED	"201101191800Z" -- Jan 19, 2011
+	ORGANIZATION	"Ericsson AB."
+	CONTACT-INFO
+                "       Ericsson AB.
+
+                Postal: 100 Headquarters Dr
+                        San Jose, CA  95134
+                        USA
+
+                 Phone: +1 408 750 5000
+                   Fax: +1 408 750 5599
+
+                "
+	DESCRIPTION
+		"Defines the objects necessary to support the management of
+		ATM, Frame Relay and IEEE 802.1Q permanent virtual circuits
+		(PVC)."
+
+        REVISION        "201101191800Z" -- Jan 19, 2011
+        DESCRIPTION
+                "Update CONTACT-INFO & ORGANIZATION."
+
+        REVISION        "200710291700Z" -- Oct 29, 2007
+        DESCRIPTION
+                "Added new encaps type to TEXTUAL-CONVENTION
+                RbnAtmEncapsulation."
+
+	REVISION	"200405211700Z" -- May 21, 2004
+	DESCRIPTION
+		"Added new encaps type to TEXTUAL-CONVENTION
+		RbnFrameRelayEncapsulation.
+		Added new encaps type to TEXTUAL-CONVENTION
+		RbnAtmEncapsulation."
+
+	REVISION	"200303171700Z" -- March 17, 2003
+	DESCRIPTION
+		"The following changes were made to manage the configuration 
+		of 802.1Q PVCs on Ethernet ports, ATM circuits and Frame 
+		Relay circuits:
+		    Updated MODULE-IDENTITY.
+		    Added TEXTUAL-CONVENTION RbnDot1qEncapsulation.
+		    Added three new tables: 
+			rbnDot1qPvcOnEthConfigTable 
+			rbnDot1qPvcOnAtmConfigTable
+			rbnDot1qPvcOnFrConfigTable
+		    Added new compliance module and groups:
+			rbnPvcCompliance3 
+			rbnDot1qPvcOnEthGroup 
+			rbnDot1qPvcOnAtmGroup
+			rbnDot1qPvcOnFrGroup"
+
+	REVISION	"200212201700Z" -- December 20, 2002
+	DESCRIPTION
+		"To support categorization of circuit types, to provide
+		an object to link entries in the rbnAtmPvcConfigTable and
+		the rbnFrameRelayPvcConfigTable to the rbnBindTable from
+		the RBN-BIND-MIB, and to provide the capability to clear
+		subscribers from circuits, witness the following changes:
+		    Updated MODULE-IDENTITY.
+		    Added TEXTUAL-CONVENTION RbnPvcCircuitType.
+		    Added new objects to rbnAtmPvcConfigTable:
+			rbnAtmPvcCircuitType
+			rbnAtmPvcCircuitHandle
+			rbnAtmPvcClearCircuit
+		    Added new objects to rbnFrameRelayPvcConfigTable:
+			rbnFrameRelayPvcCircuitType
+			rbnFrameRelayPvcCircuitHandle
+			rbnFrameRelayPvcClearCircuit
+		    Added new MODULE-COMPLIANCE and OBJECT-GROUPs:
+			rbnPvcCompliance2
+			rbnAtmPvcGroup2
+			rbnFrameRelayPvcGroup2"
+
+	REVISION	"200211130000Z" -- November 13, 2002
+	DESCRIPTION
+		"Moved RbnSlot and RbnPort definitions to Textual 
+		Convention MIB (RBN-TC)."
+
+	REVISION	"200205231700Z" -- May 23, 2002
+	DESCRIPTION
+		"Updated CONTACT-INFO clause in MODULE-IDENTITY.
+		Added new CLIPs encaps type to the RbnFrameRelayEncapsulation
+		and RbnAtmEncapsulation TEXTUAL-CONVENTION definitions."
+
+	REVISION	"200105091700Z" -- May 9, 2001
+	DESCRIPTION
+		"Updated range on RbnSlot, RbnPort, and rbnAtmPvcVpi."
+
+	REVISION	"200102101700Z" -- February 10, 2001
+	DESCRIPTION
+		"Removed all references to padding which was an obsoleted
+		 attribute of PVC circuits."
+
+	REVISION	"200008301200Z" -- August 30, 2000
+	DESCRIPTION
+		"Initial version."
+	::= { rbnMgmt 7 }
+
+rbnPvcMIBObjects       OBJECT IDENTIFIER ::= { rbnPvcMib 1 }
+
+rbnPvcMIBConformance   OBJECT IDENTIFIER ::= { rbnPvcMib 2 }
+
+rbnPvcMIBNotifications OBJECT IDENTIFIER ::= { rbnPvcMib 3 }
+
+--
+-- Textual Conventions
+--
+RbnFrameRelayEncapsulation ::= TEXTUAL-CONVENTION
+	STATUS       current
+	DESCRIPTION
+		"The encapsulation types supported by frame relay."
+	SYNTAX	INTEGER {
+		auto1490(1),    -- auto detect bridge or routed encapsulation
+		bridge1490(2),  -- bridged 1490
+		multi1490(3),   -- 1490 bridge or PPPoE encapsulation
+		route1490(4),   -- Routed 1490 encapsulation
+		l2tp(5),        -- l2tp encapsulation
+		l2tpVcMuxed(6), -- vc-muxed l2tp encapsulation
+		ppp(7),         -- PPP encapsulation
+		pppAuto(8),     -- Automatically detect PPP encapsulation
+		pppOverEthernet(9), -- PPP over Ethernet (PPPOE) encapsulation
+		dot1q1490(10),  -- 802.1Q over bridged 1490
+		clips1490(11),  -- clientless IP 1490
+		pppAutoNopoe(12) -- pppAuto without pppoe
+	}
+
+RbnAtmEncapsulation ::= TEXTUAL-CONVENTION
+	STATUS       current
+	DESCRIPTION
+		"The encapsulation types supported by ATM."
+	SYNTAX	INTEGER {
+		unknown(0),       -- unknown encapsulation
+		auto1483(1),      -- auto detect bridge or routed encapsulation
+		bridge1483(2),    -- bridged 1483
+		multi1483(3),     -- 1483 bridge or PPPoE encapsulation
+		route1483(4),     -- Routed 1483 encapsulation
+		l2tp(5),          -- l2tp encapsulation
+		l2tpVcMuxed(6),   -- vc-muxed l2tp encapsulation
+		ppp(7),           -- PPP encapsulation
+		pppAuto(8),       -- Automatically detect PPP encapsulation
+		pppOverEthernet(9), -- PPP over Ethernet (PPPOE) encapsulation
+		pppSerial(10),    -- SERIAL PPP encaps used in non compliant
+				  -- configurations
+		pppNlpid(11),     -- NLPID PPP encaps
+		pppLlc(12),       -- LLC/SNAP PPP encaps per RFC 2364
+		pppVcMuxed(13),   -- vc-based mux encaps per RFC-2364
+		raw(14),          -- raw encaps
+		dot1q1483(15),    -- 802.1Q over bridged 1483
+		clips1483(16),    -- clientless IP 1483
+		pppAutoNopoe(17), -- pppAuto without pppoe
+        	cell(18)          -- cell
+	}
+
+RbnDot1qEncapsulation ::= TEXTUAL-CONVENTION
+        STATUS       current
+        DESCRIPTION
+                "The encapsulation types supported by 802.1Q PVC."
+        SYNTAX  INTEGER {
+		unknown(0),                    -- unknown encapsulation
+		ipOverEthernet(1),             -- IP over Ethernet encapsulation
+		dot1qMulti(2),                 -- PPPoE, IPoE, or IPv6oE encapsulation
+		pppOverEthernet(3),            -- PPP over Ethernet encapsulation
+		dot1qRaw(4),                   -- dot1qRaw over Ethernet encapsulation
+		dot1qClips(5),                 -- dot1qClips over Ethernet encapsulation
+		dot1qTunnelMulti(6),           -- PPPoE, IPoE, or IPv6oE encapsulation
+		dot1qTunnelPppOverEthernet(7), -- PPP over Ethernet encapsulation
+        	dot1qTunnelRaw(8),             -- dot1qTunnelRaw over Ethernet encapsulation
+		dot1qTunnelClips(9)            -- do1tqTunnelclips over Ethernet encapsulation
+}
+
+RbnPvcCircuitType ::= TEXTUAL-CONVENTION
+	STATUS       current
+	DESCRIPTION
+		"The PVC circuit type."
+	SYNTAX	INTEGER {
+		explicit(1),		-- a single explicit circuit
+		explicitRange(2),	-- an explicit circuit range
+		onDemandRange(3),	-- an ondemand circuit range
+		protection(4)		-- an APS protection circuit
+	}
+
+
+--
+-- ATM PVC Configuration Group
+--
+-- This table supports the identification, addition, configuration and
+-- deletion of ATM PVCs.
+--
+
+rbnAtmPvcConfigTable OBJECT-TYPE
+	SYNTAX       SEQUENCE OF RbnAtmPvcConfigEntry
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"This table contains the objects which identify and configure
+		ATM PVCs."
+	::= { rbnPvcMIBObjects 1 }
+
+rbnAtmPvcConfigEntry OBJECT-TYPE
+	SYNTAX       RbnAtmPvcConfigEntry
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"A conceptual row in the rbnAtmPvcConfigTable."
+	INDEX {
+		rbnAtmPvcSlot,
+		rbnAtmPvcPort,
+		rbnAtmPvcVpi,
+		rbnAtmPvcVci
+	}
+	::= { rbnAtmPvcConfigTable 1 }
+
+RbnAtmPvcConfigEntry ::=
+	SEQUENCE {
+		rbnAtmPvcSlot		RbnSlot,
+		rbnAtmPvcPort		RbnPort,
+		rbnAtmPvcVpi		Unsigned32,
+		rbnAtmPvcVci		Unsigned32,
+		rbnAtmPvcProfileName	SnmpAdminString,
+		rbnAtmPvcEncapsulation	RbnAtmEncapsulation,
+		rbnAtmPvcRowStatus	RowStatus,
+		rbnAtmPvcCircuitType	RbnPvcCircuitType,
+		rbnAtmPvcCircuitHandle	RbnCircuitHandle,
+		rbnAtmPvcClearCircuit	TruthValue
+	}
+
+rbnAtmPvcSlot OBJECT-TYPE
+	SYNTAX       RbnSlot
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The chassis slot number"
+	::= { rbnAtmPvcConfigEntry 1 }
+
+rbnAtmPvcPort OBJECT-TYPE
+	SYNTAX       RbnPort
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The port number"
+	::= { rbnAtmPvcConfigEntry 2 }
+
+rbnAtmPvcVpi OBJECT-TYPE
+	SYNTAX       Unsigned32 (0..255)
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The Virtual Path Identifier for the PVC."
+	::= { rbnAtmPvcConfigEntry 3 }
+
+rbnAtmPvcVci OBJECT-TYPE
+	SYNTAX       Unsigned32 (0..65535)
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION 
+		"The Virtual Channel Identifier for the PVC."
+	::= { rbnAtmPvcConfigEntry 4 }
+
+rbnAtmPvcProfileName OBJECT-TYPE
+	SYNTAX       SnmpAdminString (SIZE(1..63))
+	MAX-ACCESS   read-create
+	STATUS       current
+	DESCRIPTION 
+		"The profile name to use with the PVC."
+	::= { rbnAtmPvcConfigEntry 5 }
+
+rbnAtmPvcEncapsulation OBJECT-TYPE
+	SYNTAX       RbnAtmEncapsulation
+	MAX-ACCESS   read-create
+	STATUS       current
+	DESCRIPTION 
+		"The encapsulation to use with the PVC."
+	::= { rbnAtmPvcConfigEntry 6 }
+
+rbnAtmPvcRowStatus OBJECT-TYPE
+	SYNTAX       RowStatus
+	MAX-ACCESS   read-create
+	STATUS       current
+	DESCRIPTION 
+		"The row status for creating, modifying, or deleting an entry
+		in the table."
+	::= { rbnAtmPvcConfigEntry 8 }
+
+rbnAtmPvcCircuitType OBJECT-TYPE
+	SYNTAX       RbnPvcCircuitType
+	MAX-ACCESS   read-create
+	STATUS       current
+	DESCRIPTION 
+		"The PVC circuit type.  With respect to this mib
+		object, only those entries whose rbnAtmPvcCircuitType
+		has a value 'explicit' may be removed by setting
+		rbnAtmPvcRowStatus equal to 'destroy'.  A set
+		operation with rbnAtmPvcRowStatus equal to 'destroy'
+		on any row with rbnAtmPvcCircuitType not equal to
+		'explicit' will result in an INCONSISTENT_VALUE_ERROR."
+	DEFVAL { explicit }
+	::= { rbnAtmPvcConfigEntry 9 }
+
+rbnAtmPvcCircuitHandle OBJECT-TYPE
+	SYNTAX       RbnCircuitHandle
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION 
+		"This object is used internally to uniquely identify
+		a circuit.  The value of this object may be used to
+		correlate entries with those in the rbnBindTable defined
+		in the RBN-BIND-MIB."
+	::= { rbnAtmPvcConfigEntry 10 }
+
+rbnAtmPvcClearCircuit OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-create
+	STATUS       current
+	DESCRIPTION 
+		"When this object is true(1), the system will clear active
+		subscriber sessions on the specified circuit.  When false(2),
+		there is no action taken.  This object can only be written
+		when the conceptual row exists.
+
+		When this object is set to true(1) and the encapsulation
+		of the circuit is bridged or routed, e.g. bridge1483(2) or
+		route1483(4), subscribers will re-authenticate after
+		being cleared."
+	DEFVAL { false }
+	::= { rbnAtmPvcConfigEntry 11 }
+
+--
+-- Frame Relay PVC Configuration Group
+--
+-- This table supports the identification, addition, configuration and
+-- deletion of frame relay PVCs.
+--
+
+rbnFrameRelayPvcConfigTable OBJECT-TYPE
+	SYNTAX       SEQUENCE OF RbnFrameRelayPvcConfigEntry
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"This table contains the objects which identify and configure
+		Frame Relay PVCs."
+	::= { rbnPvcMIBObjects 2 }
+
+rbnFrameRelayPvcConfigEntry OBJECT-TYPE
+	SYNTAX       RbnFrameRelayPvcConfigEntry
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"A conceptual row in the rbnFrameRelayPvcConfigTable."
+	INDEX {
+		rbnFrameRelayPvcSlot,
+		rbnFrameRelayPvcPort,
+		rbnFrameRelayPvcChannel,
+		rbnFrameRelayPvcDLCI
+	}
+	::= { rbnFrameRelayPvcConfigTable 1 }
+
+RbnFrameRelayPvcConfigEntry ::=
+	SEQUENCE {
+		rbnFrameRelayPvcSlot		RbnSlot,
+		rbnFrameRelayPvcPort		RbnPort,
+		rbnFrameRelayPvcChannel		Unsigned32,
+		rbnFrameRelayPvcDLCI		Unsigned32,
+		rbnFrameRelayPvcProfileName	SnmpAdminString,
+		rbnFrameRelayPvcEncapsulation	RbnFrameRelayEncapsulation,
+		rbnFrameRelayPvcRowStatus	RowStatus,
+		rbnFrameRelayPvcCircuitType	RbnPvcCircuitType,
+		rbnFrameRelayPvcCircuitHandle	RbnCircuitHandle,
+		rbnFrameRelayPvcClearCircuit	TruthValue
+	}
+
+rbnFrameRelayPvcSlot OBJECT-TYPE
+	SYNTAX       RbnSlot
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The chassis slot number"
+	::= { rbnFrameRelayPvcConfigEntry 1 }
+
+rbnFrameRelayPvcPort OBJECT-TYPE
+	SYNTAX       RbnPort
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The port number"
+	::= { rbnFrameRelayPvcConfigEntry 2 }
+
+rbnFrameRelayPvcChannel OBJECT-TYPE
+	SYNTAX       Unsigned32 (0..255)
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The channel number"
+	::= { rbnFrameRelayPvcConfigEntry 3 }
+
+rbnFrameRelayPvcDLCI OBJECT-TYPE
+	SYNTAX       Unsigned32 (0..65535)
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION 
+		"The Data Link Connection Identifier"
+	::= { rbnFrameRelayPvcConfigEntry 4 }
+
+rbnFrameRelayPvcProfileName OBJECT-TYPE
+	SYNTAX       SnmpAdminString (SIZE(1..63))
+	MAX-ACCESS   read-create
+	STATUS       current
+	DESCRIPTION 
+		"The profile name to use with the PVC."
+	::= { rbnFrameRelayPvcConfigEntry 5 }
+
+rbnFrameRelayPvcEncapsulation OBJECT-TYPE
+	SYNTAX       RbnFrameRelayEncapsulation
+	MAX-ACCESS   read-create
+	STATUS       current
+	DESCRIPTION 
+		"The encapsulation to use with the PVC."
+	::= { rbnFrameRelayPvcConfigEntry 6 }
+
+rbnFrameRelayPvcRowStatus OBJECT-TYPE
+	SYNTAX       RowStatus
+	MAX-ACCESS   read-create
+	STATUS       current
+	DESCRIPTION 
+		"The row status for creating, modifying, or deleting an entry
+		in the table."
+	::= { rbnFrameRelayPvcConfigEntry 8 }
+
+rbnFrameRelayPvcCircuitType OBJECT-TYPE
+	SYNTAX       RbnPvcCircuitType
+	MAX-ACCESS   read-create
+	STATUS       current
+	DESCRIPTION 
+		"The PVC circuit type.  With respect to this mib
+		object, only those entries whose rbnFrameRelayPvcCircuitType
+		has a value 'explicit' may be removed by setting
+		rbnFrameRelayPvcRowStatus equal to 'destroy'.  A set
+		operation with rbnFrameRelayPvcRowStatus equal to 'destroy'
+		on any row with rbnFrameRelayPvcCircuitType not equal to
+		'explicit' will result in an INCONSISTENT_VALUE_ERROR."
+	DEFVAL { explicit }
+	::= { rbnFrameRelayPvcConfigEntry 9 }
+
+rbnFrameRelayPvcCircuitHandle OBJECT-TYPE
+	SYNTAX       RbnCircuitHandle
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION 
+		"This object is used internally to uniquely identify
+		a circuit.  The value of this object may be used to
+		correlate entries with those in the rbnBindTable defined
+		in the RBN-BIND-MIB."
+	::= { rbnFrameRelayPvcConfigEntry 10 }
+
+rbnFrameRelayPvcClearCircuit OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-create
+	STATUS       current
+	DESCRIPTION 
+		"When this object is true(1), the system will clear active
+		subscriber sessions on the specified circuit.  When false(2),
+		there is no action taken.  This object can only be written
+		when the conceptual row exists.
+
+		When this object is set to true(1) and the encapsulation
+		of the circuit is bridged or routed, e.g. bridge1490(2) or
+		route1490(4), subscribers will re-authenticate after
+		being cleared."
+	::= { rbnFrameRelayPvcConfigEntry 11 }
+
+--
+-- 802.1Q PVC on Ethernet Configuration Group
+--
+-- This table supports the identification, addition, configuration and
+-- deletion of IEEE 802.1Q PVCs on Ethernet ports.
+--
+
+rbnDot1qPvcOnEthConfigTable OBJECT-TYPE
+        SYNTAX       SEQUENCE OF RbnDot1qPvcOnEthConfigEntry
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+                "This table contains the objects which identify and configure
+                IEEE 802.1Q PVCs on Ethernet ports."
+        ::= { rbnPvcMIBObjects 3 }
+
+rbnDot1qPvcOnEthConfigEntry OBJECT-TYPE
+        SYNTAX       RbnDot1qPvcOnEthConfigEntry
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+                "A conceptual row in the rbnDot1qPvcOnEthConfigTable."
+        INDEX {
+                rbnDot1qPvcOnEthSlot,
+                rbnDot1qPvcOnEthPort,
+                rbnDot1qPvcOnEthVlanId
+        }
+        ::= { rbnDot1qPvcOnEthConfigTable 1 }
+
+RbnDot1qPvcOnEthConfigEntry ::=
+        SEQUENCE {
+                rbnDot1qPvcOnEthSlot                 RbnSlot,
+                rbnDot1qPvcOnEthPort                 RbnPort,
+                rbnDot1qPvcOnEthVlanId               RbnVidOrUntagged,
+                rbnDot1qPvcOnEthRowStatus            RowStatus, 
+                rbnDot1qPvcOnEthProfileName          SnmpAdminString,
+                rbnDot1qPvcOnEthEncapsulation        RbnDot1qEncapsulation,
+                rbnDot1qPvcOnEthCircuitType          RbnPvcCircuitType,
+                rbnDot1qPvcOnEthCircuitHandle        RbnCircuitHandle,
+                rbnDot1qPvcOnEthClearCircuit         TruthValue
+        } 
+
+rbnDot1qPvcOnEthSlot OBJECT-TYPE
+        SYNTAX       RbnSlot
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+                "The chassis slot number."
+        ::= { rbnDot1qPvcOnEthConfigEntry 1 }
+
+rbnDot1qPvcOnEthPort OBJECT-TYPE
+        SYNTAX       RbnPort
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+                "The port number."
+        ::= { rbnDot1qPvcOnEthConfigEntry 2 }
+
+rbnDot1qPvcOnEthVlanId OBJECT-TYPE
+        SYNTAX       RbnVidOrUntagged
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION 
+                "IEEE 802.1Q Virtual LAN (VLAN) tag value."
+        ::= { rbnDot1qPvcOnEthConfigEntry 3 } 
+
+rbnDot1qPvcOnEthRowStatus OBJECT-TYPE
+        SYNTAX       RowStatus
+        MAX-ACCESS   read-create
+        STATUS       current
+        DESCRIPTION 
+                "The row status for creating, modifying, or deleting an entry
+                in the table."
+        ::= { rbnDot1qPvcOnEthConfigEntry 4 }
+
+rbnDot1qPvcOnEthProfileName OBJECT-TYPE
+        SYNTAX       SnmpAdminString (SIZE(1..63))
+        MAX-ACCESS   read-create
+        STATUS       current
+        DESCRIPTION  
+                "The profile name to use with the PVC."
+        ::= { rbnDot1qPvcOnEthConfigEntry 5 }
+
+rbnDot1qPvcOnEthEncapsulation OBJECT-TYPE
+        SYNTAX       RbnDot1qEncapsulation
+        MAX-ACCESS   read-create
+        STATUS       current
+        DESCRIPTION  
+                "The encapsulation to use with the PVC."
+        ::= { rbnDot1qPvcOnEthConfigEntry 6 }
+
+rbnDot1qPvcOnEthCircuitType OBJECT-TYPE
+        SYNTAX       RbnPvcCircuitType
+        MAX-ACCESS   read-create
+        STATUS       current
+        DESCRIPTION
+                "The PVC circuit type.  With respect to this mib object,
+                only those entries whose rbnDot1qPvcOnEthCircuitType
+                has a value 'explicit' may be removed by setting
+                rbnDot1qPvcOnEthRowStatus equal to 'destroy'.  A set
+                operation with rbnDot1qPvcOnEthRowStatus equal to 'destroy'
+                on any row with rbnDot1qPvcOnEthCircuitType not equal to
+                'explicit' will result in an INCONSISTENT_VALUE_ERROR."
+        DEFVAL { explicit }
+        ::= { rbnDot1qPvcOnEthConfigEntry 7 }
+
+rbnDot1qPvcOnEthCircuitHandle OBJECT-TYPE
+        SYNTAX       RbnCircuitHandle
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+                "This object is used internally to uniquely identify
+                a circuit.  The value of this object may be used to
+                correlate entries with those in the rbnBindTable defined
+                in the RBN-BIND-MIB."
+        ::= { rbnDot1qPvcOnEthConfigEntry 8 }
+
+rbnDot1qPvcOnEthClearCircuit OBJECT-TYPE
+        SYNTAX       TruthValue
+        MAX-ACCESS   read-create
+        STATUS       current
+        DESCRIPTION
+               "When this object is true(1), the system will clear active
+                subscriber sessions on the specified circuit.  When false(2),
+		there is no action taken.  This object can only be written
+		when the conceptual row exists."
+        DEFVAL { false }
+        ::= { rbnDot1qPvcOnEthConfigEntry 9 }
+
+--
+-- 802.1Q PVC Configuration On ATM Circuits Group
+--
+-- This table supports the identification, addition, configuration and
+-- deletion of IEEE 802.1Q PVCs on ATM circuits.
+--
+
+rbnDot1qPvcOnAtmConfigTable OBJECT-TYPE
+        SYNTAX       SEQUENCE OF RbnDot1qPvcOnAtmConfigEntry
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+                "This table contains the objects which identify and configure
+                IEEE 802.1Q PVCs on ATM circuits."
+        ::= { rbnPvcMIBObjects 4 }
+
+rbnDot1qPvcOnAtmConfigEntry OBJECT-TYPE
+        SYNTAX       RbnDot1qPvcOnAtmConfigEntry
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+                "A conceptual row in the rbnDot1qPvcOnAtmConfigTable."
+        INDEX {
+                rbnDot1qPvcOnAtmSlot,
+                rbnDot1qPvcOnAtmPort,
+                rbnDot1qPvcOnAtmVpi,
+                rbnDot1qPvcOnAtmVci,
+                rbnDot1qPvcOnAtmVlanId
+        }
+        ::= { rbnDot1qPvcOnAtmConfigTable 1 }
+
+RbnDot1qPvcOnAtmConfigEntry ::=
+        SEQUENCE {
+                rbnDot1qPvcOnAtmSlot                 RbnSlot,
+                rbnDot1qPvcOnAtmPort                 RbnPort,
+                rbnDot1qPvcOnAtmVpi                  Unsigned32,
+                rbnDot1qPvcOnAtmVci                  Unsigned32,
+                rbnDot1qPvcOnAtmVlanId               RbnVidOrUntagged,
+                rbnDot1qPvcOnAtmRowStatus            RowStatus, 
+                rbnDot1qPvcOnAtmProfileName          SnmpAdminString,
+                rbnDot1qPvcOnAtmEncapsulation        RbnDot1qEncapsulation,
+                rbnDot1qPvcOnAtmCircuitType          RbnPvcCircuitType,
+                rbnDot1qPvcOnAtmCircuitHandle        RbnCircuitHandle,
+                rbnDot1qPvcOnAtmClearCircuit         TruthValue
+        } 
+
+rbnDot1qPvcOnAtmSlot OBJECT-TYPE
+        SYNTAX       RbnSlot
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+                "The chassis slot number."
+        ::= { rbnDot1qPvcOnAtmConfigEntry 1 }
+
+rbnDot1qPvcOnAtmPort OBJECT-TYPE
+        SYNTAX       RbnPort
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+                "The port number."
+        ::= { rbnDot1qPvcOnAtmConfigEntry 2 }
+
+rbnDot1qPvcOnAtmVpi OBJECT-TYPE
+	SYNTAX       Unsigned32 (0..255)
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The Virtual Path Identifier for the PVC."
+	::= { rbnDot1qPvcOnAtmConfigEntry 3 }
+
+rbnDot1qPvcOnAtmVci OBJECT-TYPE
+	SYNTAX       Unsigned32 (0..65535)
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION 
+		"The Virtual Channel Identifier for the PVC."
+	::= { rbnDot1qPvcOnAtmConfigEntry 4 }
+
+rbnDot1qPvcOnAtmVlanId OBJECT-TYPE
+        SYNTAX       RbnVidOrUntagged
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION 
+                "IEEE 802.1Q Virtual LAN (VLAN) tag value."
+        ::= { rbnDot1qPvcOnAtmConfigEntry 5 } 
+
+rbnDot1qPvcOnAtmRowStatus OBJECT-TYPE
+        SYNTAX       RowStatus
+        MAX-ACCESS   read-create
+        STATUS       current
+        DESCRIPTION 
+                "The row status for creating, modifying, or deleting an entry
+                in the table."
+        ::= { rbnDot1qPvcOnAtmConfigEntry 6 }
+
+rbnDot1qPvcOnAtmProfileName OBJECT-TYPE
+        SYNTAX       SnmpAdminString (SIZE(1..63))
+        MAX-ACCESS   read-create
+        STATUS       current
+        DESCRIPTION  
+                "The profile name to use with the PVC."
+        ::= { rbnDot1qPvcOnAtmConfigEntry 7 }
+
+rbnDot1qPvcOnAtmEncapsulation OBJECT-TYPE
+        SYNTAX       RbnDot1qEncapsulation
+        MAX-ACCESS   read-create
+        STATUS       current
+        DESCRIPTION  
+                "The encapsulation to use with the PVC."
+        ::= { rbnDot1qPvcOnAtmConfigEntry 8 }
+
+rbnDot1qPvcOnAtmCircuitType OBJECT-TYPE
+        SYNTAX       RbnPvcCircuitType
+        MAX-ACCESS   read-create
+        STATUS       current
+        DESCRIPTION
+                "The PVC circuit type.  With respect to this mib object,
+                only those entries whose rbnDot1qPvcOnAtmCircuitType
+                has a value 'explicit' may be removed by setting
+                rbnDot1qPvcOnAtmRowStatus equal to 'destroy'.  A set
+                operation with rbnDot1qPvcOnAtmRowStatus equal to 'destroy'
+                on any row with rbnDot1qPvcOnAtmCircuitType not equal to
+                'explicit' will result in an INCONSISTENT_VALUE_ERROR."
+        DEFVAL { explicit }
+        ::= { rbnDot1qPvcOnAtmConfigEntry 9 }
+
+rbnDot1qPvcOnAtmCircuitHandle OBJECT-TYPE
+        SYNTAX       RbnCircuitHandle
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+                "This object is used internally to uniquely identify
+                a circuit.  The value of this object may be used to
+                correlate entries with those in the rbnBindTable defined
+                in the RBN-BIND-MIB."
+        ::= { rbnDot1qPvcOnAtmConfigEntry 10 }
+
+rbnDot1qPvcOnAtmClearCircuit OBJECT-TYPE
+        SYNTAX       TruthValue
+        MAX-ACCESS   read-create
+        STATUS       current
+        DESCRIPTION
+               "When this object is true(1), the system will clear active
+                subscriber sessions on the specified circuit.  When false(2),
+		there is no action taken.  This object can only be written
+		when the conceptual row exists."
+        DEFVAL { false }
+        ::= { rbnDot1qPvcOnAtmConfigEntry 11 }
+
+--
+-- 802.1Q PVC Configuration On Frame Relay Circuits Group
+--
+-- This table supports the identification, addition, configuration and
+-- deletion of IEEE 802.1Q PVCs on Frame Relay circuits.  In addition,
+-- clearing subscribers from circuits is supported.
+--
+
+rbnDot1qPvcOnFrConfigTable OBJECT-TYPE
+        SYNTAX       SEQUENCE OF RbnDot1qPvcOnFrConfigEntry
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+                "This table contains the objects which identify and configure
+                IEEE 802.1Q PVCs on ATM circuits."
+        ::= { rbnPvcMIBObjects 5 }
+
+rbnDot1qPvcOnFrConfigEntry OBJECT-TYPE
+        SYNTAX       RbnDot1qPvcOnFrConfigEntry
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+                "A conceptual row in the rbnDot1qPvcOnFrConfigTable."
+        INDEX {
+                rbnDot1qPvcOnFrSlot,
+                rbnDot1qPvcOnFrPort,
+                rbnDot1qPvcOnFrChannel,
+                rbnDot1qPvcOnFrDLCI,
+                rbnDot1qPvcOnFrVlanId
+        }
+        ::= { rbnDot1qPvcOnFrConfigTable 1 }
+
+RbnDot1qPvcOnFrConfigEntry ::=
+        SEQUENCE {
+                rbnDot1qPvcOnFrSlot                 RbnSlot,
+                rbnDot1qPvcOnFrPort                 RbnPort,
+                rbnDot1qPvcOnFrChannel              Unsigned32,
+                rbnDot1qPvcOnFrDLCI                 Unsigned32,
+                rbnDot1qPvcOnFrVlanId               RbnVidOrUntagged,
+                rbnDot1qPvcOnFrRowStatus            RowStatus, 
+                rbnDot1qPvcOnFrProfileName          SnmpAdminString,
+                rbnDot1qPvcOnFrEncapsulation        RbnDot1qEncapsulation,
+                rbnDot1qPvcOnFrCircuitType          RbnPvcCircuitType,
+                rbnDot1qPvcOnFrCircuitHandle        RbnCircuitHandle,
+                rbnDot1qPvcOnFrClearCircuit         TruthValue
+        } 
+
+rbnDot1qPvcOnFrSlot OBJECT-TYPE
+        SYNTAX       RbnSlot
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+                "The chassis slot number."
+        ::= { rbnDot1qPvcOnFrConfigEntry 1 }
+
+rbnDot1qPvcOnFrPort OBJECT-TYPE
+        SYNTAX       RbnPort
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION
+                "The port number."
+        ::= { rbnDot1qPvcOnFrConfigEntry 2 }
+
+rbnDot1qPvcOnFrChannel OBJECT-TYPE
+	SYNTAX       Unsigned32 (0..65535)
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The channel number."
+	::= { rbnDot1qPvcOnFrConfigEntry 3 }
+
+rbnDot1qPvcOnFrDLCI OBJECT-TYPE
+	SYNTAX       Unsigned32 (0..65535)
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION 
+		"The Data Link Connection Identifier."
+	::= { rbnDot1qPvcOnFrConfigEntry 4 }
+
+rbnDot1qPvcOnFrVlanId OBJECT-TYPE
+        SYNTAX       RbnVidOrUntagged
+        MAX-ACCESS   not-accessible
+        STATUS       current
+        DESCRIPTION 
+                "IEEE 802.1Q Virtual LAN (VLAN) tag value."
+        ::= { rbnDot1qPvcOnFrConfigEntry 5 } 
+
+rbnDot1qPvcOnFrRowStatus OBJECT-TYPE
+        SYNTAX       RowStatus
+        MAX-ACCESS   read-create
+        STATUS       current
+        DESCRIPTION 
+                "The row status for creating, modifying, or deleting an entry
+                in the table."
+        ::= { rbnDot1qPvcOnFrConfigEntry 6 }
+
+rbnDot1qPvcOnFrProfileName OBJECT-TYPE
+        SYNTAX       SnmpAdminString (SIZE(1..63))
+        MAX-ACCESS   read-create
+        STATUS       current
+        DESCRIPTION  
+                "The profile name to use with the PVC."
+        ::= { rbnDot1qPvcOnFrConfigEntry 7 }
+
+rbnDot1qPvcOnFrEncapsulation OBJECT-TYPE
+        SYNTAX       RbnDot1qEncapsulation
+        MAX-ACCESS   read-create
+        STATUS       current
+        DESCRIPTION  
+                "The encapsulation to use with the PVC."
+        ::= { rbnDot1qPvcOnFrConfigEntry 8 }
+
+rbnDot1qPvcOnFrCircuitType OBJECT-TYPE
+        SYNTAX       RbnPvcCircuitType
+        MAX-ACCESS   read-create
+        STATUS       current
+        DESCRIPTION
+                "The PVC circuit type.  With respect to this mib object,
+                only those entries whose rbnDot1qPvcOnFrCircuitType
+                has a value 'explicit' may be removed by setting
+                rbnDot1qPvcOnFrRowStatus equal to 'destroy'.  A set
+                operation with rbnDot1qPvcOnFrRowStatus equal to 'destroy'
+                on any row with rbnDot1qPvcOnFrCircuitType not equal to
+                'explicit' will result in an INCONSISTENT_VALUE_ERROR."
+        DEFVAL { explicit }
+        ::= { rbnDot1qPvcOnFrConfigEntry 9 }
+
+rbnDot1qPvcOnFrCircuitHandle OBJECT-TYPE
+        SYNTAX       RbnCircuitHandle
+        MAX-ACCESS   read-only
+        STATUS       current
+        DESCRIPTION
+                "This object is used internally to uniquely identify
+                a circuit.  The value of this object may be used to
+                correlate entries with those in the rbnBindTable defined
+                in the RBN-BIND-MIB."
+        ::= { rbnDot1qPvcOnFrConfigEntry 10 }
+
+rbnDot1qPvcOnFrClearCircuit OBJECT-TYPE
+        SYNTAX       TruthValue
+        MAX-ACCESS   read-create
+        STATUS       current
+        DESCRIPTION
+               "When this object is true(1), the system will clear active
+                subscriber sessions on the specified circuit.  When false(2),
+		there is no action taken.  This object can only be written
+		when the conceptual row exists."
+        DEFVAL { false }
+        ::= { rbnDot1qPvcOnFrConfigEntry 11 }
+
+--
+-- compliance statements
+--
+
+rbnPvcCompliances OBJECT IDENTIFIER ::= { rbnPvcMIBConformance 1 }
+rbnPvcGroups      OBJECT IDENTIFIER ::= { rbnPvcMIBConformance 2 }
+
+rbnPvcCompliance MODULE-COMPLIANCE
+	STATUS       deprecated
+	DESCRIPTION
+		"The compliance statement for SNMP entities which implement
+		 the RBN-PVC-MIB."
+	MODULE      -- this module
+	MANDATORY-GROUPS {
+		rbnAtmPvcGroup,
+		rbnFrameRelayPvcGroup
+	}
+	::= { rbnPvcCompliances 1 }
+
+rbnPvcCompliance2 MODULE-COMPLIANCE
+	STATUS       deprecated
+	DESCRIPTION
+		"The compliance statement for SNMP entities which implement
+		 the RBN-PVC-MIB."
+	MODULE      -- this module
+	MANDATORY-GROUPS {
+		rbnAtmPvcGroup2,
+		rbnFrameRelayPvcGroup2
+	}
+	::= { rbnPvcCompliances 2 }
+
+rbnPvcCompliance3 MODULE-COMPLIANCE
+	STATUS       current
+	DESCRIPTION
+		"The compliance statement for SNMP entities which implement
+		 the RBN-PVC-MIB."
+	MODULE      -- this module
+	MANDATORY-GROUPS {
+		rbnAtmPvcGroup2,
+		rbnFrameRelayPvcGroup2,
+		rbnDot1qPvcOnEthGroup,
+		rbnDot1qPvcOnAtmGroup,
+		rbnDot1qPvcOnFrGroup
+	}
+	::= { rbnPvcCompliances 3 }
+
+--
+-- groupings
+--
+
+rbnAtmPvcGroup 	OBJECT-GROUP
+	OBJECTS {
+		rbnAtmPvcProfileName,
+		rbnAtmPvcEncapsulation,
+		rbnAtmPvcRowStatus
+	}
+	STATUS       deprecated
+	DESCRIPTION
+		"the collection of objects which represent the ATM PVC."
+	::= { rbnPvcGroups 1 }
+
+rbnFrameRelayPvcGroup 	OBJECT-GROUP
+	OBJECTS {
+		rbnFrameRelayPvcProfileName,
+		rbnFrameRelayPvcEncapsulation,
+		rbnFrameRelayPvcRowStatus
+	}
+	STATUS       deprecated
+	DESCRIPTION
+		"the collection of objects which represent the FrameRelay PVC."
+	::= { rbnPvcGroups 2 }
+
+rbnAtmPvcGroup2 	OBJECT-GROUP
+	OBJECTS {
+		rbnAtmPvcProfileName,
+		rbnAtmPvcEncapsulation,
+		rbnAtmPvcRowStatus,
+		rbnAtmPvcCircuitType,
+		rbnAtmPvcCircuitHandle,
+		rbnAtmPvcClearCircuit
+	}
+	STATUS       current
+	DESCRIPTION
+		"The collection of objects which represent the ATM PVC."
+	::= { rbnPvcGroups 3 }
+
+rbnFrameRelayPvcGroup2 	OBJECT-GROUP
+	OBJECTS {
+		rbnFrameRelayPvcProfileName,
+		rbnFrameRelayPvcEncapsulation,
+		rbnFrameRelayPvcRowStatus,
+		rbnFrameRelayPvcCircuitType,
+		rbnFrameRelayPvcCircuitHandle,
+		rbnFrameRelayPvcClearCircuit
+	}
+	STATUS       current
+	DESCRIPTION
+		"The collection of objects which represent the FrameRelay PVC."
+	::= { rbnPvcGroups 4 }
+
+rbnDot1qPvcOnEthGroup  OBJECT-GROUP
+	OBJECTS {
+		rbnDot1qPvcOnEthRowStatus,
+		rbnDot1qPvcOnEthProfileName,
+		rbnDot1qPvcOnEthEncapsulation,
+		rbnDot1qPvcOnEthCircuitType,
+		rbnDot1qPvcOnEthCircuitHandle,
+		rbnDot1qPvcOnEthClearCircuit
+	}
+	STATUS       current
+	DESCRIPTION
+		"A collection of objects providing information specific
+		to IEEE 802.1Q PVCs on Ethernet ports."
+	::= { rbnPvcGroups 5 }
+
+rbnDot1qPvcOnAtmGroup  OBJECT-GROUP
+	OBJECTS {
+		rbnDot1qPvcOnAtmRowStatus,
+		rbnDot1qPvcOnAtmProfileName,
+		rbnDot1qPvcOnAtmEncapsulation,
+		rbnDot1qPvcOnAtmCircuitType,
+		rbnDot1qPvcOnAtmCircuitHandle,
+		rbnDot1qPvcOnAtmClearCircuit
+	}
+	STATUS       current
+	DESCRIPTION
+		"A collection of objects providing information specific
+		to IEEE 802.1Q PVCs on ATM circuits."
+	::= { rbnPvcGroups 6 }
+
+rbnDot1qPvcOnFrGroup  OBJECT-GROUP
+	OBJECTS {
+		rbnDot1qPvcOnFrRowStatus,
+		rbnDot1qPvcOnFrProfileName,
+		rbnDot1qPvcOnFrEncapsulation,
+		rbnDot1qPvcOnFrCircuitType,
+		rbnDot1qPvcOnFrCircuitHandle,
+		rbnDot1qPvcOnFrClearCircuit
+	}
+	STATUS       current
+	DESCRIPTION
+		"A collection of objects providing information specific
+		to IEEE 802.1Q PVCs on Frame Relay circuits."
+	::= { rbnPvcGroups 7 }
+
+END

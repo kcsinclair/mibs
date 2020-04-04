@@ -1,0 +1,477 @@
+-- $Id: RBN-IP-SECURITY-MIB.my,v 1.1.2.4 2011/02/22 17:26:17 thatcher Exp $
+-- $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-IP-SECURITY-MIB.my,v $
+-- *****************************************************************
+-- RBN-IP-SECURITY-MIB    IP SECURITY MIB
+--
+-- Copyright (c) 2010-2011 Ericsson AB
+-- All rights reserved.
+--
+-- *****************************************************************
+
+RBN-IP-SECURITY-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY,
+    OBJECT-TYPE, Unsigned32,
+    NOTIFICATION-TYPE
+            FROM SNMPv2-SMI
+
+    DateAndTime
+            FROM SNMPv2-TC
+
+    SnmpAdminString
+            FROM SNMP-FRAMEWORK-MIB
+
+    IANAItuEventType,
+    IANAItuProbableCause
+            FROM IANA-ITU-ALARM-TC-MIB
+
+    InetAddressType, InetAddress
+           FROM INET-ADDRESS-MIB          -- RFC4001
+
+    ItuPerceivedSeverity
+            FROM ITU-ALARM-TC-MIB
+
+    MODULE-COMPLIANCE,
+    OBJECT-GROUP,
+    NOTIFICATION-GROUP
+            FROM SNMPv2-CONF
+
+    rbnMgmt
+            FROM RBN-SMI;
+
+rbnIpSecurityMib MODULE-IDENTITY
+    LAST-UPDATED   "201101140000Z" -- Jan 14, 2011
+    ORGANIZATION   "Ericsson AB"
+    CONTACT-INFO
+            "       Ericsson AB
+                    100 Headquarters Dr
+                    San Jose, CA 95134
+                    USA
+
+             Phone: +1 408 750 5000
+               Fax: +1 408 750 5599
+            "
+    DESCRIPTION
+        "Defines the objects necessary to support the management of
+        IPSEC objects."
+
+    REVISION      "201101140000Z" -- Jan 14, 2011
+    DESCRIPTION
+        "Initial Version."
+
+    ::= { rbnMgmt 55}
+
+rbnIpSecNotifications OBJECT IDENTIFIER ::= { rbnIpSecurityMib 0 }
+
+rbnIpSecObjects       OBJECT IDENTIFIER ::= { rbnIpSecurityMib 1 }
+
+rbnIpSecConformance   OBJECT IDENTIFIER ::= { rbnIpSecurityMib 2 }
+
+--
+-- some structure for the mib objects
+--
+
+rbnIpSecNotify        OBJECT IDENTIFIER ::= { rbnIpSecObjects 1 }
+
+--
+-- IPSEC notification objects
+--
+
+rbnIpSecEventDateAndTime OBJECT-TYPE
+    SYNTAX      DateAndTime
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The date and time when the event was raised."
+    ::= { rbnIpSecNotify 1 }
+
+rbnIpSecEventSeverity  OBJECT-TYPE
+    SYNTAX      ItuPerceivedSeverity
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The current severity of the event."
+    ::= { rbnIpSecNotify 2 }
+
+rbnIpSecEventType OBJECT-TYPE
+    SYNTAX      IANAItuEventType
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The type of the event."
+    ::= { rbnIpSecNotify 3 }
+
+rbnIpSecEventProbableCause OBJECT-TYPE
+    SYNTAX      IANAItuProbableCause
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The probable cause for this event."
+    ::= { rbnIpSecNotify 4 }
+
+rbnIpSecTunnelIdentifier OBJECT-TYPE
+    SYNTAX      SnmpAdminString  (SIZE(0..270))
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Key to identify the tunnel alarm, consists of the remote-id type
+        and remote-id, or tunnel name. The string starts with a sub-string 
+        identifying the type, followed by the value.
+        ipv4-
+        fqdn-
+        rfc822Addr-
+        ipv6-
+        derAsn1Dn-
+        derAsn1Gn-
+        keyId-
+        name-"
+    ::= { rbnIpSecNotify 5 }
+
+rbnIpSecTunnelName OBJECT-TYPE
+    SYNTAX      SnmpAdminString  (SIZE(0..50))
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Name of the tunnel."
+    ::= { rbnIpSecNotify 6 }
+
+rbnIpSecTunnelType OBJECT-TYPE
+    SYNTAX      INTEGER  {
+                           static(1),
+                           dynamic(2),
+                           manual(3)
+                         }
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Type of tunnel."
+    ::= { rbnIpSecNotify 7 }
+
+rbnIpSecTunnelDownCause  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                          general(0),
+                          noRoute(1),
+                          aspHomingFailure(2),
+                          ppaHomingFailure(3),
+                          configuredDown(4),
+                          keepaliveFailure(5),
+                          downByPeer(6),
+                          rekeyFailure(7),
+                          aspSoftReset(8),
+                          indeterminate(9)
+                        }
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Additional information to describe the cause for
+        tunnel being down."
+    ::= { rbnIpSecNotify 8 }
+
+rbnIpSecRemoteIdType OBJECT-TYPE
+    SYNTAX      INTEGER {
+                          reserved(0),
+                          ipv4(1),
+                          fqdn(2),
+                          rfcAddr(3),
+                          -- Values 4, 6-8, 12-200 and
+                          -- 201-255 are reseved for IANA
+                          ipv6(5),
+                          derAsn1Dn(9),
+                          derAsn1Gn(10),
+                          keyId(11)
+    }
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Remote Id Type  of rbnIpSecRemoteId "
+    ::= { rbnIpSecNotify 9 }
+
+rbnIpSecRemoteId OBJECT-TYPE
+    SYNTAX      SnmpAdminString  (SIZE(0..256))
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Remote Id."
+    ::= { rbnIpSecNotify 10 }
+
+rbnIpSecLocalAddrContextName OBJECT-TYPE
+    SYNTAX      SnmpAdminString  (SIZE(0..32))
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Context name of the local address ."
+    ::= { rbnIpSecNotify 11 }
+
+rbnIpSecLocalAddressType OBJECT-TYPE
+       SYNTAX      InetAddressType
+       MAX-ACCESS  accessible-for-notify
+       STATUS      current
+       DESCRIPTION
+           "Specifies the type of local address to be used."
+       ::= { rbnIpSecNotify 12 }
+
+rbnIpSecLocalAddress OBJECT-TYPE
+    SYNTAX      InetAddress
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Local IP address of the tunnel."
+    ::= { rbnIpSecNotify 13 }
+
+rbnIpSecRemoteAddressType OBJECT-TYPE
+       SYNTAX      InetAddressType
+       MAX-ACCESS  accessible-for-notify
+       STATUS      current
+       DESCRIPTION
+           "Specifies the type of remote address to be used."
+       ::= { rbnIpSecNotify 14 }
+
+rbnIpSecRemoteAddress OBJECT-TYPE
+    SYNTAX      InetAddress
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Remote IP address of the tunnel."
+    ::= { rbnIpSecNotify 15 }
+
+rbnIpSecTunnelState OBJECT-TYPE
+    SYNTAX      INTEGER {
+                          up(1),
+                          down(2)
+                        }
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Tunnel State."
+    ::= { rbnIpSecNotify 16 }
+
+rbnIpSecSelfCertificateIdentifier OBJECT-TYPE
+    SYNTAX      SnmpAdminString  (SIZE(0..522))
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "<Subject Name> :ISSUER- <Issuer Name>"
+    ::= { rbnIpSecNotify 17 }
+
+rbnIpSecCertificateHandle OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Self Certificate Handle."
+    ::= { rbnIpSecNotify 18 }
+
+rbnIpSecExpiryDateAndTime OBJECT-TYPE
+    SYNTAX      SnmpAdminString  (SIZE(0..128))
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Date and Time the certificate will expire."
+    ::= { rbnIpSecNotify 19 }
+
+rbnIpSecCertificateSubjectName OBJECT-TYPE
+    SYNTAX      SnmpAdminString  (SIZE(0..256))
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Subject Name of the self certificate"
+    ::= { rbnIpSecNotify 20 }
+
+rbnIpSecCrlIdentifier OBJECT-TYPE
+    SYNTAX      SnmpAdminString  (SIZE(0..256))
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "ISSUER- <Issuer Name>"
+    ::= { rbnIpSecNotify 21 }
+
+--
+-- NOTIFICATIONS - node for hanging notification definitions
+--
+
+rbnIpSecTunnelStatusChangeAlarm NOTIFICATION-TYPE
+OBJECTS {
+        rbnIpSecEventDateAndTime,
+        rbnIpSecEventSeverity,
+        rbnIpSecEventType,
+        rbnIpSecEventProbableCause,
+        rbnIpSecTunnelIdentifier,
+        rbnIpSecTunnelName,
+        rbnIpSecTunnelType,
+        rbnIpSecTunnelDownCause,
+        rbnIpSecRemoteIdType,
+        rbnIpSecRemoteId,
+        rbnIpSecLocalAddrContextName,
+        rbnIpSecLocalAddressType,
+        rbnIpSecLocalAddress,
+        rbnIpSecRemoteAddressType,
+        rbnIpSecRemoteAddress,
+        rbnIpSecTunnelState
+    }
+    STATUS current
+    DESCRIPTION
+         "This notification signifies a change in the
+          IpSecTunnelState. When IPSecTunnelState has the value
+          'down', rbnIpSecEventSeverity has the value 'major'.  When
+          IPSecTunnelState has the value 'up' or is obsoleted due to 
+          configuration change rbnIpSecEventSeverity has the value 'clear'"
+    ::= { rbnIpSecNotifications 1 }
+
+rbnIpSecNoValidRSASelfCertificateAlarm NOTIFICATION-TYPE
+OBJECTS {
+        rbnIpSecEventDateAndTime,
+        rbnIpSecEventSeverity,
+        rbnIpSecEventType,
+        rbnIpSecEventProbableCause
+    }
+    STATUS current
+    DESCRIPTION
+        "This alarm is set, when there is no valid RSA self-certificate
+         for a context. It.s cleared when a valid self-certificate is
+         configured or when system time is change to make the existing
+         certificate valid.  As long as any valid RSA self-certificate exists from any
+         CA, this alarm will not be set. This alarm is set at .Major. severity."
+    ::= { rbnIpSecNotifications 2 }
+
+rbnIpSecNoValidRSATrustedCertificateAlarm NOTIFICATION-TYPE
+OBJECTS {
+        rbnIpSecEventDateAndTime,
+        rbnIpSecEventSeverity,
+        rbnIpSecEventType,
+        rbnIpSecEventProbableCause
+    }
+    STATUS current
+    DESCRIPTION
+         "This alarm is raised, when there is no valid RSA trusted-certificate for
+          a context. It.s cleared, when a valid trusted-certificate is
+          configured or when system time is change to make the existing certificate
+          valid. As long as any valid RSA trusted-certificate exists for any CA, this
+          alarm will not be raised. This alarm is set at .Major. severity."
+    ::= { rbnIpSecNotifications 3 }
+
+rbnIpSecRSASelfCertificateNearingExpiryAlarm NOTIFICATION-TYPE
+OBJECTS {
+        rbnIpSecEventDateAndTime,
+        rbnIpSecEventSeverity,
+        rbnIpSecEventType,
+        rbnIpSecEventProbableCause,
+        rbnIpSecSelfCertificateIdentifier,
+        rbnIpSecCertificateHandle,
+        rbnIpSecExpiryDateAndTime
+    }
+    STATUS current
+    DESCRIPTION
+        " This alarm notifies the operator that the RSA self certificate
+          expiration is near. It will be raised at the user specified time
+          before the expiration.  It will be cleared when a new certificate with
+          the self subject name is added, the certificate is deleted, or the system
+          time pulled up. This alarm is set at .Warning. severity."
+    ::= { rbnIpSecNotifications 4 }
+
+rbnIpSecRSATrustedCertificateNearingExpiryAlarm NOTIFICATION-TYPE
+OBJECTS {
+        rbnIpSecEventDateAndTime,
+        rbnIpSecEventSeverity,
+        rbnIpSecEventType,
+        rbnIpSecEventProbableCause,
+        rbnIpSecCertificateSubjectName,
+        rbnIpSecCertificateHandle,
+        rbnIpSecExpiryDateAndTime
+    }
+    STATUS current
+    DESCRIPTION
+        " This alarm notifies the operator that the RSA self certificate
+          expiration is near. It will be raised at the user specified time
+          before the expiration.  It will be cleared when a new certificate with
+          the self subject name is added, the certificate is deleted, or the system
+          time is pulled up. This alarm is set at .Warning. severity."
+    ::= { rbnIpSecNotifications 5 }
+
+rbnIpSecRSACrlNearingExpiryAlarm NOTIFICATION-TYPE
+OBJECTS {
+        rbnIpSecEventDateAndTime,
+        rbnIpSecEventSeverity,
+        rbnIpSecEventType,
+        rbnIpSecEventProbableCause,
+        rbnIpSecCrlIdentifier,
+        rbnIpSecCertificateHandle,
+        rbnIpSecExpiryDateAndTime
+    }
+    STATUS current
+    DESCRIPTION
+        " This alarm notifies the operator that the CRL
+          expiration is near. It will be raised at the user specified time
+          before the expiration.  It will be cleared when a new crl with
+          the same issuer name is added, the crl is deleted, or the system
+          time pulled up. This alarm is set at .Warning. severity."
+    ::= { rbnIpSecNotifications 6 }
+
+--
+-- compliance statements
+--
+rbnIpSecCompliances OBJECT IDENTIFIER ::= { rbnIpSecConformance 1 }
+rbnIpSecGroups      OBJECT IDENTIFIER ::= { rbnIpSecConformance 2 }
+
+rbnIpSecCompliance MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         the IPSEC MIB."
+
+    MODULE  -- this module
+        MANDATORY-GROUPS {
+            rbnIpSecNotifyObjectGroup,
+            rbnIpSecNotifyGroup
+        }
+    ::= { rbnIpSecCompliances 1 }
+
+--
+-- groupings
+--
+
+rbnIpSecNotifyObjectGroup OBJECT-GROUP
+    OBJECTS {
+        rbnIpSecEventDateAndTime,
+        rbnIpSecEventSeverity,
+        rbnIpSecEventType,
+        rbnIpSecEventProbableCause,
+        rbnIpSecTunnelIdentifier,
+        rbnIpSecTunnelName,
+        rbnIpSecTunnelType,
+        rbnIpSecTunnelDownCause,
+        rbnIpSecRemoteIdType,
+        rbnIpSecRemoteId,
+        rbnIpSecLocalAddrContextName,
+        rbnIpSecLocalAddressType,
+        rbnIpSecLocalAddress,
+        rbnIpSecRemoteAddressType,
+        rbnIpSecRemoteAddress,
+        rbnIpSecTunnelState,
+        rbnIpSecSelfCertificateIdentifier,
+        rbnIpSecCertificateSubjectName,
+        rbnIpSecCertificateHandle,
+        rbnIpSecExpiryDateAndTime,
+        rbnIpSecCrlIdentifier
+    }
+    STATUS current
+    DESCRIPTION
+        "The collection of objects related to IPSEC
+        notifications."
+    ::= { rbnIpSecGroups 1 }
+
+rbnIpSecNotifyGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        rbnIpSecTunnelStatusChangeAlarm,
+        rbnIpSecNoValidRSASelfCertificateAlarm,
+        rbnIpSecNoValidRSATrustedCertificateAlarm,
+        rbnIpSecRSASelfCertificateNearingExpiryAlarm,
+        rbnIpSecRSATrustedCertificateNearingExpiryAlarm,
+        rbnIpSecRSACrlNearingExpiryAlarm
+    }
+    STATUS current
+    DESCRIPTION
+        "Notification for tracking IPSEC events."
+    ::= { rbnIpSecGroups 2 }
+
+END

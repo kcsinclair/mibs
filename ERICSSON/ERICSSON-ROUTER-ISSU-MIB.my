@@ -1,0 +1,212 @@
+-- $Id:$
+-- $Source:$
+-- *****************************************************************
+-- ERICSSON-ROUTER-ISSU-MIB
+--
+-- Copyright (c) 2016 Ericsson AB
+-- All rights reserved.
+--
+-- *****************************************************************
+ERICSSON-ROUTER-ISSU-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+   MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE,
+   TimeTicks
+       FROM SNMPv2-SMI                 -- [RFC2578]
+   TEXTUAL-CONVENTION
+        FROM SNMPv2-TC
+   EriRouterIssuStage,
+   EriRouterIssuAction,
+   EriRouterIssuReason
+        FROM ERICSSON-ROUTER-ISSU-TC-MIB
+
+   MODULE-COMPLIANCE, OBJECT-GROUP,
+   NOTIFICATION-GROUP
+       FROM SNMPv2-CONF;               -- [RFC2580]
+
+eriRouterIssuMib MODULE-IDENTITY
+     LAST-UPDATED    "201512080000Z" -- Dec 08, 2015
+     ORGANIZATION    "Ericsson AB."
+     CONTACT-INFO
+             "       Ericsson Inc.
+
+                     100 Headquarters Dr
+                     San Jose, CA  95134
+                     USA
+
+             Phone:   +1 408 750-5000
+             Fax:     +1 408 750-5599
+             "
+     DESCRIPTION
+          "Defines the objects necessary to support the management
+           of ISSU objects."
+
+     REVISION        "201512080000Z" -- Dec 08, 2015
+     DESCRIPTION
+             "Initial version"
+     ::= { eriRouterMgmt 110 }
+
+-- MIB Objects
+
+eriRouterIssuMIBObjects       OBJECT IDENTIFIER ::= { eriRouterIssuMib 1 }
+
+eriRouterIssuConformance   OBJECT IDENTIFIER ::= { eriRouterIssuMib 2 }
+
+eriRouterIssuNotifications OBJECT IDENTIFIER ::= { eriRouterIssuMib 3 }
+
+
+eriRouterIssuMibObjects OBJECT IDENTIFIER ::= { eriRouterIssuMIBObjects 1 }
+
+eriRouterIssuStatusTable   OBJECT-TYPE
+     SYNTAX      SEQUENCE OF EriRouterIssuStatusEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+           "A table containing status during ISSU ."
+     ::= { eriRouterIssuMibObjects 1}
+
+eriRouterIssuStatusEntry OBJECT-TYPE
+     SYNTAX      EriRouterIssuStatusEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+           "An entry in the eriRouterIssuStatusTable."
+     INDEX   { eriRouterIssuSlot }
+     ::= { eriRouterIssuStatusTable 1 }
+
+EriRouterIssuStatusEntry ::= SEQUENCE {
+         eriRouterIssuSlot                    OCTET STRING,
+         eriRouterIssuUpgradeTimeLeft         TimeTicks,
+         eriRouterIssuCurrentActionTimeLeft   TimeTicks,
+         eriRouterIssuCurrentAction           EriRouterIssuAction,
+         eriRouterIssuPrevAction              EriRouterIssuAction,
+         eriRouterIssuActionReason            EriRouterIssuReason,
+         eriRouterIssuCurrentStage            EriRouterIssuStage,
+         eriRouterIssuPrevStage               EriRouterIssuStage
+}
+
+eriRouterIssuSlot OBJECT-TYPE
+     SYNTAX      OCTET STRING (SIZE (0..31))
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION "Slot number of a card where the upgrade is happening."
+::= { eriRouterIssuStatusEntry 1 }
+
+eriRouterIssuUpgradeTimeLeft OBJECT-TYPE
+     SYNTAX      TimeTicks
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION "Time remaining to complete ISSU for the system."
+ ::= { eriRouterIssuStatusEntry 2 }
+
+eriRouterIssuCurrentActionTimeLeft OBJECT-TYPE
+     SYNTAX      TimeTicks
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION  "Time remaining to complete current action."
+ ::= { eriRouterIssuStatusEntry 3 }
+
+eriRouterIssuCurrentAction OBJECT-TYPE
+     SYNTAX      EriRouterIssuAction
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION  "The system is executing this action in order to perform the ISSU."
+ ::= { eriRouterIssuStatusEntry 4 }
+
+eriRouterIssuPrevAction OBJECT-TYPE
+     SYNTAX      EriRouterIssuAction
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION   "Previous action performed in order to perform the ISSU."
+ ::= { eriRouterIssuStatusEntry 5 }
+
+eriRouterIssuActionReason OBJECT-TYPE
+     SYNTAX         EriRouterIssuReason
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION "Reason for the current action."
+ ::= { eriRouterIssuStatusEntry 6 }
+
+eriRouterIssuCurrentStage  OBJECT-TYPE
+     SYNTAX       EriRouterIssuStage
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION "Current stage of the system when performing ISSU."
+ ::= { eriRouterIssuStatusEntry 7 }
+
+eriRouterIssuPrevStage  OBJECT-TYPE
+     SYNTAX       EriRouterIssuStage
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION "Previous stage of the system when performing ISSU."
+ ::= { eriRouterIssuStatusEntry 8 }
+
+--
+-- NOTIFICATIONS - node for hanging notification definitions
+--
+
+eriRouterIssuStageChange NOTIFICATION-TYPE
+OBJECTS {
+        eriRouterIssuCurrentStage,
+        eriRouterIssuPrevStage,
+        eriRouterIssuUpgradeTimeLeft
+    }
+    STATUS current
+    DESCRIPTION
+        "During ISSU, SNMP notification will be generated whenever
+         the system enters into new stage."
+    ::= { eriRouterIssuNotifications 1 }
+
+eriRouterIssuFailed NOTIFICATION-TYPE
+OBJECTS {
+        eriRouterIssuPrevAction,
+        eriRouterIssuActionReason
+    }
+    STATUS current
+    DESCRIPTION
+        "This notification will be generated when ISSU system
+         enters into any failed action for line cards and RPSW."
+    ::= { eriRouterIssuNotifications 2 }
+
+-- Conformance Information
+
+eriRouterIssuMibCompliances OBJECT IDENTIFIER ::= { eriRouterIssuConformance 1 }
+eriRouterIssuMibGroups OBJECT IDENTIFIER ::= { eriRouterIssuConformance 2 }
+
+eriRouterIssuMibCompliance MODULE-COMPLIANCE
+         STATUS      current
+         DESCRIPTION
+                "The compliance statement for using this MIB."
+         MODULE      -- this module
+         MANDATORY-GROUPS {
+             eriRouterIssuStatusGroup,
+             eriRouterIssuMibNotifyGroup
+             }
+         ::= { eriRouterIssuMibCompliances 1 }
+
+eriRouterIssuStatusGroup OBJECT-GROUP
+        OBJECTS {
+               eriRouterIssuUpgradeTimeLeft,
+               eriRouterIssuCurrentActionTimeLeft,
+               eriRouterIssuCurrentAction,
+               eriRouterIssuPrevAction,
+               eriRouterIssuActionReason,
+               eriRouterIssuCurrentStage,
+               eriRouterIssuPrevStage
+        }
+        STATUS      current
+        DESCRIPTION
+                "A collection of objects providing status information."
+        ::= { eriRouterIssuMibGroups 1 }
+
+eriRouterIssuMibNotifyGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        eriRouterIssuStageChange,
+        eriRouterIssuFailed
+    }
+    STATUS current
+    DESCRIPTION
+        "Notification for tracking ISSU."
+    ::= { eriRouterIssuMibGroups 2 }
+
+END

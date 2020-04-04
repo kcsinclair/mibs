@@ -1,0 +1,170 @@
+-- %DNP% $Id: RBN-MPLS-L3VPN-STD-EXT-MIB.my,v 1.1.4.2 2011/02/22 17:26:17 thatcher Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-MPLS-L3VPN-STD-EXT-MIB.my,v $
+-- *****************************************************************
+-- RBN-MPLS-L3VPN-STD-EXT-MIB   Extension to RFC 4382
+--
+-- Copyright (c) 2009, 2011 Ericsson AB.
+-- All rights reserved.
+--
+-- *****************************************************************
+
+RBN-MPLS-L3VPN-STD-EXT-MIB DEFINITIONS ::= BEGIN
+IMPORTS
+   MODULE-IDENTITY, OBJECT-TYPE, Unsigned32
+      FROM SNMPv2-SMI                                     -- [RFC2578]
+   MODULE-COMPLIANCE, OBJECT-GROUP
+      FROM SNMPv2-CONF                                    -- [RFC2580]
+   SnmpAdminString
+      FROM SNMP-FRAMEWORK-MIB                             -- [RFC3411]
+   mplsL3VpnVrfName, MplsL3VpnRtType, 
+   MplsL3VpnRouteDistinguisher
+      FROM MPLS-L3VPN-STD-MIB                             -- [RFC4382]
+   AddressFamilyNumbers
+      FROM IANA-ADDRESS-FAMILY-NUMBERS-MIB                -- [IANAFamily]
+   rbnMgmt
+      FROM RBN-SMI
+   ;
+
+rbnMplsL3VpnMIB MODULE-IDENTITY
+    LAST-UPDATED    "201101191800Z" -- Jan 19, 2011
+    ORGANIZATION    "Ericsson AB."
+    CONTACT-INFO
+            "       Ericsson AB.
+
+            Postal: 100 Headquarters Dr
+                    San Jose, CA  95134
+                    USA
+
+             Phone: +1 408 750 5000
+               Fax: +1 408 750 5599
+            "
+    DESCRIPTION
+        "This MIB contains managed object definitions for the
+         Layer-3 Multiprotocol Label Switching Virtual
+         Private Networks.
+
+         This version of this MIB module extends RFC4382."
+    -- Revision history.
+    REVISION        "201101191800Z" -- Jan 19, 2011
+    DESCRIPTION
+        "Update CONTACT-INFO & ORGANIZATION. "
+
+    REVISION
+        "200905300000Z"  -- May 30, 2009
+    DESCRIPTION
+        "Initial version."
+    ::= { rbnMgmt 51 }
+
+-- Top level components of this MIB.
+rbnMplsL3VpnObjects       OBJECT IDENTIFIER ::= { rbnMplsL3VpnMIB 1 }
+rbnMplsL3VpnConf          OBJECT IDENTIFIER ::= { rbnMplsL3VpnObjects 1 }
+rbnMplsL3VpnConformance   OBJECT IDENTIFIER ::= { rbnMplsL3VpnMIB 2 }
+
+-- rbnMplsL3VpnVrfRTTable
+rbnMplsL3VpnVrfRTTable OBJECT-TYPE
+    SYNTAX        SEQUENCE OF RbnMplsL3VpnVrfRTEntry
+    MAX-ACCESS    not-accessible
+    STATUS        current
+    DESCRIPTION
+        "This table specifies per-VRF route target association.
+         Each entry identifies a connectivity policy supported
+         as part of a VPN. rbnMplsL3VpnVrfRTTable is equivalent
+         to mplsL3VpnVrfRTTable except for lexicographical ordering."
+    ::= { rbnMplsL3VpnConf 1 }
+
+rbnMplsL3VpnVrfRTEntry OBJECT-TYPE
+    SYNTAX        RbnMplsL3VpnVrfRTEntry
+    MAX-ACCESS    not-accessible
+    STATUS        current
+    DESCRIPTION
+       "An entry in this table is created by an LSR for
+        each route target configured for a VRF supporting
+        a MPLS L3VPN instance.  The indexing provides an
+        ordering per-VRF instance.  See [RFC4364] for a
+        complete definition of a route target."
+    INDEX  { mplsL3VpnVrfName, 
+             rbnMplsL3VpnVrfRTAddrFamily,
+             rbnMplsL3VpnVrfRTType,
+             rbnMplsL3VpnVrfRTIndex }
+    ::= { rbnMplsL3VpnVrfRTTable 1 }
+
+RbnMplsL3VpnVrfRTEntry ::= SEQUENCE {
+     rbnMplsL3VpnVrfRTAddrFamily  AddressFamilyNumbers,
+     rbnMplsL3VpnVrfRTType        MplsL3VpnRtType,
+     rbnMplsL3VpnVrfRTIndex       Unsigned32,
+     rbnMplsL3VpnVrfRT            MplsL3VpnRouteDistinguisher,
+     rbnMplsL3VpnVrfRTDescr       SnmpAdminString
+   }
+
+rbnMplsL3VpnVrfRTAddrFamily OBJECT-TYPE
+   SYNTAX        AddressFamilyNumbers
+   MAX-ACCESS    not-accessible
+   STATUS        current
+   DESCRIPTION
+       "The address family in which the route target is declared."
+   ::= { rbnMplsL3VpnVrfRTEntry 1 }
+
+rbnMplsL3VpnVrfRTType OBJECT-TYPE
+   SYNTAX        MplsL3VpnRtType
+   MAX-ACCESS    not-accessible
+   STATUS        current
+   DESCRIPTION
+       "The route target distribution type."
+   ::= { rbnMplsL3VpnVrfRTEntry 2 }
+
+rbnMplsL3VpnVrfRTIndex OBJECT-TYPE
+   SYNTAX        Unsigned32 (1..4294967295)
+   MAX-ACCESS    not-accessible
+   STATUS        current
+   DESCRIPTION
+       "Auxiliary index for route targets configured for a
+        particular VRF."
+   ::= { rbnMplsL3VpnVrfRTEntry 3 }
+
+rbnMplsL3VpnVrfRT OBJECT-TYPE
+   SYNTAX        MplsL3VpnRouteDistinguisher
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "The route target distribution policy."
+   DEFVAL { "" }
+   ::= { rbnMplsL3VpnVrfRTEntry 4 }
+
+rbnMplsL3VpnVrfRTDescr OBJECT-TYPE
+   SYNTAX        SnmpAdminString
+   MAX-ACCESS    read-only
+   STATUS        current
+   DESCRIPTION
+       "Description of the route target."
+   DEFVAL { "" }
+   ::= { rbnMplsL3VpnVrfRTEntry 5 }
+
+-- Conformance Statement
+rbnMplsL3VpnGroups      
+    OBJECT IDENTIFIER ::= { rbnMplsL3VpnConformance 1 }
+rbnMplsL3VpnCompliances 
+    OBJECT IDENTIFIER ::= { rbnMplsL3VpnConformance 2 }
+
+-- Module Compliance
+rbnMplsL3VpnModuleCompliance MODULE-COMPLIANCE
+    STATUS current
+    DESCRIPTION
+          "Compliance statement for agents that provide support
+           for the RBN-MPLS-L3VPN-STD-EXT-MIB"
+    MODULE -- this module
+        MANDATORY-GROUPS {
+            rbnMplsL3VpnGroup
+        }
+    ::= { rbnMplsL3VpnCompliances 1 }
+
+-- Units of conformance.
+rbnMplsL3VpnGroup OBJECT-GROUP
+    OBJECTS { rbnMplsL3VpnVrfRT,
+              rbnMplsL3VpnVrfRTDescr }
+    STATUS  current
+    DESCRIPTION
+        "Collection of scalar objects required for MPLS VPN
+         management."
+    ::= { rbnMplsL3VpnGroups 1 }
+
+END

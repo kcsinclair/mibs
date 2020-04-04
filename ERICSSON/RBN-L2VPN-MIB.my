@@ -1,0 +1,1444 @@
+-- %DNP% $Id: RBN-L2VPN-MIB.my,v 1.1.2.3.2.6 2011/03/16 01:05:36 dazhao Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-L2VPN-MIB.my,v $
+-- *****************************************************************
+-- RBN-L2VPN-MIB    The RBN Layer 2 VPN /PW Information MIB
+--
+-- Copyright (c) 2005-2011 Ericsson AB
+-- All rights reserved.
+-- 
+-- *****************************************************************
+
+RBN-L2VPN-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE,  Unsigned32, IpAddress, Integer32,
+    NOTIFICATION-TYPE
+        FROM SNMPv2-SMI
+    MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+        FROM SNMPv2-CONF
+    TEXTUAL-CONVENTION, TruthValue
+        FROM SNMPv2-TC
+    RbnCircuitHandle
+        FROM RBN-TC
+    SnmpAdminString
+        FROM SNMP-FRAMEWORK-MIB
+    InterfaceIndexOrZero
+        FROM IF-MIB
+    rbnMgmt
+        FROM RBN-SMI
+    InetAddressType, InetAddress, InetPortNumber 
+        FROM INET-ADDRESS-MIB;
+
+rbnL2VpnMIB MODULE-IDENTITY
+    LAST-UPDATED    "201101191800Z" -- Jan 19, 2011
+    ORGANIZATION    "Ericsson AB"
+    CONTACT-INFO
+                "       Ericsson AB.
+                Postal: 100 Headquarters Dr
+                        San Jose, CA  95134
+                        USA
+
+                 Phone: +1 408 750 5000
+                 Fax:   +1 408 750 5599"
+    DESCRIPTION
+                "This management information base displays Layer 2
+                Virtual Private Networks(VPN) / Pesudowires(PWs) information."
+
+    REVISION    "201011160000Z" -- Nov 16, 2010
+    DESCRIPTION
+                "The key changes made to this MIB module are as follows: 
+
+                (1) Added rbnUdpL2VpnStaticTable.
+                (2) Added rbnUdpL2VpnStaticTable compliance information:
+                    rbnUdpL2VpnPwMIBCompliance,
+                    rbnUdpL2VpnStaticPwGroup.
+                (3) Added RbnVpnPsnType.
+                (4) Added encapError(23) in RbnVpnPwFlagsType.
+                (5) Changed rbnMplsL2VpnMIBGroups and 
+                    rbnMplsL2VpnMIBCompliances status to current."
+
+    REVISION        "201101191800Z" -- Jan 19, 2011
+    DESCRIPTION
+            "Update CONTACT-INFO & ORGANIZATION. "
+
+    REVISION    "201004010000Z" -- April 1, 2010
+    DESCRIPTION
+                "This version is to support PW and PW state change 
+                notifications. The key changes made to this MIB module 
+                are as follows:
+                (1) Updated ORGANIZATION/CONTACT-INFO
+                (2) Obsolete all MIB objects under rbnL2VpnMIBObjects
+                    and rbnL2VpnMIBConformance.
+                (3) Deprecated 
+                    rbnMplsL2VpnStaticXcFlags
+                    rbnMplsL2VpnLdpXcCctUp, 
+                    rbnMplsL2VpnLdpXcFlags 
+                (4) Added RbnVpnPwFlagsType, and RbnVpnPwStateType 
+                    TEXTUAL-CONVENTIONs.
+                (5) Added new objects 
+                    rbnMplsL2VpnStaticPwFlags, 
+                    rbnMplsL2VpnStaticPwState,
+                    rbnMplsL2VpnLdpPwFlags, 
+                    rbnMplsL2VpnLdpPwState
+                    to indicate L2VPN pseduowire flags and states.
+                (6) Added rbnMplsL2VpnLdpPwStateChange notification.
+                (7) Added PW compliance and object groups:
+                    rbnMplsL2VpnPwMIBCompliance,
+                    rbnMplsL2VpnPwScalarGroup,
+                    rbnMplsL2VpnStaticPwGroup,
+                    rbnMplsL2VpnLdpPwGroup. "
+
+    REVISION    "200906020000Z" -- June 2, 2009
+    DESCRIPTION
+                "Updated RbnVpnXcFlagsType TC.
+                 (1) Deprecated ismUp(12)
+                 (2) Added 
+                   primary(17), backup(18), primaryAutoRevert(19),
+                   standby(20), cwMismatch(21), sigParamsMatch(22)
+
+                 Updated the description of both rbnMplsL2VpnLdpXcCctUp and
+                 rbnMplsL2VpnLdpInputCctUp"
+
+	REVISION	"200810130000Z" -- Oct. 13, 2008
+	DESCRIPTION
+                "This version is to redefine L2Vpn Static and LDP tables
+                 for indexing consistency with an MPLS L2VPN implementation
+                 on a device.
+
+                 The key changes made to this MIB module are as follows.
+
+                (1) Deprecated all MIB objects under rbnL2VpnMIBObjects.
+
+                (2) Added rbnMplsL2VpnMIBObjects.
+        
+                (3) Redefined objects corresponding to deprecated objects 
+                    under rbnL2VpnMIBObjects.
+
+                (4) Deprecated all MIB objects under rbnL2VpnMIBConformance
+        
+                (5) Added rbnMplsL2VpnMIBConformance.
+                 
+                (6) Redefined objects corresponding to deprecated objects
+                    under rbnMplsL2VpnMIBConformance.
+
+                (7) Changed VPN virtual circuit id (rbnMplsL2VpnLdpVcId) SYNTAX 
+                    to Unsigned32 (0..4294967295).
+                "
+
+    REVISION        "200510010000Z" -- Oct. 1, 2005
+    DESCRIPTION
+                "Initial version."
+
+    ::= { rbnMgmt 39 }
+
+--
+--      Textual Conventions
+--
+
+RbnVpnVcType ::= TEXTUAL-CONVENTION
+        STATUS    current
+        DESCRIPTION
+            "Layer 2 VPN VC types."
+        SYNTAX  INTEGER {
+                unknown(0),
+                frame(1),
+                aal5(2),
+                atmTransCell(3),
+                vlan(4),
+                ethernet(5),
+                hdlc(6),
+                ppp(7),
+                cem(8),
+                atmVccCell(9),
+                atmVpcCell(10)
+                }
+
+RbnVpnXcFlagsType ::= TEXTUAL-CONVENTION
+        STATUS    current
+        DESCRIPTION
+            "Layer 2 VPN Cross connect flag values."
+        SYNTAX  BITS {
+                none(0),           -- no flags set
+                inRib(1),          -- This VPN circuit entry is in the RIB
+                deletingSignal(2), -- In the process of deleting a signal
+                deletingConfig(3), -- In the process of deleting the
+                                   -- configuration
+                inLblmap(4),       -- This VPN circuit entry is in the label map
+                updating(5),       -- Presently updating the configuration
+                                   -- information
+                up(6),             -- The VPN circuit is up and running
+                inLdp(7),          -- Setting up the LDP
+                fromLdp(8),        -- Returned from the LDP setup/delete
+                fromConfig(9),     -- Completed the configuration
+                stale(10),         -- XC needs to be deleted but it needs
+                                   -- further circuit cleanup first
+                expSet(11),        -- The exp flags have been set for this
+                                   -- VPN circuit
+                ismUp(12),         -- Obselete
+                peerUp(13),        -- The peer for this VPN circuit is up
+                remoteEncap(14),   -- Indicates that the remote encap has been
+                                   -- set
+                localCbit(15),     -- Indicates that the local cbit control bit
+                                   -- is set
+                remoteCbit(16),    -- Indicates that the remote cbit control bit
+                                   -- is set.
+                primary(17),       -- Indicates the primary XC  
+                backup(18),        -- Indicates the backup XC
+                primaryAutoRevert(19), -- Indicate the auto revert
+                standby(20),        -- Indicates that state of the PWE is
+                                    -- standby
+                cwMismatch(21),     -- Indicates that the case were the Remote
+                                    -- CW bit is set and locally not set
+                sigParamsMatch(22)  -- Indicates that the signaling parameters
+                                    -- are matched and the PW state can be
+                                    -- made up
+                }
+
+RbnVpnPwFlagsType ::= TEXTUAL-CONVENTION
+        STATUS    current
+        DESCRIPTION
+            "Layer 2 VPN Pesudowire (PW) flag values."
+        SYNTAX  BITS {
+                none(0),           -- no flags set
+                inRib(1),          -- This VPN circuit entry is in the RIB
+                deletingSignal(2), -- In the process of deleting a signal
+                deletingConfig(3), -- In the process of deleting the
+                                   -- configuration
+                inLblmap(4),       -- This VPN circuit entry is in the label map
+                updating(5),       -- Presently updating the configuration
+                                   -- information
+                up(6),             -- The VPN circuit is up and running
+                inLdp(7),          -- Setting up the LDP
+                fromLdp(8),        -- Returned from the LDP setup/delete
+                fromConfig(9),     -- Completed the configuration
+                stale(10),         -- XC needs to be deleted but it needs
+                                   -- further circuit cleanup first
+                expSet(11),        -- The exp flags have been set for this
+                                   -- VPN circuit
+                ismUp(12),         -- Obselete
+                peerUp(13),        -- The peer for this VPN circuit is up
+                remoteEncap(14),   -- Indicates that the remote encap has been
+                                   -- set
+                localCbit(15),     -- Indicates that the local cbit control bit
+                                   -- is set
+                remoteCbit(16),    -- Indicates that the remote cbit control bit
+                                   -- is set.
+                primary(17),       -- Indicates the primary XC  
+                backup(18),        -- Indicates the backup XC
+                primaryAutoRevert(19), -- Indicate the auto revert
+                standby(20),        -- Indicates that state of the PWE is
+                                    -- standby
+                cwMismatch(21),     -- Indicates that the case were the Remote
+                                    -- CW bit is set and locally not set
+                sigParamsMatch(22), -- Indicates that the signaling parameters
+                                    -- are matched and the PW state can be
+                                    -- made up
+                encapError(23)      -- Indicates that the encap error happens
+                }
+
+RbnVpnPwStateType ::= TEXTUAL-CONVENTION
+        STATUS    current
+        DESCRIPTION
+            "Layer 2 VPN Cross connect (XC) state."
+        SYNTAX  INTEGER {
+                unknown (0),
+                up      (1), -- The VPN circuit is up and running (active)
+                down    (2), -- The VPN circuit is down.
+                standby (3)  -- The VPN circuit is in standby state.
+                }
+
+RbnVpnPsnType ::= TEXTUAL-CONVENTION
+        STATUS    current
+        DESCRIPTION
+            "Layer 2 VPN packet switched network(PSN) type."
+        SYNTAX  INTEGER {
+                unknown (0),
+                ip      (1),
+                ipsec   (2),
+                mpls    (3)
+                }
+
+-- Top level components of this MIB.
+rbnMplsL2VpnMIBNotifications OBJECT IDENTIFIER ::= { rbnL2VpnMIB 0 }
+rbnL2VpnMIBObjects           OBJECT IDENTIFIER ::= { rbnL2VpnMIB 1 }-- obsolete
+rbnL2VpnMIBConformance       OBJECT IDENTIFIER ::= { rbnL2VpnMIB 2 }-- obsolete
+rbnMplsL2VpnMIBObjects       OBJECT IDENTIFIER ::= { rbnL2VpnMIB 3 }
+rbnMplsL2VpnMIBConformance   OBJECT IDENTIFIER ::= { rbnL2VpnMIB 4 }
+rbnMplsL2VpnMIBScalars       OBJECT IDENTIFIER ::= { rbnL2VpnMIB 5 }     
+rbnUdpL2VpnMIBObjects        OBJECT IDENTIFIER ::= { rbnL2VpnMIB 6 }
+
+--  Current objects
+
+--
+-- Scalar Objects
+--
+rbnMplsL2VpnNotificationEnable OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "If this object is true, then it enables the generation of all
+            notifications defined in this MIB. This object's value should be
+            preserved across agent reboots."
+        REFERENCE
+            "See also [RFC3413] for explanation that notifications are under
+            the ultimate control of the MIB modules in this document."
+        DEFVAL { false }
+        ::= { rbnMplsL2VpnMIBScalars 1 }
+
+--      The L2 VPN Static Table
+--
+--      This table contains objects that can be used to
+--      display the information about an L2 VPN.
+
+rbnMplsL2VpnStaticTable   OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RbnMplsL2VpnStaticEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This table contains objects which identify static Layer 2 VPN
+            circuits. With respect to creation and deletion of entries in this
+            table, rows are created or deleted when the VPN circuit
+            is configured."
+        ::= { rbnMplsL2VpnMIBObjects 3 }
+
+rbnMplsL2VpnStaticEntry   OBJECT-TYPE
+        SYNTAX      RbnMplsL2VpnStaticEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A conceptual row in the rbnMplsL2VpnStaticTable."
+        INDEX { rbnMplsL2VpnStaticInLabel, rbnMplsL2VpnStaticPeerAddr }
+        ::= { rbnMplsL2VpnStaticTable 1 }
+
+RbnMplsL2VpnStaticEntry ::=
+        SEQUENCE {
+             rbnMplsL2VpnStaticInLabel         Unsigned32,
+             rbnMplsL2VpnStaticPeerAddr        IpAddress,
+             rbnMplsL2VpnStaticCctHandle       RbnCircuitHandle,
+             rbnMplsL2VpnStaticVpnCctHandle    RbnCircuitHandle,
+             rbnMplsL2VpnStaticExpBits         Unsigned32,
+             rbnMplsL2VpnStaticInputCctUp      TruthValue,
+             rbnMplsL2VpnStaticXcFlags         RbnVpnXcFlagsType,
+             rbnMplsL2VpnStaticIfIndexOrZero   InterfaceIndexOrZero,
+             rbnMplsL2VpnStaticPwFlags         RbnVpnPwFlagsType,
+             rbnMplsL2VpnStaticPwState         RbnVpnPwStateType,
+             rbnMplsL2VpnStaticVpnLabel        Unsigned32
+             }
+
+rbnMplsL2VpnStaticInLabel OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the unique value assigned to a particular
+             static VPN circuit."
+        ::= { rbnMplsL2VpnStaticEntry 1 }
+
+rbnMplsL2VpnStaticPeerAddr OBJECT-TYPE
+        SYNTAX      IpAddress
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the ip address of the VPN peer."
+        ::= { rbnMplsL2VpnStaticEntry 2 }
+
+rbnMplsL2VpnStaticCctHandle OBJECT-TYPE
+        SYNTAX      RbnCircuitHandle
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the internal representation of the physical 
+             circuit to which this VPN is connected. A hexadecimal value of 
+             ff ff ff ff ff ff ff ff indicates an invalid circuit."
+        ::= { rbnMplsL2VpnStaticEntry 3 }
+
+rbnMplsL2VpnStaticVpnCctHandle OBJECT-TYPE
+        SYNTAX      RbnCircuitHandle
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the internal representation of VPN 
+             pseudo circuit."
+        ::= { rbnMplsL2VpnStaticEntry 4 }
+        
+rbnMplsL2VpnStaticExpBits OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the number of exp bits configured for this
+             VPN circuit."
+        ::= { rbnMplsL2VpnStaticEntry 5 }
+
+rbnMplsL2VpnStaticInputCctUp OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            " This object indicates the status of the VPN attachment circuit. 
+            A value of true indicates that the VPN attachment circuit is
+            connected with its remote site. A value of false indicates that
+            the remote site is not presently connected."
+        ::= { rbnMplsL2VpnStaticEntry 6 }
+
+rbnMplsL2VpnStaticXcFlags OBJECT-TYPE
+        SYNTAX      RbnVpnXcFlagsType 
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates more detailed information on the status
+            of the VPN circuit. This object is a bit field so it may contain
+            one or more of these values."
+        ::= { rbnMplsL2VpnStaticEntry 7 }
+
+rbnMplsL2VpnStaticIfIndexOrZero OBJECT-TYPE
+        SYNTAX      InterfaceIndexOrZero
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates whether there is a corresponding entry in
+            the ifTable. A non-zero value indicates the ifIndex of the entry
+            in the ifTable. A value of zero indicates that there is no entry."
+        ::= { rbnMplsL2VpnStaticEntry 8 }
+        
+rbnMplsL2VpnStaticPwFlags OBJECT-TYPE
+        SYNTAX      RbnVpnPwFlagsType 
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates more detailed information on the status
+            of the VPN circuit. This object is a bit field so it may contain
+            one or more of these values."
+        ::= { rbnMplsL2VpnStaticEntry 9 }
+
+rbnMplsL2VpnStaticPwState OBJECT-TYPE
+        SYNTAX      RbnVpnPwStateType
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the status of the VPN input circuit.
+            A value of up(1) indicates that the VPN circuit is active i.e.
+            connected with its remote site. A value of down(2) indicates that
+            the remote site is not presently connected. A value of standby(3)
+            indicates the the PW is in pending state to become active(i.e. up)"
+        ::= { rbnMplsL2VpnStaticEntry 10 }
+
+rbnMplsL2VpnStaticVpnLabel OBJECT-TYPE
+        SYNTAX      Unsigned32 (4096..65535)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the value used by the remote connection
+            in order to identify this VPN circuit when communicating with
+            the label manager."
+        ::= { rbnMplsL2VpnStaticEntry 11 }
+
+
+--      The L2 VPN LDP Table
+--
+--      This table contains objects that can be used to
+--      display the information about an L2 VPN.
+
+rbnMplsL2VpnLdpTable OBJECT-TYPE
+       SYNTAX      SEQUENCE OF RbnMplsL2VpnLdpEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+           "This table contains objects which identify Layer
+           Distribution Protocol Layer 2 VPN circuits.
+           With respect to creation and deletion of entries in this
+           table, rows are created or deleted when the VPN circuit is 
+           configured."
+       ::= { rbnMplsL2VpnMIBObjects 4 }
+
+rbnMplsL2VpnLdpEntry OBJECT-TYPE
+       SYNTAX      RbnMplsL2VpnLdpEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+           "A conceptual row in the rbnMplsL2VpnLdpTable."
+       INDEX { rbnMplsL2VpnLdpVcId, rbnMplsL2VpnLdpPeerAddr }
+       ::= { rbnMplsL2VpnLdpTable 1 }
+
+RbnMplsL2VpnLdpEntry ::=
+       SEQUENCE {
+            rbnMplsL2VpnLdpVcId            Unsigned32,
+            rbnMplsL2VpnLdpPeerAddr        IpAddress,
+            rbnMplsL2VpnLdpCctHandle       RbnCircuitHandle,
+            rbnMplsL2VpnLdpVpnCctHandle    RbnCircuitHandle,
+            rbnMplsL2VpnLdpInLabel         Unsigned32,
+            rbnMplsL2VpnLdpVpnLabel        Unsigned32,
+            rbnMplsL2VpnLdpRemGrpId        Unsigned32,
+            rbnMplsL2VpnLdpLocEncap        SnmpAdminString,
+            rbnMplsL2VpnLdpRemEncap        SnmpAdminString,
+            rbnMplsL2VpnLdpLocVcType       RbnVpnVcType,
+            rbnMplsL2VpnLdpRemVcType       RbnVpnVcType,
+            rbnMplsL2VpnLdpLocMtu          Unsigned32,
+            rbnMplsL2VpnLdpRemMtu          Unsigned32,
+            rbnMplsL2VpnLdpXcCctUp         TruthValue,
+            rbnMplsL2VpnLdpExpBits         Unsigned32,
+            rbnMplsL2VpnLdpInputCctUp      TruthValue,
+            rbnMplsL2VpnLdpXcFlags         RbnVpnXcFlagsType,
+            rbnMplsL2VpnLdpIfIndexOrZero   InterfaceIndexOrZero,
+            rbnMplsL2VpnLdpPwFlags         RbnVpnPwFlagsType,
+            rbnMplsL2VpnLdpPwState         RbnVpnPwStateType
+            }
+
+rbnMplsL2VpnLdpVcId OBJECT-TYPE
+        SYNTAX      Unsigned32 (0..4294967295)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the unique virtual VPN circuit id assigned 
+            to this circuit."
+        ::= { rbnMplsL2VpnLdpEntry 1 }
+
+rbnMplsL2VpnLdpPeerAddr OBJECT-TYPE
+        SYNTAX      IpAddress
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the ip address if the VPN peer."
+        ::= { rbnMplsL2VpnLdpEntry 2 }
+
+rbnMplsL2VpnLdpCctHandle OBJECT-TYPE
+        SYNTAX      RbnCircuitHandle
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the internal representation of the physical
+            circuit to which this VPN is connected. A hexadecimal value of
+            ff ff ff ff ff ff ff ff indicates an invalid circuit."
+        ::= { rbnMplsL2VpnLdpEntry 3 }
+
+rbnMplsL2VpnLdpVpnCctHandle OBJECT-TYPE
+        SYNTAX      RbnCircuitHandle
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the internal representation of the VPN 
+            pseudo circuit."
+        ::= { rbnMplsL2VpnLdpEntry 4 }
+
+rbnMplsL2VpnLdpInLabel OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the value setup in the local configuration
+            to identify this VPN circuit."
+        ::= { rbnMplsL2VpnLdpEntry 5 }
+
+rbnMplsL2VpnLdpVpnLabel OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the value used by the remote connection in
+            order to identify this VPN circuit when communicating with
+            the local manager."
+        ::= { rbnMplsL2VpnLdpEntry 6 }
+
+rbnMplsL2VpnLdpRemGrpId OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the remote group of which this VPN circuit 
+            is a part."
+        ::= { rbnMplsL2VpnLdpEntry 7 }
+
+rbnMplsL2VpnLdpLocEncap OBJECT-TYPE
+        SYNTAX      SnmpAdminString (SIZE (0..80))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the local encaps type associated with 
+            this VPN circuit."
+        ::= { rbnMplsL2VpnLdpEntry 8 }
+
+rbnMplsL2VpnLdpRemEncap OBJECT-TYPE
+        SYNTAX      SnmpAdminString (SIZE (0..80))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the remote encaps type associated with 
+            this VPN circuit."
+        ::= { rbnMplsL2VpnLdpEntry 9 }
+
+rbnMplsL2VpnLdpLocVcType OBJECT-TYPE
+        SYNTAX      RbnVpnVcType
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the type of virtual circuit on the 
+            local system."
+        ::= { rbnMplsL2VpnLdpEntry 10 }
+
+rbnMplsL2VpnLdpRemVcType OBJECT-TYPE
+        SYNTAX      RbnVpnVcType
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the type of virtual circuit on the 
+            remote system."
+        ::= { rbnMplsL2VpnLdpEntry 11 }
+
+rbnMplsL2VpnLdpLocMtu OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the maximum transmission unit of the
+            local VPN circuit."
+        ::= { rbnMplsL2VpnLdpEntry 12 }
+
+rbnMplsL2VpnLdpRemMtu OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the maximum transmission unit of the
+            remote connection."
+        ::= { rbnMplsL2VpnLdpEntry 13 }
+
+rbnMplsL2VpnLdpXcCctUp OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "This object indicates the status of the VPN cross connect circuit 
+            state. A value of true indicates that the VPN circuit is connected
+            with its remote site and attachment circuit is up 
+            (rbnMplsL2VpnLdpInputCctUp is true). A value of false indicates
+            that the remote site is not presently connected, this mean that 
+            either the PSN is not reachable or the attachment circuit is down 
+            or signaling parameters mismatched."
+        ::= { rbnMplsL2VpnLdpEntry 14 }
+
+rbnMplsL2VpnLdpExpBits OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the number of exp bits configured for this
+            VPN circuit."
+        ::= { rbnMplsL2VpnLdpEntry 15 }
+
+rbnMplsL2VpnLdpInputCctUp OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the status of the VPN attachment circuit. A
+            value of true indicates that the VPN attachment circuit is up. 
+            A value of false indicates the attachment circuit state is down."
+        ::= { rbnMplsL2VpnLdpEntry 16 }
+
+rbnMplsL2VpnLdpXcFlags OBJECT-TYPE
+        SYNTAX      RbnVpnXcFlagsType
+        MAX-ACCESS  read-only
+        STATUS      deprecated
+        DESCRIPTION
+            "This object indicates more detailed information on the status
+            of the VPN circuit. This object is a bit field so it may contain
+            one or more of these values."
+        ::= { rbnMplsL2VpnLdpEntry 17 }
+
+rbnMplsL2VpnLdpIfIndexOrZero OBJECT-TYPE
+        SYNTAX      InterfaceIndexOrZero
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates whether there is a corresponding entry in
+            the ifTable. A non-zero value indicates the ifIndex of the entry
+            in the ifTable. A value of zero indicates that there is no entry."
+        ::= { rbnMplsL2VpnLdpEntry 18 }
+
+rbnMplsL2VpnLdpPwFlags OBJECT-TYPE
+        SYNTAX      RbnVpnPwFlagsType 
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates more detailed information on the status
+            of the VPN circuit. This object is a bit field so it may contain
+            one or more of these values."
+        ::= { rbnMplsL2VpnLdpEntry 19 }
+
+rbnMplsL2VpnLdpPwState OBJECT-TYPE
+        SYNTAX      RbnVpnPwStateType
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the status of the VPN input circuit.
+            A value of up(1) indicates that the VPN circuit is active i.e.
+            connected with its remote site. A value of down(2) indicates that
+            the remote site is not presently connected. A value of standby(3)
+            indicates the the PW is in pending state to become active(i.e. up)"
+        ::= { rbnMplsL2VpnLdpEntry 20 }
+            
+rbnUdpL2VpnStaticTable OBJECT-TYPE
+       SYNTAX      SEQUENCE OF RbnUdpL2VpnStaticEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+           "This table contains objects which identify static
+           UDP Layer 2 VPN circuits.
+           With respect to creation and deletion of entries in this
+           table, rows are created or deleted when the VPN circuit is
+           configured."
+       ::= { rbnUdpL2VpnMIBObjects 1 }
+
+rbnUdpL2VpnStaticEntry OBJECT-TYPE
+       SYNTAX      RbnUdpL2VpnStaticEntry
+       MAX-ACCESS  not-accessible
+       STATUS      current
+       DESCRIPTION
+            "A conceptual row in the rbnUdpL2VpnStaticTable."
+       INDEX { 
+                 rbnUdpL2VpnStaticPeerPort,
+                 rbnUdpL2VpnStaticPeerAddressType,
+                 rbnUdpL2VpnStaticPeerAddress
+             }
+       ::= { rbnUdpL2VpnStaticTable 1 }
+
+RbnUdpL2VpnStaticEntry ::=
+       SEQUENCE {
+            rbnUdpL2VpnStaticPeerPort           InetPortNumber,
+            rbnUdpL2VpnStaticPeerAddressType    InetAddressType,
+            rbnUdpL2VpnStaticPeerAddress        InetAddress,
+            rbnUdpL2VpnStaticSourceAddressType  InetAddressType,
+            rbnUdpL2VpnStaticSourceAddress      InetAddress,
+            rbnUdpL2VpnStaticSourcePort         InetPortNumber,
+            rbnUdpL2vpnStaticAccessCctHandle    RbnCircuitHandle,
+            rbnUdpL2VpnStaticVpnCctHandle       RbnCircuitHandle,
+            rbnUdpL2VpnStaticInputCctUp         TruthValue,
+            rbnUdpL2VpnStaticIfIndexOrZero      InterfaceIndexOrZero,
+            rbnUdpL2VpnStaticPwFlags            RbnVpnPwFlagsType,
+            rbnUdpL2VpnStaticPwState            RbnVpnPwStateType,
+            rbnUdpL2vpnStaticDscpCode           INTEGER,
+            rbnUdpL2VpnStaticPsnType            RbnVpnPsnType
+            }
+
+rbnUdpL2VpnStaticPeerPort OBJECT-TYPE
+        SYNTAX      InetPortNumber 
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the peer port number for this UDP L2 VPN
+            circuit."
+        ::= { rbnUdpL2VpnStaticEntry 1 }
+
+rbnUdpL2VpnStaticPeerAddressType OBJECT-TYPE
+        SYNTAX      InetAddressType 
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the peer IP address type for this
+            UDP L2 VPN circuit."
+        ::= { rbnUdpL2VpnStaticEntry 2 }
+
+rbnUdpL2VpnStaticPeerAddress OBJECT-TYPE
+        SYNTAX      InetAddress 
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the peer IP address for this UDP L2 VPN
+            circuit. The peer address type is determined by the value of
+            the corresponding rbnUdpL2VpnStaticPeerAddressType."
+        ::= { rbnUdpL2VpnStaticEntry 3 }
+
+rbnUdpL2VpnStaticSourceAddressType OBJECT-TYPE
+        SYNTAX      InetAddressType 
+        MAX-ACCESS  read-only 
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the source IP address type for this
+            UDP L2 VPN circuit."
+        ::= { rbnUdpL2VpnStaticEntry 4 }
+
+rbnUdpL2VpnStaticSourceAddress OBJECT-TYPE
+        SYNTAX      InetAddress 
+        MAX-ACCESS  read-only 
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the source IP address for this UDP L2 VPN
+            circuit. The source address type is determined by the value of
+            the corresponding rbnUdpL2VpnStaticSourceAddressType."
+        ::= { rbnUdpL2VpnStaticEntry 5 }
+
+rbnUdpL2VpnStaticSourcePort OBJECT-TYPE
+        SYNTAX      InetPortNumber 
+        MAX-ACCESS  read-only 
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the source port number for this UDP L2 VPN
+            circuit."
+        ::= { rbnUdpL2VpnStaticEntry 6 }
+
+rbnUdpL2vpnStaticAccessCctHandle OBJECT-TYPE
+        SYNTAX      RbnCircuitHandle
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the internal representation of the 
+            access circuit for this UDP L2 VPN circuit."
+        ::= { rbnUdpL2VpnStaticEntry 7 }
+
+rbnUdpL2VpnStaticVpnCctHandle OBJECT-TYPE
+        SYNTAX      RbnCircuitHandle
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the internal representation of this
+            UDP L2 VPN circuit."
+        ::= { rbnUdpL2VpnStaticEntry 8 }
+
+rbnUdpL2VpnStaticInputCctUp OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the status of this UDP L2 VPN circuit.
+            A value of true indicates that the VPN circuit is connected with
+            it's remote site.  A value of false indicates that the remote
+            site is not presently connected."
+        ::= { rbnUdpL2VpnStaticEntry 9 }
+
+rbnUdpL2VpnStaticIfIndexOrZero OBJECT-TYPE
+        SYNTAX      InterfaceIndexOrZero
+        MAX-ACCESS  read-only
+        STATUS      current 
+        DESCRIPTION
+            "This object indicates whether there is a corresponding entry of
+            this UDP L2 VPN access circuit in the ifTable. A non-zero value
+            indicates the ifIndex of the entry in the ifTable. A value of zero
+            indicates that there is no entry (for example, a
+            pre-provisioned access circuit is used)."
+        ::= { rbnUdpL2VpnStaticEntry 10 }
+
+rbnUdpL2VpnStaticPwFlags OBJECT-TYPE
+        SYNTAX      RbnVpnPwFlagsType
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates more detailed information on the status
+            of this UDP L2 VPN circuit. This object is a bit field so it may 
+            contain one or more of these values."
+        ::= { rbnUdpL2VpnStaticEntry 11 }
+
+rbnUdpL2vpnStaticDscpCode OBJECT-TYPE
+        SYNTAX      INTEGER
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Diffserver code for the CES over UDP PW. Default is Zero.
+            The dscp code values are listed as follows:
+
+            0..63  Differentiated services codepoint value
+            af11   Assured Forwarding  - Class 1/Drop precedence 1
+            af12   Assured Forwarding  - Class 1/Drop precedence 2
+            af13   Assured Forwarding  - Class 1/Drop precedence 3
+            af21   Assured Forwarding  - Class 2/Drop precedence 1
+            af22   Assured Forwarding  - Class 2/Drop precedence 2
+            af23   Assured Forwarding  - Class 2/Drop precedence 3
+            af31   Assured Forwarding  - Class 3/Drop precedence 1
+            af32   Assured Forwarding  - Class 3/Drop precedence 2
+            af33   Assured Forwarding  - Class 3/Drop precedence 3
+            af41   Assured Forwarding  - Class 4/Drop precedence 1
+            af42   Assured Forwarding  - Class 4/Drop precedence 2
+            af43   Assured Forwarding  - Class 4/Drop precedence 3"
+        ::= { rbnUdpL2VpnStaticEntry 12 }
+
+rbnUdpL2VpnStaticPwState OBJECT-TYPE
+        SYNTAX      RbnVpnPwStateType
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the status of this UDP L2 VPN circuit.
+            A value of up(1) indicates that the VPN circuit is active i.e.
+            connected with its remote site. A value of down(2) indicates
+            that the remote site is not presently connected. A value of
+            standby(3) indicates the the PW is in pending state to become
+            active (i.e. up)"
+        ::= { rbnUdpL2VpnStaticEntry 13 }
+
+rbnUdpL2VpnStaticPsnType OBJECT-TYPE
+        SYNTAX      RbnVpnPsnType 
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object indicates the packet switched networks(PSN) type for
+            this UDP L2 VPN circuit."
+        ::= { rbnUdpL2VpnStaticEntry 14 }
+
+--
+-- rbnMplsL2VpnLdpPwState change Notifications
+--
+rbnMplsL2VpnLdpPwStateChange NOTIFICATION-TYPE
+        OBJECTS     { rbnMplsL2VpnLdpPwState }
+        STATUS      current
+        DESCRIPTION
+            "This notification is generated when PW state transitions
+            operationally to UP/DOWN/STANDBY."
+   ::= { rbnMplsL2VpnMIBNotifications 1 }
+
+-- Conformance Information
+rbnL2VpnMIBGroups          OBJECT IDENTIFIER ::= { rbnL2VpnMIBConformance 1 }
+rbnL2VpnMIBCompliances     OBJECT IDENTIFIER ::= { rbnL2VpnMIBConformance 2 }
+rbnMplsL2VpnMIBGroups      OBJECT IDENTIFIER ::= { rbnL2VpnMIBConformance 3 }
+rbnMplsL2VpnMIBCompliances OBJECT IDENTIFIER ::= { rbnL2VpnMIBConformance 4 }  
+
+-- current object groups and compliances
+rbnMplsL2VpnPwMIBCompliance MODULE-COMPLIANCE
+    STATUS        current
+    DESCRIPTION
+        "The compliance statement for the L2VPN MIB."
+    MODULE        -- this module
+    MANDATORY-GROUPS 
+            {
+                rbnMplsL2VpnPwScalarGroup,
+                rbnMplsL2VpnStaticPwGroup,
+                rbnMplsL2VpnLdpPwGroup,
+                rbnMplsL2VpnPwNotificationGroup
+            }
+    ::= { rbnL2VpnMIBCompliances 2 }
+
+rbnMplsL2VpnPwScalarGroup OBJECT-GROUP
+    OBJECTS {
+            rbnMplsL2VpnNotificationEnable
+    }
+    STATUS        current
+    DESCRIPTION
+        "Collection of scalar objects required for L2VPN PW management"
+    ::= { rbnL2VpnMIBGroups 3 }
+
+rbnMplsL2VpnStaticPwGroup OBJECT-GROUP
+    OBJECTS {
+            rbnMplsL2VpnStaticCctHandle,
+            rbnMplsL2VpnStaticVpnCctHandle,
+            rbnMplsL2VpnStaticInputCctUp,
+            rbnMplsL2VpnStaticExpBits,
+            rbnMplsL2VpnStaticIfIndexOrZero,
+            rbnMplsL2VpnStaticPwFlags,
+            rbnMplsL2VpnStaticPwState,
+            rbnMplsL2VpnStaticVpnLabel            
+    }
+    STATUS        current
+    DESCRIPTION
+        "A collection of objects providing information about
+        the status of static L2 VPN Pesudowires."
+    ::= { rbnL2VpnMIBGroups 4 }
+    
+rbnMplsL2VpnLdpPwGroup OBJECT-GROUP
+    OBJECTS {
+            rbnMplsL2VpnLdpCctHandle,
+            rbnMplsL2VpnLdpVpnCctHandle,
+            rbnMplsL2VpnLdpInLabel,
+            rbnMplsL2VpnLdpVpnLabel,
+            rbnMplsL2VpnLdpRemGrpId,
+            rbnMplsL2VpnLdpLocEncap,
+            rbnMplsL2VpnLdpRemEncap,
+            rbnMplsL2VpnLdpLocVcType,
+            rbnMplsL2VpnLdpRemVcType,
+            rbnMplsL2VpnLdpLocMtu,
+            rbnMplsL2VpnLdpRemMtu,
+            rbnMplsL2VpnLdpExpBits,
+            rbnMplsL2VpnLdpIfIndexOrZero,
+            rbnMplsL2VpnLdpPwFlags,
+            rbnMplsL2VpnLdpPwState
+    }
+    STATUS        current
+    DESCRIPTION
+        "A collection of objects providing information about
+        the status of L2 VPN Pesudowires using Label Detection
+        Protocol."
+    ::= { rbnL2VpnMIBGroups 5 }
+
+rbnMplsL2VpnPwNotificationGroup NOTIFICATION-GROUP
+    NOTIFICATIONS { rbnMplsL2VpnLdpPwStateChange }
+    STATUS  current
+    DESCRIPTION
+        "Objects required for L2VPN PW notifications."
+   ::= { rbnL2VpnMIBGroups 6 }
+
+rbnUdpL2VpnPwMIBCompliance MODULE-COMPLIANCE
+    STATUS        current
+    DESCRIPTION
+        "The compliance statement for the L2VPN MIB."
+    MODULE        -- this module
+    MANDATORY-GROUPS 
+            {
+                rbnUdpL2VpnStaticPwGroup
+            }
+    ::= { rbnL2VpnMIBCompliances 3 }
+
+rbnUdpL2VpnStaticPwGroup OBJECT-GROUP
+    OBJECTS {
+            rbnUdpL2VpnStaticSourceAddressType,
+            rbnUdpL2VpnStaticSourceAddress,
+            rbnUdpL2VpnStaticSourcePort,
+            rbnUdpL2vpnStaticAccessCctHandle,
+            rbnUdpL2VpnStaticVpnCctHandle,
+            rbnUdpL2VpnStaticInputCctUp,
+            rbnUdpL2VpnStaticIfIndexOrZero,
+            rbnUdpL2VpnStaticPwFlags,
+            rbnUdpL2VpnStaticPwState,
+            rbnUdpL2vpnStaticDscpCode,
+            rbnUdpL2VpnStaticPsnType
+    }
+    STATUS        current
+    DESCRIPTION
+        "A collection of objects providing information about
+        the status of static L2 VPN Pesudowires."
+    ::= { rbnL2VpnMIBGroups 7 }
+    
+--      Obsolete objects
+
+--      The L2 VPN Static Table
+--
+--      This table contains objects that can be used to
+--      display the information about an L2 VPN.
+
+rbnL2VpnStaticTable   OBJECT-TYPE
+       SYNTAX          SEQUENCE OF RbnL2VpnStaticEntry
+       MAX-ACCESS      not-accessible
+       STATUS          obsolete
+       DESCRIPTION
+           "This table contains objects which identify static
+           Layer 2 VPN circuits.
+           With respect to creation and deletion of entries in this
+           table, rows are created or deleted when the VPN circuit is 
+           configured."
+       ::= { rbnL2VpnMIBObjects 1 }
+
+rbnL2VpnStaticEntry   OBJECT-TYPE
+       SYNTAX          RbnL2VpnStaticEntry
+       MAX-ACCESS      not-accessible
+       STATUS          obsolete
+       DESCRIPTION
+            "A conceptual row in the rbnL2VpnStaticTable."
+       INDEX { rbnL2VpnStaticPeerAddr, rbnL2VpnStaticVpnLabel }
+       ::= { rbnL2VpnStaticTable 1 }
+
+RbnL2VpnStaticEntry ::=
+       SEQUENCE {
+            rbnL2VpnStaticPeerAddr        IpAddress,
+            rbnL2VpnStaticVpnLabel        Unsigned32,
+            rbnL2VpnStaticCctHandle       RbnCircuitHandle,
+            rbnL2VpnStaticVpnCctHandle    RbnCircuitHandle,
+            rbnL2VpnStaticExpBits         Unsigned32,
+            rbnL2VpnStaticInputCctUp      TruthValue,
+            rbnL2VpnStaticXcFlags         RbnVpnXcFlagsType,
+            rbnL2VpnStaticIfIndexOrZero   InterfaceIndexOrZero
+            }
+
+rbnL2VpnStaticPeerAddr OBJECT-TYPE
+        SYNTAX  IpAddress
+        MAX-ACCESS  not-accessible
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the ip address of the VPN peer."
+        ::= { rbnL2VpnStaticEntry 1 }
+
+rbnL2VpnStaticVpnLabel OBJECT-TYPE
+        SYNTAX  Unsigned32 (4096..65535)
+        MAX-ACCESS  not-accessible
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the unique value assigned to a particular
+             static VPN circuit."
+        ::= { rbnL2VpnStaticEntry 2 }
+
+rbnL2VpnStaticCctHandle OBJECT-TYPE
+        SYNTAX  RbnCircuitHandle
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the internal representation of the physical 
+             circuit to which this VPN is connected. A hexadecimal value of 
+             ff ff ff ff ff ff ff ff indicates an invalid circuit."
+        ::= { rbnL2VpnStaticEntry 3 }
+
+
+rbnL2VpnStaticVpnCctHandle OBJECT-TYPE
+        SYNTAX  RbnCircuitHandle
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the internal representation of VPN 
+            pseudo circuit."
+        ::= { rbnL2VpnStaticEntry 4 }
+
+rbnL2VpnStaticExpBits OBJECT-TYPE
+        SYNTAX  Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the number of exp bits configured for this
+             VPN circuit."
+        ::= { rbnL2VpnStaticEntry 5 }
+
+rbnL2VpnStaticInputCctUp OBJECT-TYPE
+        SYNTAX  TruthValue
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the status of the VPN input circuit. A 
+            value of true indicates that the VPN circuit is connected with 
+            it's remote site.  A value of false indicates that the remote 
+            site is not presently connected."
+        ::= { rbnL2VpnStaticEntry 6 }
+
+rbnL2VpnStaticXcFlags OBJECT-TYPE
+        SYNTAX  RbnVpnXcFlagsType 
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates more detailed information on the status
+             of the VPN circuit. This object is a bit field so it may contain one 
+             or more of these values."
+
+        ::= { rbnL2VpnStaticEntry 7 }
+
+rbnL2VpnStaticIfIndexOrZero OBJECT-TYPE
+        SYNTAX  InterfaceIndexOrZero
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates whether there is a corresponding entry in
+             the ifTable.  A non-zero value indicates the ifIndex of the entry
+             in the ifTable.  A value of zero indicates that there is no entry."
+        ::= { rbnL2VpnStaticEntry 8 }
+
+   --      The L2 VPN LDP Table
+   --
+   --      This table contains objects that can be used to
+   --      display the information about an L2 VPN.
+
+rbnL2VpnLdpTable   OBJECT-TYPE
+       SYNTAX          SEQUENCE OF RbnL2VpnLdpEntry
+       MAX-ACCESS      not-accessible
+       STATUS          obsolete
+       DESCRIPTION
+           "This table contains objects which identify Layer
+           Distribution Protocol Layer 2 VPN circuits.
+           With respect to creation and deletion of entries in this
+           table, rows are created or deleted when the VPN circuit is 
+           configured."
+       ::= { rbnL2VpnMIBObjects 2 }
+
+rbnL2VpnLdpEntry   OBJECT-TYPE
+       SYNTAX          RbnL2VpnLdpEntry
+       MAX-ACCESS      not-accessible
+       STATUS          obsolete
+       DESCRIPTION
+           "A conceptual row in the rbnL2VpnStaticTable."
+       INDEX { rbnL2VpnLdpPeerAddr, rbnL2VpnLdpVcId }
+       ::= { rbnL2VpnLdpTable 1 }
+
+RbnL2VpnLdpEntry ::=
+       SEQUENCE {
+            rbnL2VpnLdpPeerAddr        IpAddress,
+            rbnL2VpnLdpVcId            Integer32,
+            rbnL2VpnLdpCctHandle       RbnCircuitHandle,
+            rbnL2VpnLdpVpnCctHandle    RbnCircuitHandle,
+            rbnL2VpnLdpInLabel         Unsigned32,
+            rbnL2VpnLdpVpnLabel        Unsigned32,
+            rbnL2VpnLdpRemGrpId        Unsigned32,
+            rbnL2VpnLdpLocEncap        SnmpAdminString,
+            rbnL2VpnLdpRemEncap        SnmpAdminString,
+            rbnL2VpnLdpLocVcType       RbnVpnVcType,
+            rbnL2VpnLdpRemVcType       RbnVpnVcType,
+            rbnL2VpnLdpLocMtu          Unsigned32,
+            rbnL2VpnLdpRemMtu          Unsigned32,
+            rbnL2VpnLdpXcCctUp         TruthValue,
+            rbnL2VpnLdpExpBits         Unsigned32,
+            rbnL2VpnLdpInputCctUp      TruthValue,
+            rbnL2VpnLdpXcFlags         RbnVpnXcFlagsType,
+            rbnL2VpnLdpIfIndexOrZero   InterfaceIndexOrZero
+            }
+
+rbnL2VpnLdpPeerAddr OBJECT-TYPE
+        SYNTAX  IpAddress
+        MAX-ACCESS  not-accessible
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the ip address if the VPN peer."
+        ::= { rbnL2VpnLdpEntry 1 }
+
+rbnL2VpnLdpVcId OBJECT-TYPE
+        SYNTAX  Integer32 (0..2147483647)
+        MAX-ACCESS  not-accessible
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the unique virtual VPN circuit id assigned 
+            to this circuit."
+        ::= { rbnL2VpnLdpEntry 2 }
+
+
+rbnL2VpnLdpCctHandle OBJECT-TYPE
+        SYNTAX  RbnCircuitHandle
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the internal representation of the physical
+             circuit to which this VPN is connected. A hexadecimal value of
+             ff ff ff ff ff ff ff ff indicates an invalid circuit."
+        ::= { rbnL2VpnLdpEntry 3 }
+
+rbnL2VpnLdpVpnCctHandle OBJECT-TYPE
+        SYNTAX  RbnCircuitHandle
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the internal representation of the VPN 
+             pseudo circuit."
+        ::= { rbnL2VpnLdpEntry 4 }
+
+rbnL2VpnLdpInLabel OBJECT-TYPE
+        SYNTAX  Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the value setup in the local configuration
+             to identify this VPN circuit."
+        ::= { rbnL2VpnLdpEntry 5 }
+
+rbnL2VpnLdpVpnLabel OBJECT-TYPE
+        SYNTAX  Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the value used by the remote connection in
+             order to identify this VPN circuit when communicating with the local
+             manager."
+        ::= { rbnL2VpnLdpEntry 6 }
+
+rbnL2VpnLdpRemGrpId OBJECT-TYPE
+        SYNTAX  Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the remote group of which this VPN circuit 
+            is a part."
+        ::= { rbnL2VpnLdpEntry 7 }
+
+rbnL2VpnLdpLocEncap OBJECT-TYPE
+        SYNTAX  SnmpAdminString (SIZE (0..80))
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the local encaps type associated with 
+            this VPN circuit."
+        ::= { rbnL2VpnLdpEntry 8 }
+
+rbnL2VpnLdpRemEncap OBJECT-TYPE
+        SYNTAX  SnmpAdminString (SIZE (0..80))
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the remote encaps type associated with 
+            this VPN circuit."
+        ::= { rbnL2VpnLdpEntry 9 }
+
+rbnL2VpnLdpLocVcType OBJECT-TYPE
+        SYNTAX  RbnVpnVcType
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the type of virtual circuit on the 
+            local system."
+        ::= { rbnL2VpnLdpEntry 10 }
+
+rbnL2VpnLdpRemVcType OBJECT-TYPE
+        SYNTAX  RbnVpnVcType
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the type of virtual circuit on the 
+            remote system."
+        ::= { rbnL2VpnLdpEntry 11 }
+
+rbnL2VpnLdpLocMtu OBJECT-TYPE
+        SYNTAX  Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the maximum transmission unit of the
+             local VPN circuit."
+        ::= { rbnL2VpnLdpEntry 12 }
+
+rbnL2VpnLdpRemMtu OBJECT-TYPE
+        SYNTAX  Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the maximum transmission unit of the
+             remote connection."
+        ::= { rbnL2VpnLdpEntry 13 }
+
+rbnL2VpnLdpXcCctUp OBJECT-TYPE
+        SYNTAX  TruthValue
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the status of the VPN cross connect circuit. 
+             A value of true indicates that the VPN circuit is connected with it's 
+             remote site.  A value of false indicates that the remote site is 
+             not presently connected."
+        ::= { rbnL2VpnLdpEntry 14 }
+
+rbnL2VpnLdpExpBits OBJECT-TYPE
+        SYNTAX  Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the number of exp bits configured for this
+             VPN circuit."
+        ::= { rbnL2VpnLdpEntry 15 }
+
+rbnL2VpnLdpInputCctUp OBJECT-TYPE
+        SYNTAX  TruthValue
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates the status of the VPN input circuit. A 
+            value of true indicates that the VPN circuit is connected with 
+            it's remote site. 
+            A value of false indicates that the remote site is not 
+            presently connected."
+        ::= { rbnL2VpnLdpEntry 16 }
+
+rbnL2VpnLdpXcFlags OBJECT-TYPE
+        SYNTAX  RbnVpnXcFlagsType
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates more detailed information on the status
+             of the VPN circuit. This object is a bit field so it may contain one 
+             or more of these values."
+
+        ::= { rbnL2VpnLdpEntry 17 }
+
+rbnL2VpnLdpIfIndexOrZero OBJECT-TYPE
+        SYNTAX  InterfaceIndexOrZero
+        MAX-ACCESS  read-only
+        STATUS      obsolete
+        DESCRIPTION
+            "This object indicates whether there is a corresponding entry in
+             the ifTable.  A non-zero value indicates the ifIndex of the entry
+             in the ifTable.  A value of zero indicates that there is no entry."
+        ::= { rbnL2VpnLdpEntry 18 }
+
+-- deprecated/obsolete object groups and compliance    
+rbnL2VpnMIBCompliance MODULE-COMPLIANCE
+        STATUS      obsolete
+        DESCRIPTION
+                "The compliance statement for the L2VPN MIB."
+        MODULE      -- this module
+        MANDATORY-GROUPS 
+                {
+                    rbnL2VpnStaticGroup,
+                    rbnL2VpnLdpGroup
+                }
+        ::= { rbnL2VpnMIBCompliances 1 }
+
+rbnMplsL2VpnMIBCompliance MODULE-COMPLIANCE
+    STATUS        current 
+    DESCRIPTION
+        "The compliance statement for the L2VPN MIB."
+    MODULE        -- this module
+    MANDATORY-GROUPS 
+            {
+                rbnMplsL2VpnStaticGroup,
+                rbnMplsL2VpnLdpGroup
+            }
+    ::= { rbnMplsL2VpnMIBCompliances 1 }
+
+-- Units of Conformance
+
+rbnL2VpnStaticGroup OBJECT-GROUP
+    OBJECTS {
+            rbnL2VpnStaticCctHandle,
+            rbnL2VpnStaticVpnCctHandle,
+            rbnL2VpnStaticExpBits,
+            rbnL2VpnStaticInputCctUp,
+            rbnL2VpnStaticXcFlags,
+            rbnL2VpnStaticIfIndexOrZero
+
+    }
+    STATUS        obsolete
+    DESCRIPTION
+        "A collection of objects providing information about
+         the status of static L2 VPN connections."
+    ::= { rbnL2VpnMIBGroups 1 }
+
+rbnMplsL2VpnStaticGroup OBJECT-GROUP
+    OBJECTS {
+            rbnMplsL2VpnStaticCctHandle,
+            rbnMplsL2VpnStaticVpnCctHandle,
+            rbnMplsL2VpnStaticExpBits,
+            rbnMplsL2VpnStaticInputCctUp,
+            rbnMplsL2VpnStaticXcFlags,
+            rbnMplsL2VpnStaticIfIndexOrZero
+    }
+    STATUS        current 
+    DESCRIPTION
+        "A collection of objects providing information about
+         the status of static L2 VPN connections."
+    ::= { rbnMplsL2VpnMIBGroups 1 }
+
+rbnL2VpnLdpGroup OBJECT-GROUP
+    OBJECTS {
+            rbnL2VpnLdpCctHandle,
+            rbnL2VpnLdpVpnCctHandle,
+            rbnL2VpnLdpInLabel,
+            rbnL2VpnLdpVpnLabel,
+            rbnL2VpnLdpRemGrpId,
+            rbnL2VpnLdpLocEncap,
+            rbnL2VpnLdpRemEncap,
+            rbnL2VpnLdpLocVcType,
+            rbnL2VpnLdpRemVcType,
+            rbnL2VpnLdpLocMtu,
+            rbnL2VpnLdpRemMtu,
+            rbnL2VpnLdpXcCctUp,
+            rbnL2VpnLdpExpBits,
+            rbnL2VpnLdpInputCctUp,
+            rbnL2VpnLdpXcFlags,
+            rbnL2VpnLdpIfIndexOrZero
+    }
+    STATUS        obsolete
+    DESCRIPTION
+        "A collection of objects providing information about
+         the status of L2 VPN connections using Label Detection
+         Protocol."
+    ::= { rbnL2VpnMIBGroups 2 }
+
+rbnMplsL2VpnLdpGroup OBJECT-GROUP
+    OBJECTS {
+            rbnMplsL2VpnLdpCctHandle,
+            rbnMplsL2VpnLdpVpnCctHandle,
+            rbnMplsL2VpnLdpInLabel,
+            rbnMplsL2VpnLdpVpnLabel,
+            rbnMplsL2VpnLdpRemGrpId,
+            rbnMplsL2VpnLdpLocEncap,
+            rbnMplsL2VpnLdpRemEncap,
+            rbnMplsL2VpnLdpLocVcType,
+            rbnMplsL2VpnLdpRemVcType,
+            rbnMplsL2VpnLdpLocMtu,
+            rbnMplsL2VpnLdpRemMtu,
+            rbnMplsL2VpnLdpXcCctUp,
+            rbnMplsL2VpnLdpExpBits,
+            rbnMplsL2VpnLdpInputCctUp,
+            rbnMplsL2VpnLdpXcFlags,
+            rbnMplsL2VpnLdpIfIndexOrZero
+    }
+    STATUS        current 
+    DESCRIPTION
+        "A collection of objects providing information about
+         the status of L2 VPN connections using Label Detection
+         Protocol."
+    ::= { rbnMplsL2VpnMIBGroups 2 }
+END

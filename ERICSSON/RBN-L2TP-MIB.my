@@ -1,0 +1,1808 @@
+-- %DNP% $Id: RBN-L2TP-MIB.my,v 1.1.2.5.250.2 2011/02/22 17:26:17 thatcher Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-L2TP-MIB.my,v $
+-- *****************************************************************
+-- RBN-L2TP-MIB    L2TP MIB
+--
+-- Copyright (c) 2003-2009, 2011 Ericsson AB.
+-- All rights reserved.
+--
+-- *****************************************************************
+
+RBN-L2TP-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    	Counter32, Gauge32, Counter64, Unsigned32,
+    	MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE
+        	FROM SNMPv2-SMI
+    	TEXTUAL-CONVENTION, TruthValue, DateAndTime
+        	FROM SNMPv2-TC
+        SnmpAdminString
+                FROM SNMP-FRAMEWORK-MIB
+    	OBJECT-GROUP, MODULE-COMPLIANCE, NOTIFICATION-GROUP
+        	FROM SNMPv2-CONF
+        InetAddressType, InetAddress
+                FROM INET-ADDRESS-MIB
+
+    	rbnMgmt
+        	FROM RBN-SMI;
+
+
+rbnL2tpMib    MODULE-IDENTITY
+        LAST-UPDATED    "201101191800Z" -- Jan 19, 2011
+        ORGANIZATION    "Ericsson AB."
+        CONTACT-INFO
+                "       Ericsson AB.
+
+                Postal: 100 Headquarters Dr
+                        San Jose, CA  95134
+                        USA
+
+                 Phone: +1 408 750 5000
+                   Fax: +1 408 750 5599
+                "
+    	DESCRIPTION
+        	"Defines the objects necessary to monitor L2TP configuration
+		information, counters and the state changes of an L2TP tunnel.
+
+		All mib objects defined in the module are viewed within the
+		context identified in the SNMP protocol (i.e. the community
+		string in the v1/v2 or the contextName in v3)."
+
+        REVISION        "201101191800Z" -- Jan 19, 2011
+        DESCRIPTION
+                "Update CONTACT-INFO & ORGANIZATION. "
+
+    	REVISION     "200904200000Z" -- April 20, 2009
+    	DESCRIPTION
+                "Added waitRouteUp in TunStateType. "
+
+    	REVISION     "200502280000Z" -- Feb 28, 2005
+    	DESCRIPTION
+		"Added new table rbnL2tpPeerTunCfgTable.
+
+		Updated the compliance statements and groups to reflect the 
+		change."
+
+    	REVISION     "200402040000Z" -- Feb 4, 2004
+    	DESCRIPTION
+		"Added new objects rbnL2tpTCfgRemoteTunnelID and 
+		rbnL2tpTCfgTunnelContext to rbnL2tpTunnelCfgEntry.
+		Added new NOTIFICATION-TYPE rbnL2tpMibTunnelStateChange2.
+		Deprecated rbnL2tpMibTunnelTrapContext, 
+		rbnL2tpMibTunnelTrapState, and rbnL2tpMibTunnelStateChange.
+		Updated the compliance statements and groups to reflect the 
+		changes."
+
+    	REVISION     "200304250000Z"
+    	DESCRIPTION
+        	"Initial version."
+
+       	::= { rbnMgmt 28}
+
+
+   --
+   --      Definitions of significant branches
+   --
+rbnL2tpMibNotifications       OBJECT IDENTIFIER  ::= { rbnL2tpMib 0 }
+rbnL2tpMibObjects         OBJECT IDENTIFIER  ::= { rbnL2tpMib 1 }
+rbnL2tpMibConformance     OBJECT IDENTIFIER  ::= { rbnL2tpMib 2 }
+
+   --      textual conventions
+
+	AuthType ::=TEXTUAL-CONVENTION
+	    STATUS    current
+	    DESCRIPTION 
+		"Common authentication types."
+
+	    SYNTAX	INTEGER {
+			    other(0),
+			    pap(1),
+			    chap(2),
+			    chapPap(3)
+			}
+
+
+	LacLnsType ::=TEXTUAL-CONVENTION
+	    STATUS    current
+	    DESCRIPTION 
+		"Peer operational mode types."
+
+	    SYNTAX	INTEGER {
+			    other(1),
+			    lac(2),
+			    lns(3),
+			    lacLns(4)
+			}
+
+	TunStateType ::=TEXTUAL-CONVENTION
+	    STATUS    current
+	    DESCRIPTION 
+		"Tunnel operational states."
+
+	    SYNTAX	INTEGER {
+        		    invalid(0),
+			    deleted(1),
+			    idle(2),
+        		    created(3),
+			    waitAAA(4),
+			    waitCtlReply(5),
+			    waitCtlConn(6),
+			    established(7),
+			    waitRouteUp(8)
+			}
+
+	CtlErrType ::=TEXTUAL-CONVENTION
+	    STATUS    current
+	    DESCRIPTION 
+		"Tunnel control errors."
+
+	    SYNTAX	INTEGER {
+			    ctlrunt(0),
+			    hdr2long(1),
+			    dupSCCRQ(2),
+			    duppkt(3),
+			    droppkt(4),
+			    badCmType(5),
+			    avp2long(6),
+			    avpUnknown(7),
+			    typeNot1st(8),
+			    mtype000(9),
+			    cantUnhide(10),
+			    avpLen(11),
+			    missAvp(12),
+			    invalidAvp(13),
+			    avp2big(14),
+			    badAvpLen(15),
+			    rexmt(16),
+			    scksnderr(17),
+			    remWndoful(18),
+			    maxRexmts(19),
+			    sccrqColide(20),
+			    badVers(21),
+			    noChapRsp(22),
+			    authFailed(23),
+			    sesExists(24),
+			    badcrpsesi(25),
+			    cdnBadid(26),
+			    iccnBadid(27),
+			    dataRunt(28),
+			    badSCCRQna(29),
+			    badSCCRP(30),
+			    dupIcrq(31),
+			    badSCCCN(32),
+			    badMsgType(33),
+			    sccrqSteal(34),
+			    remXmtState(35),
+			    cdnThrottle(36),
+			    none(255)
+			}
+			    
+	EthEncapType ::=TEXTUAL-CONVENTION
+	    STATUS    current
+	    DESCRIPTION 
+		"Ethernet encapsulation types."
+
+	    SYNTAX	INTEGER {
+			    other(0),
+			    ethPpoe(1),
+			    ethMulti(2),
+			    ethernet(3)
+			}
+
+	DNISType ::=TEXTUAL-CONVENTION
+	    STATUS    current
+	    DESCRIPTION 
+		"Tunnel switch DNIS type."
+
+	    SYNTAX	INTEGER {
+			    other(0),
+			    dnis(1),
+			    dnisonly(2)
+			}
+
+   --      The L2TP Peer Information Table
+   --
+   --      This table contains objects that can be used to
+   --      display the information about an L2TP peer.
+
+rbnL2tpPeerCfgTable   OBJECT-TYPE
+       SYNTAX          SEQUENCE OF RbnL2tpPeerCfgEntry
+       MAX-ACCESS      not-accessible
+       STATUS          current
+       DESCRIPTION
+          "The L2TP Peer Information Table."
+       ::= { rbnL2tpMibObjects 1 }
+
+rbnL2tpPeerCfgEntry   OBJECT-TYPE
+       SYNTAX          RbnL2tpPeerCfgEntry
+       MAX-ACCESS      not-accessible
+       STATUS          current
+       DESCRIPTION
+	    "An L2TP Peer Information entry. An entry in this
+	    table corresponds to the resources assigned to a
+	    single peer configuration. This configuration will
+	    be inherited by all of the tunnels that are assigned 
+	    to the peer group. Entries are added to the table once
+	    communication is established with the peer.  Entries
+	    are removed if communication is lost."
+       INDEX { IMPLIED rbnL2tpMibPeerName }
+       ::= { rbnL2tpPeerCfgTable 1 }
+
+RbnL2tpPeerCfgEntry ::=
+       SEQUENCE {
+	    rbnL2tpMibPeerName         SnmpAdminString,
+	    rbnL2tpPCfgMedia           SnmpAdminString,
+	    rbnL2tpPCfgVendor          SnmpAdminString,
+	    rbnL2tpPCfgRev             Unsigned32,
+	    rbnL2tpPCfgHostName        SnmpAdminString,
+	    rbnL2tpPCfgRadius          TruthValue,
+	    rbnL2tpPCfgRemIPAddType    InetAddressType,
+	    rbnL2tpPCfgRemIPAdd        InetAddress,
+	    rbnL2tpPCfgStatic          TruthValue,
+	    rbnL2tpPCfgLocalIPAddType  InetAddressType,
+	    rbnL2tpPCfgLocalIPAdd      InetAddress,
+	    rbnL2tpPCfgMode            LacLnsType,
+	    rbnL2tpPCfgMaxTunnels      Gauge32,
+	    rbnL2tpPCfgMaxSesPerTun    Gauge32,
+	    rbnL2tpPCfgCtlRetranCnt    Counter32,
+	    rbnL2tpPCfgCtlRetranTO     Unsigned32,
+	    rbnL2tpPCfgSessAuth        AuthType,
+	    rbnL2tpPCfgCtlWin          Gauge32,
+	    rbnL2tpPCfgDNIS            DNISType,
+	    rbnL2tpPCfgPoliceRate      Unsigned32,
+	    rbnL2tpPCfgPoliceBurst     Unsigned32,
+	    rbnL2tpPCfgLimitRate       Unsigned32,
+	    rbnL2tpPCfgLimitBurst      Unsigned32,
+	    rbnL2tpPCfgGroup           SnmpAdminString,
+	    rbnL2tpPCfgPref            Unsigned32,
+	    rbnL2tpPCfgPasswd          SnmpAdminString,
+	    rbnL2tpPCfgHelloTimer      Unsigned32,
+	    rbnL2tpPCfgRecQue          TruthValue,
+	    rbnL2tpPCfgSessContext     SnmpAdminString,
+	    rbnL2tpPCfgSessService     SnmpAdminString,
+	    rbnL2tpPCfgEthEncap        EthEncapType,
+	    rbnL2tpPCfgEthSession      SnmpAdminString,
+	    rbnL2tpPCfgTunnelCount     Counter32,
+	    rbnL2tpPCfgTunCtlErrs      Counter32,
+	    rbnL2tpPCfgSessionCount    Counter32
+	   
+	    }
+
+rbnL2tpMibPeerName OBJECT-TYPE
+    	SYNTAX  SnmpAdminString (SIZE (1..255))
+    	MAX-ACCESS  not-accessible
+    	STATUS      current
+    	DESCRIPTION
+	    "This object identifies the name of the Peer on the local
+	    system.  This peer is the name of an identifier for a 
+	    tunnel configuration and each tunnel that is assigned to 
+	    this peer will take on the peer's configuration parameters."
+    	::= { rbnL2tpPeerCfgEntry 1 }
+
+rbnL2tpPCfgMedia OBJECT-TYPE
+    	SYNTAX          SnmpAdminString (SIZE (0..10))
+    	MAX-ACCESS      read-create
+    	STATUS          current
+    	DESCRIPTION 
+	    "This object identifies the transport media utilized 
+	    between communicating peers. A media length of 0 means that
+	    no transport media type was set."
+    	::= { rbnL2tpPeerCfgEntry 2 }
+
+rbnL2tpPCfgVendor OBJECT-TYPE
+    	SYNTAX          SnmpAdminString (SIZE (0..60))
+    	MAX-ACCESS      read-only
+    	STATUS          current
+    	DESCRIPTION 
+	    "This object identifies the vendor of L2TP stack running on
+	    the remote peer. The length of the string will be zero if no
+	    vendor name can be obtained from the peer." 
+    	::= { rbnL2tpPeerCfgEntry 3 }
+
+rbnL2tpPCfgRev  OBJECT-TYPE
+    	SYNTAX          Unsigned32
+    	MAX-ACCESS      read-only
+    	STATUS          current
+    	DESCRIPTION 
+	    "This object identifies the firmware revision for the L2TP
+	    protocol stack running on the remote peer."
+    	::= { rbnL2tpPeerCfgEntry 4 }
+
+rbnL2tpPCfgHostName OBJECT-TYPE
+    	SYNTAX          SnmpAdminString (SIZE (0..255))
+    	MAX-ACCESS      read-only
+    	STATUS          current
+    	DESCRIPTION 
+	    "This object identifies the name assigned to this peer on the
+	    remote host system. A host name length of 0 means that this
+ 	    information could not be obtained from the remote host."
+    	::= { rbnL2tpPeerCfgEntry 5 }
+
+rbnL2tpPCfgRadius OBJECT-TYPE
+    	SYNTAX          TruthValue
+    	MAX-ACCESS      read-only
+    	STATUS          current
+    	DESCRIPTION 
+	    "This object indicates whether or not a RADIUS server
+	    has been configured for this peer group. A value of true (1) indicates 
+	    that there is a RADIUS server and it will be used for authenticating
+	    and authorizing access to a tunnel in this group and accounting 
+	    information will be sent to the radius server. A value of false (2) 
+	    indicates that there is no RADIUS server and authentication and
+	    authorization will be done locally."
+    	::= { rbnL2tpPeerCfgEntry 6 }
+
+rbnL2tpPCfgRemIPAddType OBJECT-TYPE
+        SYNTAX      InetAddressType     
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object identifies the address type contained in 
+	    rbnL2tpPCfgRemIPAdd."
+        ::= { rbnL2tpPeerCfgEntry 7 }
+
+rbnL2tpPCfgRemIPAdd OBJECT-TYPE
+    	SYNTAX          InetAddress
+    	MAX-ACCESS      read-create
+    	STATUS          current
+    	DESCRIPTION
+	    "This object identifies the remote IP address for
+	    this tunnel (utilized only with User Datagram Protocol)."
+    	::= { rbnL2tpPeerCfgEntry 8 }
+
+rbnL2tpPCfgStatic OBJECT-TYPE
+    	SYNTAX          TruthValue 
+    	MAX-ACCESS      read-create
+    	STATUS          current
+    	DESCRIPTION 
+	    "This objects indicates whether the tunnel is
+	    static or dynamic. A value of true (1) means that it is static.
+	    A value of (2) indicates that it is dynamic."
+    	::= { rbnL2tpPeerCfgEntry 9 }
+
+rbnL2tpPCfgLocalIPAddType OBJECT-TYPE
+        SYNTAX      InetAddressType     
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "This object identifies the address type contained in 
+	    rbnL2tpPCfgLocalIPAdd."
+        ::= { rbnL2tpPeerCfgEntry 10 }
+
+rbnL2tpPCfgLocalIPAdd OBJECT-TYPE
+    	SYNTAX          InetAddress
+    	MAX-ACCESS      read-create
+    	STATUS          current
+    	DESCRIPTION 
+	    "This object indicates the local IP address
+	    for this tunnel (utilized only with UDP)."
+    	::= { rbnL2tpPeerCfgEntry 11 }
+
+rbnL2tpPCfgMode OBJECT-TYPE
+    	SYNTAX          LacLnsType
+    	MAX-ACCESS      read-create
+    	STATUS          current
+        DESCRIPTION 
+	    "This object indicates whether the peer
+	    is operating as an LNS, a LAC, or both."
+    	::= { rbnL2tpPeerCfgEntry 12 }
+
+rbnL2tpPCfgMaxTunnels OBJECT-TYPE
+        SYNTAX          Gauge32
+        MAX-ACCESS      read-create
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the maximum number 
+	    of tunnels that may be configured on this peer."
+        ::= { rbnL2tpPeerCfgEntry 14 }
+
+rbnL2tpPCfgMaxSesPerTun OBJECT-TYPE
+        SYNTAX          Gauge32
+        MAX-ACCESS      read-create
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the maximum number of 
+	    sessions that may be allocated to one tunnel."
+        ::= { rbnL2tpPeerCfgEntry 15 }
+
+rbnL2tpPCfgCtlRetranCnt OBJECT-TYPE
+    	SYNTAX          Counter32
+    	MAX-ACCESS      read-only
+    	STATUS          current
+    	DESCRIPTION 
+	    "This object indicates a count of the number of
+	    times that a control packet was retransmitted."
+    	::= { rbnL2tpPeerCfgEntry 16 }
+
+rbnL2tpPCfgCtlRetranTO OBJECT-TYPE
+    	SYNTAX          Unsigned32 (0..255)
+	UNITS		"seconds"
+    	MAX-ACCESS      read-create
+    	STATUS          current
+    	DESCRIPTION 
+	    "This object indicates the control retransmit
+	    timeout in seconds."
+    	::= { rbnL2tpPeerCfgEntry 17 }
+
+rbnL2tpPCfgSessAuth OBJECT-TYPE
+    	SYNTAX          AuthType
+    	MAX-ACCESS      read-create
+    	STATUS          current
+    	DESCRIPTION 
+	    "This object indicates the session authentication
+	    type."
+    	::= { rbnL2tpPeerCfgEntry 18 }
+
+rbnL2tpPCfgCtlWin OBJECT-TYPE
+    	SYNTAX          Gauge32 (0..65535)
+    	MAX-ACCESS      read-create
+    	STATUS          current
+    	DESCRIPTION 
+	    "This object indicates the control window size."
+    	::= { rbnL2tpPeerCfgEntry 19 }
+
+rbnL2tpPCfgDNIS OBJECT-TYPE
+    	SYNTAX          DNISType
+    	MAX-ACCESS      read-create
+    	STATUS          current
+        DESCRIPTION 
+	    "This object indicates whether the critera used 
+	    for a tunnel switch is Dialed Number Identification 
+	    String first (a value of (1)), DNIS only (a value of (2)) or
+	    the no preference has been set (a value of (0))."
+    	::= { rbnL2tpPeerCfgEntry 20 }
+
+rbnL2tpPCfgPoliceRate OBJECT-TYPE
+        SYNTAX          Unsigned32
+	UNITS		"kbps"
+        MAX-ACCESS      read-create
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the received aggregate
+	    stream limit, in kilobits per second."
+        ::= { rbnL2tpPeerCfgEntry 21 }
+
+rbnL2tpPCfgPoliceBurst OBJECT-TYPE
+        SYNTAX          Unsigned32
+	UNITS		"kbps"
+        MAX-ACCESS      read-create
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the packet burst tolerance
+	    for tunnels received by this peer group."
+        ::= { rbnL2tpPeerCfgEntry 22 }
+
+rbnL2tpPCfgLimitRate OBJECT-TYPE
+        SYNTAX          Unsigned32
+	UNITS		"kbps"
+        MAX-ACCESS      read-create
+        STATUS          current
+        DESCRIPTION 
+            "This object indicates the limit of the aggregate packet 
+	    stream transmitted through a tunnel in kilobits per 
+	    second (kpbs)."
+        ::= { rbnL2tpPeerCfgEntry 23 }
+
+rbnL2tpPCfgLimitBurst OBJECT-TYPE
+        SYNTAX          Unsigned32
+	UNITS		"kbps"
+        MAX-ACCESS      read-create
+        STATUS          current
+        DESCRIPTION 
+            "This object indicates the the packet burst tolerance limit 
+	    transmitted on a tunnel."
+        ::= { rbnL2tpPeerCfgEntry 24 }
+
+rbnL2tpPCfgGroup OBJECT-TYPE
+        SYNTAX          SnmpAdminString 
+        MAX-ACCESS      read-create
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the l2tp group which is assigned
+	    to this peer. Each peer configuration may be assigned only one 
+	    tunnel group. A length of 0 means that the group name was not 
+	    assigned."
+        ::= { rbnL2tpPeerCfgEntry 25 }
+
+rbnL2tpPCfgPref OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-create
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the RADIUS based preference
+	    number (used by tunnel groups only). A lower number indicates a
+	    more favorible preference."
+        ::= { rbnL2tpPeerCfgEntry 26 }
+
+rbnL2tpPCfgPasswd OBJECT-TYPE
+        SYNTAX          SnmpAdminString (SIZE (0..20))
+        MAX-ACCESS      read-create
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the password for this account
+	    utilized when performing the connection handshake protocol with the
+	    remote host. A length of 0 indicates that no password has been
+	    assigned."
+        ::= { rbnL2tpPeerCfgEntry 27 }
+
+rbnL2tpPCfgHelloTimer OBJECT-TYPE
+        SYNTAX          Unsigned32 (0..3600)
+	UNITS		"seconds"
+        MAX-ACCESS      read-create
+        STATUS          current
+        DESCRIPTION 
+	    "This object defines the interval (in seconds) in
+            which Hello (or keep-alive) packets are to be sent
+            by local tunnels belonging to this tunnel configuration."
+        ::= { rbnL2tpPeerCfgEntry 28 }
+
+rbnL2tpPCfgRecQue OBJECT-TYPE
+        SYNTAX          TruthValue
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates whether there is receive
+	    queueing of out of sequence messages. A value of true (1)
+	    indicates that the messages are queued."
+        ::= { rbnL2tpPeerCfgEntry 29 }
+
+rbnL2tpPCfgSessContext OBJECT-TYPE
+        SYNTAX          SnmpAdminString (SIZE (0..80))
+        MAX-ACCESS      read-create
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the name of the session 
+	    context. A size of 0 indicates that the context could not
+	    be determined.  Any context name length greater than 80 
+	    will be truncated. This will have a value for PPPoE only."
+        ::= { rbnL2tpPeerCfgEntry 30 }
+
+rbnL2tpPCfgSessService OBJECT-TYPE
+        SYNTAX          SnmpAdminString (SIZE (0..20))
+        MAX-ACCESS      read-create
+        STATUS          current
+        DESCRIPTION 
+	    "The service group to which this session belongs.
+	    A length of 0 indicates that no service group was assigned."
+        ::= { rbnL2tpPeerCfgEntry 31 }
+
+rbnL2tpPCfgEthEncap OBJECT-TYPE
+        SYNTAX          EthEncapType
+        MAX-ACCESS      read-create
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the ethernet encap type."
+        ::= { rbnL2tpPeerCfgEntry 32 }
+
+rbnL2tpPCfgEthSession OBJECT-TYPE
+        SYNTAX          SnmpAdminString (SIZE (0..20))
+        MAX-ACCESS      read-create
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the ethernet session of
+	    which this is a part. This is only set for non PPPoE sessions
+	    otherwise it will have a zero length."
+        ::= { rbnL2tpPeerCfgEntry 33 }
+
+rbnL2tpPCfgTunnelCount OBJECT-TYPE
+        SYNTAX          Counter32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of tunnels 
+	    that are active for this peer configuration."
+        ::= { rbnL2tpPeerCfgEntry 34 }
+
+rbnL2tpPCfgTunCtlErrs OBJECT-TYPE
+        SYNTAX          Counter32 
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object is a count of the number of tunnel
+	    control errors encountered by tunnels connected to this peer."
+        ::= { rbnL2tpPeerCfgEntry 35 }
+
+rbnL2tpPCfgSessionCount OBJECT-TYPE
+        SYNTAX          Counter32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object is a count of the number of sessions 
+	    that are part of this peer."
+        ::= { rbnL2tpPeerCfgEntry 36 }
+
+
+
+
+
+rbnL2tpTunnelCfgTable   OBJECT-TYPE
+        SYNTAX          SEQUENCE OF RbnL2tpTunnelCfgEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION
+           "The L2TP Tunnel Information Table."
+        ::= { rbnL2tpMibObjects 2 }
+
+rbnL2tpTunnelCfgEntry   OBJECT-TYPE
+        SYNTAX          RbnL2tpTunnelCfgEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION
+           "An L2TP Tunnel Information entry. An entry in this
+            table corresponds to a single tunnel. Entries are added
+	    to this table as tunnels become connected. Entries are
+	    removed from the table if the communication with one or 
+	    both ends of a tunnel is lost."
+        INDEX { rbnL2tpMibTunnelID }
+        ::= { rbnL2tpTunnelCfgTable 1 }
+
+RbnL2tpTunnelCfgEntry ::=
+        SEQUENCE {
+	    rbnL2tpMibTunnelID          Unsigned32,
+	    rbnL2tpTCfgTunnelNm		SnmpAdminString,
+	    rbnL2tpTCfgPeerName		SnmpAdminString,
+	    rbnL2tpTCfgTunCtlErrs       Counter32,
+	    rbnL2tpTCfgLastCtlErr       CtlErrType,
+	    rbnL2tpTCfgLastCErrTime     DateAndTime,
+	    rbnL2tpTCfgTunDataErrs      Counter32,
+	    rbnL2tpTCfgLastDataErr      Unsigned32,
+	    rbnL2tpTCfgLastDErrTime     DateAndTime,
+	    rbnL2tpTCfgSessionCount     Gauge32,
+	    rbnL2tpTCfgTotActSessions   Counter32,
+	    rbnL2tpTCfgActSessCnt       Gauge32,
+	    rbnL2tpTCfgTotFailSessions  Counter32,
+	    rbnL2tpMibTunnelState       TunStateType,
+	    rbnL2tpTCfgRemoteTunnelID   Unsigned32,
+	    rbnL2tpTCfgTunnelContext    SnmpAdminString
+        }
+
+rbnL2tpMibTunnelID OBJECT-TYPE
+    	SYNTAX  Unsigned32 (0..65535)
+    	MAX-ACCESS  	not-accessible
+    	STATUS      	current
+        DESCRIPTION
+            "This object indicates the ID number of this tunnel."
+        ::= { rbnL2tpTunnelCfgEntry 1 }
+
+rbnL2tpTCfgTunnelNm OBJECT-TYPE
+    	SYNTAX  	SnmpAdminString (SIZE (1..80))
+    	MAX-ACCESS  	read-only
+    	STATUS      	current
+    	DESCRIPTION
+       	    "This object indicates the local name that was given to this
+	    tunnel."
+    	::= { rbnL2tpTunnelCfgEntry 2 }
+
+rbnL2tpTCfgPeerName OBJECT-TYPE
+        SYNTAX          SnmpAdminString (SIZE (1..80))
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the remote peer to which this
+	    tunnel is connected."
+        ::= { rbnL2tpTunnelCfgEntry 3 }
+
+rbnL2tpTCfgTunCtlErrs OBJECT-TYPE
+        SYNTAX          Counter32 
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object is a count of the number of tunnel
+	    control errors encountered by this tunnel."
+        ::= { rbnL2tpTunnelCfgEntry 4 }
+
+rbnL2tpTCfgLastCtlErr OBJECT-TYPE
+        SYNTAX          CtlErrType 
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "The value of the last control error."
+        ::= { rbnL2tpTunnelCfgEntry 5 }
+
+rbnL2tpTCfgLastCErrTime OBJECT-TYPE
+        SYNTAX          DateAndTime
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "The time of the last control error."
+        ::= { rbnL2tpTunnelCfgEntry 6 }
+
+rbnL2tpTCfgTunDataErrs OBJECT-TYPE
+        SYNTAX          Counter32 
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "The number of tunnel data errors."
+        ::= { rbnL2tpTunnelCfgEntry 7 }
+
+rbnL2tpTCfgLastDataErr OBJECT-TYPE
+        SYNTAX          Unsigned32 
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "The value of the last tunnel data error."
+        ::= { rbnL2tpTunnelCfgEntry 8 }
+
+rbnL2tpTCfgLastDErrTime OBJECT-TYPE
+        SYNTAX          DateAndTime
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "The time of the last tunnel data error."
+        ::= { rbnL2tpTunnelCfgEntry 9 }
+
+rbnL2tpTCfgSessionCount OBJECT-TYPE
+        SYNTAX          Gauge32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "The number of sessions belonging to this tunnel."
+        ::= { rbnL2tpTunnelCfgEntry 10 }
+
+rbnL2tpTCfgTotActSessions OBJECT-TYPE
+        SYNTAX          Counter32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the total number of 
+	sessions that, at some time, reached the established state."
+        ::= { rbnL2tpTunnelCfgEntry 11 }
+
+rbnL2tpTCfgActSessCnt OBJECT-TYPE
+        SYNTAX          Gauge32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the total number of 
+	sessions that are presently in the established state."
+        ::= { rbnL2tpTunnelCfgEntry 12 }
+
+rbnL2tpTCfgTotFailSessions OBJECT-TYPE
+        SYNTAX          Counter32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of sessions that
+	failed to reach the established state."
+        ::= { rbnL2tpTunnelCfgEntry 13 }
+
+rbnL2tpMibTunnelState OBJECT-TYPE
+    	SYNTAX      TunStateType
+    	MAX-ACCESS  read-only
+    	STATUS      current
+    	DESCRIPTION
+       	    "This object is the current state of the tunnel."
+    	::= { rbnL2tpTunnelCfgEntry 14 }
+
+rbnL2tpTCfgRemoteTunnelID OBJECT-TYPE
+        SYNTAX  Unsigned32 (0..65535)
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+            "This object indicates the remote tunnel ID.  A value of
+            zero indicates that the remote tunnel ID could not be
+            determined."
+        ::= { rbnL2tpTunnelCfgEntry 15 }
+
+rbnL2tpTCfgTunnelContext OBJECT-TYPE
+        SYNTAX          SnmpAdminString (SIZE (0..80))
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+            "This object identifies the context of this tunnel. The
+            empty context name (zero length) indicates that the context
+            could not be determined.  Any context name length greater
+            than 80 will be truncated."
+        ::= { rbnL2tpTunnelCfgEntry 16 }
+
+
+
+
+
+rbnL2tpPeerCntTable   OBJECT-TYPE
+        SYNTAX          SEQUENCE OF RbnL2tpPeerCntEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION
+              "The L2TP Peer Statistics Table."
+        ::= { rbnL2tpMibObjects 4 }
+
+rbnL2tpPeerCntEntry   OBJECT-TYPE
+        SYNTAX          RbnL2tpPeerCntEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION
+              "An L2TP Peer Statistics entry. An entry in this
+               table corresponds to a single peer. The statistics
+	       reported are the totals for all tunnels that are
+	       a part of this peer group."
+        INDEX { IMPLIED rbnL2tpMibPeerName }
+        ::= { rbnL2tpPeerCntTable 1 }
+
+RbnL2tpPeerCntEntry ::=
+        SEQUENCE {
+	    rbnL2tpPCDataPktSent    Counter32,
+	    rbnL2tpPCDataPktRx      Counter32,
+	    rbnL2tpPCDataByteSent   Counter32,
+	    rbnL2tpPCDataByteRx     Counter32,
+	    rbnL2tpPCCtlPktSent     Counter32,
+	    rbnL2tpPCCtlPktRx       Counter32,
+	    rbnL2tpPCCtlByteSent    Counter32,
+	    rbnL2tpPCCtlByteRx      Counter32,
+	    rbnL2tpPCPolicePktDrop  Counter32,
+	    rbnL2tpPCRatePktDrop    Counter32,
+	    rbnL2tpPCTxSCCRQCnt     Counter32,
+	    rbnL2tpPCRxSCCRQCnt     Counter32,
+	    rbnL2tpPCActTunnels     Gauge32,
+	    rbnL2tpPCTunnelCtlErr   Counter32,
+	    rbnL2tpPCSessionCount   Gauge32,
+	    rbnL2tpPCTunnelDataErr  Counter32
+
+	}
+
+rbnL2tpPCDataPktSent OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"packets"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object is a count of the total number of 
+	    data packets sent through tunnels that are part of this 
+	    group to the the L2TP peer."
+        ::= { rbnL2tpPeerCntEntry 1 }
+
+rbnL2tpPCDataPktRx OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"packets"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object is a count of the total number of 
+	    data packets received through tunnels that are part of this
+	    group from the the L2TP peer."
+        ::= { rbnL2tpPeerCntEntry 2 }
+
+rbnL2tpPCDataByteSent OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"bytes"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object is a count of the total number of 
+	    data bytes sent through tunnels that are part of this group
+	    to the the L2TP peer."
+        ::= { rbnL2tpPeerCntEntry 3 }
+
+rbnL2tpPCDataByteRx OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"bytes"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object is a count of the total number of 
+	    data bytes received through tunnels that are part of this group
+	    from the the L2TP peer."
+        ::= { rbnL2tpPeerCntEntry 4 }
+
+rbnL2tpPCCtlPktSent OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"packets"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object is a count of the total number of 
+	    control packets sent through tunnels that are part of this group
+	    to the the L2TP peer."
+        ::= { rbnL2tpPeerCntEntry 5 }
+
+rbnL2tpPCCtlPktRx OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"packets"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object is a count of the total number of 
+	    control packets received through tunnels that are a part of this
+	    group from the L2TP peer."
+        ::= { rbnL2tpPeerCntEntry 6 }
+
+rbnL2tpPCCtlByteSent OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"bytes"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object is a count of the total number of 
+	    control bytes sent through tunnels that are a part of this 
+	    group to the the L2TP peer."
+        ::= { rbnL2tpPeerCntEntry 7 }
+
+rbnL2tpPCCtlByteRx OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"bytes"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object is a count of the total number of 
+	    control bytes received through tunnels that are a part of this
+	    group from the L2TP peer."
+        ::= { rbnL2tpPeerCntEntry 8 }
+
+rbnL2tpPCPolicePktDrop OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"packets"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the total number of 
+	    packets received from L2TP peers of tunnels that are 
+	    a part of this group that were dropped."
+        ::= { rbnL2tpPeerCntEntry 9 }
+
+rbnL2tpPCRatePktDrop OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"packets"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the total number of 
+	    packets transmitted to the L2TP peers of tunnels in this group 
+	    that were dropped."
+        ::= { rbnL2tpPeerCntEntry 10 }
+
+rbnL2tpPCTxSCCRQCnt OBJECT-TYPE
+        SYNTAX          Counter32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates a count of the SCCRQ 
+	    transmits for this group."
+        ::= { rbnL2tpPeerCntEntry 11 }
+
+rbnL2tpPCRxSCCRQCnt OBJECT-TYPE
+        SYNTAX          Counter32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object is a count of the received SCCRQ's 
+	    for this group."
+        ::= { rbnL2tpPeerCntEntry 12 }
+
+rbnL2tpPCActTunnels OBJECT-TYPE
+        SYNTAX          Gauge32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of the 
+	    active tunnels for this group."
+        ::= { rbnL2tpPeerCntEntry 13 }
+
+rbnL2tpPCTunnelCtlErr OBJECT-TYPE
+        SYNTAX          Counter32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the total number of 
+	    tunnel control errors for all of the tunnels that are a 
+	    part of this group."
+        ::= { rbnL2tpPeerCntEntry 14 }
+
+rbnL2tpPCSessionCount OBJECT-TYPE
+        SYNTAX          Gauge32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the total number of 
+	    sessions for this group."
+        ::= { rbnL2tpPeerCntEntry 15 }
+
+rbnL2tpPCTunnelDataErr OBJECT-TYPE
+        SYNTAX          Counter32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the total number of 
+	    tunnel data errors reported by members of this group."
+        ::= { rbnL2tpPeerCntEntry 16 }
+
+
+
+
+rbnL2tpTunnelCntTable   OBJECT-TYPE
+        SYNTAX          SEQUENCE OF RbnL2tpTunnelCntEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION
+              "The L2TP Tunnel Statistics Table."
+        ::= { rbnL2tpMibObjects 5 }
+
+rbnL2tpTunnelCntEntry   OBJECT-TYPE
+        SYNTAX          RbnL2tpTunnelCntEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION
+              "An L2TP Tunnel Statistics entry. An entry in this
+               table corresponds to a single tunnel."
+        INDEX { rbnL2tpMibTunnelID }
+        ::= { rbnL2tpTunnelCntTable 1 }
+
+RbnL2tpTunnelCntEntry ::=
+        SEQUENCE {
+	    rbnL2tpTCDataPktSent     Counter32,
+	    rbnL2tpTCDataPktRcvd     Counter32,
+	    rbnL2tpTCDataByteSent    Counter32,
+	    rbnL2tpTCDataByteRcvd    Counter32,
+	    rbnL2tpTCCntrlPktSent    Counter32,
+	    rbnL2tpTCCntrlPktRcvd    Counter32,
+	    rbnL2tpTCCntrlByteSent   Counter32,
+	    rbnL2tpTCCntrlByteRcvd   Counter32,
+	    rbnL2tpTCPolicePktDrop   Counter32,
+	    rbnL2tpTCRatePktDrop     Counter32,
+	    rbnL2tpTCCntrlErr	     Unsigned32,
+	    rbnL2tpTCLastCtlErr	     CtlErrType,
+	    rbnL2tpTCLastCtlErrTime  DateAndTime,
+	    rbnL2tpTCMaxResendQ	     Gauge32,
+	    rbnL2tpTCMaxUnsentQ      Gauge32,
+	    rbnL2tpTCCurResendQ      Gauge32,
+	    rbnL2tpTCCurUnsentQ      Gauge32,
+	    rbnL2tpTCCurWindow       Gauge32
+
+	}
+
+rbnL2tpTCDataPktSent OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"packets"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of data 
+	    packets sent from this platform through this tunnel to
+	its peer."
+        ::= { rbnL2tpTunnelCntEntry 1 }
+
+rbnL2tpTCDataPktRcvd OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"packets"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of packets received 
+	    from the L2TP peer for this tunnel."
+        ::= { rbnL2tpTunnelCntEntry 2 }
+
+rbnL2tpTCDataByteSent OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"bytes"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of data bytes sent
+	    from this platform through this tunnel to its peer."
+        ::= { rbnL2tpTunnelCntEntry 3 }
+
+rbnL2tpTCDataByteRcvd OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"bytes"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of data bytes received
+	    from the L2TP peer for this tunnel."
+        ::= { rbnL2tpTunnelCntEntry 4 }
+
+rbnL2tpTCCntrlPktSent OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"packets"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of control packets sent
+	    from this platform through this tunnel to its L2TP peer."
+        ::= { rbnL2tpTunnelCntEntry 5 }
+
+rbnL2tpTCCntrlPktRcvd OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"packets"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of control packets received
+	    from the L2TP peer for this tunnel."
+        ::= { rbnL2tpTunnelCntEntry 6 }
+
+rbnL2tpTCCntrlByteSent OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"bytes"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of control bytes sent
+	    from this platform through this tunnel to its L2TP peer."
+        ::= { rbnL2tpTunnelCntEntry 7 }
+
+rbnL2tpTCCntrlByteRcvd OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"bytes"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of control bytes received
+	    from the L2TP peer of this tunnel."
+        ::= { rbnL2tpTunnelCntEntry 8 }
+
+rbnL2tpTCPolicePktDrop OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"packets"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of packets received from
+	    the L2TP peer of this tunnel that were dropped."
+        ::= { rbnL2tpTunnelCntEntry 9 }
+
+rbnL2tpTCRatePktDrop OBJECT-TYPE
+        SYNTAX          Counter32
+	UNITS		"packets"
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of packets transmitted
+	    from this platform through this tunnel that were dropped."
+        ::= { rbnL2tpTunnelCntEntry 10 }
+
+rbnL2tpTCCntrlErr OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicate the number of control
+	    errors that were detected."
+        ::= { rbnL2tpTunnelCntEntry 11 }
+
+rbnL2tpTCLastCtlErr OBJECT-TYPE
+        SYNTAX          CtlErrType
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the last control error for this
+	    tunnel that was detected."
+        ::= { rbnL2tpTunnelCntEntry 12 }
+
+rbnL2tpTCLastCtlErrTime OBJECT-TYPE
+        SYNTAX          DateAndTime
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the time that the last
+	    control error for this tunnel was detected."
+        ::= { rbnL2tpTunnelCntEntry 13 }
+
+rbnL2tpTCMaxResendQ OBJECT-TYPE
+        SYNTAX          Gauge32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the maximum length of the
+	    resend queue."
+        ::= { rbnL2tpTunnelCntEntry 14 }
+
+rbnL2tpTCMaxUnsentQ OBJECT-TYPE
+        SYNTAX          Gauge32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the maximum length of the
+	    unsent queue."
+        ::= { rbnL2tpTunnelCntEntry 15 }
+
+rbnL2tpTCCurResendQ OBJECT-TYPE
+        SYNTAX          Gauge32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the current length of
+	    the resend queue."
+        ::= { rbnL2tpTunnelCntEntry 16 }
+
+rbnL2tpTCCurUnsentQ OBJECT-TYPE
+        SYNTAX          Gauge32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the current length of
+	    the unsent queue."
+        ::= { rbnL2tpTunnelCntEntry 17 }
+
+rbnL2tpTCCurWindow OBJECT-TYPE
+        SYNTAX          Gauge32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the current window size."
+        ::= { rbnL2tpTunnelCntEntry 18 }
+
+rbnL2tpSessionCntTable   OBJECT-TYPE
+        SYNTAX          SEQUENCE OF RbnL2tpSessionCntEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION
+            "The L2TP Session Statistics Table."
+        ::= { rbnL2tpMibObjects 6 }
+
+rbnL2tpSessionCntEntry   OBJECT-TYPE
+        SYNTAX          RbnL2tpSessionCntEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION
+            "An L2TP Session Statistics entry. An entry in this
+               table corresponds to a single session."
+        INDEX { rbnL2tpMibTunnelID,rbnL2tpMibSessionID }
+        ::= { rbnL2tpSessionCntTable 1 }
+
+RbnL2tpSessionCntEntry ::=
+        SEQUENCE {
+	    rbnL2tpMibSessionID      Unsigned32,
+	    rbnL2tpSCPktSent         Counter32,
+	    rbnL2tpSCPktRcvd         Counter32,
+	    rbnL2tpSCByteSent        Counter32,
+	    rbnL2tpSCByteRcvd        Counter32,
+	    rbnL2tpSCMcastPktSent    Counter64,
+	    rbnL2tpSCMcastPktRcvd    Counter64,
+	    rbnL2tpSCMcastByteSent   Counter64,
+	    rbnL2tpSCMcastByteRcvd   Counter64
+	}
+
+rbnL2tpMibSessionID OBJECT-TYPE
+    	SYNTAX  Unsigned32 (0..65535)
+    	MAX-ACCESS  not-accessible
+    	STATUS      current
+    	DESCRIPTION
+       	    "This object identifies the Session ID for a given
+	    L2TP session."
+    	::= { rbnL2tpSessionCntEntry 1 }
+
+rbnL2tpSCPktSent OBJECT-TYPE
+        SYNTAX          Counter32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of packets sent 
+	    by this platform in this session."
+        ::= { rbnL2tpSessionCntEntry 2 }
+
+rbnL2tpSCPktRcvd OBJECT-TYPE
+        SYNTAX          Counter32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of packets received 
+	    by this platform in this session."
+        ::= { rbnL2tpSessionCntEntry 3 }
+
+rbnL2tpSCByteSent OBJECT-TYPE
+        SYNTAX          Counter32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of bytes sent by
+	    this platform in this session."
+        ::= { rbnL2tpSessionCntEntry 4 }
+
+rbnL2tpSCByteRcvd OBJECT-TYPE
+        SYNTAX          Counter32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of bytes received by 
+	    this platform in this session."
+        ::= { rbnL2tpSessionCntEntry 5 }
+
+rbnL2tpSCMcastPktSent OBJECT-TYPE
+        SYNTAX          Counter64
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of multicast packets 
+	    sent by this platform in this session."
+        ::= { rbnL2tpSessionCntEntry 6 }
+
+rbnL2tpSCMcastPktRcvd OBJECT-TYPE
+        SYNTAX          Counter64
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of multicast packets 
+	    received by this platform in this session."
+        ::= { rbnL2tpSessionCntEntry 7 }
+
+rbnL2tpSCMcastByteSent OBJECT-TYPE
+        SYNTAX          Counter64
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of multicast bytes sent 
+	    by this platform in this session."
+        ::= { rbnL2tpSessionCntEntry 8 }
+
+rbnL2tpSCMcastByteRcvd OBJECT-TYPE
+        SYNTAX          Counter64
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+	    "This object indicates the number of multicast bytes received 
+	    by this platform in this session."
+        ::= { rbnL2tpSessionCntEntry 9 }
+
+rbnL2tpPeerTunCfgTable  OBJECT-TYPE
+        SYNTAX          SEQUENCE OF RbnL2tpPeerTunCfgEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION
+           "This table contains objects which identify L2TP peers and tunnels."
+        ::= { rbnL2tpMibObjects 8 }
+
+rbnL2tpPeerTunCfgEntry  OBJECT-TYPE
+        SYNTAX          RbnL2tpPeerTunCfgEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION
+            "A conceptual row in the rbnL2tpPeerTunCfgTable.  An entry in
+            this table corresponds to a single tunnel of a L2TP peer.
+            Entries are added to this table as tunnels become connected.
+            Entries are removed from the table if the communication with one
+            or both ends of a tunnel is lost."
+        INDEX { rbnL2tpMibPeerName, rbnL2tpMibTunnelID }
+        ::= { rbnL2tpPeerTunCfgTable 1 }
+
+RbnL2tpPeerTunCfgEntry ::=
+        SEQUENCE {
+	    rbnL2tpPTCfgTunnelRemoteID         Unsigned32,
+	    rbnL2tpPTCfgTunnelLocalNm          SnmpAdminString,
+	    rbnL2tpPTCfgTunnelRemoteNm         SnmpAdminString,
+	    rbnL2tpPTCfgPeerLocalNm            SnmpAdminString,
+	    rbnL2tpPTCfgTunnelRemoteIPAddrType InetAddressType,
+	    rbnL2tpPTCfgTunnelRemoteIPAddr     InetAddress,
+	    rbnL2tpPTCfgTunnelState            TunStateType,
+	    rbnL2tpPTCfgTunnelContext          SnmpAdminString,
+	    rbnL2tpPTCfgSessionCount           Gauge32,
+	    rbnL2tpPTCfgActSessCnt             Gauge32,
+	    rbnL2tpPTCfgTotActSessions         Counter32,
+	    rbnL2tpPTCfgTotFailSessions        Counter32
+        }
+
+rbnL2tpPTCfgTunnelRemoteID OBJECT-TYPE
+        SYNTAX          Unsigned32 (0..65535)
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+            "This object indicates the remote tunnel ID.  A value of zero
+            indicates that the remote tunnel ID could not be determined."
+        ::= { rbnL2tpPeerTunCfgEntry 1 }
+
+rbnL2tpPTCfgTunnelLocalNm OBJECT-TYPE
+        SYNTAX  	SnmpAdminString (SIZE (0..80))
+        MAX-ACCESS  	read-only
+        STATUS      	current
+        DESCRIPTION
+            "This object indicates the local name that was given to this
+            tunnel.  The length of the string will be zero if no local
+            name assigned to the tunnel."
+        ::= { rbnL2tpPeerTunCfgEntry 2 }
+
+rbnL2tpPTCfgTunnelRemoteNm OBJECT-TYPE
+        SYNTAX  	SnmpAdminString (SIZE (1..80))
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+            "This object indicates the name that was given to the remote
+            end of this tunnel.  The length of the string will be zero if
+            no tunnel name can be obtained from the peer." 
+        ::= { rbnL2tpPeerTunCfgEntry 3 }
+
+rbnL2tpPTCfgPeerLocalNm OBJECT-TYPE
+        SYNTAX          SnmpAdminString (SIZE (0..80))
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+            "This object identifies the local peer name.  The empty peer
+            name (zero length) indicates that the name could not be
+            determined."
+        ::= { rbnL2tpPeerTunCfgEntry 4 }
+
+rbnL2tpPTCfgTunnelRemoteIPAddrType OBJECT-TYPE
+        SYNTAX          InetAddressType     
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+            "This object identifies the address type contained in 
+            rbnL2tpPTCfgTunnelRemoteIPAddr."
+        ::= { rbnL2tpPeerTunCfgEntry 5 }
+
+rbnL2tpPTCfgTunnelRemoteIPAddr OBJECT-TYPE
+    	SYNTAX          InetAddress
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+            "This object identifies the remote IP address for
+            this tunnel (utilized only with User Datagram Protocol)."
+        ::= { rbnL2tpPeerTunCfgEntry 6 }
+
+rbnL2tpPTCfgTunnelState OBJECT-TYPE
+        SYNTAX          TunStateType
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+            "This object is the current state of the tunnel."
+        ::= { rbnL2tpPeerTunCfgEntry 7 }
+
+rbnL2tpPTCfgTunnelContext OBJECT-TYPE
+        SYNTAX          SnmpAdminString (SIZE (0..80))
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION
+            "This object identifies the context of this tunnel. The empty
+            context name (zero length) indicates that the context could
+            not be determined.  Any context name length greater than 80
+            will be truncated."
+        ::= { rbnL2tpPeerTunCfgEntry 8 }
+
+rbnL2tpPTCfgSessionCount OBJECT-TYPE
+        SYNTAX          Gauge32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+            "The number of sessions belonging to this tunnel."
+        ::= { rbnL2tpPeerTunCfgEntry 9 }
+
+rbnL2tpPTCfgActSessCnt OBJECT-TYPE
+        SYNTAX          Gauge32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+            "This object indicates the total number of sessions that are
+            presently in the established state."
+        ::= { rbnL2tpPeerTunCfgEntry 10 }
+
+rbnL2tpPTCfgTotActSessions OBJECT-TYPE
+        SYNTAX          Counter32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+            "This object indicates the total number of sessions that, at
+            some time, reached the established state."
+        ::= { rbnL2tpPeerTunCfgEntry 11 }
+
+rbnL2tpPTCfgTotFailSessions OBJECT-TYPE
+        SYNTAX          Counter32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION 
+            "This object indicates the number of sessions that failed to
+            reach the established state."
+        ::= { rbnL2tpPeerTunCfgEntry 12 }
+
+
+--- L2TP objects
+
+rbnL2tpMibTrapObj    OBJECT IDENTIFIER ::= { rbnL2tpMibObjects 7 }
+
+
+rbnL2tpMibTunnelTrapContext OBJECT-TYPE
+    	SYNTAX      SnmpAdminString  (SIZE (0..80))
+    	MAX-ACCESS  accessible-for-notify
+    	STATUS      deprecated
+    	DESCRIPTION
+       	    "This object contains the context name to which this tunnel
+	    belongs."
+    	::= { rbnL2tpMibTrapObj 1 }
+
+rbnL2tpMibTunnelTrapState OBJECT-TYPE
+    	SYNTAX      TruthValue
+    	MAX-ACCESS  accessible-for-notify
+    	STATUS      deprecated
+    	DESCRIPTION
+       	    "The tunnel state. A value of 1 (true) indicates that
+       	    a the tunnel is up (in the ESTABLISHED state). A value of 
+	    2 (false) indicates that the tunnel is down (no longer in 
+	    the ESTABLISHED state)."
+    	::= { rbnL2tpMibTrapObj 2 }
+
+rbnL2tpMibDisableTrap  OBJECT-TYPE
+	SYNTAX	    TruthValue
+	MAX-ACCESS  read-write
+	STATUS      current
+	DESCRIPTION
+	    "This object will provide a mechanism for disabling and
+	    enabling tunnel traps.  A value of 1 (true) indicates that
+	    tunnel traps are disabled.  A value of 2 (false) indicates
+	    that tunnel traps are enabled."
+	DEFVAL { true } 
+	::= { rbnL2tpMibTrapObj 3 }
+
+rbnL2tpMibTunnelStateChange NOTIFICATION-TYPE
+        OBJECTS         {
+                           rbnL2tpMibTunnelTrapContext,
+                           rbnL2tpMibTunnelTrapState
+                           }
+        STATUS          deprecated
+        DESCRIPTION
+            "A rbnL2tpMibTunnelStateChange trap signifies that this
+            particular tunnel has changed state."
+        ::= { rbnL2tpMibNotifications 1 }
+
+rbnL2tpMibTunnelStateChange2 NOTIFICATION-TYPE
+        OBJECTS         {
+                           rbnL2tpTCfgTunnelContext,
+                           rbnL2tpMibTunnelState,
+                           rbnL2tpTCfgRemoteTunnelID
+                           }
+        STATUS          current 
+        DESCRIPTION
+            "This notification signifies that the SNMP entity has
+            detected that the operational state of a tunnel has
+            entered or moved from the established state.  The current
+            tunnel operational state is indicated by the included
+            value of rbnL2tpMibTunnelState."
+        ::= { rbnL2tpMibNotifications 2 }
+
+
+   --
+   --      conformance information
+   --
+
+   rbnL2tpMibGroups      OBJECT IDENTIFIER ::= { rbnL2tpMibConformance 1 }
+   rbnL2tpMibCompliances OBJECT IDENTIFIER ::= { rbnL2tpMibConformance 2 }
+
+   --
+   --      compliance statements
+   --
+
+rbnL2tpMibCompliance MODULE-COMPLIANCE
+        STATUS          deprecated
+        DESCRIPTION
+            "The compliance statement for SNMPv2 entities
+            which implement the L2TP MIB."
+
+        MODULE          -- this module
+
+        -- unconditionally mandatory groups
+        MANDATORY-GROUPS {
+                           rbnL2tpMibPeerCfgGroup,
+                           rbnL2tpMibTunnelCfgGroup,
+                           rbnL2tpMibPeerCntGroup, 
+                           rbnL2tpMibTunnelCntGroup,
+                           rbnL2tpMibSessionCntGroup, 
+                           rbnL2tpMibGroup,
+                           rbnL2tpMibNotificationGroup
+                            }
+
+        ::= { rbnL2tpMibCompliances 1 }
+
+rbnL2tpMibCompliance2 MODULE-COMPLIANCE
+        STATUS          current
+        DESCRIPTION        
+            "The compliance statement for SNMP entities which implement
+            this MIB."
+                           
+        MODULE          -- this module
+
+        -- unconditionally mandatory groups 
+        MANDATORY-GROUPS {
+                           rbnL2tpMibPeerCfgGroup,
+                           rbnL2tpMibTunnelCfgGroup,
+                           rbnL2tpMibPeerCntGroup,
+                           rbnL2tpMibTunnelCntGroup,
+                           rbnL2tpMibSessionCntGroup,
+                           rbnL2tpMibGroup2,
+                           rbnL2tpMibNotificationGroup2,
+                           rbnL2tpMibPeerTunCfgGroup
+                            }
+   
+        ::= { rbnL2tpMibCompliances 2 }
+
+
+   -- units of conformance
+
+rbnL2tpMibPeerCfgGroup OBJECT-GROUP
+        OBJECTS {
+               rbnL2tpPCfgMedia,
+               rbnL2tpPCfgVendor,
+               rbnL2tpPCfgRev,  
+               rbnL2tpPCfgHostName,
+               rbnL2tpPCfgRadius, 
+	       rbnL2tpPCfgRemIPAddType,
+               rbnL2tpPCfgRemIPAdd, 
+               rbnL2tpPCfgStatic,
+               rbnL2tpPCfgLocalIPAddType,
+               rbnL2tpPCfgLocalIPAdd,
+               rbnL2tpPCfgMode,     
+               rbnL2tpPCfgMaxTunnels,    
+               rbnL2tpPCfgMaxSesPerTun, 
+               rbnL2tpPCfgCtlRetranCnt,
+               rbnL2tpPCfgCtlRetranTO,
+               rbnL2tpPCfgSessAuth,  
+               rbnL2tpPCfgCtlWin,   
+               rbnL2tpPCfgDNIS,    
+               rbnL2tpPCfgPoliceRate,
+               rbnL2tpPCfgPoliceBurst,
+               rbnL2tpPCfgLimitRate,
+               rbnL2tpPCfgLimitBurst,
+               rbnL2tpPCfgGroup,      
+               rbnL2tpPCfgPref,      
+               rbnL2tpPCfgPasswd,   
+               rbnL2tpPCfgHelloTimer,
+               rbnL2tpPCfgRecQue,     
+               rbnL2tpPCfgSessContext,   
+               rbnL2tpPCfgSessService,  
+               rbnL2tpPCfgEthEncap,    
+               rbnL2tpPCfgEthSession, 
+               rbnL2tpPCfgTunnelCount,
+               rbnL2tpPCfgTunCtlErrs, 
+               rbnL2tpPCfgSessionCount
+
+        }
+        STATUS          current
+        DESCRIPTION
+            "A collection of objects providing peer
+            information of the L2TP protocol, tunnels and sessions."
+        ::= { rbnL2tpMibGroups 1 }
+
+rbnL2tpMibTunnelCfgGroup OBJECT-GROUP
+        OBJECTS {
+	       rbnL2tpTCfgTunnelNm,
+	       rbnL2tpTCfgPeerName,
+               rbnL2tpTCfgTunCtlErrs, 
+               rbnL2tpTCfgLastCtlErr,
+               rbnL2tpTCfgLastCErrTime,    
+               rbnL2tpTCfgTunDataErrs,    
+               rbnL2tpTCfgLastDataErr,   
+               rbnL2tpTCfgLastDErrTime,    
+               rbnL2tpTCfgSessionCount,   
+               rbnL2tpTCfgTotActSessions,
+               rbnL2tpTCfgActSessCnt,   
+               rbnL2tpTCfgTotFailSessions,
+               rbnL2tpMibTunnelState,
+               rbnL2tpTCfgRemoteTunnelID,
+               rbnL2tpTCfgTunnelContext
+        }
+        STATUS          current
+        DESCRIPTION
+            "A collection of objects providing status and
+            statistics of the L2TP protocol, tunnels and
+            sessions."
+        ::= { rbnL2tpMibGroups 2 }
+
+rbnL2tpMibPeerCntGroup OBJECT-GROUP
+        OBJECTS {
+                    rbnL2tpPCDataPktSent,
+                    rbnL2tpPCDataPktRx,
+                    rbnL2tpPCDataByteSent,
+                    rbnL2tpPCDataByteRx,
+                    rbnL2tpPCCtlPktSent,
+                    rbnL2tpPCCtlPktRx,
+                    rbnL2tpPCCtlByteSent,
+                    rbnL2tpPCCtlByteRx,
+                    rbnL2tpPCPolicePktDrop,
+                    rbnL2tpPCRatePktDrop,
+                    rbnL2tpPCTxSCCRQCnt,
+                    rbnL2tpPCRxSCCRQCnt,
+                    rbnL2tpPCActTunnels,
+                    rbnL2tpPCTunnelCtlErr,
+                    rbnL2tpPCSessionCount,
+                    rbnL2tpPCTunnelDataErr
+
+        }
+        STATUS          current
+        DESCRIPTION
+            "A collection of objects providing peer count statistics."
+        ::= { rbnL2tpMibGroups 3 }
+
+rbnL2tpMibTunnelCntGroup OBJECT-GROUP
+        OBJECTS {
+                    rbnL2tpTCDataPktSent,
+                    rbnL2tpTCDataPktRcvd,
+                    rbnL2tpTCDataByteSent,
+                    rbnL2tpTCDataByteRcvd,
+                    rbnL2tpTCCntrlPktSent,
+                    rbnL2tpTCCntrlPktRcvd,
+                    rbnL2tpTCCntrlByteSent,
+                    rbnL2tpTCCntrlByteRcvd,
+                    rbnL2tpTCPolicePktDrop,
+                    rbnL2tpTCRatePktDrop,
+                    rbnL2tpTCCntrlErr,
+                    rbnL2tpTCLastCtlErr,
+                    rbnL2tpTCLastCtlErrTime,
+                    rbnL2tpTCMaxResendQ,
+                    rbnL2tpTCMaxUnsentQ,
+                    rbnL2tpTCCurResendQ,
+                    rbnL2tpTCCurUnsentQ,
+                    rbnL2tpTCCurWindow
+
+        }
+        STATUS          current
+        DESCRIPTION
+            "A collection of objects providing tunnel count statistics."
+        ::= { rbnL2tpMibGroups 4 }
+           
+rbnL2tpMibSessionCntGroup OBJECT-GROUP
+        OBJECTS {
+		    rbnL2tpSCPktSent,
+		    rbnL2tpSCPktRcvd,
+		    rbnL2tpSCByteSent,
+		    rbnL2tpSCByteRcvd,
+		    rbnL2tpSCMcastPktSent,
+		    rbnL2tpSCMcastPktRcvd,
+		    rbnL2tpSCMcastByteSent,
+		    rbnL2tpSCMcastByteRcvd
+        }
+        STATUS          current
+        DESCRIPTION
+            "A collection of objects providing session count statistics."
+        ::= { rbnL2tpMibGroups 5 }
+
+rbnL2tpMibGroup OBJECT-GROUP
+	OBJECTS {
+               rbnL2tpMibTunnelTrapContext,
+               rbnL2tpMibTunnelTrapState,
+	       rbnL2tpMibDisableTrap 
+        }
+        STATUS deprecated
+        DESCRIPTION
+            "The collection of groups which represent a tunnel state
+	    change or can effect the notification of such change.
+
+	    This group is replaced by rbnL2tpMibGroup2."
+        ::= { rbnL2tpMibGroups 7 }
+		
+rbnL2tpMibNotificationGroup NOTIFICATION-GROUP
+        NOTIFICATIONS {
+               rbnL2tpMibTunnelStateChange
+        }
+        STATUS          deprecated
+        DESCRIPTION
+            "A collection of rbnL2tpMib notifications.
+ 
+            This group is replaced by rbnL2tpMibNotificationGroup2."
+        ::= { rbnL2tpMibGroups 8 }
+
+rbnL2tpMibGroup2 OBJECT-GROUP
+	OBJECTS {
+	       rbnL2tpMibDisableTrap
+        }
+        STATUS current
+        DESCRIPTION
+            "Object for managing L2TP notifications."
+        ::= { rbnL2tpMibGroups 9 }
+		
+rbnL2tpMibNotificationGroup2 NOTIFICATION-GROUP
+        NOTIFICATIONS {
+               rbnL2tpMibTunnelStateChange2
+        }
+        STATUS          current
+        DESCRIPTION
+            "Notification for tracking the status of L2TP tunnels."
+        ::= { rbnL2tpMibGroups 10 }
+
+rbnL2tpMibPeerTunCfgGroup OBJECT-GROUP
+        OBJECTS {
+	    rbnL2tpPTCfgTunnelRemoteID,
+	    rbnL2tpPTCfgTunnelLocalNm,
+	    rbnL2tpPTCfgTunnelRemoteNm,
+	    rbnL2tpPTCfgPeerLocalNm,
+	    rbnL2tpPTCfgTunnelRemoteIPAddrType,
+	    rbnL2tpPTCfgTunnelRemoteIPAddr,
+	    rbnL2tpPTCfgTunnelState,
+	    rbnL2tpPTCfgTunnelContext,
+	    rbnL2tpPTCfgSessionCount,
+	    rbnL2tpPTCfgTotActSessions,
+	    rbnL2tpPTCfgActSessCnt,
+	    rbnL2tpPTCfgTotFailSessions
+        }
+        STATUS          current
+        DESCRIPTION
+            "A collection of objects providing status and
+            statistics of the L2TP peers and tunnels."
+        ::= { rbnL2tpMibGroups 11 }
+END
+
+

@@ -1,0 +1,375 @@
+-- %DNP% $Id: RBN-BRIDGE-MIB.my,v 1.1.2.9.4.2 2011/02/22 17:26:16 thatcher Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-BRIDGE-MIB.my,v $
+-- *****************************************************************
+-- RBN-BRIDGE-MIB    BRIDGE MIB 
+--
+-- Copyright (c) 2007-2008, 2011 Ericsson AB.
+-- All rights reserved.
+--
+-- *****************************************************************
+
+RBN-BRIDGE-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY,
+    OBJECT-TYPE,
+    NOTIFICATION-TYPE,
+    Integer32 
+            FROM SNMPv2-SMI
+
+    TruthValue
+            FROM SNMPv2-TC
+
+    SnmpAdminString
+            FROM SNMP-FRAMEWORK-MIB
+
+    MODULE-COMPLIANCE,
+    OBJECT-GROUP,
+    NOTIFICATION-GROUP
+            FROM SNMPv2-CONF
+
+    dot1dBasePortEntry, dot1dStpPortState
+            FROM BRIDGE-MIB
+
+    rbnMgmt
+            FROM RBN-SMI;
+
+rbnBridgeMib MODULE-IDENTITY
+    LAST-UPDATED   "201101191800Z" -- Jan 19, 2011
+    ORGANIZATION   "Ericsson AB."
+    CONTACT-INFO
+            "       Ericsson AB
+            Postal: 100 Headquarters Dr
+                    San Jose, CA 95134
+                    USA
+
+             Phone: +1 408 750 5000
+               Fax: +1 408 750 5599
+            "
+
+    DESCRIPTION
+            "Defines the objects necessary to support the management of
+            Bridge objects.
+
+            Add rbnBridgeCircuitStateEvent notification along with 
+            the associated objects. Defined rbnBridgeNotifyObjectGroup and 
+            rbnBridgeNotifyGroup for compliance."
+
+    REVISION      "201101191800Z" -- Jan 19, 2011
+    DESCRIPTION
+            "Update CONTACT-INFO & ORGANIZATION."
+
+    REVISION      "200808270000Z" -- August 27, 2008
+    DESCRIPTION
+            "Updated dot1dStpPortState in place of current port state,
+            and changed rbnBridgePortPrevState to rbnBridgePortPreviousState
+            for trap, and updated groups accordingly."
+
+    REVISION      "200802250000Z" -- Feb 25, 2008
+    DESCRIPTION
+            "Add rbnBridgeCompliance2, rbnBridgeStateNotifyObjectGroup,
+            rbnBridgeBaseObjectGroup, rbnBridgeStateNotifyGroup, 
+            rbnBridgeNewRootEvent, and rbnBridgeTopologyChangeEvent."
+
+    REVISION      "200706200000Z" -- June 20, 2007
+    DESCRIPTION
+        "Initial Version."
+        
+
+    ::= { rbnMgmt 42 }
+
+rbnBridgeNotifications OBJECT IDENTIFIER ::= { rbnBridgeMib 0 }
+
+rbnBridgeObjects       OBJECT IDENTIFIER ::= { rbnBridgeMib 1 } 
+
+rbnBridgeConformance   OBJECT IDENTIFIER ::= { rbnBridgeMib 2 }
+
+
+--
+-- some structure for the mib objects
+--
+
+rbnBridgeNotify        OBJECT IDENTIFIER ::= { rbnBridgeObjects  1 }
+rbnBridgeBase          OBJECT IDENTIFIER ::= { rbnBridgeObjects  2 }
+
+--
+-- Bridge notification objects
+--
+
+rbnBridgeNotifyEnable  OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+       "This object will provide a mechanism for enabling and
+       disabling bridge circuit state notifications.  A value of 1 (true)
+       indicates that bridge circuit state notifications are enabled.
+       A value of 2 (false) indicates that bridge circuit state
+       notifications are disabled."
+    DEFVAL { true }
+    ::= { rbnBridgeNotify 1 }
+
+rbnBridgeGroupName OBJECT-TYPE
+    SYNTAX      SnmpAdminString  (SIZE(1..32)) 
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+       "Identifier for the bridge instance."
+    ::= { rbnBridgeNotify 2 }
+
+rbnBridgeCircuitDescriptor OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE (1..255)) 
+    MAX-ACCESS  accessible-for-notify 
+    STATUS      current
+    DESCRIPTION
+        "A descriptor for identifying the Bridge circuit."
+    ::= { rbnBridgeNotify 3 }
+
+rbnBridgeCircuitStatus OBJECT-TYPE 
+    SYNTAX      INTEGER {
+                  blocked(1),
+                  cleared(2)
+                 }
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The status of the circuit in the Bridge if it is blocked/cleared 
+         based on loop detection."
+    ::= { rbnBridgeNotify 4 }
+
+rbnBridgeGroupContextName OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE(1..64))
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The context in which the circuit is defined."
+    ::= { rbnBridgeNotify 5 }
+
+rbnBridgePortPreviousState OBJECT-TYPE
+    SYNTAX      INTEGER {
+                  disabled(1),
+                  blocking(2),
+                  listening(3),
+                  learning(4),
+                  forwarding(5),
+                  broken(6)
+                 }
+    MAX-ACCESS  accessible-for-notify 
+    STATUS      current
+    DESCRIPTION
+        "This object contains the previous state of the same port as 
+        dot1dStpPortState in the same notification."
+    ::= { rbnBridgeNotify 6 }
+
+--
+-- Bridge base objects
+--
+
+rbnBridgeIdTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnBridgeIdEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table contains Bridge identifier."
+    ::= { rbnBridgeBase 1 }
+
+rbnBridgeIdEntry OBJECT-TYPE
+    SYNTAX      RbnBridgeIdEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Bridge ID table entry."
+    INDEX { rbnBridgeName }
+    ::= { rbnBridgeIdTable 1 }
+
+RbnBridgeIdEntry ::=
+    SEQUENCE {
+        rbnBridgeName   
+             SnmpAdminString,
+        rbnBridgeId           
+             Integer32
+    }
+
+rbnBridgeName OBJECT-TYPE
+    SYNTAX      SnmpAdminString  (SIZE(1..32)) 
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "The Bridge name. It is the same as rbnBridgeGroupName."
+    ::= { rbnBridgeIdEntry 1 }
+
+rbnBridgeId OBJECT-TYPE
+    SYNTAX  Integer32 (1..65535)
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The Bridge identifier referring to this Bridge."
+    ::= { rbnBridgeIdEntry 2 }
+
+rbnBridgePortCctDescrTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnBridgePortCctDescrEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table contains Bridge port number and its circuit description."
+    ::= { rbnBridgeBase 2 }
+
+rbnBridgePortCctDescrEntry OBJECT-TYPE
+    SYNTAX      RbnBridgePortCctDescrEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Bridge port circuit description table entry."
+    AUGMENTS    { dot1dBasePortEntry }
+    ::= { rbnBridgePortCctDescrTable 1 }
+
+RbnBridgePortCctDescrEntry ::=
+    SEQUENCE {
+        rbnBridgePortCctDescr
+            SnmpAdminString 
+    }
+
+rbnBridgePortCctDescr OBJECT-TYPE
+    SYNTAX  SnmpAdminString (SIZE (0..64))
+    MAX-ACCESS  read-only 
+    STATUS  current
+    DESCRIPTION
+        "The circuit description of this Bridge port."
+    ::= { rbnBridgePortCctDescrEntry 1 }
+
+--
+-- NOTIFICATIONS - node for hanging notification definitions
+--
+
+rbnBridgeCctStateEvent NOTIFICATION-TYPE
+    OBJECTS {
+        rbnBridgeGroupName,
+        rbnBridgeCircuitDescriptor,
+        rbnBridgeCircuitStatus,
+        rbnBridgeGroupContextName
+    }
+    STATUS current
+    DESCRIPTION
+        "This notification signifies that a loop has been detected
+        leading to the bridge circuit being blocked/cleared." 
+    ::= { rbnBridgeNotifications 1 }
+
+rbnBridgeNewRootEvent NOTIFICATION-TYPE
+OBJECTS {
+        rbnBridgeId,
+        dot1dStpPortState
+    }
+    STATUS current
+    DESCRIPTION
+        "This notification indicates that the sending agent has
+        become the new root of the Spanning Tree; the trap is
+        sent by a bridge soon after its election as the new
+        root."
+    ::= { rbnBridgeNotifications 2  }
+
+rbnBridgeTopologyChangeEvent NOTIFICATION-TYPE
+OBJECTS {
+        rbnBridgeId,
+        dot1dStpPortState,
+        rbnBridgePortPreviousState 
+    }
+    STATUS current
+    DESCRIPTION
+        "This notification is sent by a bridge when any of its 
+        configured ports transitions from the Learning state
+        to the Forwarding state, or from the Forwarding state to
+        the Blocking state."        
+    ::= { rbnBridgeNotifications 3 }
+
+--
+-- compliance statements
+--
+rbnBridgeCompliances OBJECT IDENTIFIER ::= { rbnBridgeConformance 1 }
+rbnBridgeGroups      OBJECT IDENTIFIER ::= { rbnBridgeConformance 2 }
+
+rbnBridgeCompliance MODULE-COMPLIANCE
+    STATUS  deprecated 
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         the Bridge MIB."
+
+    MODULE  -- this module
+        MANDATORY-GROUPS {
+            rbnBridgeNotifyObjectGroup,
+            rbnBridgeNotifyGroup
+        }
+    ::= { rbnBridgeCompliances 1 }
+
+rbnBridgeCompliance2 MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         the Bridge MIB."
+
+    MODULE  -- this module
+        MANDATORY-GROUPS {
+            rbnBridgeNotifyObjectGroup,
+            rbnBridgeStateNotifyObjectGroup,
+            rbnBridgeNotifyGroup,
+            rbnBridgeStateNotifyGroup,
+            rbnBridgeBaseObjectGroup
+        }
+    ::= { rbnBridgeCompliances 2}
+
+--
+-- groupings
+--
+rbnBridgeNotifyObjectGroup OBJECT-GROUP
+    OBJECTS {
+         rbnBridgeNotifyEnable,
+         rbnBridgeGroupName,
+         rbnBridgeCircuitDescriptor,
+         rbnBridgeCircuitStatus,
+         rbnBridgeGroupContextName
+    }
+    STATUS current
+    DESCRIPTION
+        "The collection of objects related to Bridge notifications."
+    ::= { rbnBridgeGroups 1 }
+
+rbnBridgeStateNotifyObjectGroup OBJECT-GROUP
+    OBJECTS {
+         rbnBridgePortPreviousState 
+    }
+    STATUS current
+    DESCRIPTION
+        "The collection of objects related to Bridge notifications."
+    ::= { rbnBridgeGroups 2 }
+
+rbnBridgeNotifyGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        rbnBridgeCctStateEvent
+    }
+    STATUS current
+    DESCRIPTION
+        "Notification for tracking the bridge circuit blocked/cleared
+        on detecting a loop."
+    ::= { rbnBridgeGroups 3 }
+
+rbnBridgeStateNotifyGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        rbnBridgeNewRootEvent,
+        rbnBridgeTopologyChangeEvent
+    }
+    STATUS current
+    DESCRIPTION
+        "Notification for tracking the new root and topology changes
+         in the bridge."
+    ::= { rbnBridgeGroups 4 }
+
+rbnBridgeBaseObjectGroup OBJECT-GROUP
+    OBJECTS {
+         rbnBridgeId,
+         rbnBridgePortCctDescr
+    }
+    STATUS current
+    DESCRIPTION
+        "The collection of objects related to Bridge base objects."
+    ::= { rbnBridgeGroups 5 }
+
+END

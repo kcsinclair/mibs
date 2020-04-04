@@ -1,0 +1,274 @@
+-- $Id: RBN-SYS-SECURITY-MIB.my,v 1.1.6.2 2011/02/22 17:26:18 thatcher Exp $
+-- $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-SYS-SECURITY-MIB.my,v $
+-- *****************************************************************
+-- RBN-SYS-SECURITY-MIB.my    
+--
+-- Copyright (c) 2009, 2011 Ericsson AB
+-- All rights reserved.
+--
+-- *****************************************************************
+RBN-SYS-SECURITY-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE,
+    Gauge32, Counter64
+        FROM SNMPv2-SMI     -- [RFC2578]
+
+    DateAndTime
+        FROM SNMPv2-TC      -- [RFC2579]
+
+    MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+        FROM SNMPv2-CONF    -- [RFC2580]
+
+    CounterBasedGauge64
+        FROM HCNUM-TC
+        
+    RbnUnsigned64
+        FROM RBN-TC
+        
+    rbnModules
+        FROM RBN-SMI;
+
+ 
+rbnSysSecurityMib MODULE-IDENTITY
+    LAST-UPDATED "200911091800Z" -- Nov 9, 2009
+    ORGANIZATION "Ericsson AB"
+    CONTACT-INFO
+           "       Ericsson AB
+                   100 Headquarters Dr
+                   San Jose, CA  95134
+                   USA
+
+            Phone: +1 408 750 5000
+              Fax: +1 408 750 5599
+           "
+    DESCRIPTION
+        "This MIB module defines attributes and notifications
+         related to system and network level security issues.
+        
+         All mib objects defined in the module are viewed within
+         the context identified in the SNMP protocol (i.e. the
+         community string in v1/v2c or the contextName in v3).
+        "
+
+    REVISION        "200911091800Z" -- Nov 9, 2009
+    DESCRIPTION
+        "Initial version"
+    ::= {rbnModules 54}
+
+
+rbnSysSecNotifications  OBJECT IDENTIFIER ::= { rbnSysSecurityMib 0 }
+
+rbnSysSecObjects        OBJECT IDENTIFIER ::= { rbnSysSecurityMib 1 }
+
+rbnSysSecConformance    OBJECT IDENTIFIER ::= { rbnSysSecurityMib 2 }
+
+--
+-- Objects
+--
+rbnSysSecThresholdObjects OBJECT IDENTIFIER ::= { rbnSysSecObjects 1 }
+
+rbnSysSecNotifyEnable OBJECT-TYPE
+    SYNTAX  BITS {
+                maliciousPkt(0)
+            }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The bit mask to enable/disable notifications for crossing
+         specific threshold."
+    DEFVAL { { } }
+    ::= { rbnSysSecThresholdObjects 1 }
+
+rbnMeasurementInterval    OBJECT-TYPE
+    SYNTAX       Gauge32 (1..3600)
+    UNITS        "seconds"
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION
+        "Data is sampled at the start and end of a specified interval. The
+         difference between the start and end values |end - start| is called
+         the delta value.  When setting the interval, care should be taken
+         that the interval should be short enough that the sampled variable
+         is very unlikely to increase or decrease by more than range of the
+         variable. "
+    DEFVAL { 60 }
+    ::= { rbnSysSecThresholdObjects 2}
+    
+rbnMaliciousPktsThresholdHi OBJECT-TYPE
+    SYNTAX       RbnUnsigned64
+    UNITS        "Packets"
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION
+        "When the current sampling interval delta value of the malicious
+         packets counter is greater than or equal to this threshold, and
+         the delta value at the last sampling interval was less than this
+         threshold, a single high threshold exceeded event will be
+         generated.  A single high threshold exceeded event will also be
+         generated if the first sampling interval delta value of the
+         malicious IP packets counter is greater than or equal to this
+         threshold.
+
+         After a high threshold exceeded event is generated, another such
+         event will not be generated until the delta value falls below
+         this threshold and reaches the rbnMaliciousPktsThresholdLow,
+         generating a low threshold exceeded event.  In other words there
+         cannot be successive high threshold events without an intervening
+         low threshold event. "
+    ::= { rbnSysSecThresholdObjects 3}
+    
+rbnMaliciousPktsThresholdLow OBJECT-TYPE
+    SYNTAX       RbnUnsigned64
+    UNITS        "Packets"
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION
+        "When the current sampling interval delta value of the malicious
+         packets counter is less than or equal to this threshold, and the
+         delta value at the last sampling interval was greater than this
+         threshold, a single low threshold exceeded event will be
+         generated.  In addition, a high threshold exceeded event must
+         occur before a low threshold exceeded event can be generated. "
+    ::= { rbnSysSecThresholdObjects 4}
+    
+    
+--
+-- Counters to compare to above thresholds
+--
+rbnSysSecStatsObjects OBJECT IDENTIFIER ::= { rbnSysSecObjects 2 }
+
+rbnMaliciousPktsCounter OBJECT-TYPE
+    SYNTAX       Counter64
+    UNITS        "Packets"
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "A count of all malicious pkts.  This includes but is not limited
+         to malformed IP packets, malformed layer 4 IP, packets filtered by
+         ACLs for specific faults, IP packets identified as attempting to
+         spoof a system, and IP packets which failed reassembly."
+    ::= { rbnSysSecStatsObjects 1}
+
+rbnMaliciousPktsDelta OBJECT-TYPE
+    SYNTAX       CounterBasedGauge64
+    UNITS        "packets"
+    MAX-ACCESS   accessible-for-notify
+    STATUS       current
+    DESCRIPTION
+        "The delta value of rbnMaliciousPktsCounter at the most recently
+         completed measurement interval."
+    ::= { rbnSysSecStatsObjects 2 }
+
+--
+-- Objects only for notifications
+-- 
+rbnSysSecNotifyObjects  OBJECT IDENTIFIER ::= { rbnSysSecObjects 4 }
+
+rbnThresholdNotifyTime OBJECT-TYPE
+    SYNTAX      DateAndTime
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The DateAndTime of the notification."
+    ::= { rbnSysSecNotifyObjects 1 }
+
+--
+-- NOTIFICATIONS
+--
+rbnMaliciousPktThresholdHiExceeded NOTIFICATION-TYPE
+    STATUS current
+    DESCRIPTION
+        "This notification signifies that one of the delta values is equal
+         to or greater than the corresponding high threshold value.  The
+         specific delta value is the last object in the notification varbind
+         list. "
+    ::= { rbnSysSecNotifications 1 }
+
+rbnMaliciousPktThresholdLowExceeded NOTIFICATION-TYPE
+    OBJECTS {
+        rbnThresholdNotifyTime
+    }
+    STATUS current
+    DESCRIPTION
+        "This notification signifies that one of the delta values is less
+         than or equal to the corresponding low threshold value. The
+         specific delta value is the last object in the notification
+         varbind list. "
+    ::= { rbnSysSecNotifications 2 }
+
+--
+-- Conformance
+--
+rbnSysSecCompliances OBJECT IDENTIFIER ::= { rbnSysSecConformance 1 }
+rbnSysSecGroups      OBJECT IDENTIFIER ::= { rbnSysSecConformance 2 }
+
+rbnMaliciousPktGroup OBJECT-GROUP
+    OBJECTS {
+        rbnSysSecNotifyEnable,
+        rbnMeasurementInterval,
+        rbnMaliciousPktsThresholdHi,
+        rbnMaliciousPktsThresholdLow,
+        rbnMaliciousPktsCounter
+    }
+    STATUS current
+    DESCRIPTION
+        "Set of objects for the group."
+    ::= { rbnSysSecGroups 1 }
+   
+rbnSysSecNotifyObjectsGroup OBJECT-GROUP
+    OBJECTS {
+        rbnMaliciousPktsDelta,
+        rbnThresholdNotifyTime
+    }
+    STATUS current
+    DESCRIPTION
+        "Set of objects for the group."
+    ::= { rbnSysSecGroups 4 }
+
+rbnSysSecNotificationGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        rbnMaliciousPktThresholdHiExceeded,
+        rbnMaliciousPktThresholdLowExceeded
+    }
+    STATUS current
+    DESCRIPTION
+        "Set of notifications for the group."
+    ::= { rbnSysSecGroups 5 }
+    
+
+rbnSysSecCompliance MODULE-COMPLIANCE
+    STATUS      current
+    DESCRIPTION
+       "The compliance statement for support of this mib module."
+    MODULE -- this module
+        MANDATORY-GROUPS {
+            rbnMaliciousPktGroup,
+            rbnSysSecNotifyObjectsGroup,
+            rbnSysSecNotificationGroup
+        }
+        
+        OBJECT rbnMeasurementInterval
+        MIN-ACCESS   read-only
+        DESCRIPTION
+            "Write access is not required"
+
+        OBJECT rbnMaliciousPktsThresholdHi
+        MIN-ACCESS   read-only
+        DESCRIPTION
+            "Write access is not required"
+
+        OBJECT rbnMaliciousPktsThresholdLow
+        MIN-ACCESS   read-only
+        DESCRIPTION
+            "Write access is not required"
+
+        OBJECT rbnSysSecNotifyEnable
+        MIN-ACCESS   read-only
+        DESCRIPTION
+            "Write access is not required"
+
+        
+    ::= { rbnSysSecCompliances 1 }
+    
+END

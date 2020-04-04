@@ -1,0 +1,580 @@
+-- %DNP% $Id: RBN-CONFIG-FILE-MIB.my,v 1.1.2.3.382.2 2011/02/22 17:26:16 thatcher Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-CONFIG-FILE-MIB.my,v $
+-- *****************************************************************
+-- RBN-CONFIG-FILE-MIB	Configuration File MIB
+--
+-- Copyright (c) 2001-2002, 2004, 2011 Ericsson AB.
+-- All rights reserved.
+-- 
+-- *****************************************************************
+
+RBN-CONFIG-FILE-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY,
+    NOTIFICATION-TYPE,
+    OBJECT-TYPE,
+    Unsigned32
+            FROM SNMPv2-SMI
+
+    TimeStamp,
+    RowStatus,
+    TestAndIncr,
+    TruthValue
+            FROM SNMPv2-TC
+
+    MODULE-COMPLIANCE,
+    OBJECT-GROUP,
+    NOTIFICATION-GROUP
+            FROM SNMPv2-CONF
+
+    SnmpAdminString
+            FROM SNMP-FRAMEWORK-MIB
+    
+    InetAddressType,
+    InetAddress
+            FROM INET-ADDRESS-MIB
+
+    OwnerString
+            FROM RMON-MIB
+
+    rbnMgmt
+            FROM RBN-SMI;
+
+rbnConfigFileMib MODULE-IDENTITY
+    LAST-UPDATED    "201101191800Z" -- Jan 19, 2011
+    ORGANIZATION    "Ericsson AB."
+    CONTACT-INFO
+            "       Ericsson AB.
+
+            Postal: 100 Headquarters Dr
+                    San Jose, CA  95134
+                    USA
+
+             Phone: +1 408 750 5000
+               Fax: +1 408 750 5599
+            "
+    DESCRIPTION
+        "Defines the objects necessary to support loading
+        system configuration files and saving the contents of the
+        current	system configuration.
+
+        For security reasons, all mib objects defined in this module
+        are only accessible via SNMP community strings (v1/v2c) or
+        SNMP contextNames (v3) that map to the system's 'local'
+        context.
+
+        Note well: due to these security reasons, it is highly
+        encouraged to only allow access to this MIB via the more
+        secure protocols supported by SNMPv3."
+
+    REVISION        "201101191800Z" -- Jan 19, 2011
+    DESCRIPTION
+            "Update CONTACT-INFO & ORGANIZATION. "
+
+    REVISION      "200205290000Z" -- May 29, 2002
+    DESCRIPTION
+        "Add NOTIFICATION-TYPE to imports. Update/correct CONTACT-INFO.
+        Needed to import OwnerString from RMON-MIB because TC is 
+        obsoleted in RFC 2863 (IF-MIB)."
+
+    REVISION      "200110100000Z" -- October 10, 2001
+    DESCRIPTION
+        "Initial version."
+    ::= { rbnMgmt 13 }
+    
+rbnConfigFileMIBNotifications OBJECT IDENTIFIER ::= { rbnConfigFileMib 0 }
+
+rbnConfigFileMIBObjects       OBJECT IDENTIFIER ::= { rbnConfigFileMib 1 }
+
+rbnConfigFileMIBConformance   OBJECT IDENTIFIER ::= { rbnConfigFileMib 2 }
+
+--
+-- Textual Conventions
+--
+    
+--
+-- some structure for the mib objects
+--
+rcfJobs         OBJECT IDENTIFIER ::= { rbnConfigFileMIBObjects 1 }
+
+--
+-- Configuration job control objects
+--
+rcfJobSpinLock  OBJECT-TYPE
+    SYNTAX       TestAndIncr
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION
+        "An advisory lock used to allow several cooperating Command
+         Generator Applications to coordinate their use of facilities
+         to create/modify entries in the rcfJobTable."
+    ::= { rcfJobs 1 }
+
+rcfJobNextIndex  OBJECT-TYPE
+    SYNTAX       Unsigned32
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The next available index which can be used to create a rcfJobEntry."
+    ::= { rcfJobs 2 }
+
+rcfJobTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RcfJobEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table which is used to start and monitor a process which
+        loads a configuration file, or saves the current configuration
+        out to a file.
+
+        The suggested method to create a new entry is:
+        
+            1. GET(rcfJobSpinLock.0,
+                   rcfJobNextIndex.0) and save in
+               slValue, niValue respectively
+            2. SET(rcfJobSpinLock.0 = slValue,
+                   rcfJobXxx.niValue = ...
+                   rcfJobYyy.niValue = ...
+                   ...
+                   rcfJobRowStatus.niValue = 'createAndGo')
+         
+        Entries whose state is 'completed' may be automatically
+        deleted by the system after some system dependant time."
+    ::= { rcfJobs 3 }
+
+rcfJobEntry OBJECT-TYPE
+    SYNTAX      RcfJobEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "An entry created by a Command Generator application which starts
+        and monitors a process which loads a system configuration file or
+        saves the current system configuration out to a file. 
+        
+        When rcfJobRowStatus becomes active, rcfJobState is set to
+	'pending' and is queued for processing. Only one job may be
+        processed at a time.
+
+        When the job reaches the head of the queue, rcfJobState is set
+        to 'inProgress' and the configuration operation will be performed.
+
+        When the operation completes, rcfJobState will be set to
+        'completed'. Also at this time the objects rcfJobResult and
+        rcfJobErrorMsgs will be instantiated and will provide the
+        success/failure status of the operation.
+
+        A job in the 'pending' state may be aborted by setting
+        rcfJobRowStatus to 'notInService' or 'destroy'.
+
+        An entry for a job which has completed (rcfJobState is
+        'completed') may be reset to the 'pending' state
+        by setting rcfRowStatus to 'notInService' and then back to
+        'active' to initiate another configuration operation.
+
+        Note: while rcfRowStatus equals 'active', the only object
+        instance that can be modified in the entry is rcfRowStatus. To
+        alter any other object instance, rcfRowStatus must be set to
+        'notInService'."
+    INDEX { rcfJobIndex }
+    ::= { rcfJobTable 1 }
+
+RcfJobEntry ::= SEQUENCE {
+    rcfJobIndex			Unsigned32,
+    rcfJobOp			INTEGER,
+    rcfJobProtocol		INTEGER,
+    rcfJobFilename		SnmpAdminString,
+    rcfJobIpAddressType		InetAddressType,
+    rcfJobIpAddress		InetAddress,
+    rcfJobUsername		SnmpAdminString,
+    rcfJobPassword		SnmpAdminString,
+    rcfJobPassiveMode		TruthValue,
+    rcfJobStopAtLine		Unsigned32,
+    rcfJobSaveDefaults		TruthValue,
+    rcfJobState			INTEGER,
+    rcfJobResult		INTEGER,
+    rcfJobErrorMsgs		SnmpAdminString,
+    rcfJobCreateTime		TimeStamp,
+    rcfJobStartTime		TimeStamp,
+    rcfJobStopTime		TimeStamp,
+    rcfJobNotifyOnCompletion	TruthValue,
+    rcfJobOwner			OwnerString,
+    rcfJobRowStatus		RowStatus
+}
+
+rcfJobIndex OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..4294967295)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A unique identifier for an entry in this table."
+    ::= { rcfJobEntry 1 }
+
+rcfJobOp OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    load(0),
+                    save(1)
+                }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The configuration operation to perform.
+
+        If 'load', the file specified in rcfJobFilename is retrieved,
+        parsed and loaded into the system configuration.
+
+        If 'save', the current system configuration is written to the
+        file specified in rcfJobFilename."
+    ::= { rcfJobEntry 2 }
+
+rcfJobProtocol OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    local(0),
+                    tftp(1),
+		    ftp(2)
+                }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The file transfer protocol to use.
+
+        If 'local', the filename specified in rcfJobFilename exists
+        locally on the system (eg in /flash).
+
+        If 'tftp', the filename specified in rcfJobFilename will be
+        read/written from/to the system identified by rcfJobIpAddress
+        via the TFTP file transfer protocol.
+
+        If 'ftp', the filename specified in rcfJobFilename will be
+        read/written from/to the system identified by rcfJobIpAddress
+        via the FTP file transfer protocol. The values in
+        rcfJobUsername and rcfJobPassword will be used for
+        authentication. rcfJobPassiveMode can be used to
+        enable/disable FTP's passive mode."
+    REFERENCE   "RFC 1350 (TFTP), RFC 959 (FTP)"
+    DEFVAL { local }
+    ::= { rcfJobEntry 3 }
+
+rcfJobFilename OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE (1..128))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The name of the source file (loads) or destination file (saves)."
+    ::= { rcfJobEntry 4 }
+
+rcfJobIpAddressType OBJECT-TYPE
+    SYNTAX      InetAddressType
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The address type for rcfJobIpAddress.
+
+        This object is only relevant for non-local filenames. If
+        rcfJobProtocol equals 'local', any value for this object
+        will effectively be ignored."
+    ::= { rcfJobEntry 5 }
+
+rcfJobIpAddress OBJECT-TYPE
+    SYNTAX      InetAddress
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The IP address for the file server which contains the source
+        file (loads) or destination file (saves).
+
+        This object is only relevant for non-local filenames. If
+        rcfJobProtocol equals 'local', any value for this object will
+        effectively be ignored."
+    ::= { rcfJobEntry 6 }
+
+rcfJobUsername OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE (1..32))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The username to use for authentication with the file server.
+
+         This object is only relevant for the FTP protocol. If
+         rcfJobProtocol does not equal 'ftp', any value for this
+         object will effectively be ignored.
+
+         For security reasons, all SNMP gets on this object will
+         return a zero-length string."
+    ::= { rcfJobEntry 7 }
+
+rcfJobPassword OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE (0..128))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The password to use for authentication with the file server.
+         A zero-length string value would be used for usernames that
+         do not require a password.
+
+         This object is only relevant for the FTP protocol. If
+         rcfJobProtocol does not equal 'ftp', any value for this
+         object will effectively be ignored.
+
+         For security reasons, all SNMP gets on this object will
+         return a zero-length string."
+    ::= { rcfJobEntry 8 }
+
+rcfJobPassiveMode OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Enables/disables passive mode on FTP connections.
+
+         This object is only relevant for the FTP protocol. If
+         rcfJobProtocol does not equal 'ftp', any value for this
+         object will effectively be ignored."
+    REFERENCE   "RFC 959"
+    DEFVAL { false }
+    ::= { rcfJobEntry 9 }
+
+rcfJobStopAtLine OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "If this object instance has a non-zero value, parsing and
+        loading of the configuration file will terminate after the
+        specified line number.
+
+        This object is only relevant for 'load' operations. If
+        rcfJobOp does not equal 'load', any value for this object will
+        effectively be ignored."
+    DEFVAL { 0 }
+    ::= { rcfJobEntry 10 }
+
+rcfJobSaveDefaults OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "If 'true', default values for all configuration values are
+        saved. If 'false', only the values which have been explicitly
+        configured are saved.
+
+        This object is only relevant for 'save' operations. If
+        rcfJobOp does not equal 'save', any value for this object will
+        effectively be ignored."
+    DEFVAL { false }
+    ::= { rcfJobEntry 11 }
+
+rcfJobState OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    pending(0),
+		    inProgress(1),
+		    completed(2)
+                }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The current state of the configuration job.
+
+          pending    -- The initial state of all jobs. Jobs are queued
+                        and processed in order of creation.
+          inProgress -- The job is actively being performed.
+          completed  -- The job has completed."
+    ::= { rcfJobEntry 12 }
+
+rcfJobResult OBJECT-TYPE
+    SYNTAX      INTEGER {
+		    success(0),
+		    other(1),
+                    noMemory(2),
+                    parse(3),
+                    io(4),
+                    access(5)
+                }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "A generic result code. This object is instantiated only when
+        rcfJobStatus equals 'completed'.
+
+          success  -- The job completed successfully.
+          other    -- An error that doesn't fall into one of the categories
+                      below.
+          noMemory -- Insufficient system resources to perform the
+                      operation.
+          parse    -- A parse failure occurred. ie- there was a syntax
+                      error in the source configuration file.
+          io       -- An i/o error occurred.
+          access   -- A file access error occurred. This could be caused
+                      by a non-existant source file, or insufficient
+                      access/permission to create/modify the destination
+                      file.
+ 
+        More detailed error descriptions can be found in the
+        rcfJobErrorMsgs object."
+    ::= { rcfJobEntry 13 }
+
+rcfJobErrorMsgs OBJECT-TYPE
+    SYNTAX      SnmpAdminString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Detailed error messages generated during the configuration
+        operation. This object is instantiated only when rcfJobState
+        equals 'completed'.
+
+        Note: the amount of error messages produced by a configuration
+	operation may exceed the max size of this object (255 bytes).
+	If this happens, the last character in the rcfJobErrorMsgs
+	value will be '$' to indicate that a truncation occurred.
+
+	Note: there may be some types of messages that one will see
+	when performing a configuration operation via the CLI. However
+	these messages will not be seen in the values for this object.
+
+	A specific example on the SMS platform is the messages the
+	CLI will display when there is a parse failure. These messages
+	will not be captured in this object."
+    ::= { rcfJobEntry 14 }
+
+rcfJobCreateTime OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value of sysUpTime when this job entry was created."
+    ::= { rcfJobEntry 15 }
+
+rcfJobStartTime OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value of sysUpTime when rcfJobState moved from 'pending' to
+        'inProgress'.
+
+        This object will not be instantiated until rcfJobState moves to
+        'inProgress'. The object will be un-instantiated if
+        rcfJobRowStatus is set to 'notInService'."
+    ::= { rcfJobEntry 16 }
+
+rcfJobStopTime OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value of sysUpTime when the job completed.
+
+        This object will not be instantiated until rcfJobState moves to
+        'completed'. The object will be un-instantiated if
+        rcfJobRowStatus is set to 'notInService'."
+    ::= { rcfJobEntry 17 }
+
+rcfJobNotifyOnCompletion OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "If 'true', an rcfJobCompleted notification will be generated
+        when the job completes."
+    DEFVAL { false }
+    ::= { rcfJobEntry 18 }
+
+rcfJobOwner OBJECT-TYPE
+    SYNTAX      OwnerString
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object can be used to identify who/what/where created this
+        job entry."
+    DEFVAL { "" }
+    ::= { rcfJobEntry 19 }
+
+rcfJobRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The row status for creating, modifying, or deleting an entry
+        in the table. 
+
+	Note that 'active' entries cannot be modified.
+        Any attempt to modify an object in this entry while
+	rcfJobRowStatus equals 'active' will result in an
+	inconsistentValue error.
+
+	To modify objects in an active entry, rcfJobRowStatus must
+	first be set to 'notInService'.
+
+	All entries will be automatically deleted by the agent after
+	some system dependent time."
+    ::= { rcfJobEntry 20 }
+
+--
+-- Notifications
+--
+
+rcfJobCompleted NOTIFICATION-TYPE
+   OBJECTS { rcfJobResult, rcfJobErrorMsgs }
+   STATUS  current
+   DESCRIPTION
+       "A notification indicating that a configuration job has
+       completed."
+   ::= { rbnConfigFileMIBNotifications 1 }
+
+--
+-- Conformance Statements
+--
+rbnConfigFileCompliances OBJECT IDENTIFIER
+        ::= { rbnConfigFileMIBConformance 1 }
+rbnConfigFileGroups      OBJECT IDENTIFIER
+        ::= { rbnConfigFileMIBConformance 2 }
+
+rcfJobGroup OBJECT-GROUP
+    OBJECTS {
+        rcfJobSpinLock,
+	rcfJobNextIndex,
+	rcfJobOp,
+	rcfJobProtocol,
+	rcfJobFilename,
+	rcfJobIpAddressType,
+	rcfJobIpAddress,
+	rcfJobUsername,
+	rcfJobPassword,
+	rcfJobPassiveMode,
+	rcfJobStopAtLine,
+	rcfJobSaveDefaults,
+	rcfJobState,
+	rcfJobResult,
+	rcfJobCreateTime,
+	rcfJobStartTime,
+	rcfJobStopTime,
+	rcfJobErrorMsgs,
+	rcfJobNotifyOnCompletion,
+	rcfJobOwner,
+	rcfJobRowStatus
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects which represent a configuration job."
+    ::= { rbnConfigFileGroups 1 }
+    
+rcfJobNotifyGroup NOTIFICATION-GROUP
+    NOTIFICATIONS { rcfJobCompleted }
+    STATUS  current
+    DESCRIPTION
+        "The collection of notifications related to configuration jobs."
+    ::= { rbnConfigFileGroups 2 }
+
+rbnConfigFileCompliance MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         this Configuration File MIB."
+    MODULE  -- this module
+        MANDATORY-GROUPS {
+            rcfJobGroup,
+            rcfJobNotifyGroup
+        }
+    ::= { rbnConfigFileCompliances 1}
+    
+END

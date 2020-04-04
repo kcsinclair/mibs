@@ -1,0 +1,485 @@
+-- %DNP%
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-ICR-MIB.my,v $
+-- *****************************************************************
+-- RBN-ICR-MIB    Ericsson Inter Chassis Resilience(ICR) MIB
+--
+-- Copyright (c) 2011 Ericsson AB.
+-- All rights reserved.
+--
+-- *****************************************************************
+
+RBN-ICR-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE, Integer32
+        FROM SNMPv2-SMI
+
+    MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+        FROM SNMPv2-CONF
+
+    RowStatus
+        FROM SNMPv2-TC
+
+    InetAddressType, InetAddress, InetPortNumber
+        FROM INET-ADDRESS-MIB
+
+    rbnMgmt
+        FROM RBN-SMI;
+
+rbnIcrMIB MODULE-IDENTITY
+    LAST-UPDATED    "201508110000Z" -- Aug 11, 2015
+    ORGANIZATION    "Ericsson AB."
+    CONTACT-INFO
+            "       Ericsson, Inc.
+
+            Postal: 100 Headquarters Drive
+                    San Jose, CA  95134-1370
+                    USA
+
+             Phone: +1 408 750 5000
+               Fax: +1 408 750 5599"
+    DESCRIPTION
+        "This MIB describes objects used for managing Inter Chassis
+        Resilience(ICR)."
+
+    REVISION "201508110000Z" -- Aug 11, 2015
+    DESCRIPTION
+        "Added new trap and new rbnIcrInconsistencyError error code."
+
+    REVISION "201101100000Z" -- Jan 10, 2011
+    DESCRIPTION
+        "Initial Version."
+    ::= { rbnMgmt 101 }
+
+rbnIcrNotifications  OBJECT IDENTIFIER ::= { rbnIcrMIB 0 }
+rbnIcrMIBObjects     OBJECT IDENTIFIER ::= { rbnIcrMIB 1 }
+rbnIcrMIBConformance OBJECT IDENTIFIER ::= { rbnIcrMIB 2 }
+
+--
+-- Inter Chassis Resilience(ICR) Table
+--
+rbnIcrTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnIcrEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table consists of ICR management objects."
+    ::= { rbnIcrMIBObjects 1 }
+
+rbnIcrEntry OBJECT-TYPE
+    SYNTAX      RbnIcrEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Each entry contains management objects of an ICR node."
+    INDEX { rbnIcrId }
+    ::= { rbnIcrTable 1 }
+
+RbnIcrEntry ::=
+    SEQUENCE {
+        rbnIcrId                Integer32,
+        rbnIcrLocalAddressType  InetAddressType,
+        rbnIcrLocalAddress      InetAddress,
+        rbnIcrLocalPort         InetPortNumber,
+        rbnIcrPeerAddressType   InetAddressType,
+        rbnIcrPeerAddress       InetAddress,
+        rbnIcrPeerPort          InetPortNumber,
+        rbnIcrPriority          INTEGER,
+        rbnIcrKeepAliveInterval Integer32,
+        rbnIcrHoldTime          Integer32,
+        rbnIcrState             INTEGER,
+        rbnIcrAdminStatus       INTEGER,
+        rbnIcrRowStatus         RowStatus
+    }
+
+rbnIcrId OBJECT-TYPE
+    SYNTAX      Integer32 (1..2147483647)
+    MAX-ACCESS  not-accessible 
+    STATUS      current
+    DESCRIPTION
+        "The unique identifier of the ICR node."
+    ::= { rbnIcrEntry 1 }
+
+rbnIcrLocalAddressType OBJECT-TYPE
+    SYNTAX      InetAddressType
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object indicates the type of 'rbnIcrLocalAddress'."
+    DEFVAL { unknown }
+    ::= { rbnIcrEntry 2 }
+
+rbnIcrLocalAddress OBJECT-TYPE
+    SYNTAX      InetAddress
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object indicates the local address used to send/receive
+        ICR messages. The type of the address is determined by the
+        corresponding 'rbnIcrLocalAddressType'."
+    DEFVAL { ''H }
+    ::= { rbnIcrEntry 3 }
+
+rbnIcrLocalPort OBJECT-TYPE
+    SYNTAX      InetPortNumber 
+    MAX-ACCESS  read-create 
+    STATUS      current
+    DESCRIPTION
+        "This object indicates the local port number used to send/receive ICR
+        messages."
+    DEFVAL { 0 }
+    ::= { rbnIcrEntry 4 }
+
+rbnIcrPeerAddressType OBJECT-TYPE
+    SYNTAX      InetAddressType
+    MAX-ACCESS  read-create 
+    STATUS      current
+    DESCRIPTION
+        "This object indicates the type of 'rbnIcrPeerAddress'." 
+    DEFVAL { unknown }
+    ::= { rbnIcrEntry 5 }
+
+rbnIcrPeerAddress OBJECT-TYPE
+    SYNTAX      InetAddress 
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object indicates the address used by the peer ICR node to
+        send/receive ICR messages. The type of the address is determined by
+        the corresponding 'rbnIcrPeerAddressType'."
+    DEFVAL { ''H }
+    ::= { rbnIcrEntry 6 }
+
+rbnIcrPeerPort OBJECT-TYPE
+    SYNTAX      InetPortNumber 
+    MAX-ACCESS  read-create 
+    STATUS      current
+    DESCRIPTION
+        "This object indicates the port number used by the peer ICR node
+        to send/receive ICR messages."
+    DEFVAL { 0 }
+    ::= { rbnIcrEntry 7 }
+
+rbnIcrPriority OBJECT-TYPE
+    SYNTAX      INTEGER {
+        low(1),
+        high(2)
+    }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object indicates the ICR priority. The priority is used
+        for setting the initial preference level when the prefixes are
+        advertised and is used for tie-break in case both the local ICR
+        node and its peer node are booted up at the same time.
+        The local and the peer ICR nodes MUST configure different priorities"
+    DEFVAL { low }
+    ::= { rbnIcrEntry 8 }
+
+rbnIcrKeepAliveInterval OBJECT-TYPE
+    SYNTAX      Integer32 
+    UNITS       "seconds"
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object indicates the interval that the node sends ICR
+        keep alive messages to its peer node."
+    DEFVAL { 1 }
+    ::= { rbnIcrEntry 9 }
+
+rbnIcrHoldTime OBJECT-TYPE
+    SYNTAX      Integer32 
+    UNITS       "seconds"
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object indicates the time, after which, if the node
+        has not received a ICR keep alive message from its peer node, it
+        declares the peer loss."
+    DEFVAL { 10 }
+    ::= { rbnIcrEntry 10 }
+
+rbnIcrState OBJECT-TYPE
+    SYNTAX      INTEGER {
+        initialize(1),
+        active(2),
+        standby(3),
+        pendingStandby(4)
+    }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+         "The current ICR state:
+
+         - 'initialize', which indicates that the node is in
+            the process of deciding its role(active or standby).
+
+         - 'active', which indicates that the node operates as ICR active
+            node.
+
+         - 'standby', which indicates that the node operates as ICR
+            standby node.
+
+         - 'pendingStandby', which indicates that the node(previously in
+            'active' state) is waiting for operator intervention to transit
+            to 'standby' state after ICR switchover."
+     ::= { rbnIcrEntry 11 }
+
+rbnIcrAdminStatus OBJECT-TYPE
+    SYNTAX      INTEGER {
+        up(1),
+        down(2)
+    }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+         "This object controls ICR node. Setting this object to 'up' will
+         enable the ICR node. The node will transition from 'initialize' state
+         to 'active' or 'standby' state depending on the value of
+         'rbnIcrPriority'. Setting this object to 'down' will disable the
+         ICR node. The node will transition from its current state to
+         'initialize'.
+
+         To modify other 'read-create' objects in the conceptual row, the
+         'rbnIcrAdminStatus' object must be set to 'down'. The value of
+         the 'rbnIcrRowStatus' object must be 'active' in order for this
+         object to be set to 'up'."
+     DEFVAL { down }
+     ::= { rbnIcrEntry 12 }
+
+rbnIcrRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus 
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+         "The object is used to create and delete 'rbnIcrEntry' conceptual
+         rows.
+
+         Except 'rbnIcrAdminStatus', 'read-create' objects in the conceptual
+         row cannot be modified when rbnIcrRowStatus is set to active(1).
+
+         To change 'rbnIcrRowStatus' from 'active' to a different value,
+         the 'rbnIcrAdminStatus' object must be 'down'.
+
+         To create a row in this table, 'rbnIcrRowStatus' could be set to 
+         either 'createAndGo(4)' or 'createAndWait(5)'. Until all objects in
+         the conceptual row are appropriately configured, 'rbnIcrRowStatus' 
+         will transit to 'notReady(3)'."
+    ::= { rbnIcrEntry 13 }
+
+--
+-- ICR Notifications 
+--
+rbnIcrInconsistencyError OBJECT-TYPE
+    SYNTAX      INTEGER {
+        peerUp(0),
+        peerLoss(1),
+        vrrpLoss(2)
+    }
+    MAX-ACCESS  accessible-for-notify 
+    STATUS      current
+    DESCRIPTION
+         "This object indicates the ICR inconsistency error code."
+    ::= { rbnIcrMIBObjects 2 }
+
+rbnIcrNewActive NOTIFICATION-TYPE
+    OBJECTS     {
+        rbnIcrLocalAddressType,
+        rbnIcrLocalAddress,
+        rbnIcrLocalPort,
+        rbnIcrState
+    }
+    STATUS      current
+    DESCRIPTION
+        "This notification is sent when the state of the ICR node has changed
+        to active."
+    ::= { rbnIcrNotifications 1 }
+
+rbnIcrNewStandby NOTIFICATION-TYPE
+    OBJECTS     {
+        rbnIcrLocalAddressType,
+        rbnIcrLocalAddress,
+        rbnIcrLocalPort,
+        rbnIcrPeerAddressType,
+        rbnIcrPeerAddress,
+        rbnIcrPeerPort,
+        rbnIcrState
+    }
+    STATUS      current
+    DESCRIPTION
+        "This notification is sent when the state of the ICR node has changed
+        to standby."
+    ::= { rbnIcrNotifications 2 }
+
+rbnIcrNewPendingStandby NOTIFICATION-TYPE
+    OBJECTS     {
+        rbnIcrLocalAddressType,
+        rbnIcrLocalAddress,
+        rbnIcrLocalPort,
+        rbnIcrPeerAddressType,
+        rbnIcrPeerAddress,
+        rbnIcrPeerPort,
+        rbnIcrState
+    }
+    STATUS      current
+    DESCRIPTION
+        "This notification is sent when the state of the ICR node has changed
+        to pendingStandby."
+    ::= { rbnIcrNotifications 3 }
+
+rbnIcrInconsistency NOTIFICATION-TYPE
+    OBJECTS     {
+        rbnIcrLocalAddressType,
+        rbnIcrLocalAddress,
+        rbnIcrLocalPort,
+        rbnIcrPeerAddressType,
+        rbnIcrPeerAddress,
+        rbnIcrPeerPort,
+        rbnIcrInconsistencyError
+    }
+    STATUS      current
+    DESCRIPTION
+        "This notification is sent when an ICR inconsistency error is
+        encountered."
+    ::= { rbnIcrNotifications 4 }
+
+rbnIcrVrrpInconsistency NOTIFICATION-TYPE
+    OBJECTS     {
+        rbnIcrLocalAddressType,
+        rbnIcrLocalAddress,
+        rbnIcrLocalPort,
+        rbnIcrPeerAddressType,
+        rbnIcrPeerAddress,
+        rbnIcrPeerPort,
+        rbnIcrInconsistencyError
+    }
+    STATUS      current
+    DESCRIPTION
+        "This notification is sent when VRRP master/master split scenario is
+        encountered."
+    ::= { rbnIcrNotifications 5 }
+
+--
+-- Conformance Information
+--
+rbnIcrMIBCompliances OBJECT IDENTIFIER ::= { rbnIcrMIBConformance 1 }
+rbnIcrMIBGroups      OBJECT IDENTIFIER ::= { rbnIcrMIBConformance 2 }
+
+rbnIcrMIBCompliance MODULE-COMPLIANCE
+    STATUS current
+    DESCRIPTION
+        "The compliance statement for ICR MIB implementations."
+    MODULE -- this module
+    MANDATORY-GROUPS  {
+        rbnIcrGroup,
+        rbnIcrNotificationObjectGroup,
+        rbnIcrNotificationGroup
+    }
+
+    OBJECT rbnIcrLocalAddressType
+    SYNTAX      InetAddressType { unknown(0), ipv4(1), ipv6(2) }
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required. Only IPv4 and IPv6 addresses
+        require to support."
+
+    OBJECT rbnIcrLocalAddress
+    SYNTAX      InetAddress (SIZE(0|4|16))
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required. Only IPv4 and IPv6 addresses 
+        require to support."
+
+    OBJECT rbnIcrLocalPort
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required."
+
+    OBJECT rbnIcrPeerAddressType
+    SYNTAX      InetAddressType { unknown(0), ipv4(1), ipv6(2) }
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required. Only IPv4 and IPv6 addresses
+        require to support."
+
+    OBJECT rbnIcrPeerAddress
+    SYNTAX      InetAddress (SIZE(0|4|16))
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required. Only IPv4 and IPv6 addresses
+        require to support."
+
+    OBJECT rbnIcrPeerPort
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required."
+
+    OBJECT rbnIcrPriority 
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required."
+
+    OBJECT rbnIcrKeepAliveInterval 
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required."
+
+    OBJECT rbnIcrHoldTime 
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required."
+
+    OBJECT rbnIcrAdminStatus
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required."
+
+    OBJECT rbnIcrRowStatus
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required."
+    ::= { rbnIcrMIBCompliances 1 }
+
+rbnIcrGroup OBJECT-GROUP
+    OBJECTS  {
+        rbnIcrLocalAddressType,
+        rbnIcrLocalAddress,
+        rbnIcrLocalPort,
+        rbnIcrPeerAddressType,
+        rbnIcrPeerAddress,
+        rbnIcrPeerPort,
+        rbnIcrPriority,
+        rbnIcrKeepAliveInterval,
+        rbnIcrHoldTime,
+        rbnIcrState,
+        rbnIcrAdminStatus,
+        rbnIcrRowStatus
+    }
+    STATUS current
+    DESCRIPTION
+       "Conformance group for ICR objects."
+    ::= { rbnIcrMIBGroups 1 }
+
+rbnIcrNotificationObjectGroup OBJECT-GROUP
+    OBJECTS  {
+        rbnIcrInconsistencyError
+    }
+    STATUS current
+    DESCRIPTION
+       "Conformance group for objects contained in ICR notifications."
+    ::= { rbnIcrMIBGroups 2 }
+
+rbnIcrNotificationGroup NOTIFICATION-GROUP 
+    NOTIFICATIONS {
+        rbnIcrNewActive,
+        rbnIcrNewStandby,
+        rbnIcrNewPendingStandby,
+        rbnIcrInconsistency,
+        rbnIcrVrrpInconsistency
+    }
+    STATUS current
+    DESCRIPTION
+       "Conformance group for ICR notifications."
+    ::= { rbnIcrMIBGroups 3 }
+
+END

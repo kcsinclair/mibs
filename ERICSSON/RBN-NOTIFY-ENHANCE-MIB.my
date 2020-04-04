@@ -1,0 +1,299 @@
+-- %DNP% $Id: RBN-NOTIFY-ENHANCE-MIB.my,v 1.1.2.5.180.4 2011/02/22 17:26:17 thatcher Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-NOTIFY-ENHANCE-MIB.my,v $
+-- *****************************************************************
+-- RBN-NOTIFY-ENHANCE-MIB       Notify Enhance MIB
+--
+-- Copyright (c) 2005-2009, 2011, 2016 Ericsson AB.
+-- All rights reserved.
+--
+-- *****************************************************************
+
+RBN-NOTIFY-ENHANCE-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+        MODULE-IDENTITY,
+        OBJECT-TYPE,
+        NOTIFICATION-TYPE
+                FROM SNMPv2-SMI
+        DisplayString
+                FROM SNMPv2-TC
+        MODULE-COMPLIANCE,
+        OBJECT-GROUP,
+        NOTIFICATION-GROUP
+                FROM SNMPv2-CONF
+        sysName
+                FROM SNMPv2-MIB
+        SnmpAdminString
+                FROM SNMP-FRAMEWORK-MIB
+        RbnSlot
+                FROM RBN-TC
+        rbnCardAlarmId,
+        rbnCardAlarmType,
+        rbnCardAlarmDateAndTime,
+        rbnCardAlarmDescription,
+        rbnCardAlarmProbableCause,
+        rbnCardAlarmSeverity,
+        rbnCardAlarmServiceAffecting
+                FROM RBN-CARDMON-MIB
+        ifIndex,
+        ifAdminStatus,
+        ifOperStatus,
+        ifSpeed,
+        ifHighSpeed
+                FROM IF-MIB
+        rbnMgmt
+                FROM RBN-SMI;
+
+rbnNotifyEnhanceMIB MODULE-IDENTITY
+        LAST-UPDATED    "201101191800Z" -- Jan 19, 2011
+        ORGANIZATION    "Ericsson AB."
+        CONTACT-INFO
+                "       Ericsson AB.
+
+                Postal: 100 Headquarters Dr
+                        San Jose, CA  95134
+                        USA
+
+                 Phone: +1 408 750 5000
+                   Fax: +1 408 750 5599
+                "
+        DESCRIPTION
+                "The MIB used to enhance the notification objects on
+                network devices."
+
+        REVISION        "201101191800Z" -- Jan 19, 2011
+        DESCRIPTION
+            "Update CONTACT-INFO & ORGANIZATION. "
+
+        REVISION        "200903231700Z" -- March 23, 2009
+        DESCRIPTION
+            "Added rbnNEGroupName.
+             Modified description of rbnNECircuitId to contain the
+             link group name for circuits which are type link group. "
+
+        REVISION        "200505090000Z" -- May 9, 2005
+        DESCRIPTION
+            "Initial version."
+        ::= { rbnMgmt 36 }
+
+rbnNotifyEnhanceMIBNotifications OBJECT IDENTIFIER
+        ::= { rbnNotifyEnhanceMIB 0 }
+
+rbnNotifyEnhanceMIBObjects OBJECT IDENTIFIER
+        ::= { rbnNotifyEnhanceMIB 1 }
+
+rbnNotifyEnhanceMIBConformance OBJECT IDENTIFIER
+        ::= { rbnNotifyEnhanceMIB 2 }
+
+
+-- MIB Object groups
+
+rbnNEGeneral OBJECT IDENTIFIER ::= { rbnNotifyEnhanceMIBObjects 1 }
+
+
+rbnNESlot OBJECT-TYPE
+        SYNTAX      RbnSlot
+        MAX-ACCESS  accessible-for-notify
+        STATUS      current
+        DESCRIPTION
+                "Represents the chassis slot number in which the entity
+                associated with the notification is contained in.
+
+                A value of '0' indicates that the entity is not contained
+                within a chassis slot."
+        ::= { rbnNEGeneral 1 }
+
+rbnNECardName OBJECT-TYPE
+        SYNTAX      DisplayString (SIZE (0..255))
+        MAX-ACCESS  accessible-for-notify
+        STATUS      current
+        DESCRIPTION
+                "A textual description of the linecard associated with
+                the notification."
+        ::= { rbnNEGeneral 2 }
+
+rbnNECardOp OBJECT-TYPE
+        SYNTAX      INTEGER {
+                        insert(1),
+                        remove(2),
+                        other(3)
+                    }
+        MAX-ACCESS  accessible-for-notify
+        STATUS      current
+        DESCRIPTION
+                "Represents the operation performed on the linecard
+                associated with the notification."
+        ::= { rbnNEGeneral 3 }
+
+rbnNECircuitId OBJECT-TYPE
+        SYNTAX      DisplayString (SIZE (0..255))
+        MAX-ACCESS  accessible-for-notify
+        STATUS      current
+        DESCRIPTION
+                "Represents a string that identifies the circuit
+                associated with the notification.
+
+                On the SE router this string is formatted as
+                slot-port-channel-subchannel, with the exception that
+                channel and subchannel are only included when appropriate.
+
+                If the circuit is a link-group circuit, then the value
+                contains the link group name rather than the formatted
+                slot-port-channel-subchannel."
+        ::= { rbnNEGeneral 4 }
+
+rbnNEGroupName OBJECT-TYPE
+        SYNTAX      SnmpAdminString
+        MAX-ACCESS  accessible-for-notify
+        STATUS      current
+        DESCRIPTION
+                "The link group name associated with the resource
+                 identified in a notification. "
+
+        ::= { rbnNEGeneral 5 }
+
+-- Notifications
+
+rbnNEentConfigChange NOTIFICATION-TYPE
+        OBJECTS     {
+                        rbnNESlot,
+                        rbnNECardName,
+                        rbnNECardOp,
+                        sysName
+                    }
+        STATUS      current
+        DESCRIPTION
+                "This is an enhanced version of entConfigChange trap
+                defined in ENTITY-MIB.
+
+                The rbnNEentConfigChange trap generation is enabled only
+                when 'traps nemib {exclusive | non-exclusive}' CLI command
+                is configured."
+        ::= { rbnNotifyEnhanceMIBNotifications 1 }
+
+rbnNECardAlarm NOTIFICATION-TYPE
+        OBJECTS     {
+                        rbnCardAlarmId,
+                        rbnCardAlarmType,
+                        rbnCardAlarmDateAndTime,
+                        rbnCardAlarmDescription,
+                        rbnCardAlarmProbableCause,
+                        rbnCardAlarmSeverity,
+                        rbnCardAlarmServiceAffecting,
+                        rbnNECardName,
+                        sysName
+                    }
+        STATUS      current
+        DESCRIPTION
+                "This is an enhanced version of rbnCardAlarm trap defined
+                in RBN-CARDMON-MIB.
+
+                The rbnNECardAlarm trap generation is enabled only when
+                'traps nemib {exclusive | non-exclusive}' CLI command
+                is configured."
+        ::= { rbnNotifyEnhanceMIBNotifications 2 }
+
+rbnNElinkDown NOTIFICATION-TYPE
+        OBJECTS     {
+                        ifIndex,
+                        ifAdminStatus,
+                        ifOperStatus,
+                        ifSpeed,
+                        ifHighSpeed,
+                        rbnNECircuitId,
+                        sysName,
+                        rbnNEGroupName
+                    }
+        STATUS      current
+        DESCRIPTION
+                "This is an enhanced version of linkDown trap defined in
+                IF-MIB.
+
+                The rbnNElinkDown trap generation is enabled only when
+                'traps nemib {exclusive | non-exclusive}' CLI command
+                is configured."
+        ::= { rbnNotifyEnhanceMIBNotifications 3 }
+
+rbnNElinkUp NOTIFICATION-TYPE
+        OBJECTS     {
+                        ifIndex,
+                        ifAdminStatus,
+                        ifOperStatus,
+                        ifSpeed,
+                        ifHighSpeed,
+                        rbnNECircuitId,
+                        sysName,
+                        rbnNEGroupName
+                    }
+        STATUS      current
+        DESCRIPTION
+                "This is an enhanced version of linkUp trap defined in
+                IF-MIB.
+
+                The rbnNElinkUp trap generation is enabled only when
+                'traps nemib {exclusive | non-exclusive}' CLI command
+                is configured."
+        ::= { rbnNotifyEnhanceMIBNotifications 4 }
+
+-- Conformance Statements
+
+rbnNotifyEnhanceMIBGroups OBJECT IDENTIFIER
+        ::= { rbnNotifyEnhanceMIBConformance 1 }
+
+rbnNotifyEnhanceMIBCompliances OBJECT IDENTIFIER
+        ::= { rbnNotifyEnhanceMIBConformance 2 }
+
+rbnNotifyEnhanceMIBObjectGroup OBJECT-GROUP
+        OBJECTS {
+                  rbnNESlot,
+                  rbnNECardName,
+                  rbnNECardOp,
+                  rbnNECircuitId,
+                  rbnNEGroupName
+                }
+        STATUS      current
+        DESCRIPTION
+                "A collection of objects providing enhanced
+                notification information."
+        ::= { rbnNotifyEnhanceMIBGroups 1 }
+
+rbnNotifyEnhanceMIBNotificationGroup NOTIFICATION-GROUP
+        NOTIFICATIONS {
+                        rbnNEentConfigChange,
+                        rbnNECardAlarm,
+                        rbnNElinkDown,
+                        rbnNElinkUp
+                    }
+        STATUS      current
+        DESCRIPTION
+                "A collection of notifications providing enhanced
+                notification information."
+        ::= { rbnNotifyEnhanceMIBGroups 2 }
+
+rbnNotifyEnhanceMIBCompliance MODULE-COMPLIANCE
+        STATUS      deprecated
+        DESCRIPTION
+                "The compliance statement for the NotifyEnhance MIB"
+        MODULE      -- this module
+        GROUP rbnNotifyEnhanceMIBNotificationGroup
+        DESCRIPTION
+                "This group is mandatory for devices which support
+                notification enhancement capabilities"
+        ::= { rbnNotifyEnhanceMIBCompliances 1 }
+
+rbnNotifyEnhanceMIBCompliance2 MODULE-COMPLIANCE
+        STATUS      current
+        DESCRIPTION
+                "The compliance statement for the NotifyEnhance MIB"
+        MODULE      -- this module
+        MANDATORY-GROUPS {
+            rbnNotifyEnhanceMIBObjectGroup,
+            rbnNotifyEnhanceMIBNotificationGroup
+        }
+        GROUP rbnNotifyEnhanceMIBNotificationGroup
+        DESCRIPTION
+                "This group is mandatory for devices which support
+                notification enhancement capabilities"
+        ::= { rbnNotifyEnhanceMIBCompliances 2 }
+
+END

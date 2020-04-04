@@ -1,0 +1,924 @@
+-- %DNP% $Id: RBN-DHCP-MIB.my,v 1.1.8.1.252.3 2011/02/22 17:26:16 thatcher Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-DHCP-MIB.my,v $
+-- *****************************************************************
+-- RBN-DHCP-MIB		DHCP Mib
+--
+-- Copyright (c) 2004-2009, 2011 Ericsson AB.
+-- All rights reserved.
+--
+-- *****************************************************************
+
+RBN-DHCP-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+	MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE,
+	Unsigned32, IpAddress
+		FROM SNMPv2-SMI
+
+        TruthValue
+                FROM SNMPv2-TC
+
+	MODULE-COMPLIANCE,
+	OBJECT-GROUP,
+	NOTIFICATION-GROUP
+		FROM SNMPv2-CONF
+
+	SnmpAdminString
+		FROM SNMP-FRAMEWORK-MIB
+
+        RbnSlot
+                FROM RBN-TC
+
+	rbnMgmt
+		FROM RBN-SMI;
+
+rbnDhcpMib MODULE-IDENTITY
+	LAST-UPDATED	"201003101700Z" -- Mar 10, 2010
+	ORGANIZATION	"Ericsson AB"
+        CONTACT-INFO
+                "       Ericsson AB.
+
+                Postal: 100 Headquarters Dr 
+                        San Jose, CA  95134
+                        USA
+
+                 Phone: +1 408 750 5000
+                   Fax: +1 408 750 5599"
+	DESCRIPTION
+		"Defines the objects necessary to obtain information about
+		DHCP Servers for interfaces within a context."
+
+	REVISION	"201003101700Z" -- Mar 10, 2010
+	DESCRIPTION
+                "Added rbnDhcpLeaseFileStorageSlot, rbnDhcpLeaseFileErrorType,
+                and rbnDhcpLeaseFileFailure."
+
+	REVISION	"200510141700Z" -- Oct 14, 2005
+	DESCRIPTION
+		"Added new rbnDhcpRangeThresholdTable table."
+
+	REVISION	"200405031700Z" -- May 3, 2004
+	DESCRIPTION
+		"Initial version."
+
+	::= { rbnMgmt 30 }
+
+
+rbnDhcpMIBNotifications OBJECT IDENTIFIER ::= { rbnDhcpMib 0 }
+
+rbnDhcpMIBObjects       OBJECT IDENTIFIER ::= { rbnDhcpMib 1 }
+
+rbnDhcpMIBConformance   OBJECT IDENTIFIER ::= { rbnDhcpMib 2 }
+
+
+rbnDhcpIntfThresholdTable OBJECT-TYPE
+	SYNTAX       SEQUENCE OF RbnDhcpIntfThresholdEntry
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The purpose of this table is to allow monitoring of
+		per interface DHCP server thresholds through SNMP.
+
+		This table contains the objects which characterize DHCP
+		server thresholds.  Each row in the table corresponds to
+		information about the leases in a DHCP server range for a
+		particular interface and the corresponding capacity,
+		usage and falling and rising thresholds.
+
+		Objects defined in this table are only accessible within the
+		context identified in the SNMP protocol (i.e. the community
+		string in v1/v2c or the contextName in v3)."
+	::= { rbnDhcpMIBObjects 1 }
+
+rbnDhcpIntfThresholdEntry OBJECT-TYPE
+	SYNTAX       RbnDhcpIntfThresholdEntry
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"A conceptual row in the rbnDhcpIntfThresholdTable."
+	INDEX        { IMPLIED rbnDhcpIntfThresholdName }
+	::= { rbnDhcpIntfThresholdTable 1 }
+
+RbnDhcpIntfThresholdEntry ::=
+	SEQUENCE {
+		rbnDhcpIntfThresholdName		SnmpAdminString,
+		rbnDhcpIntfThresholdContextName		SnmpAdminString,
+		rbnDhcpIntfThresholdSize		Unsigned32,
+		rbnDhcpIntfThresholdAvailable		Unsigned32,
+		rbnDhcpIntfThresholdInuse		Unsigned32,
+		rbnDhcpIntfThresholdFallingThreshold	Unsigned32,
+		rbnDhcpIntfThresholdFallingSendTrap	TruthValue,
+		rbnDhcpIntfThresholdFallingLogMessage	TruthValue,
+		rbnDhcpIntfThresholdRisingThreshold	Unsigned32,
+		rbnDhcpIntfThresholdRisingSendTrap	TruthValue,
+		rbnDhcpIntfThresholdRisingLogMessage	TruthValue
+	}
+
+rbnDhcpIntfThresholdName OBJECT-TYPE
+	SYNTAX       SnmpAdminString (SIZE (1..80))
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The name of the interface.
+
+		An entry configured by other means may have been given
+		a name whose length is greater than 80.  Names which exceed
+		this length are not accessible via SNMP operations."
+	::= { rbnDhcpIntfThresholdEntry 1 }
+
+rbnDhcpIntfThresholdContextName OBJECT-TYPE
+        SYNTAX      SnmpAdminString  (SIZE (0..63))
+	MAX-ACCESS  read-only
+	STATUS      current
+	DESCRIPTION
+		"The name of the context which contains the interface."
+	::= { rbnDhcpIntfThresholdEntry 2 }
+
+rbnDhcpIntfThresholdSize OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The number of leases that have been reserved for the
+		DHCP server in this interface."
+	::= { rbnDhcpIntfThresholdEntry 3 }
+
+rbnDhcpIntfThresholdAvailable OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The number of leases that are available in this interface."
+	::= { rbnDhcpIntfThresholdEntry 4 }
+
+rbnDhcpIntfThresholdInuse OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The number of leases that are in use in this interface."
+	::= { rbnDhcpIntfThresholdEntry 5 }
+
+rbnDhcpIntfThresholdFallingThreshold OBJECT-TYPE
+	SYNTAX       Unsigned32 (0..196608)
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The falling threshold is a value which specifies
+		that any enabled falling threshold events are to
+		be generated when the value of the currently available
+		leases drops to the falling threshold value via an
+		allocation of a lease from the pool.
+
+		The number of available leases is reported in
+		rbnDhcpIntfThresholdAvailable.  A falling threshold event
+		is either a notification or a log message or both.
+		Falling threshold events are enabled if either or
+		both of rbnDhcpIntfThresholdFallingSendTrap and
+		rbnDhcpIntfThresholdFallingLogMessage are true.
+
+		Note, this is a falling threshold, so a falling threshold
+		event will only be triggered on a transition of the value of
+		rbnDhcpIntfThresholdAvailable dropping from
+		(rbnDhcpIntfThresholdFallingThreshold+1) to
+		rbnDhcpIntfThresholdFallingThreshold."
+	::= { rbnDhcpIntfThresholdEntry 6 }
+
+rbnDhcpIntfThresholdFallingSendTrap OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of reaching a falling threshold,
+		a trap will be sent.  See the definition of the
+		rbnDhcpIntfThresholdFallingThresholdMet notification for the
+		information included in the trap."
+	::= { rbnDhcpIntfThresholdEntry 7 }
+
+rbnDhcpIntfThresholdFallingLogMessage OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of reaching a falling threshold,
+		a message will be logged.  See the definition of the
+		rbnDhcpIntfThresholdFallingThresholdMet notification for the
+		information included in the trap."
+	::= { rbnDhcpIntfThresholdEntry 8 }
+
+rbnDhcpIntfThresholdRisingThreshold OBJECT-TYPE
+	SYNTAX       Unsigned32 (0..196608)
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The rising threshold is a value which specifies
+		that any enabled rising threshold events are to be
+		generated when the value of the currently available
+		leases reaches the rising threshold value via
+		a returning of a lease to the pool.
+
+                The number of available leases is reported in
+		rbnDhcpIntfThresholdAvailable.  A rising threshold event
+		is either a notification or a log message or both.
+		Rising threshold events are enabled if either or
+		both of rbnDhcpIntfThresholdRisingSendTrap and
+		rbnDhcpIntfThresholdRisingLogMessage are true.
+
+		Note, this is a rising threshold, so a rising threshold
+		event will only be triggered on a transition of the value of
+		rbnDhcpIntfThresholdAvailable increasing from
+		(rbnDhcpIntfThresholdRisingThreshold-1) to
+		rbnDhcpIntfThresholdRisingThreshold."
+	::= { rbnDhcpIntfThresholdEntry 9 }
+
+rbnDhcpIntfThresholdRisingSendTrap OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of reaching a rising threshold,
+		a trap will be sent.  See the definition of the
+		rbnDhcpIntfThresholdRisingThresholdMet notification for the
+		information included in the trap."
+	::= { rbnDhcpIntfThresholdEntry 10 }
+
+rbnDhcpIntfThresholdRisingLogMessage OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of reaching a rising threshold,
+		a message will be logged.  See the definition of the
+		rbnDhcpIntfThresholdRisingThresholdMet notification for the
+		information included in the trap."
+	::= { rbnDhcpIntfThresholdEntry 11 }
+
+
+rbnDhcpRangeThresholdTable OBJECT-TYPE
+	SYNTAX       SEQUENCE OF RbnDhcpRangeThresholdEntry
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The purpose of this table is to allow monitoring of
+		DHCP server ranges within interfaces.
+
+		This table contains the objects which characterize DHCP
+		server ranges.  Each row in the table corresponds to
+		information about the leases in a DHCP server for a
+		particular range within a particular interface and the
+		corresponding capacity, usage and falling and rising
+		thresholds.
+
+		Objects defined in this table are only accessible within the
+		context identified in the SNMP protocol (i.e. the community
+		string in v1/v2c or the contextName in v3)."
+	::= { rbnDhcpMIBObjects 3 }
+
+rbnDhcpRangeThresholdEntry OBJECT-TYPE
+	SYNTAX       RbnDhcpRangeThresholdEntry
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"A conceptual row in the rbnDhcpRangeThresholdTable."
+	INDEX {
+		rbnDhcpRangeThresholdInterfaceIdx,
+		rbnDhcpRangeThresholdAddr
+	}
+	::= { rbnDhcpRangeThresholdTable 1 }
+
+RbnDhcpRangeThresholdEntry ::=
+	SEQUENCE {
+		rbnDhcpRangeThresholdInterfaceIdx	Unsigned32,
+		rbnDhcpRangeThresholdAddr		IpAddress,
+		rbnDhcpRangeThresholdEndAddr		IpAddress,
+		rbnDhcpRangeThresholdContextName	SnmpAdminString,
+		rbnDhcpRangeThresholdInterfaceName	SnmpAdminString,
+		rbnDhcpRangeThresholdSize		Unsigned32,
+		rbnDhcpRangeThresholdAvailable		Unsigned32,
+		rbnDhcpRangeThresholdInuse		Unsigned32,
+		rbnDhcpRangeThresholdFallingThreshold	Unsigned32,
+		rbnDhcpRangeThresholdFallingSendTrap	TruthValue,
+		rbnDhcpRangeThresholdFallingLogMessage	TruthValue,
+		rbnDhcpRangeThresholdRisingThreshold	Unsigned32,
+		rbnDhcpRangeThresholdRisingSendTrap	TruthValue,
+		rbnDhcpRangeThresholdRisingLogMessage	TruthValue
+	}
+
+rbnDhcpRangeThresholdInterfaceIdx OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The index of the interface containing the DHCP range."
+	::= { rbnDhcpRangeThresholdEntry 1 }
+
+rbnDhcpRangeThresholdAddr OBJECT-TYPE
+	SYNTAX       IpAddress
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The start address of the DHCP range."
+	::= { rbnDhcpRangeThresholdEntry 2 }
+
+rbnDhcpRangeThresholdEndAddr OBJECT-TYPE
+	SYNTAX       IpAddress
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The end address of the DHCP range."
+	::= { rbnDhcpRangeThresholdEntry 3 }
+
+rbnDhcpRangeThresholdContextName OBJECT-TYPE
+        SYNTAX      SnmpAdminString  (SIZE (0..63))
+	MAX-ACCESS  read-only
+	STATUS      current
+	DESCRIPTION
+		"The name of the context which contains the interface."
+	::= { rbnDhcpRangeThresholdEntry 4 }
+
+rbnDhcpRangeThresholdInterfaceName OBJECT-TYPE
+	SYNTAX       SnmpAdminString (SIZE (1..80))
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The name of the interface containing the DHCP range."
+	::= { rbnDhcpRangeThresholdEntry 5 }
+
+rbnDhcpRangeThresholdSize OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The number of leases that have been reserved for the
+		DHCP server in this range."
+	::= { rbnDhcpRangeThresholdEntry 6 }
+
+rbnDhcpRangeThresholdAvailable OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The number of leases that are available in this range."
+	::= { rbnDhcpRangeThresholdEntry 7 }
+
+rbnDhcpRangeThresholdInuse OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The number of leases that are in use in this range."
+	::= { rbnDhcpRangeThresholdEntry 8 }
+
+rbnDhcpRangeThresholdFallingThreshold OBJECT-TYPE
+	SYNTAX       Unsigned32 (0..196608)
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The falling threshold is a value which specifies
+		that any enabled falling threshold events are to
+		be generated when the value of the currently available
+		leases drops to the falling threshold value via an
+		allocation of a lease from the range.
+
+		The number of available leases is reported in
+		rbnDhcpRangeThresholdAvailable.  A falling threshold event
+		is either a notification or a log message or both.
+		Falling threshold events are enabled if either or
+		both of rbnDhcpRangeThresholdFallingSendTrap and
+		rbnDhcpRangeThresholdFallingLogMessage are true.
+
+		Note, this is a falling threshold, so a falling threshold
+		event will only be triggered on a transition of the value of
+		rbnDhcpRangeThresholdAvailable dropping from
+		(rbnDhcpRangeThresholdFallingThreshold+1) to
+		rbnDhcpRangeThresholdFallingThreshold."
+	::= { rbnDhcpRangeThresholdEntry 9 }
+
+rbnDhcpRangeThresholdFallingSendTrap OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of reaching a falling threshold,
+		a trap will be sent.  See the definition of the
+		rbnDhcpRangeThresholdFallingThresholdMet notification for the
+		information included in the trap."
+	::= { rbnDhcpRangeThresholdEntry 10 }
+
+rbnDhcpRangeThresholdFallingLogMessage OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of reaching a falling threshold,
+		a message will be logged.  See the definition of the
+		rbnDhcpRangeThresholdFallingThresholdMet notification for the
+		information included in the trap."
+	::= { rbnDhcpRangeThresholdEntry 11 }
+
+rbnDhcpRangeThresholdRisingThreshold OBJECT-TYPE
+	SYNTAX       Unsigned32 (0..196608)
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The rising threshold is a value which specifies
+		that any enabled rising threshold events are to be
+		generated when the value of the currently available
+		leases reaches the rising threshold value via
+		a returning of a lease to the range.
+
+                The number of available leases is reported in
+		rbnDhcpRangeThresholdAvailable.  A rising threshold event
+		is either a notification or a log message or both.
+		Rising threshold events are enabled if either or
+		both of rbnDhcpRangeThresholdRisingSendTrap and
+		rbnDhcpRangeThresholdRisingLogMessage are true.
+
+		Note, this is a rising threshold, so a rising threshold
+		event will only be triggered on a transition of the value of
+		rbnDhcpRangeThresholdAvailable increasing from
+		(rbnDhcpRangeThresholdRisingThreshold-1) to
+		rbnDhcpRangeThresholdRisingThreshold."
+	::= { rbnDhcpRangeThresholdEntry 12 }
+
+rbnDhcpRangeThresholdRisingSendTrap OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of reaching a rising threshold,
+		a trap will be sent.  See the definition of the
+		rbnDhcpRangeThresholdRisingThresholdMet notification for the
+		information included in the trap."
+	::= { rbnDhcpRangeThresholdEntry 13 }
+
+rbnDhcpRangeThresholdRisingLogMessage OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of reaching a rising threshold,
+		a message will be logged.  See the definition of the
+		rbnDhcpRangeThresholdRisingThresholdMet notification for the
+		information included in the trap."
+	::= { rbnDhcpRangeThresholdEntry 14 }
+
+
+--
+-- DHCP Threshold per context objects
+--
+
+rbnDhcpCtxThreshold	OBJECT IDENTIFIER ::= { rbnDhcpMIBObjects 2 }
+
+rbnDhcpCtxThresholdName OBJECT-TYPE
+	SYNTAX       SnmpAdminString (SIZE (0..63))
+	MAX-ACCESS   accessible-for-notify
+	STATUS       current
+	DESCRIPTION
+		"This object identifies the context in which a falling
+		or rising per context threshold event occurs"
+	::= { rbnDhcpCtxThreshold 1 }
+
+rbnDhcpCtxThresholdSize OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The total number of leases in all DHCP ranges of all
+		 interfaces in the context valid in the current view."
+	::= { rbnDhcpCtxThreshold 2 }
+
+rbnDhcpCtxThresholdAvailable OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The total number of leases available in all DHCP ranges of
+		 all interfaces in the context valid in the current view."
+	::= { rbnDhcpCtxThreshold 3 }
+
+rbnDhcpCtxThresholdInuse OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The total number of leases in use in all DHCP ranges of
+		 all interfaces in the context valid in the current view."
+	::= { rbnDhcpCtxThreshold 4 }
+
+rbnDhcpCtxThresholdFallingThreshold OBJECT-TYPE
+	SYNTAX       Unsigned32 (0..196608)
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The falling threshold value for the context valid in the
+		current view.  Just as rbnDhcpIntfThresholdFallingThreshold
+		is the per interface falling threshold, this object
+		is the per context falling threshold.
+
+		When the sum of the all available DHCP leases in all
+		interfaces of the context valid in the current view reaches
+		the value of this object a falling threshold action of a
+		trap, a log message, or both will be generated.
+
+		This is a falling threshold, so the evaluation of whether
+		to perform the action occurs upon allocation of a lease from
+		the available pool of leases from any interface within
+		the context.
+
+		The action of whether to send a trap and/or log message
+		is specified by the values of
+		rbnDhcpCtxThresholdFallingSendTrap and
+		rbnDhcpCtxThresholdFallingLogMessage.
+
+		If there is no per context rising threshold, the value of
+		this object will be zero and the values of
+		rbnDhcpCtxThresholdFallingSendTrap and
+		rbnDhcpCtxThresholdFallingLogMessage will be false."
+	::= { rbnDhcpCtxThreshold 5 }
+
+rbnDhcpCtxThresholdFallingSendTrap OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of reaching the per context falling
+		threshold, a trap will be sent.  See the definition of the
+		rbnDhcpCtxThresholdFallingThresholdMet for the information
+		included in the trap."
+	::= { rbnDhcpCtxThreshold 6 }
+
+rbnDhcpCtxThresholdFallingLogMessage OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of reaching the per context falling
+		threshold, a message will be logged.  The information contained
+		in the message logged is the same as that included in the
+		rbnDhcpCtxThresholdFallingThresholdMet trap."
+	::= { rbnDhcpCtxThreshold 7 }
+
+rbnDhcpCtxThresholdRisingThreshold OBJECT-TYPE
+	SYNTAX       Unsigned32 (0..196608)
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The rising threshold value for the context valid in the
+		current view.  Just as rbnDhcpIntfThresholdRisingThreshold
+		is the per interface rising threshold, this object
+		is the per context rising threshold.
+
+		When the sum of the all available DHCP leases in all
+		interfaces of the context valid in the current view reaches
+		the value of this object a rising threshold action of a
+		trap, a log message, or both will be generated.
+
+		This is a rising threshold, so the evaluation of whether
+		to perform the action occurs upon return of a lease to
+		the available pool of leases defined in any interface within
+		the context.
+
+		The action of whether to send a trap and/or log message
+		is specified by the values of
+		rbnDhcpCtxThresholdRisingSendTrap and
+		rbnDhcpCtxThresholdRisingLogMessage.
+
+		If there is no per context rising threshold, the value of
+		this object will be zero and the values of
+		rbnDhcpCtxThresholdRisingSendTrap and
+		rbnDhcpCtxThresholdRisingLogMessage will be false."
+	::= { rbnDhcpCtxThreshold 8 }
+
+rbnDhcpCtxThresholdRisingSendTrap OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of reaching the per context rising
+		threshold, a trap will be sent.  See the definition of the
+		rbnDhcpCtxThresholdRisingThresholdMet for the information
+		included in the trap."
+	::= { rbnDhcpCtxThreshold 9 }
+
+rbnDhcpCtxThresholdRisingLogMessage OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of reaching the per context rising
+		threshold, a message will be logged.  The information contained
+		in the message logged is the same as that included in the
+		rbnDhcpCtxThresholdRisingThresholdMet trap."
+	::= { rbnDhcpCtxThreshold 10 }
+
+--
+-- Definition of notifications.
+--
+rbnDhcpLeaseFileStorageSlot OBJECT-TYPE
+         SYNTAX       RbnSlot 
+         MAX-ACCESS   accessible-for-notify
+         STATUS       current
+         DESCRIPTION
+                 "The slot number of the storage device containing
+                 the DHCP lease file."
+         ::= { rbnDhcpMIBObjects 4 }
+
+rbnDhcpLeaseFileErrorType OBJECT-TYPE
+         SYNTAX       INTEGER {
+                storageDeviceDegraded (1),
+                storageDeviceFailed   (2)
+         }
+         MAX-ACCESS   accessible-for-notify
+         STATUS       current
+         DESCRIPTION
+                 "Error types of DHCP lease file failure."
+         ::= { rbnDhcpMIBObjects 5 }
+
+rbnDhcpIntfThresholdFallingThresholdMet NOTIFICATION-TYPE
+	OBJECTS {
+		rbnDhcpIntfThresholdContextName,
+		rbnDhcpIntfThresholdAvailable,
+		rbnDhcpIntfThresholdFallingThreshold
+	}
+	STATUS	current
+	DESCRIPTION
+		"A notification indicating that a per interface falling
+		threshold has been reached."
+	::= { rbnDhcpMIBNotifications 1 }
+
+rbnDhcpIntfThresholdRisingThresholdMet NOTIFICATION-TYPE
+	OBJECTS {
+		rbnDhcpIntfThresholdContextName,
+		rbnDhcpIntfThresholdAvailable,
+		rbnDhcpIntfThresholdRisingThreshold
+	}
+	STATUS	current
+	DESCRIPTION
+		"A notification indicating that a per interface rising
+		threshold has been reached."
+	::= { rbnDhcpMIBNotifications 2 }
+
+rbnDhcpCtxThresholdFallingThresholdMet NOTIFICATION-TYPE
+	OBJECTS {
+		rbnDhcpCtxThresholdName,
+		rbnDhcpCtxThresholdAvailable,
+		rbnDhcpCtxThresholdFallingThreshold
+	}
+	STATUS	current
+	DESCRIPTION
+		"A notification indicating that the per context falling
+		threshold has been reached."
+	::= { rbnDhcpMIBNotifications 3 }
+
+rbnDhcpCtxThresholdRisingThresholdMet NOTIFICATION-TYPE
+	OBJECTS {
+		rbnDhcpCtxThresholdName,
+		rbnDhcpCtxThresholdAvailable,
+		rbnDhcpCtxThresholdRisingThreshold
+	}
+	STATUS	current
+	DESCRIPTION
+		"A notification indicating that the per context rising
+		threshold has been reached."
+	::= { rbnDhcpMIBNotifications 4 }
+
+rbnDhcpRangeThresholdFallingThresholdMet NOTIFICATION-TYPE
+	OBJECTS {
+		rbnDhcpRangeThresholdContextName,
+		rbnDhcpRangeThresholdInterfaceName,
+		rbnDhcpRangeThresholdEndAddr,
+		rbnDhcpRangeThresholdAvailable,
+		rbnDhcpRangeThresholdFallingThreshold
+	}
+	STATUS	current
+	DESCRIPTION
+		"A notification indicating that a per subnet falling
+		threshold has been reached."
+	::= { rbnDhcpMIBNotifications 5 }
+
+rbnDhcpRangeThresholdRisingThresholdMet NOTIFICATION-TYPE
+	OBJECTS {
+		rbnDhcpRangeThresholdContextName,
+		rbnDhcpRangeThresholdInterfaceName,
+		rbnDhcpRangeThresholdEndAddr,
+		rbnDhcpRangeThresholdAvailable,
+		rbnDhcpRangeThresholdRisingThreshold
+	}
+	STATUS	current
+	DESCRIPTION
+		"A notification indicating that a per subnet rising
+		threshold has been reached."
+	::= { rbnDhcpMIBNotifications 6 }
+
+rbnDhcpLeaseFileFailure NOTIFICATION-TYPE
+        OBJECTS {
+                rbnDhcpLeaseFileStorageSlot,
+                rbnDhcpLeaseFileErrorType
+        }
+        STATUS  current
+        DESCRIPTION
+                "A notification indicating that the system has stopped 
+                reading/updating the DHCP lease file."
+        ::= { rbnDhcpMIBNotifications 7 }
+
+--
+-- Compliance statements.
+--
+
+rbnDhcpCompliances OBJECT IDENTIFIER ::= { rbnDhcpMIBConformance 1 }
+rbnDhcpGroups      OBJECT IDENTIFIER ::= { rbnDhcpMIBConformance 2 }
+
+rbnDhcpThresholdGroup	OBJECT-GROUP
+	OBJECTS {
+		rbnDhcpIntfThresholdContextName,
+		rbnDhcpIntfThresholdSize,
+		rbnDhcpIntfThresholdInuse,
+		rbnDhcpIntfThresholdAvailable,
+		rbnDhcpIntfThresholdFallingThreshold,
+		rbnDhcpIntfThresholdFallingSendTrap,
+		rbnDhcpIntfThresholdFallingLogMessage,
+		rbnDhcpIntfThresholdRisingThreshold,
+		rbnDhcpIntfThresholdRisingSendTrap,
+		rbnDhcpIntfThresholdRisingLogMessage,
+		rbnDhcpCtxThresholdName,
+		rbnDhcpCtxThresholdSize,
+		rbnDhcpCtxThresholdAvailable,
+		rbnDhcpCtxThresholdInuse,
+		rbnDhcpCtxThresholdFallingThreshold,
+		rbnDhcpCtxThresholdFallingSendTrap,
+		rbnDhcpCtxThresholdFallingLogMessage,
+		rbnDhcpCtxThresholdRisingThreshold,
+		rbnDhcpCtxThresholdRisingSendTrap,
+		rbnDhcpCtxThresholdRisingLogMessage
+	}
+	STATUS	current
+	DESCRIPTION
+		"The collection of objects providing DHCP range information."
+	::= { rbnDhcpGroups 1 }
+
+rbnDhcpThresholdNotifyGroup NOTIFICATION-GROUP
+	NOTIFICATIONS {
+		rbnDhcpIntfThresholdFallingThresholdMet,
+		rbnDhcpIntfThresholdRisingThresholdMet,
+		rbnDhcpCtxThresholdFallingThresholdMet,
+		rbnDhcpCtxThresholdRisingThresholdMet
+	}
+	STATUS	current
+	DESCRIPTION
+        	"The collection of notifications related to a DHCP range."
+	::= { rbnDhcpGroups 2 }
+
+rbnDhcpIntfThresholdGroup	OBJECT-GROUP
+	OBJECTS {
+		rbnDhcpIntfThresholdSize,
+		rbnDhcpIntfThresholdInuse,
+		rbnDhcpIntfThresholdAvailable,
+		rbnDhcpIntfThresholdFallingThreshold,
+		rbnDhcpIntfThresholdFallingSendTrap,
+		rbnDhcpIntfThresholdFallingLogMessage,
+		rbnDhcpIntfThresholdRisingThreshold,
+		rbnDhcpIntfThresholdRisingSendTrap,
+		rbnDhcpIntfThresholdRisingLogMessage
+	}
+	STATUS	current
+	DESCRIPTION
+		"The collection of objects providing DHCP range information."
+	::= { rbnDhcpGroups 3 }
+
+rbnDhcpCtxThresholdGroup	OBJECT-GROUP
+	OBJECTS {
+		rbnDhcpCtxThresholdName,
+		rbnDhcpCtxThresholdSize,
+		rbnDhcpCtxThresholdAvailable,
+		rbnDhcpCtxThresholdInuse,
+		rbnDhcpCtxThresholdFallingThreshold,
+		rbnDhcpCtxThresholdFallingSendTrap,
+		rbnDhcpCtxThresholdFallingLogMessage,
+		rbnDhcpCtxThresholdRisingThreshold,
+		rbnDhcpCtxThresholdRisingSendTrap,
+		rbnDhcpCtxThresholdRisingLogMessage
+	}
+	STATUS	current
+	DESCRIPTION
+		"The collection of objects providing DHCP range information."
+	::= { rbnDhcpGroups 4 }
+
+rbnDhcpRangeThresholdGroup	OBJECT-GROUP
+	OBJECTS {
+		rbnDhcpRangeThresholdEndAddr,
+		rbnDhcpRangeThresholdContextName,
+		rbnDhcpRangeThresholdInterfaceName,
+		rbnDhcpRangeThresholdSize,
+		rbnDhcpRangeThresholdInuse,
+		rbnDhcpRangeThresholdAvailable,
+		rbnDhcpRangeThresholdFallingThreshold,
+		rbnDhcpRangeThresholdFallingSendTrap,
+		rbnDhcpRangeThresholdFallingLogMessage,
+		rbnDhcpRangeThresholdRisingThreshold,
+		rbnDhcpRangeThresholdRisingSendTrap,
+		rbnDhcpRangeThresholdRisingLogMessage
+	}
+	STATUS	current
+	DESCRIPTION
+		"The collection of objects providing DHCP range information."
+	::= { rbnDhcpGroups 5 }
+
+rbnDhcpIntfThresholdNotifyGroup NOTIFICATION-GROUP
+	NOTIFICATIONS {
+		rbnDhcpIntfThresholdFallingThresholdMet,
+		rbnDhcpIntfThresholdRisingThresholdMet
+	}
+	STATUS	current
+	DESCRIPTION
+        	"The collection of notifications related to a DHCP range."
+	::= { rbnDhcpGroups 6 }
+
+rbnDhcpCtxThresholdNotifyGroup NOTIFICATION-GROUP
+	NOTIFICATIONS {
+		rbnDhcpCtxThresholdFallingThresholdMet,
+		rbnDhcpCtxThresholdRisingThresholdMet
+	}
+	STATUS	current
+	DESCRIPTION
+        	"The collection of notifications related to a DHCP range."
+	::= { rbnDhcpGroups 7 }
+
+rbnDhcpRangeThresholdNotifyGroup NOTIFICATION-GROUP
+	NOTIFICATIONS {
+		rbnDhcpRangeThresholdFallingThresholdMet,
+		rbnDhcpRangeThresholdRisingThresholdMet
+	}
+	STATUS	current
+	DESCRIPTION
+        	"The collection of notifications related to a DHCP range."
+	::= { rbnDhcpGroups 8 }
+
+rbnDhcpLeaseFileFailureTrapGroup OBJECT-GROUP
+        OBJECTS {
+                rbnDhcpLeaseFileStorageSlot,
+                rbnDhcpLeaseFileErrorType
+        }
+        STATUS  current
+        DESCRIPTION
+                "The collection of objects related to DHCP lease
+                file failures."
+        ::= { rbnDhcpGroups 9 }
+
+rbnDhcpLeaseFileFailureNotifyGroup NOTIFICATION-GROUP
+        NOTIFICATIONS {
+                rbnDhcpLeaseFileFailure
+        }
+        STATUS  current
+        DESCRIPTION
+                "The collection of notifications related to DHCP lease
+                file failures."
+        ::= { rbnDhcpGroups 10 }
+
+rbnDhcpThresholdCompliance MODULE-COMPLIANCE
+	STATUS       current
+	DESCRIPTION
+		"The compliance statement for threshold objects in this
+		DHCP MIB."
+	MODULE      -- this module
+	MANDATORY-GROUPS {
+		rbnDhcpThresholdGroup,
+		rbnDhcpThresholdNotifyGroup
+	}
+	::= { rbnDhcpCompliances 1 }
+
+rbnDhcpThresholdCompliance2 MODULE-COMPLIANCE
+	STATUS       deprecated 
+	DESCRIPTION
+		"The compliance statement for threshold objects in this
+		DHCP MIB."
+	MODULE      -- this module
+	MANDATORY-GROUPS {
+		rbnDhcpIntfThresholdGroup,
+		rbnDhcpCtxThresholdGroup,
+		rbnDhcpRangeThresholdGroup,
+		rbnDhcpIntfThresholdNotifyGroup,
+		rbnDhcpCtxThresholdNotifyGroup,
+		rbnDhcpRangeThresholdNotifyGroup
+	}
+	::= { rbnDhcpCompliances 2 }
+
+rbnDhcpThresholdCompliance3 MODULE-COMPLIANCE
+        STATUS       current
+        DESCRIPTION
+                "The compliance statement for threshold objects in this
+                DHCP MIB."
+        MODULE      -- this module
+        MANDATORY-GROUPS {
+                rbnDhcpIntfThresholdGroup,
+                rbnDhcpCtxThresholdGroup,
+                rbnDhcpRangeThresholdGroup,
+                rbnDhcpIntfThresholdNotifyGroup,
+                rbnDhcpCtxThresholdNotifyGroup,
+                rbnDhcpRangeThresholdNotifyGroup,
+                rbnDhcpLeaseFileFailureTrapGroup,
+                rbnDhcpLeaseFileFailureNotifyGroup
+        }
+        ::= { rbnDhcpCompliances 3 }
+
+END

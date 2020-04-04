@@ -1,0 +1,1869 @@
+-- %DNP% $Id: RBN-SUBSCRIBER-ACTIVE-MIB.my,v 1.1.2.14.130.6 2011/02/22 17:26:18 thatcher Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-SUBSCRIBER-ACTIVE-MIB.my,v $
+-- *****************************************************************
+-- RBN-SUBSCRIBER-ACTIVE-MIB    SUBSCRIBER MIB for active
+--                              subscribers
+--
+-- Copyright (c) 2003-2011, 2014, 2015, 2016, 2017 Ericsson AB.
+-- All rights reserved.
+--
+-- *****************************************************************
+
+RBN-SUBSCRIBER-ACTIVE-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY,
+    OBJECT-TYPE,
+    Gauge32,
+    Integer32,
+    Counter32,
+    Counter64,
+    Unsigned32,
+    zeroDotZero,
+    NOTIFICATION-TYPE
+            FROM SNMPv2-SMI
+
+    DateAndTime,
+    TruthValue,
+    TimeStamp,
+    RowPointer
+            FROM SNMPv2-TC
+
+    MODULE-COMPLIANCE,
+    OBJECT-GROUP,
+    NOTIFICATION-GROUP
+            FROM SNMPv2-CONF
+
+    SnmpAdminString
+            FROM SNMP-FRAMEWORK-MIB
+
+    vacmContextName
+            FROM SNMP-VIEW-BASED-ACM-MIB
+
+    InetAddressType,
+    InetAddress,
+    InetAddressPrefixLength
+            FROM INET-ADDRESS-MIB
+
+    RbnCircuitHandle,
+    RbnPortMediumType,
+    RbnPercentage,
+    RbnSubscriberState
+            FROM RBN-TC
+
+    rbnMgmt
+            FROM RBN-SMI;
+
+rbnSubscriberActiveMib MODULE-IDENTITY
+    LAST-UPDATED "201705120000Z" -- May 12, 2017
+    ORGANIZATION "Ericsson AB."
+    CONTACT-INFO
+        "   
+                Ericsson AB.
+                100 Headquarters Dr
+                San Jose, CA 95134
+                USA
+
+         Phone: +1 408 750 5000
+           Fax: +1 408 750 5599
+        "
+    DESCRIPTION
+        "Defines the objects necessary to support the management of
+        active subscribers.
+
+        All mib objects, except rbnSubsCntxtCountTable, defined in
+        the module are viewed within the context identified in the
+        SNMP protocol (i.e. the community string in v1/v2c or the
+        contextName in v3).
+        "
+
+    REVISION      "201705120000Z" -- May 12, 2017
+    DESCRIPTION
+        "Added rbnSubsActiveSessionNx entry to rbnSubsActiveTable
+         Added rbnSubsActiveAddrInt entry to rbnSubsActiveIpTable"
+
+    REVISION      "201601040000Z" -- Nov 01, 2015
+    DESCRIPTION
+        " Modified below attribute names of table rbnSubsServiceVolumeTable
+          for better readability.
+          rbnSubsServiceIPv4VolumeOctetsIn  --> rbnSubsIPv4ServiceVolumeOctetsIn
+          rbnSubsServiceIPv4VolumeOctetsOut --> rbnSubsIPv4ServiceVolumeOctetsOut
+          rbnSubsServiceIPv4VolumePktsIn    --> rbnSubsIPv4ServiceVolumePktsIn
+          rbnSubsServiceIPv4VolumePktsOut   --> rbnSubsIPv4ServiceVolumePktsOut
+          rbnSubsServiceIPv6VolumeOctetsIn  --> rbnSubsIPv6ServiceVolumeOctetsIn
+          rbnSubsServiceIPv6VolumeOctetsOut --> rbnSubsIPv6ServiceVolumeOctetsOut
+          rbnSubsServiceIPv6VolumePktsIn    --> rbnSubsIPv6ServiceVolumePktsIn
+          rbnSubsServiceIPv6VolumePktsOut   --> rbnSubsIPv6ServiceVolumePktsOut
+        "
+
+
+    REVISION      "201407191800Z" -- July 19, 2014
+    DESCRIPTION
+        "Add rbnSubsActiveState to rbnSubsActiveEntry."
+ 
+    REVISION      "201302270000Z" -- Feb 27, 2013
+    DESCRIPTION
+        " Changed the following not-accessible objects to read-only
+              rbnSubsActiveIpAddrType
+              rbnSubsActiveIpAddr
+              rbnSubsActiveIpPfxLen" 
+ 
+
+    REVISION      "201101191800Z" -- Jan 19, 2011
+    DESCRIPTION
+        "Update CONTACT-INFO & ORGANIZATION. "
+
+    REVISION      "201002080000Z" -- Feb 8, 2010
+    DESCRIPTION
+        "Add rbnSubsIPv4OctetsSent,
+              rbnSubsIPv4OctetsReceived,    
+              rbnSubsIPv6OctetsSent,      
+              rbnSubsIPv6OctetsReceived, 
+              rbnSubsIPv4PktsSent,              
+              rbnSubsIPv4PktsReceived,         
+              rbnSubsIPv6PktsSent,            
+              rbnSubsIPv6PktsReceived,       
+              rbnSubsIPv4McastOctetsSent,   
+              rbnSubsIPv4McastOctetsReceived, 
+              rbnSubsIPv6McastOctetsSent,   
+              rbnSubsIPv6McastOctetsReceived,
+              rbnSubsIPv4McastPktsSent,
+              rbnSubsIPv4McastPktsReceived,
+              rbnSubsIPv6McastPktsSent,
+              rbnSubsIPv6McastPktsReceived to RbnSubsStatsEntry table
+              rbnSubsServiceIPv4VolumeOctetsIn,
+              rbnSubsServiceIPv4VolumeOctetsOut,
+              rbnSubsServiceIPv6VolumeOctetsIn,
+              rbnSubsServiceIPv6VolumeOctetsOut,
+              rbnSubsServiceIPv4VolumePktsIn,
+              rbnSubsServiceIPv4VolumePktsOut,
+              rbnSubsServiceIPv6VolumePktsIn,
+              rbnSubsServiceIPv6VolumePktsOut to RbnSubsServiceVolumeEntry table"
+
+
+    REVISION      "201002010000Z" -- Feb 1, 2010
+    DESCRIPTION
+        "Add rbnSubsActiveSessionTable,
+             rbnSubsActiveIpAddrTable
+
+         Update ORGANIZATION/CONTACT-INFO. "
+
+
+    REVISION      "200901191800Z" -- Jan 19, 2009
+    DESCRIPTION
+        "Add rbnSubsActiveResendSvcAcct to rbnSubsActiveEntry."
+
+    REVISION      "200812031800Z" -- Dec 3, 2008
+    DESCRIPTION
+        "Add rbnSubsMaxSupportedSessions, rbnSubsLicensedSessions,
+        rbnSubsActiveSessions, and rbnSubsCapacityPercentageUsed. 
+        Defined rbnSubsCompliance5 and rbnSubsLicenseGroup
+        for compliance.
+
+        Deprecated rbnSubsCompliance4 and obsoleted rbnSubsCompliance3."
+
+    REVISION      "200705241800Z" -- May 24, 2007
+    DESCRIPTION
+        "Add rbnSubsConfigErrorEvent notification along with the associated
+        objects.  Defined rbnSubsNotifyObjectGroup and rbnSubsNotifyGroup
+        for compliance."
+
+    REVISION      "200705091800Z" -- May 9, 2007
+    DESCRIPTION
+        "Add rbnSubsServiceVolumeTable and rbnSubsServicesTable along with
+        associated objects.  Defined rbnSubsCompliance4 and
+        rbnSubsServicesGroup for compliance.
+        
+        Deprecated rbnSubsCompliance3 and obsoleted rbnSubsCompliance2."
+
+    REVISION      "200406281800Z" -- June 28, 2004
+    DESCRIPTION
+        "Add rbnSubsActiveNasPortType and rbnSubsActiveMediumType to
+         RbnSubsActiveEntry. Update conformance objects appropriately."
+
+    REVISION      "200402021800Z" -- February 2, 2004
+    DESCRIPTION
+        "Add objects rbnSubsReauthName and rbnSubsReauthSessionId. These
+        objects supercede the objects defined in the RBN-SUBSCRIBER-REAUTH-MIB."
+
+    REVISION      "200311011800Z" -- Nov 1, 2003
+    DESCRIPTION
+        "Add rbnSubsActiveResend to rbnSubsActiveEntry.
+         Add rbnSubsProfileCountTable with objects rbnSubsProfileName and
+         rbnSubsProfileCount. Updated compliance and groups to reflect
+         new objects."
+
+    REVISION      "200306260000Z" -- June 26, 2003
+    DESCRIPTION
+        "Initial version."
+    ::= { rbnMgmt 27 }
+
+rbnSubsActiveObjects       OBJECT IDENTIFIER ::= { rbnSubscriberActiveMib 1 }
+
+rbnSubsActiveConformance   OBJECT IDENTIFIER ::= { rbnSubscriberActiveMib 2 }
+
+rbnSubsActiveNotifications OBJECT IDENTIFIER ::= { rbnSubscriberActiveMib 3 }
+
+--
+-- Textual Conventions
+--
+
+--
+-- some structure for the mib objects
+--
+rbnSubsActive         OBJECT IDENTIFIER ::= { rbnSubsActiveObjects 1 }
+rbnSubsStats          OBJECT IDENTIFIER ::= { rbnSubsActiveObjects 2 }
+rbnSubsNotify         OBJECT IDENTIFIER ::= { rbnSubsActiveObjects 3 }
+
+--
+-- ACTIVE Subscribers
+--
+rbnSubsActiveTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnSubsActiveEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table contains subscriber sessions which have been
+        authenticated on an circuit."
+    ::= { rbnSubsActive 1 }
+
+rbnSubsActiveEntry OBJECT-TYPE
+    SYNTAX      RbnSubsActiveEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the rbnSubsActiveTable."
+    INDEX { rbnSubsActiveName, rbnSubsActiveSessionId }
+    ::= { rbnSubsActiveTable 1 }
+
+RbnSubsActiveEntry ::= SEQUENCE {
+    rbnSubsActiveName                   SnmpAdminString,
+    rbnSubsActiveSessionId              SnmpAdminString,
+    rbnSubsActiveCircuitDescr           SnmpAdminString,
+    rbnSubsActiveCircuitHandle          RbnCircuitHandle,
+    rbnSubsActiveStartTime              DateAndTime,
+    rbnSubsActiveClear                  TruthValue,
+    rbnSubsActiveResend                 TruthValue,
+    rbnSubsActiveNasPortType            Unsigned32,
+    rbnSubsActiveMediumType             RbnPortMediumType,
+    rbnSubsActiveResendSvcAcct          TruthValue,
+    rbnSubsActiveState                  RbnSubscriberState,
+    rbnSubsActiveSessionNx              SnmpAdminString
+}
+
+rbnSubsActiveName OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE (1..80))
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The name identifying this entry.  An entry configured
+        by other means may have been given a name whose length is
+        greater than 80.  Names which exceed this length
+        are not accessible via SNMP operations."
+    ::= { rbnSubsActiveEntry 1 }
+
+rbnSubsActiveSessionId OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE (1..32))
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A value that uniquely identifies an active subscriber
+        session. If RADIUS is being used to configure/authenticate
+        subscribers, this value will appear in the RADIUS
+        Acct-Session-Id attribute."
+    REFERENCE   "Rigney, C., RADIUS Accounting, RFC 2866, June 2000"
+    ::= { rbnSubsActiveEntry 2 }
+
+rbnSubsActiveCircuitDescr OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE (1..64))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "A string which provides identifying information (e.g
+        slot/port) of the circuit the subscriber is using."
+    ::= { rbnSubsActiveEntry 3}
+
+rbnSubsActiveCircuitHandle OBJECT-TYPE
+    SYNTAX      RbnCircuitHandle
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "A value for identifying circuits."
+    ::= { rbnSubsActiveEntry 4 }
+
+rbnSubsActiveStartTime OBJECT-TYPE
+    SYNTAX      DateAndTime
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The time when the subscriber became active."
+    ::= { rbnSubsActiveEntry 5 }
+
+rbnSubsActiveClear OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Setting this value to 'true' will clear the active
+        subscriber session. In the case of PPP, the PPP state
+        machinery attempts to renegotiate and re-authenticate a new
+        session with the remote peer on the circuit. In the case of
+        RFC 1483 encapsulated circuits the session is brought down
+        and then back up and an attempt is made to re-authenticate
+        the subscriber.
+
+        An SNMP get operation always returns 'false'"
+    ::= { rbnSubsActiveEntry 6 }
+
+rbnSubsActiveResend OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Setting this value to 'true' will cause a resend of the
+        Radius acct-start packet.
+
+        An SNMP get operation always returns 'false'"
+    ::= { rbnSubsActiveEntry 7 }
+
+rbnSubsActiveNasPortType OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The RADIUS attribute NAS-Port-Type which indicates the type of the
+         physical port which is authenticating the user."
+    REFERENCE "Rigney, C., Rubens, A., Simpson, W., and Willens, S., Remote
+         Authentication Dial In User Service (RADIUS), RFC 2865, June 2000"
+    ::= { rbnSubsActiveEntry 8 }
+
+rbnSubsActiveMediumType OBJECT-TYPE
+    SYNTAX      RbnPortMediumType
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The medium type of the NAS-Port."
+    ::= { rbnSubsActiveEntry 9 }
+
+rbnSubsActiveResendSvcAcct OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Setting this value to 'true' will cause a resend of the
+        Radius acct-start packet for all services associated with
+        the active subscriber session.
+
+        An SNMP get operation always returns 'false'"
+    ::= { rbnSubsActiveEntry 10 }
+
+rbnSubsActiveState OBJECT-TYPE
+    SYNTAX      RbnSubscriberState 
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "State of subscriber session." 
+
+    ::= { rbnSubsActiveEntry 11 }
+
+rbnSubsActiveSessionNx OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE (1..32))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This object returns the same value as rbnSubsActiveSessionId,
+         Only difference is it's accessible object."
+    ::= { rbnSubsActiveEntry 12 }
+
+--
+-- Active IP Addresses
+--
+rbnSubsActiveIpTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnSubsActiveIpEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table contains IP addresses used by active subscribers."
+    ::= { rbnSubsActive 2 }
+
+rbnSubsActiveIpEntry OBJECT-TYPE
+    SYNTAX      RbnSubsActiveIpEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the rbnSubsActiveIpTable."
+    INDEX { rbnSubsActiveName,
+            rbnSubsActiveSessionId,
+            rbnSubsActiveAddrType,
+            rbnSubsActiveAddr }
+    ::= { rbnSubsActiveIpTable 1 }
+
+RbnSubsActiveIpEntry ::= SEQUENCE {
+    rbnSubsActiveAddrType     InetAddressType,
+    rbnSubsActiveAddr         InetAddress,
+    rbnSubsActiveAddrInt      Unsigned32
+}
+
+rbnSubsActiveAddrType OBJECT-TYPE
+    SYNTAX      InetAddressType
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The address type of rbnSubsActiveAddr. "
+    ::= { rbnSubsActiveIpEntry 1 }
+
+rbnSubsActiveAddr OBJECT-TYPE
+    SYNTAX      InetAddress (SIZE(4 | 16 | 20))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The host IP address of the active subscriber."
+    ::= { rbnSubsActiveIpEntry 2 }
+
+rbnSubsActiveAddrInt OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The host IP address of the active subscriber.
+         The value of this object is limited to the IPv4 address.
+         Hence, mustbe used only when rbnSubsActiveIpAddrType
+         is of type v4."
+    ::= { rbnSubsActiveIpEntry 3 }
+
+--
+-- Subscriber Session List
+--
+rbnSubsActiveSessionTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnSubsActiveSessionEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table contains active subscriber sessions which have been
+        authenticated on an circuit."
+    ::= { rbnSubsActive 6 }
+
+rbnSubsActiveSessionEntry OBJECT-TYPE
+    SYNTAX      RbnSubsActiveSessionEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the rbnSubsActiveSessionTable."
+    INDEX { rbnSubsActiveSessionId }
+    ::= { rbnSubsActiveSessionTable 1 }
+
+RbnSubsActiveSessionEntry ::= SEQUENCE {
+    rbnSubsActiveSessionSubscriberName         SnmpAdminString,
+    rbnSubsActiveSessionPointer                RowPointer
+}
+
+rbnSubsActiveSessionSubscriberName OBJECT-TYPE
+    SYNTAX      SnmpAdminString(SIZE (1..256))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The subscriber name associated with this session."
+    ::= { rbnSubsActiveSessionEntry 1 }
+
+rbnSubsActiveSessionPointer OBJECT-TYPE
+    SYNTAX      RowPointer
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "A pointer to the row in rbnSubsActiveTable to which this session
+        belongs. May be {0 0} if there is no such row."
+    DEFVAL { zeroDotZero }
+    ::= { rbnSubsActiveSessionEntry 2 }
+
+--
+-- Active IPv4/v6 Addresses
+--
+
+rbnSubsActiveIpAddrTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnSubsActiveIpAddrEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table contains IPv4/IPv6 addresses used by active
+         subscriber sessions.  "
+    ::= { rbnSubsActive 7 }
+
+rbnSubsActiveIpAddrEntry OBJECT-TYPE
+    SYNTAX      RbnSubsActiveIpAddrEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the rbnSubsActiveIpAddrTable."
+    INDEX { rbnSubsActiveSessionId,
+            rbnSubsActiveIpAddrType,
+            rbnSubsActiveIpAddr,
+            rbnSubsActiveIpPfxLen }
+    ::= { rbnSubsActiveIpAddrTable 1 }
+
+RbnSubsActiveIpAddrEntry ::= SEQUENCE {
+    rbnSubsActiveIpAddrType     InetAddressType,
+    rbnSubsActiveIpAddr         InetAddress,
+    rbnSubsActiveIpPfxLen       InetAddressPrefixLength,
+    rbnSubsActiveIpAddrDescr    SnmpAdminString
+}
+
+rbnSubsActiveIpAddrType OBJECT-TYPE
+    SYNTAX      InetAddressType
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The address type of rbnSubsActiveIpAddr."
+    ::= { rbnSubsActiveIpAddrEntry 1 }
+
+rbnSubsActiveIpAddr OBJECT-TYPE
+    SYNTAX      InetAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The address prefix.  The address type of this object is specified 
+         in rbnSubsActiveIpAddrType.  The length of this object is the 
+         standard length for objects of that type (4 or 16 bytes).  
+         Any bits after rbnSubsActiveIpPfxLen must be zero. "
+    REFERENCE "[RFC4291] IP Version 6 Addressing Architectur
+               [RFC4632] Classless Inter-domain Routing (CIDR):
+               The Internet Address Assignment and Aggregation Plan"
+    ::= { rbnSubsActiveIpAddrEntry 2 }
+
+rbnSubsActiveIpPfxLen OBJECT-TYPE
+    SYNTAX      InetAddressPrefixLength
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The prefix length associated with this prefix. For IPv4 active
+         subscriber session, the prefix length is always 32."
+    ::= { rbnSubsActiveIpAddrEntry 3 }
+
+rbnSubsActiveIpAddrDescr OBJECT-TYPE
+    SYNTAX      SnmpAdminString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Human readable textual format of IP address. "
+    REFERENCE "[RFC4291] 2.2. Text Representation of Addresses"
+    ::= { rbnSubsActiveIpAddrEntry 4 }
+
+--
+-- set of clear objects to clear by subscriber name
+-- RADIUS acct-session-id, or by ip address.
+--
+rbnSubsClear  OBJECT IDENTIFIER ::= { rbnSubsActive 3 }
+
+rbnSubsClearSubscriberName OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE (0..80))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Setting this object to the subscriber name will clear all
+        the sessions associated with the subscriber.
+
+        In the case of PPP circuit, the PPP state machinery attempts
+        to renegotiate and re-authenticate a new session with the
+        remote peer on the circuit. In the case of RFC 1483 and RFC
+        1490 encapsulated circuits the circuit is brought down and
+        then back up and an attempt is made to re-authenticate the
+        subscriber bound to the circuit.
+
+        This object returns a zero-length string when queried.
+        "
+    DEFVAL { "" }
+    ::= { rbnSubsClear 1}
+
+--
+-- object to clear subscriber using the RADIUS attribute
+-- acct-session-id
+--
+rbnSubsClearSessionId OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE (0..32))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "A set of this object will clear the subscriber
+        session identified by this value.
+
+        In the case of PPP circuit, the PPP state machinery attempts
+        to renegotiate and re-authenticate a new session with the
+        remote peer on the circuit. In the case of RFC 1483 and RFC
+        1490 encapsulated circuits the circuit is brought down and
+        then back up and an attempt is made to re-authenticate the
+        subscriber bound to the circuit.
+
+        This object returns a zero-length string when queried.
+        "
+    ::= { rbnSubsClear 2 }
+
+-- BOUNCE objects
+--
+rbnSubsBounceName OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE(0..80))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Each circuit using CLIPS encapsulation used by the named subscriber
+        is brought down and immediately recreated using the RADIUS Access-
+        Accept attributes. Any other circuit encapsulation type is cleared.
+
+        This object returns a zero-length string when queried."
+    ::= { rbnSubsClear 3}
+
+rbnSubsBounceSessionId OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE(0..32))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The circuit using CLIPS encapsulation identified by the RADIUS
+        Acct-Session-Id is brought down and immediately recreated using the
+        RADIUS Access-Accept attributes. Any other circuit encapsulation
+        type is cleared.
+
+        This object returns a zero-length string when queried."
+    ::= { rbnSubsClear 4 }
+
+--
+-- REAUTH objects
+--
+rbnSubsReauthRadiusIndex OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "An unsigned integer identifying a set of subscribers
+        defined at the RADIUS server which are to be re-authorized.
+        The source of this value and the set of subscribers to be
+        re-authorized are defined outside the context of this mib module.
+
+        An get of this attribute returns 0."
+    ::= { rbnSubsClear 5}
+
+rbnSubsReauthRadiusID OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(0..240))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "An octet string identifying a set of subscribers
+        defined at the RADIUS server which are to be re-authorized.
+        The source of this value and the set of subscribers to be
+        re-authorized are defined outside the context of this mib module.
+
+        This object returns a zero-length string when queried."
+    ::= { rbnSubsClear 6}
+
+rbnSubsReauthName OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE(0..80))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Used to reauthorize all of the active sessions associated
+        with the given subscriber in the context identified in the
+        SNMP protocol (i.e. the community string in v1/v2c or the
+        contextName in v3).
+
+        This object returns a zero-length string when queried.
+        "
+    ::= { rbnSubsClear 7 }
+
+rbnSubsReauthSessionId OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE(0..32))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Used to reauthorize the active session identified by the
+        value of this object and the context identified in the
+        SNMP protocol (i.e. the community string in v1/v2c or the
+        contextName in v3).
+
+        This object returns a zero-length string when queried.
+        "
+    ::= { rbnSubsClear 8 }
+
+rbnSubsClearReason OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "An unsigned integer value which may be included in the set request
+         for rbnSubsClearSubscriberName, rbnSubsClearSessionId,
+         rbnSubsBounceName, rbnSubsBounceSessionId, or any other objects
+         define under the rbnSubsClear OID node. The use of this object value
+         is implementation dependent.
+
+         This object returns 0 when queried."
+    ::= { rbnSubsClear 9 }
+
+--
+--Subscriber Statistics
+--
+rbnSubsCntxtCountTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnSubsCntxtCountEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table contains counts of active subscribers by context
+        name.  Unlike any of the other tables in this mib module, all
+        rows in this table are accessible when the context 'local' is
+        specified in the snmp message, unless restricted by entries in
+        the vacmAccessTable. Snmp requests using other contexts shall
+        return only the row which matches the context."
+    ::= { rbnSubsStats 1 }
+
+rbnSubsCntxtCountEntry OBJECT-TYPE
+    SYNTAX      RbnSubsCntxtCountEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The conceptual row containing the count of active subscribers
+        for each context."
+    INDEX { vacmContextName }
+    ::= { rbnSubsCntxtCountTable 1 }
+
+RbnSubsCntxtCountEntry::= SEQUENCE {
+    rbnSubsCntxtCount      Gauge32,
+    rbnSubsCntxtIp4OnlyCount  Gauge32,
+    rbnSubsCntxtIp6OnlyCount  Gauge32,
+    rbnSubsCntxtDualCount   Gauge32,
+    rbnSubsCntxtLacCount    Gauge32
+}
+
+rbnSubsCntxtCount OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The count of active subscribers with either IPv4 or IPv6 or both 
+         stack UP."
+    ::= { rbnSubsCntxtCountEntry 1 }
+
+rbnSubsCntxtIp4OnlyCount OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The count of IPv4 active subscribers which are authorized for only
+        IPv4 protocol stack. 
+		
+		This counter does not include subscribers authorized
+        for dual IPv4/IPv6 protocol stack. "
+    ::= { rbnSubsCntxtCountEntry 2 }
+
+rbnSubsCntxtIp6OnlyCount OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The count of IPv6 active subscribers which are authorized for only
+        IPv6 protocol stack. 
+		
+		This counter does not include subscribers authorized
+        for dual IPv4/IPv6 protocol stack. "
+    ::= { rbnSubsCntxtCountEntry 3 }
+
+rbnSubsCntxtDualCount OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The count of active subscribers which are authorized for both 
+         IPv4 and IPv6 for the context. At any time either one or both stacks 
+         may be UP. "
+    ::= { rbnSubsCntxtCountEntry 4 }
+
+rbnSubsCntxtLacCount OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The count of active LAC subscribers."
+    ::= { rbnSubsCntxtCountEntry 5 }
+
+--
+-- Subscriber counts by encapsulation type
+--
+rbnSubsEncapsCountTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnSubsEncapsCountEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table contains counts of active subscribers by
+        encapsulation type."
+    ::= { rbnSubsStats 2 }
+
+rbnSubsEncapsCountEntry OBJECT-TYPE
+    SYNTAX      RbnSubsEncapsCountEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the rbnSubsEncapsCountTable. "
+    INDEX { rbnSubsEncapsulationType }
+    ::= { rbnSubsEncapsCountTable 1 }
+
+RbnSubsEncapsCountEntry ::= SEQUENCE {
+    rbnSubsEncapsulationType  INTEGER,
+    rbnSubsEncapsCount        Gauge32
+}
+
+rbnSubsEncapsulationType OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    ppp(1),
+                    pppoe(2),
+                    bridged1483(3),
+                    routed1483(4),
+                    multi1483(5),
+                    dot1q1483(6),
+                    dot1qEnet(7),
+                    bridged1490(8),
+                    routed1490(9),
+                    multi1490(10),
+                    dot1q1490(11),
+                    clips(12),
+                    other(255)
+                }
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This object identifies the type of encapsulation the
+        subscriber is using.  Note that 'ppp' includes all types of
+        supported ppp, excluding pppoe."
+    ::= { rbnSubsEncapsCountEntry 1 }
+
+rbnSubsEncapsCount OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "subscribers"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The count of active subscribers for the encapsulation type."
+    ::= { rbnSubsEncapsCountEntry 2 }
+
+--
+-- Statistics
+--
+rbnSubsStatsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnSubsStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table contains counters for individual circuits."
+    ::= { rbnSubsStats 3 }
+
+rbnSubsStatsEntry OBJECT-TYPE
+    SYNTAX      RbnSubsStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the rbnSubsStatsTable."
+    INDEX { rbnSubsActiveName, rbnSubsActiveSessionId }
+    ::= { rbnSubsStatsTable 1 }
+
+RbnSubsStatsEntry ::= SEQUENCE {
+    rbnSubsOctetsSent            Counter64,
+    rbnSubsOctetsReceived        Counter64,
+    rbnSubsPktsSent              Counter64,
+    rbnSubsPktsReceived          Counter64,
+    rbnSubsXmitOctetsDropped     Counter32,
+    rbnSubsXmitPktsDropped       Counter32,
+    rbnSubsMcastOctetsSent       Counter64,
+    rbnSubsMcastOctetsReceived   Counter64,
+    rbnSubsMcastPktsSent         Counter64,
+    rbnSubsMcastPktsReceived     Counter64,
+    rbnSubsIPv4OctetsSent            Counter64,
+    rbnSubsIPv4OctetsReceived        Counter64,
+    rbnSubsIPv6OctetsSent            Counter64,
+    rbnSubsIPv6OctetsReceived        Counter64,
+    rbnSubsIPv4PktsSent              Counter64,
+    rbnSubsIPv4PktsReceived          Counter64,
+    rbnSubsIPv6PktsSent              Counter64,
+    rbnSubsIPv6PktsReceived          Counter64,
+    rbnSubsIPv4McastOctetsSent       Counter64,
+    rbnSubsIPv4McastOctetsReceived   Counter64,
+    rbnSubsIPv6McastOctetsSent       Counter64,
+    rbnSubsIPv6McastOctetsReceived   Counter64,
+    rbnSubsIPv4McastPktsSent         Counter64,
+    rbnSubsIPv4McastPktsReceived     Counter64,
+    rbnSubsIPv6McastPktsSent         Counter64,
+    rbnSubsIPv6McastPktsReceived     Counter64
+
+}
+
+rbnSubsOctetsSent OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of octets sent by the circuit. This counter includes
+        multicast activity."
+    ::= { rbnSubsStatsEntry 1 }
+
+rbnSubsOctetsReceived OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of octets received by the circuit. This counter includes
+        multicast activity."
+    ::= { rbnSubsStatsEntry 2 }
+
+rbnSubsPktsSent OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of packets sent by the circuit. This counter
+        includes multicast activity."
+    ::= { rbnSubsStatsEntry 3 }
+
+rbnSubsPktsReceived OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of packets received by the circuit. This counter
+        includes multicast activity."
+    ::= { rbnSubsStatsEntry 4 }
+
+rbnSubsXmitOctetsDropped OBJECT-TYPE
+    SYNTAX      Counter32
+    UNITS       "octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of octets dropped by the circuit before
+        transmission."
+    ::= { rbnSubsStatsEntry 5 }
+
+rbnSubsXmitPktsDropped OBJECT-TYPE
+    SYNTAX      Counter32
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of packets dropped by the circuit before
+        transmission."
+    ::= { rbnSubsStatsEntry 6 }
+
+rbnSubsMcastOctetsSent OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of multicast octets sent by the circuit."
+    ::= { rbnSubsStatsEntry 7 }
+
+rbnSubsMcastOctetsReceived OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of multicast octets received by the circuit."
+    ::= { rbnSubsStatsEntry 8 }
+
+rbnSubsMcastPktsSent OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of multicast packets sent by the circuit."
+    ::= { rbnSubsStatsEntry 9 }
+
+rbnSubsMcastPktsReceived OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of multicast packets received by the circuit."
+    ::= { rbnSubsStatsEntry 10 }
+
+rbnSubsIPv4OctetsSent OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of IPv4 octets sent by the circuit. This counter includes
+        multicast activity."
+    ::= { rbnSubsStatsEntry 11 }
+
+rbnSubsIPv4OctetsReceived OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of IPv4 octets received by the circuit. This counter includes
+        multicast activity."
+    ::= { rbnSubsStatsEntry 12 }
+
+rbnSubsIPv6OctetsSent OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of IPv6 octets sent by the circuit. This counter includes
+        multicast activity."
+    ::= { rbnSubsStatsEntry 13 }
+
+rbnSubsIPv6OctetsReceived OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of IPv6 octets received by the circuit. This counter includes
+        multicast activity."
+    ::= { rbnSubsStatsEntry 14 }
+
+rbnSubsIPv4PktsSent OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of IPv4 packets sent by the circuit. This counter
+        includes multicast activity."
+    ::= { rbnSubsStatsEntry 15 }
+
+rbnSubsIPv4PktsReceived OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of IPv4 packets received by the circuit. This counter
+        includes multicast activity."
+    ::= { rbnSubsStatsEntry 16 }
+
+rbnSubsIPv6PktsSent OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of IPv6 packets sent by the circuit. This counter
+        includes multicast activity."
+    ::= { rbnSubsStatsEntry 17 }
+
+rbnSubsIPv6PktsReceived OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of IPv6 packets received by the circuit. This counter
+        includes multicast activity."
+    ::= { rbnSubsStatsEntry 18 }
+
+rbnSubsIPv4McastOctetsSent OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of IPv4 multicast octets sent by the circuit."
+    ::= { rbnSubsStatsEntry 19 }
+
+rbnSubsIPv4McastOctetsReceived OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of IPv4 multicast octets received by the circuit."
+    ::= { rbnSubsStatsEntry 20 }
+
+rbnSubsIPv6McastOctetsSent OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of IPv6 multicast octets sent by the circuit."
+    ::= { rbnSubsStatsEntry 21 }
+
+rbnSubsIPv6McastOctetsReceived OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of IPv6 multicast octets received by the circuit."
+    ::= { rbnSubsStatsEntry 22 }
+
+
+rbnSubsIPv4McastPktsSent OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of IPv4 multicast packets sent by the circuit."
+    ::= { rbnSubsStatsEntry 23 }
+
+rbnSubsIPv4McastPktsReceived OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of IPv4 multicast packets received by the circuit."
+    ::= { rbnSubsStatsEntry 24 }
+
+rbnSubsIPv6McastPktsSent OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of IPv6 multicast packets sent by the circuit."
+    ::= { rbnSubsStatsEntry 25 }
+
+rbnSubsIPv6McastPktsReceived OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of IPv6 multicast packets received by the circuit."
+    ::= { rbnSubsStatsEntry 26 }
+
+
+
+--
+-- Subscriber counts by profile name
+--
+rbnSubsProfileCountTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnSubsProfileCountEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table contains counts of active subscribers by
+        encapsulation type."
+    ::= { rbnSubsStats 4 }
+
+rbnSubsProfileCountEntry OBJECT-TYPE
+    SYNTAX      RbnSubsProfileCountEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the rbnSubsProfileCountTable. "
+    INDEX { IMPLIED rbnSubsProfileName }
+    ::= { rbnSubsProfileCountTable 1 }
+
+RbnSubsProfileCountEntry ::= SEQUENCE {
+    rbnSubsProfileName        SnmpAdminString,
+    rbnSubsProfileCount       Gauge32
+}
+
+rbnSubsProfileName OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE (1..80))
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The profile name which applies to a set of subscribers."
+    ::= { rbnSubsProfileCountEntry 1 }
+
+rbnSubsProfileCount OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "subscribers"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The count of active subscribers for the profile name."
+    ::= { rbnSubsProfileCountEntry 2 }
+
+--
+-- Subscriber software license
+--
+rbnSubsLicense OBJECT IDENTIFIER ::= { rbnSubsStats 5 }
+
+rbnSubsMaxSupportedSessions OBJECT-TYPE
+   SYNTAX      Gauge32
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+        "The maximum number of active subscriber sessions that
+        are supported on the SmartEdge router."
+   ::= { rbnSubsLicense 1 }
+
+rbnSubsLicensedSessions OBJECT-TYPE
+   SYNTAX      Gauge32
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+        "The number of licensed subscriber sessions on the 
+        SmartEdge router."
+   ::= { rbnSubsLicense 2 }
+
+rbnSubsActiveSessions OBJECT-TYPE
+   SYNTAX      Gauge32
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+        "The number of active subscriber sessions on the SmartEdge
+        router."
+   ::= { rbnSubsLicense 3 }
+
+rbnSubsCapacityPercentageUsed OBJECT-TYPE
+   SYNTAX      RbnPercentage 
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+        "The percentage of licensed subscriber sessions in use 
+        on the SmartEdge router. This value is computed as: 
+
+        if rbnSubsLicensedSessions equals 0 then 
+            if rbnSubsActiveSessions equals 0 then 0 else 100    
+        else 
+            MIN((rbnSubsActiveSessions * 100)/rbnSubsLicensedSessions), 100)."
+   ::= { rbnSubsLicense 4 }
+
+--
+-- Services Volume Limits
+--
+rbnSubsServiceVolumeTable    OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnSubsServiceVolumeEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table specifies service volume information on
+         the subscriber circuits.  It contains the volume octet
+         counts for each active subscriber session for which the
+         service is active.
+
+         All MIB objects defined in the table are viewed within the
+         context identified in the SNMP protocol (i.e. the community
+         string in v1/v2c or the contextName in v3)."
+    ::= { rbnSubsActive 4 }
+
+rbnSubsServiceVolumeEntry OBJECT-TYPE
+    SYNTAX      RbnSubsServiceVolumeEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the RbnSubsServiceVolumeTable. Each
+         row contains the service volume limit and volume octet count 
+         for each active service session."
+    INDEX { rbnSubsActiveName,
+            rbnSubsActiveSessionId,
+            rbnSubsServiceIndex }
+    ::= { rbnSubsServiceVolumeTable 1 }
+
+RbnSubsServiceVolumeEntry ::= SEQUENCE {
+    rbnSubsServiceVolumeLimitIn         Unsigned32,
+    rbnSubsServiceVolumeLimitOut        Unsigned32,
+    rbnSubsServiceActiveTime            TimeStamp,
+    rbnSubsServiceVolumeOctetsIn        Counter64,
+    rbnSubsServiceVolumeOctetsOut       Counter64,
+    rbnSubsServiceVolumePktsIn          Counter64,
+    rbnSubsServiceVolumePktsOut         Counter64,
+    rbnSubsIPv4ServiceVolumeOctetsIn    Counter64,
+    rbnSubsIPv4ServiceVolumeOctetsOut   Counter64,
+    rbnSubsIPv4ServiceVolumePktsIn      Counter64,
+    rbnSubsIPv4ServiceVolumePktsOut     Counter64,
+    rbnSubsIPv6ServiceVolumeOctetsIn    Counter64,
+    rbnSubsIPv6ServiceVolumeOctetsOut   Counter64,
+    rbnSubsIPv6ServiceVolumePktsIn      Counter64,
+    rbnSubsIPv6ServiceVolumePktsOut     Counter64
+
+}
+    
+rbnSubsServiceVolumeLimitIn   OBJECT-TYPE
+    SYNTAX      Unsigned32
+    UNITS       "KiloBytes"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The volume limit in kilobytes (KB) allowed for the subscriber
+        service to input (or receive) for this subscriber. If
+        the value is 0, then there is no limit."
+    ::= { rbnSubsServiceVolumeEntry 1 }
+    
+rbnSubsServiceVolumeLimitOut OBJECT-TYPE
+    SYNTAX      Unsigned32
+    UNITS       "KiloBytes"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The volume limit in kilobytes (KB) allowed for the subscriber
+        service to output (or transmit) for this subscriber. If
+        the value is 0, then there is no limit."
+    ::= { rbnSubsServiceVolumeEntry 2 }
+    
+rbnSubsServiceActiveTime  OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value of sysUpTime when the service became active for this
+        subscriber. 
+        
+        If sysUpTime is reset to zero as a result of a reinitialization
+        of the network management (sub)system, then the values of all
+        TimeStamp objects are also reset."
+    ::= { rbnSubsServiceVolumeEntry 3 }
+
+rbnSubsServiceVolumeOctetsIn  OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "Octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The subscriber session volume octets in count. "
+    ::= { rbnSubsServiceVolumeEntry 4 }
+    
+rbnSubsServiceVolumeOctetsOut  OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "Octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The subscriber session volume octets out count."
+    ::= { rbnSubsServiceVolumeEntry 5 }
+
+rbnSubsServiceVolumePktsIn  OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The subscriber session volume packet in count. "
+    ::= { rbnSubsServiceVolumeEntry 6 }
+
+rbnSubsServiceVolumePktsOut  OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The subscriber session volume packet out count. "
+    ::= { rbnSubsServiceVolumeEntry 7 }
+
+rbnSubsIPv4ServiceVolumeOctetsIn  OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "Octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The subscriber session volume IPv4 octets in count. "
+    ::= { rbnSubsServiceVolumeEntry 8 }
+
+rbnSubsIPv4ServiceVolumeOctetsOut  OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "Octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The subscriber session volume IPv4 octets out count."
+    ::= { rbnSubsServiceVolumeEntry 9 }
+
+rbnSubsIPv4ServiceVolumePktsIn  OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The subscriber session volume IPv4 packet in count. "
+    ::= { rbnSubsServiceVolumeEntry 10 }
+
+rbnSubsIPv4ServiceVolumePktsOut  OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The subscriber session volume IPv4 packet out count. "
+    ::= { rbnSubsServiceVolumeEntry 11 }
+
+rbnSubsIPv6ServiceVolumeOctetsIn  OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "Octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The subscriber session volume IPv6 octets in count. "
+    ::= { rbnSubsServiceVolumeEntry 12 }
+
+rbnSubsIPv6ServiceVolumeOctetsOut  OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "Octets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The subscriber session volume IPv6 octets out count."
+    ::= { rbnSubsServiceVolumeEntry 13 }
+
+rbnSubsIPv6ServiceVolumePktsIn  OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The subscriber session volume IPv6 packet in count. "
+    ::= { rbnSubsServiceVolumeEntry 14 }
+
+rbnSubsIPv6ServiceVolumePktsOut  OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "packets"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The subscriber session volume IPv6 packet out count. "
+    ::= { rbnSubsServiceVolumeEntry 15 }
+
+
+--
+-- Services Table
+--
+rbnSubsServicesTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnSubsServicesEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table contains services available to subscribers."
+    ::= { rbnSubsActive 5 }
+    
+rbnSubsServicesEntry OBJECT-TYPE
+    SYNTAX      RbnSubsServicesEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the rbnSubsServicesTable. "
+    INDEX { rbnSubsServiceIndex }
+    ::= { rbnSubsServicesTable 1 }
+    
+RbnSubsServicesEntry ::= SEQUENCE {
+    rbnSubsServiceIndex         Integer32,
+    rbnSubsServiceName          SnmpAdminString,
+    rbnSubsServiceTag           SnmpAdminString
+}
+
+rbnSubsServiceIndex OBJECT-TYPE
+    SYNTAX      Integer32(1..2147483647)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A unique index assigned to the entry."
+    ::= { rbnSubsServicesEntry 1}
+    
+rbnSubsServiceName OBJECT-TYPE
+    SYNTAX      SnmpAdminString(SIZE(1..128))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The name identifying the service."
+    ::= { rbnSubsServicesEntry 2}
+    
+rbnSubsServiceTag OBJECT-TYPE
+    SYNTAX      SnmpAdminString(SIZE(0..32))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "A tag associated with the service name which may provide
+        additional qualification to the name."
+    ::= { rbnSubsServicesEntry 3}
+    
+
+--
+-- Subscriber notification objects
+--
+rbnSubsNotifyEnable  OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This object will provide a mechanism for enabling and
+        disabling subscriber notifications.  A value of 1 (true)
+        indicates that subscriber notifications are enabled.
+        A value of 2 (false) indicates that subscriber
+        notifications are disabled."
+    DEFVAL { true }
+    ::= { rbnSubsNotify 1 }
+
+rbnSubsConfigErrorMsgs OBJECT-TYPE
+    SYNTAX      SnmpAdminString
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Detailed error messages that describes the mis-configured 
+        attributes that failed authentication."
+    ::= { rbnSubsNotify 2 }
+
+--
+-- NOTIFICATIONS - node for hanging notification definitions
+--
+rbnSubsNotifyPrefix OBJECT IDENTIFIER
+        ::= { rbnSubsActiveNotifications 0 }
+
+rbnSubsConfigErrorEvent NOTIFICATION-TYPE
+    OBJECTS         {
+        rbnSubsActiveCircuitHandle,
+        rbnSubsConfigErrorMsgs
+    }
+    STATUS current
+    DESCRIPTION
+        "This notification signifies that the subscriber session
+        received one or more attribute(s) referring non-existing
+        configuration, and the subscriber session is allowed to 
+        stay up."
+    ::= { rbnSubsNotifyPrefix 1 }
+
+--
+-- compliance statements
+--
+rbnSubsCompliances OBJECT IDENTIFIER ::= { rbnSubsActiveConformance 1 }
+rbnSubsGroups      OBJECT IDENTIFIER ::= { rbnSubsActiveConformance 2 }
+
+rbnSubsCompliance MODULE-COMPLIANCE
+    STATUS  obsolete
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         the Subscriber MIB.
+
+         This compliance is replaced by rbnSubsCompliance2"
+    MODULE  -- this module
+        MANDATORY-GROUPS {
+            rbnSubsActiveGroup,
+            rbnSubsStatsGroup
+        }
+    ::= { rbnSubsCompliances 1}
+
+rbnSubsCompliance2 MODULE-COMPLIANCE
+    STATUS  obsolete
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         the Subscriber MIB.
+         
+         This compliance is replaced by rbnSubsCompliance3"
+    MODULE  -- this module
+        MANDATORY-GROUPS {
+            rbnSubsActiveGroup2,
+            rbnSubsStatsGroup2
+        }
+    ::= { rbnSubsCompliances 2}
+
+rbnSubsCompliance3 MODULE-COMPLIANCE
+    STATUS  obsolete 
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         the Subscriber MIB.
+         
+         This compliance is replaced by rbnSubsCompliance4."
+    MODULE  -- this module
+        MANDATORY-GROUPS {
+            rbnSubsActiveGroup3,
+            rbnSubsStatsGroup2
+        }
+    ::= { rbnSubsCompliances 3}
+
+rbnSubsCompliance4 MODULE-COMPLIANCE
+    STATUS  obsolete
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         the Subscriber MIB. "
+    MODULE  -- this module
+        MANDATORY-GROUPS {
+            rbnSubsActiveGroup3,
+            rbnSubsStatsGroup2,
+            rbnSubsServicesGroup,
+            rbnSubsNotifyObjectGroup,
+            rbnSubsNotifyGroup
+        }
+    ::= { rbnSubsCompliances 4}
+
+rbnSubsCompliance5 MODULE-COMPLIANCE
+    STATUS  obsolete
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         the Subscriber MIB. "
+    MODULE  -- this module
+        MANDATORY-GROUPS {
+            rbnSubsActiveGroup3,
+            rbnSubsStatsGroup2,
+            rbnSubsServicesGroup,
+            rbnSubsNotifyObjectGroup,
+            rbnSubsNotifyGroup,
+            rbnSubsLicenseGroup
+        }
+    ::= { rbnSubsCompliances 5}
+
+rbnSubsCompliance6 MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         the Subscriber MIB. "
+    MODULE  -- this module
+        MANDATORY-GROUPS {
+            rbnSubsActiveGroup4,
+            rbnSubsStatsGroup3,
+            rbnSubsServicesGroup,
+            rbnSubsNotifyObjectGroup,
+            rbnSubsNotifyGroup,
+            rbnSubsLicenseGroup
+        }
+    ::= { rbnSubsCompliances 6}
+--
+-- groupings
+--
+rbnSubsActiveGroup OBJECT-GROUP
+    OBJECTS {
+        rbnSubsActiveCircuitDescr,
+        rbnSubsActiveCircuitHandle,
+        rbnSubsActiveStartTime,
+        rbnSubsActiveClear,
+        rbnSubsActiveAddr,
+        rbnSubsClearSubscriberName,
+        rbnSubsClearSessionId,
+        rbnSubsBounceName,
+        rbnSubsBounceSessionId,
+        rbnSubsReauthRadiusIndex,
+        rbnSubsReauthRadiusID,
+        rbnSubsClearReason
+    }
+    STATUS    obsolete
+    DESCRIPTION
+        "The collection of objects which represent an active subscriber.
+
+        This group is replaced by rbnSubsActiveGroup2."
+    ::= { rbnSubsGroups 1 }
+
+rbnSubsStatsGroup OBJECT-GROUP
+    OBJECTS {
+        rbnSubsCntxtCount,
+        rbnSubsEncapsCount,
+        rbnSubsOctetsSent,
+        rbnSubsOctetsReceived,
+        rbnSubsPktsSent,
+        rbnSubsPktsReceived,
+        rbnSubsXmitOctetsDropped,
+        rbnSubsXmitPktsDropped,
+        rbnSubsMcastOctetsSent,
+        rbnSubsMcastOctetsReceived,
+        rbnSubsMcastPktsSent,
+        rbnSubsMcastPktsReceived
+    }
+    STATUS    obsolete
+    DESCRIPTION
+        "The collection of objects which are generic counters of
+        subscriber activity.
+
+        This group is replaced by rbnSubsStatsGroup2"
+    ::= { rbnSubsGroups 2 }
+
+rbnSubsActiveGroup2 OBJECT-GROUP
+    OBJECTS {
+        rbnSubsActiveCircuitDescr,
+        rbnSubsActiveCircuitHandle,
+        rbnSubsActiveStartTime,
+        rbnSubsActiveClear,
+        rbnSubsActiveAddr,
+        rbnSubsClearSubscriberName,
+        rbnSubsClearSessionId,
+        rbnSubsBounceName,
+        rbnSubsBounceSessionId,
+        rbnSubsReauthRadiusIndex,
+        rbnSubsReauthRadiusID,
+        rbnSubsReauthName,
+        rbnSubsReauthSessionId,
+        rbnSubsClearReason,
+        rbnSubsActiveResend
+    }
+    STATUS    deprecated
+    DESCRIPTION
+        "The collection of objects which represent an active subscriber."
+    ::= { rbnSubsGroups 3 }
+
+rbnSubsStatsGroup2 OBJECT-GROUP
+    OBJECTS {
+        rbnSubsCntxtCount,
+        rbnSubsEncapsCount,
+        rbnSubsOctetsSent,
+        rbnSubsOctetsReceived,
+        rbnSubsPktsSent,
+        rbnSubsPktsReceived,
+        rbnSubsXmitOctetsDropped,
+        rbnSubsXmitPktsDropped,
+        rbnSubsMcastOctetsSent,
+        rbnSubsMcastOctetsReceived,
+        rbnSubsMcastPktsSent,
+        rbnSubsMcastPktsReceived,
+        rbnSubsProfileCount
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects which are generic counters of
+        subscriber activity."
+    ::= { rbnSubsGroups 4 }
+
+rbnSubsActiveGroup3 OBJECT-GROUP
+    OBJECTS {
+        rbnSubsActiveCircuitDescr,
+        rbnSubsActiveCircuitHandle,
+        rbnSubsActiveStartTime,
+        rbnSubsActiveClear,
+        rbnSubsActiveAddr,
+        rbnSubsActiveNasPortType,
+        rbnSubsActiveMediumType,
+        rbnSubsClearSubscriberName,
+        rbnSubsClearSessionId,
+        rbnSubsBounceName,
+        rbnSubsBounceSessionId,
+        rbnSubsReauthRadiusIndex,
+        rbnSubsReauthRadiusID,
+        rbnSubsReauthName,
+        rbnSubsReauthSessionId,
+        rbnSubsClearReason,
+        rbnSubsActiveResend
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects which represent an active subscriber.
+        This collection includes the objects rbnSubsActiveNasPortType and
+        rbnSubsActiveMediumType."
+    ::= { rbnSubsGroups 5 }
+
+rbnSubsServicesGroup OBJECT-GROUP
+    OBJECTS {
+        rbnSubsServiceName,
+        rbnSubsServiceTag,
+        rbnSubsServiceVolumeLimitIn,
+        rbnSubsServiceVolumeLimitOut,
+        rbnSubsServiceActiveTime,
+        rbnSubsServiceVolumeOctetsIn,
+        rbnSubsServiceVolumeOctetsOut,
+        rbnSubsServiceVolumePktsIn,
+        rbnSubsServiceVolumePktsOut,
+        rbnSubsIPv4ServiceVolumeOctetsIn,
+        rbnSubsIPv4ServiceVolumeOctetsOut,
+        rbnSubsIPv4ServiceVolumePktsIn,
+        rbnSubsIPv4ServiceVolumePktsOut,
+        rbnSubsIPv6ServiceVolumeOctetsIn,
+        rbnSubsIPv6ServiceVolumeOctetsOut,
+        rbnSubsIPv6ServiceVolumePktsIn,
+        rbnSubsIPv6ServiceVolumePktsOut
+
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects which represent Service Volume attributes."
+    ::= { rbnSubsGroups 6 }
+        
+
+rbnSubsNotifyObjectGroup OBJECT-GROUP
+    OBJECTS {
+        rbnSubsNotifyEnable,
+        rbnSubsConfigErrorMsgs
+    }
+    STATUS current
+    DESCRIPTION
+        "The collection of objects related to subscriber notifications."
+    ::= { rbnSubsGroups 7 }
+
+rbnSubsNotifyGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        rbnSubsConfigErrorEvent
+    }
+    STATUS current
+    DESCRIPTION
+        "Notification for tracking the failed attributes of subscriber active
+        sessions."
+    ::= { rbnSubsGroups 8 }
+
+rbnSubsLicenseGroup OBJECT-GROUP
+    OBJECTS {
+        rbnSubsMaxSupportedSessions,
+        rbnSubsLicensedSessions,
+        rbnSubsActiveSessions,
+        rbnSubsCapacityPercentageUsed 
+    }
+    STATUS current
+    DESCRIPTION
+        "The collection of objects related to subscriber licenses."
+    ::= { rbnSubsGroups 9 }
+
+rbnSubsActiveGroup4 OBJECT-GROUP
+    OBJECTS {
+        rbnSubsActiveCircuitDescr,
+        rbnSubsActiveCircuitHandle,
+        rbnSubsActiveStartTime,
+        rbnSubsActiveClear,
+        rbnSubsActiveAddr,
+        rbnSubsActiveNasPortType,
+        rbnSubsActiveMediumType,
+        rbnSubsActiveState,
+        rbnSubsActiveResendSvcAcct,
+        rbnSubsClearSubscriberName,
+        rbnSubsActiveSessionSubscriberName,
+        rbnSubsActiveSessionPointer,
+        rbnSubsActiveIpAddrDescr,
+        rbnSubsClearSessionId,
+        rbnSubsBounceName,
+        rbnSubsBounceSessionId,
+        rbnSubsReauthRadiusIndex,
+        rbnSubsReauthRadiusID,
+        rbnSubsReauthName,
+        rbnSubsReauthSessionId,
+        rbnSubsClearReason,
+        rbnSubsActiveResend
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects which represent an active subscriber.
+        This collection includes the objects rbnSubsActiveNasPortType and
+        rbnSubsActiveMediumType."
+    ::= { rbnSubsGroups 10 }
+
+rbnSubsStatsGroup3 OBJECT-GROUP
+    OBJECTS {
+        rbnSubsCntxtCount,
+        rbnSubsCntxtIp4OnlyCount,
+        rbnSubsCntxtIp6OnlyCount,
+        rbnSubsCntxtDualCount,
+        rbnSubsCntxtLacCount,
+        rbnSubsEncapsCount,
+        rbnSubsOctetsSent,
+        rbnSubsOctetsReceived,
+        rbnSubsPktsSent,
+        rbnSubsPktsReceived,
+        rbnSubsXmitOctetsDropped,
+        rbnSubsXmitPktsDropped,
+        rbnSubsMcastOctetsSent,
+        rbnSubsMcastOctetsReceived,
+        rbnSubsMcastPktsSent,
+        rbnSubsMcastPktsReceived,
+        rbnSubsProfileCount,
+        rbnSubsIPv4OctetsSent,
+        rbnSubsIPv4OctetsReceived,
+        rbnSubsIPv6OctetsSent,
+        rbnSubsIPv6OctetsReceived,
+        rbnSubsIPv4PktsSent,
+        rbnSubsIPv4PktsReceived,
+        rbnSubsIPv6PktsSent,
+        rbnSubsIPv6PktsReceived,
+        rbnSubsIPv4McastOctetsSent,
+        rbnSubsIPv4McastOctetsReceived,
+        rbnSubsIPv6McastOctetsSent,
+        rbnSubsIPv6McastOctetsReceived,
+        rbnSubsIPv4McastPktsSent,
+        rbnSubsIPv4McastPktsReceived,
+        rbnSubsIPv6McastPktsSent,
+        rbnSubsIPv6McastPktsReceived
+
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects which are generic counters of
+        subscriber activity."
+    ::= { rbnSubsGroups 11 }
+
+END

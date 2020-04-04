@@ -1,0 +1,1337 @@
+-- %DNP% $Id: RBN-IPPOOL-MIB.my,v 1.1.4.5.272.4 2011/02/22 17:26:17 thatcher Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-IPPOOL-MIB.my,v $
+-- *****************************************************************
+-- RBN-IPPOOL-MIB	IP Pool Mib
+--
+-- Copyright (c) 2001-2011 Ericsson AB.
+-- All rights reserved.
+-- 
+-- *****************************************************************
+
+RBN-IPPOOL-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE,
+    Unsigned32, IpAddress
+        FROM SNMPv2-SMI
+
+    TruthValue, TEXTUAL-CONVENTION
+        FROM SNMPv2-TC
+
+    MODULE-COMPLIANCE,
+    OBJECT-GROUP,
+    NOTIFICATION-GROUP
+        FROM SNMPv2-CONF
+         
+    SnmpAdminString
+        FROM SNMP-FRAMEWORK-MIB
+
+    rbnMgmt
+        FROM RBN-SMI
+
+    RbnPercentage
+        FROM RBN-TC
+                
+    InetAddress, InetAddressType,
+    InetAddressPrefixLength
+        FROM INET-ADDRESS-MIB
+
+    InterfaceIndex
+        FROM IF-MIB;
+
+rbnIpPoolMib MODULE-IDENTITY
+    LAST-UPDATED    "201002100000Z" -- Feb 10, 2010
+    ORGANIZATION    "Ericsson AB"
+    CONTACT-INFO
+                "       Ericsson AB.
+
+                 Postal: 100 Headquarters Dr
+                         San Jose, CA  95134
+                         USA
+
+                 Phone: +1 408 750 5000
+                 Fax: +1 408 750 5599"
+
+    DESCRIPTION
+        "Defines the objects necessary to obtain information about
+        IP Pools for interfaces within a context."
+
+    REVISION    "201002100000Z" -- Feb 10, 2010
+    DESCRIPTION
+        "Defined textual conventions for representing IP Pool type and
+         threshold management: RbnInetPoolType, RbnInetIpPoolThresholdType,
+         RbnInetIpPoolThreshold, and RbnInetIpPoolThrshNotify.
+         
+         Added the following tables and notifications to support IPv6:
+         rbnInetIpPoolTable, rbnInetIpPoolCtxTable, 
+         rbnInetIpPoolHiFallingThrshMet, rbnInetIpPoolLoFallingThrshMet,
+         rbnInetIpPoolCtxHiFallingThrshMet, rbnInetIpPoolCtxLoFallingThrshMet,
+         
+         Updated CONTACT-INFO. 
+         "
+                 
+    REVISION    "200506170000Z" -- June 17, 2005
+    DESCRIPTION
+        "Added an IP Pool total size object, an IP Pool percentage
+        threshold table and a notification for monitoring per-context
+        IP Pool percentage thresholds."
+    REVISION    "200503140000Z" -- March 14, 2005
+    DESCRIPTION
+        "Added an ip pool type, an end ip address for range
+        ip pools, and updated conformance information."
+    REVISION    "200409280000Z" -- September 28, 2004
+    DESCRIPTION
+        "Added an ip pool name and updated conformance information."
+    REVISION    "200111071700Z" -- Nov 7, 2001
+    DESCRIPTION
+        "Initial version."
+
+    ::= { rbnMgmt 15 }
+	
+
+rbnIpPoolMIBNotifications OBJECT IDENTIFIER ::= { rbnIpPoolMib 0 }
+
+rbnIpPoolMIBObjects       OBJECT IDENTIFIER ::= { rbnIpPoolMib 1 }
+
+rbnIpPoolMIBConformance   OBJECT IDENTIFIER ::= { rbnIpPoolMib 2 }
+
+--
+-- Textual Conventions
+--            
+RbnInetPoolType ::= TEXTUAL-CONVENTION
+    STATUS current
+    DESCRIPTION
+        "Denotes a generic IP Pool Type. "
+    SYNTAX  INTEGER {
+                ipv6(1),   -- Generic IPv6 Pool
+                dhcpv6(2)  -- IPv6 DHCPv6 pool
+            }
+            
+RbnInetIpPoolThresholdType ::= TEXTUAL-CONVENTION
+    STATUS current
+    DESCRIPTION
+        " A value that represents a type of IP Pool threshold value.
+        
+          none(0)       No threshold setting. This value MUST
+                        be used if the value of all corresponding
+                        RbnInetIpPoolThreshold objects in the same logical row 
+                        are zeroes. 
+                  
+          absolute(1)   RbnInetIpPoolThreshold values in the same logical 
+                        row defined as absolute values with the range of 
+                        (1..IP Pool size)
+
+          percentage(2) RbnInetIpPoolThreshold values in the same logical 
+                        row defined as percentages with the range of (1..100).
+          
+          Implementations must ensure that RbnInetIpPoolThresholdType objects
+          and any dependent objects (e.g., RbnInetIpPoolThreshold objects) 
+          are consistent. 
+        
+          The relationship between absolute value and percentage is: 
+             absolute = IP Pool size * percentage 
+        "
+    SYNTAX  INTEGER {
+                none(0),      
+                absolute(1),   
+                percentage(2)
+            }
+
+RbnInetIpPoolThreshold ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "d"
+    STATUS current
+    DESCRIPTION
+        "Denotes a generic IP Pool threshold.
+        
+         An RbnInetIpPoolThreshold value is always interpreted within 
+         the context of an RbnInetIpPoolThresholdType value.  The 
+         usages of the RbnInetIpPoolThreshold textual convention 
+         in the same logical row is required to specify the 
+         RbnInetIpPoolThresholdType object that provides the context. 
+
+         The value of an RbnInetIpPoolThreshold object must always be
+         consistent with the value of the associated RbnInetIpPoolThresholdType
+         object. "
+    SYNTAX  Unsigned32 
+            
+RbnInetIpPoolThrshNotify ::= TEXTUAL-CONVENTION
+    STATUS current
+    DESCRIPTION
+        " Denotes a logging method for monitoring falling thresholds "
+    SYNTAX  INTEGER {
+                none(0),  
+                log(1),  -- log file
+                trap(2), -- send snmp notification (trap)
+                both(3)  -- log(1) and trap(2)
+            }
+
+--
+-- IPv4 Pool Table
+--
+rbnIpPoolTable OBJECT-TYPE
+	SYNTAX       SEQUENCE OF RbnIpPoolEntry
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The purpose of this table is to allow customers to monitor
+		the status of IP Pools on their SMS systems through SNMP.
+
+		This table contains the objects which identify information
+		about IP Pools.  Each row in the table corresponds to one
+		IP Pool for a given interface within a particular
+		context.
+
+		Objects defined in this table are only accessible within the
+		context identified in the SNMP protocol (i.e. the community
+		string in v1/v2c or the contextName in v3)."
+	::= { rbnIpPoolMIBObjects 1 }
+
+rbnIpPoolEntry OBJECT-TYPE
+	SYNTAX       RbnIpPoolEntry
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"A conceptual row in the rbnIpPoolTable."
+	INDEX        { rbnIpPoolInterfaceIdx, rbnIpPoolAddr }
+	::= { rbnIpPoolTable 1 }
+
+RbnIpPoolEntry ::=
+	SEQUENCE {
+		rbnIpPoolInterfaceIdx	Unsigned32,
+		rbnIpPoolAddr		IpAddress,
+		rbnIpPoolInterfaceName	SnmpAdminString,
+		rbnIpPoolMask		IpAddress,
+		rbnIpPoolSize		Unsigned32,
+		rbnIpPoolAvailable	Unsigned32,
+		rbnIpPoolUnusable	Unsigned32,
+		rbnIpPoolInuse		Unsigned32,
+		rbnIpPoolThreshold	Unsigned32,
+		rbnIpPoolSendTrap	TruthValue,
+		rbnIpPoolLogMessage	TruthValue,
+		rbnIpPoolName	        SnmpAdminString,
+		rbnIpPoolType		INTEGER,
+		rbnIpPoolEndAddr	IpAddress
+	}
+
+rbnIpPoolInterfaceIdx OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The index of the interface containing the IP Pool."
+	::= { rbnIpPoolEntry 1 }
+
+rbnIpPoolAddr OBJECT-TYPE
+	SYNTAX       IpAddress
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The start address of the IP Pool."
+	::= { rbnIpPoolEntry 2 }
+
+rbnIpPoolInterfaceName OBJECT-TYPE
+	SYNTAX       SnmpAdminString (SIZE (0..127))
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The name of the interface containing the IP Pool."
+	::= { rbnIpPoolEntry 3 }
+
+rbnIpPoolMask OBJECT-TYPE
+	SYNTAX       IpAddress
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The subnet mask of the IP Pool. This object will be
+                instantiated for IP Pools of type subnet only."
+	::= { rbnIpPoolEntry 4 }
+
+rbnIpPoolSize OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The size of the IP Pool is defined to be the sum of
+		 the available addresses plus the unusable addresses."
+	::= { rbnIpPoolEntry 5 }
+
+rbnIpPoolAvailable OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The number of addresses of an IP Pool that are available."
+	::= { rbnIpPoolEntry 6 }
+
+rbnIpPoolUnusable OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"Unusable IP addresses in an IP Pool consist of the
+		 ip address of the interface, and those used by the
+		 network address and the broadcast address of the
+		 interface."
+	::= { rbnIpPoolEntry 7 }
+
+rbnIpPoolInuse OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The number of addresses of an IP Pool that are in use."
+	::= { rbnIpPoolEntry 8 }
+
+rbnIpPoolThreshold OBJECT-TYPE
+	SYNTAX       Unsigned32 (0..65535)
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The threshold of an IP Pool is the value for currently
+		available addresses, as reported in rbnIpPoolAvailable,
+		which causes a trap and/or log message to be generated
+		when this value is reached.
+
+		This is a falling threshold, so a trap and/or log message
+		will only be sent on a transition of the value of available
+		addresss from (rbnIpPoolThreshold+1) addresses to
+		rbnIpPoolThreshold addresses.
+
+		Additionally, the action of sending the trap and/or log message
+		is subject to the values of rbnIpPoolSendTrap and
+		rbnIpPoolLogMessage.
+
+		A value of zero means there is no threshold."
+	::= { rbnIpPoolEntry 9 }
+
+rbnIpPoolSendTrap OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of reaching a per-pool threshold
+		event, a trap will be sent.  See the definition of the
+		rbnIpPoolThresholdMet for the information included in the
+		trap.
+
+		Note, both rbnIpPoolSendTrap and rbnIpPoolLogMessage are
+		allowed to be TRUE at the same time."
+	::= { rbnIpPoolEntry 10 }
+
+rbnIpPoolLogMessage OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of reaching a per-pool threshold
+		event, a message will be logged.  The information contained
+		in the message is the same as that included in the
+		rbnIpPoolThresholdMet trap.
+
+		Note, both rbnIpPoolSendTrap and rbnIpPoolLogMessage are
+		allowed to be TRUE at the same time."
+	::= { rbnIpPoolEntry 11 }
+
+rbnIpPoolName OBJECT-TYPE
+	SYNTAX       SnmpAdminString (SIZE (0..32))
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The name of the IP Pool."
+	::= { rbnIpPoolEntry 12 }
+
+rbnIpPoolType OBJECT-TYPE
+	SYNTAX       INTEGER {
+			subnet(0),
+			range(1)
+		     }
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The type of the IP Pool."
+	::= { rbnIpPoolEntry 13 }
+
+rbnIpPoolEndAddr OBJECT-TYPE
+	SYNTAX       IpAddress
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The end address of the IP Pool. This object will be
+                instantiated for range IP Pools only."
+	::= { rbnIpPoolEntry 14 }
+
+--
+-- IP Pool per context objects
+--
+
+rbnIpPoolSummary          OBJECT IDENTIFIER ::= { rbnIpPoolMIBObjects 2 }
+
+rbnIpPoolContextName OBJECT-TYPE
+	SYNTAX       SnmpAdminString (SIZE (0..63))
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The name of the context containing the IP Pool."
+	::= { rbnIpPoolSummary 1 }
+
+rbnIpPoolContextAvailable OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The total number of IP addresses available in all pools of
+		 all interfaces in the context valid in the current view."
+	::= { rbnIpPoolSummary 2 }
+
+rbnIpPoolContextThreshold OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The per-context threshold of an IP Pool is the value for
+		currently available per-context addresses, as reported in
+		rbnIpPoolContextAvailable, which causes a trap and/or
+		log message to be generated when this value is reached.
+
+		This is a falling threshold, so a trap and/or log message
+		will only be sent on a transition of the value of available
+		addresss from (rbnIpPoolContextThreshold+1) addresses to
+		rbnIpPoolContextThreshold addresses.
+
+		Additionally, the action of sending the trap and/or log message
+		is subject to the values of rbnIpPoolContextSendTrap and
+		rbnIpPoolContextLogMessage.
+
+		A value of zero means there is no per-context threshold."
+	::= { rbnIpPoolSummary 3 }
+
+rbnIpPoolContextSendTrap OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of a per-context threshold crossing
+		event, a trap will be sent.  See the definition of the
+		rbnIpPoolContextThresholdMet for the information included
+		in the trap.
+
+		Note, both rbnIpPoolContextSendTrap and
+		rbnIpPoolContextLogMessage are allowed to be true at the
+		same time."
+	::= { rbnIpPoolSummary 4 }
+
+rbnIpPoolContextLogMessage OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of a per-context threshold crossing
+		event, a message will be logged.  The information contained
+		in the message logged is the same as that included in the
+		rbnIpPoolContextThresholdMet trap.
+
+		Note, both rbnIpPoolContextSendTrap and
+		rbnIpPoolContextLogMessage are allowed to be true at the
+		same time."
+	::= { rbnIpPoolSummary 5 }
+
+rbnIpPoolContextTotalSize OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"The total number of IP addresses configured in all pools of
+		all interfaces in the context valid in the current view.
+		It is the sum of the available addresses plus the unusable
+		addresses."
+	::= { rbnIpPoolSummary 6 }
+
+--
+-- Context IP Pool Percentage Threshold Table
+--
+
+rbnIpPoolContextThresholdPercentTable OBJECT-TYPE
+	SYNTAX       SEQUENCE OF RbnIpPoolContextThresholdPercentEntry
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The purpose of this table is to allow customers to monitor
+		the status of per-context IP Pool percentage thresholds through
+		SNMP.
+
+		This table contains the objects which identify information
+		about per-context IP Pool thresholds expressed in percentage.
+		Each row in the table corresponds to one IP Pool percentage
+		threshold configured within a particular context.
+
+		Objects defined in this table are only accessible within the
+		context identified in the SNMP protocol (i.e. the community
+		string in v1/v2c or the contextName in v3)."
+	::= { rbnIpPoolSummary 7 }
+
+rbnIpPoolContextThresholdPercentEntry OBJECT-TYPE
+	SYNTAX       RbnIpPoolContextThresholdPercentEntry
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"A conceptual row in the rbnIpPoolContextThresholdPercentTable."
+	INDEX        { rbnIpPoolContextThresholdIndex }
+	::= { rbnIpPoolContextThresholdPercentTable 1 }
+
+RbnIpPoolContextThresholdPercentEntry ::=
+	SEQUENCE {
+		rbnIpPoolContextThresholdIndex		Unsigned32,
+		rbnIpPoolContextThresholdPercentage	RbnPercentage,
+		rbnIpPoolContextThresholdSendTrap	TruthValue,
+		rbnIpPoolContextThresholdLogMessage	TruthValue
+	}
+
+rbnIpPoolContextThresholdIndex OBJECT-TYPE
+	SYNTAX       Unsigned32
+	MAX-ACCESS   not-accessible
+	STATUS       current
+	DESCRIPTION
+		"The index of the IP Pool percentage threshold."
+	::= { rbnIpPoolContextThresholdPercentEntry 1 }
+
+rbnIpPoolContextThresholdPercentage OBJECT-TYPE
+	SYNTAX       RbnPercentage
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"A threshold for the percentage of the number of currently
+		available IP Pool addresses against the total number of IP
+		Pool addresses configured within the context.
+
+		This is a falling threshold, so an SNMP trap and/or log message
+		will only be sent when the current value, which is the % of 
+		rbnIpPoolContextAvailable/rbnIpPoolContextTotalSize truncated
+		to a whole number in percentage, is less than or equal to this
+		threshold, and the percentage value at the last check was
+		greater than this threshold.
+
+		Additionally, the action of sending the SNMP trap and/or
+		logging a message is subject to the values of
+		rbnIpPoolContextThresholdSendTrap and
+		rbnIpPoolContextThresholdLogMessage."
+	::= { rbnIpPoolContextThresholdPercentEntry 2 }
+
+rbnIpPoolContextThresholdSendTrap OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of a per-context threshold crossing
+		event, an SNMP trap will be sent.  See the definition of the
+		rbnIpPoolContextThresholdPercentageMet for the information
+		included in the trap.
+
+		Note, both rbnIpPoolContextThresholdSendTrap and
+		rbnIpPoolContextThresholdLogMessage are allowed to be true
+		at the same time."
+	::= { rbnIpPoolContextThresholdPercentEntry 3 }
+
+rbnIpPoolContextThresholdLogMessage OBJECT-TYPE
+	SYNTAX       TruthValue
+	MAX-ACCESS   read-only
+	STATUS       current
+	DESCRIPTION
+		"If true, upon detection of a per-context threshold crossing
+		event, a message will be logged.  The information contained
+		in the message logged is the same as that included in the
+		rbnIpPoolContextThresholdPercentageMet trap.
+
+		Note, both rbnIpPoolContextThresholdSendTrap and
+		rbnIpPoolContextThresholdLogMessage are allowed to be true
+		at the same time."
+	::= { rbnIpPoolContextThresholdPercentEntry 4 }
+
+
+-- definition of IP Pool related notifications.
+
+rbnIpPoolThresholdMet NOTIFICATION-TYPE
+	OBJECTS {
+		rbnIpPoolContextName,
+		rbnIpPoolInterfaceName,
+		rbnIpPoolMask,
+		rbnIpPoolAvailable,
+		rbnIpPoolThreshold }
+	STATUS	current
+	DESCRIPTION
+		"A notification indicating that the per pool falling
+		 threshold has been reached."
+	::= { rbnIpPoolMIBNotifications 1 }
+
+rbnIpPoolContextThresholdMet NOTIFICATION-TYPE
+	OBJECTS {
+	    rbnIpPoolContextName,
+	    rbnIpPoolContextAvailable,
+	    rbnIpPoolContextThreshold
+	}
+	STATUS	current
+	DESCRIPTION
+		"A notification indicating that the per-context falling
+		 threshold has been reached."
+	::= { rbnIpPoolMIBNotifications 2 }
+
+rbnIpPoolContextThresholdPercentageMet NOTIFICATION-TYPE
+	OBJECTS {
+	    rbnIpPoolContextName,
+	    rbnIpPoolContextTotalSize,
+	    rbnIpPoolContextAvailable,
+	    rbnIpPoolContextThresholdPercentage
+	}
+	STATUS	current
+	DESCRIPTION
+		"A notification indicating that the per-context percentage
+	 	 falling threshold has been reached."
+	::= { rbnIpPoolMIBNotifications 3 }
+
+--
+--  Generic IP-POOL MIB Table to support various IPv6 Pools
+--
+
+rbnInetIpPoolTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF RbnInetIpPoolEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "This table contains the objects which identify information
+         about IP Pools (such as ND IPv6 pool and DHCP-PD IPv6 Pool). 
+         Each row in the table corresponds to one IP Pool for either 
+         a given interface within a particular context or only within 
+         a particular context . If this pool is only configured per 
+         context basis, the interface index is set to zero.
+                  
+         The IPv6 pool range is from start prefix/length to the end 
+         prefix/length. The prefix length for start and end prefixes 
+         are the same, and refer to the prefix length to be advertised
+         or delegated.
+         
+         Objects defined in this table are only accessible within the
+         context identified in the SNMP protocol (i.e. the community
+         string in v1/v2c or the contextName in v3)."
+    REFERENCE "[RFC4861] Neighbor Discovery for IP version 6 (IPv6)"
+    ::= { rbnIpPoolMIBObjects 3 }
+
+rbnInetIpPoolEntry OBJECT-TYPE
+    SYNTAX       RbnInetIpPoolEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "A conceptual row in the rbnInetIpPoolTable."
+    INDEX { rbnInetIpPoolType,
+            rbnInetIpPoolIfIndex,             
+            rbnInetIpPoolStartPrefixType,
+            rbnInetIpPoolStartPrefix,
+            rbnInetIpPoolStartPrefixLen }
+    ::= { rbnInetIpPoolTable 1 }
+
+RbnInetIpPoolEntry ::=
+    SEQUENCE {
+        -- IP Pool configuration
+        rbnInetIpPoolType                RbnInetPoolType,
+        rbnInetIpPoolIfIndex             InterfaceIndex,
+        rbnInetIpPoolStartPrefixType     InetAddressType,
+        rbnInetIpPoolStartPrefix         InetAddress,   
+        rbnInetIpPoolStartPrefixLen      InetAddressPrefixLength, 
+        rbnInetIpPoolEndPrefixType       InetAddressType,
+        rbnInetIpPoolEndPrefix           InetAddress,
+        rbnInetIpPoolEndPrefixLen        InetAddressPrefixLength,
+        rbnInetIpPoolInterfaceName       SnmpAdminString,
+        rbnInetIpPoolName                SnmpAdminString,                
+        rbnInetIpPoolSize                Unsigned32,
+        -- IP Pool statistics
+        rbnInetIpPoolAvailable           Unsigned32,
+        rbnInetIpPoolUnusable            Unsigned32,
+        rbnInetIpPoolInuse               Unsigned32,
+        -- IP Pool falling thresolds
+        rbnInetIpPoolThrshType           RbnInetIpPoolThresholdType,
+        rbnInetIpPoolHiFallingThrsh      RbnInetIpPoolThreshold,
+        rbnInetIpPoolHiFallingNotify     RbnInetIpPoolThrshNotify,
+        rbnInetIpPoolLoFallingThrsh      RbnInetIpPoolThreshold,
+        rbnInetIpPoolLoFallingNotify     RbnInetIpPoolThrshNotify
+    }
+
+rbnInetIpPoolType  OBJECT-TYPE
+    SYNTAX       RbnInetPoolType
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "The type of IP Pool. "
+    ::= { rbnInetIpPoolEntry 1 }
+
+rbnInetIpPoolIfIndex OBJECT-TYPE
+    SYNTAX       InterfaceIndex
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "The index of the interface containing the IP Pool. 
+         The interface identified by a particular value of this 
+         index is the same interface as identified by the same value 
+         of the IF-MIB's ifIndex."
+    ::= { rbnInetIpPoolEntry 2 }
+
+rbnInetIpPoolStartPrefixType OBJECT-TYPE 
+    SYNTAX       InetAddressType
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "The address type of rbnInetIpPoolPrefix. "
+    ::= { rbnInetIpPoolEntry 3 }
+
+rbnInetIpPoolStartPrefix OBJECT-TYPE
+    SYNTAX       InetAddress
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "The start address prefix of this pool. The address type of 
+         this object is specified in rbnInetIpPoolPrefixType.  The 
+         length of this object is the standard length for objects 
+         of that type (always 16 bytes).  Any bits after 
+         rbnInetIpPoolStartPrefixLen must be zero.
+         "
+    ::= { rbnInetIpPoolEntry 4 }
+
+rbnInetIpPoolStartPrefixLen OBJECT-TYPE
+    SYNTAX       InetAddressPrefixLength(0..128)
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        " The prefix length associated with this prefix. It refers to
+          advertised or delegated prefix length. "
+    ::= { rbnInetIpPoolEntry 5 }
+    
+rbnInetIpPoolEndPrefixType OBJECT-TYPE 
+    SYNTAX       InetAddressType
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The address type of rbnInetIpPoolPrefix. The value of this object
+         is always ipv6 (2). "
+    ::= { rbnInetIpPoolEntry 6 }
+
+rbnInetIpPoolEndPrefix OBJECT-TYPE
+    SYNTAX       InetAddress
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The end IP address prefix of this pool. The address type of this 
+         object is specified in rbnInetIpPoolPrefixType.
+         
+         Any bits after rbnInetIpPoolPrefixLen must be zero."
+    ::= { rbnInetIpPoolEntry 7 }
+
+rbnInetIpPoolEndPrefixLen OBJECT-TYPE
+    SYNTAX       InetAddressPrefixLength(0..128)
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        " The IP prefix length associated with this prefix. It refers to
+          the advertised or delegated prefix length. 
+          See rbnInetIpPoolEndPrefixLen. "
+    ::= { rbnInetIpPoolEntry 8 }    
+
+rbnInetIpPoolInterfaceName OBJECT-TYPE
+    SYNTAX       SnmpAdminString
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The name of the interface containing the IP Pool."
+    ::= { rbnInetIpPoolEntry 9 }
+    
+rbnInetIpPoolName OBJECT-TYPE
+    SYNTAX       SnmpAdminString
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The name of the IP Pool."
+    ::= { rbnInetIpPoolEntry 10 }
+
+rbnInetIpPoolSize OBJECT-TYPE
+    SYNTAX       Unsigned32
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The size of the IP Pool is defined to be the sum of
+         the available prefixes plus the unusable prefixes."
+    ::= { rbnInetIpPoolEntry 11 }
+
+rbnInetIpPoolAvailable OBJECT-TYPE
+    SYNTAX       Unsigned32
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The number of IP address prefixes of an IP Pool that are available."
+    ::= { rbnInetIpPoolEntry 12 }
+
+rbnInetIpPoolUnusable OBJECT-TYPE
+    SYNTAX       Unsigned32
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "Unusable IP prefixes in an IP Pool. "
+    ::= { rbnInetIpPoolEntry 13 }
+
+rbnInetIpPoolInuse OBJECT-TYPE
+    SYNTAX       Unsigned32
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The number of IP prefixes of an IP Pool that are in use."
+    ::= { rbnInetIpPoolEntry 14 }
+    
+rbnInetIpPoolThrshType OBJECT-TYPE
+    SYNTAX       RbnInetIpPoolThresholdType
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "This object indicates the value type of all threshold values in
+         this logical row, including rbnInetIpPoolHiFallingThrsh,
+         rbnInetIpPoolLoFallingThrsh. "
+    ::= { rbnInetIpPoolEntry 15 }
+    
+rbnInetIpPoolHiFallingThrsh OBJECT-TYPE
+    SYNTAX       RbnInetIpPoolThreshold
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The falling threshold of an IP Pool. When the value of rbnInetIpPoolAvailable 
+         crosses from (rbnInetIpPoolHiFallingThrsh + 1) to rbnInetIpPoolHiFallingThrsh
+         in either absolute value or percentage specified by rbnInetIpPoolThrshType,
+         a rbnInetIpPoolHiFallingThrshMet notification and/or log is generated.
+
+         The value of this object should never be smaller than the value
+         of rbnInetIpPoolLoFallingThrsh.
+        
+         A value of zero means that this falling threshold is not configured. "
+    ::= { rbnInetIpPoolEntry 16 }
+
+rbnInetIpPoolHiFallingNotify OBJECT-TYPE
+    SYNTAX       RbnInetIpPoolThrshNotify
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        " This object specifies if rbnInetIpPoolHiFallingThrshMet and/or log
+          is generated.
+        
+         See the description of rbnInetIpPoolHiFallingThrsh for conditions
+         which generate the notification. "
+    ::= { rbnInetIpPoolEntry 17 }
+
+rbnInetIpPoolLoFallingThrsh OBJECT-TYPE
+    SYNTAX       RbnInetIpPoolThreshold
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The falling threshold of an IP Pool. When the value of rbnInetIpPoolAvailable 
+         crosses from (rbnInetIpPoolLoFallingThrsh + 1) to rbnInetIpPoolLoFallingThrsh
+         (either absolute value or percentage) specified by rbnInetIpPoolThrshType,
+         a rbnInetIpPoolLoFallingThrshMet notification and/or log is generated.
+
+         The value of this object should never be greater than the value
+         of rbnInetIpPoolHiFallingThrsh.
+        
+         A value of zero means that this falling threshold is not configured. "
+    ::= { rbnInetIpPoolEntry 18 }
+
+rbnInetIpPoolLoFallingNotify OBJECT-TYPE
+    SYNTAX       RbnInetIpPoolThrshNotify
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "This object specifies if rbnInetIpPoolLoFallingThrshMet and/or log
+         is generated.
+        
+         See the description of rbnInetIpPoolLoFallingThrsh for conditions
+         which generate the notification. "
+    ::= { rbnInetIpPoolEntry 19 }
+
+
+--
+-- IP Pool context-level summary
+--
+rbnInetIpPoolSummary          OBJECT IDENTIFIER ::= { rbnIpPoolMIBObjects 4 }
+
+rbnInetIpPoolCtxName OBJECT-TYPE
+    SYNTAX       SnmpAdminString
+    MAX-ACCESS   accessible-for-notify
+    STATUS       current
+    DESCRIPTION
+        "The name of the context containing the IP Pool."
+    ::= { rbnInetIpPoolSummary 1 }
+    
+rbnInetIpPoolCtxTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF RbnInetIpPoolCtxEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "The purpose of this table is to allow customers to monitor
+         the status of IP Pool context summary and thresholds through
+         SNMP.
+
+         This table contains the objects which identify information
+         about per-context IP Pool thresholds expressed in absolute value 
+         or percentage. Each row in the table corresponds to one IP Pool 
+         threshold configured within a particular context.
+
+         Objects defined in this table are only accessible within the
+         context identified in the SNMP protocol (i.e. the community
+         string in v1/v2c or the contextName in v3)."
+    ::= { rbnInetIpPoolSummary 2 }
+
+rbnInetIpPoolCtxEntry OBJECT-TYPE
+    SYNTAX       RbnInetIpPoolCtxEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "A conceptual row in the rbnInetIpPoolCtxTable."
+    INDEX        {rbnInetIpPoolCtxPoolType}
+    ::= { rbnInetIpPoolCtxTable 1 }
+
+RbnInetIpPoolCtxEntry ::=
+    SEQUENCE {
+        rbnInetIpPoolCtxPoolType         RbnInetPoolType,
+        -- IP Pool statistics
+        rbnInetIpPoolCtxAvailable        Unsigned32,
+        rbnInetIpPoolCtxPoolSize         Unsigned32,
+        -- IP Pool falling thresholds
+        rbnInetIpPoolCtxThrshType        RbnInetIpPoolThresholdType,
+        rbnInetIpPoolCtxHiFallingThrsh   RbnInetIpPoolThreshold,
+        rbnInetIpPoolCtxHiFallingNotify  RbnInetIpPoolThrshNotify,
+        rbnInetIpPoolCtxLoFallingThrsh   RbnInetIpPoolThreshold,
+        rbnInetIpPoolCtxLoFallingNotify  RbnInetIpPoolThrshNotify
+    }
+
+rbnInetIpPoolCtxPoolType  OBJECT-TYPE
+    SYNTAX       RbnInetPoolType
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "The type of ip pool. "
+    ::= { rbnInetIpPoolCtxEntry 1 }
+    
+rbnInetIpPoolCtxAvailable OBJECT-TYPE
+    SYNTAX       Unsigned32
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The number of IP address prefixes of an IP Pool that are available."
+    ::= { rbnInetIpPoolCtxEntry 2 }
+    
+rbnInetIpPoolCtxPoolSize OBJECT-TYPE
+    SYNTAX       Unsigned32
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The total number of IP prefixes configured in all pools of
+         all interfaces in the context valid in the current view.
+         It is the sum of the available plus the unusable prefixes."
+    ::= { rbnInetIpPoolCtxEntry 3 }
+    
+rbnInetIpPoolCtxThrshType OBJECT-TYPE
+    SYNTAX       RbnInetIpPoolThresholdType
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "This object indicates the value type of all threshold values in
+         this logical row, including rbnInetIpPoolCtxHiFallingThrsh,
+         rbnInetIpPoolCtxLoFallingThrsh. "
+    ::= { rbnInetIpPoolCtxEntry 4 }
+    
+rbnInetIpPoolCtxHiFallingThrsh OBJECT-TYPE
+    SYNTAX       RbnInetIpPoolThreshold
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The falling threshold of an IP Pool. When the value of rbnInetIpPoolCtxAvailable 
+         crosses from (rbnInetIpPoolCtxHiFallingThrsh + 1) to rbnInetIpPoolCtxHiFallingThrsh
+         in either absolute value or percentage specified by rbnInetIpPoolCtxThrshType,
+         a rbnInetIpPoolCtxHiFallingThrshMet notification and/or log is generated.
+
+         The value of this object should never be smaller than the value
+         of rbnInetIpPoolCtxLoFallingThrsh.
+        
+         A value of zero means that this falling threshold is not configured. "
+    ::= { rbnInetIpPoolCtxEntry 5 }
+
+rbnInetIpPoolCtxHiFallingNotify OBJECT-TYPE
+    SYNTAX       RbnInetIpPoolThrshNotify
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "This object specifies if rbnInetIpPoolCtxHiFallingThrshMet and/or log
+         is generated.
+        
+         See the description of rbnInetIpPoolCtxHiFallingThrsh for conditions
+         which generate the notification. "
+    ::= { rbnInetIpPoolCtxEntry 6 }
+
+rbnInetIpPoolCtxLoFallingThrsh OBJECT-TYPE
+    SYNTAX       RbnInetIpPoolThreshold
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The falling threshold of an IP Pool. When the value of rbnInetIpPoolCtxAvailable 
+         crosses from (rbnInetIpPoolCtxLoFallingThrsh + 1) to rbnInetIpPoolCtxLoFallingThrsh
+         (either absolute value or percentage) specified by rbnInetIpPoolCtxThrshType,
+         a rbnInetIpPoolCtxLoFallingThrshMet notification and/or log is generated.
+
+         The value of this object should never be greater than the value
+         of rbnInetIpPoolCtxHiFallingThrsh.
+        
+         A value of zero means that this falling threshold is not configured. "
+    ::= { rbnInetIpPoolCtxEntry 7 }
+
+rbnInetIpPoolCtxLoFallingNotify OBJECT-TYPE
+    SYNTAX       RbnInetIpPoolThrshNotify
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        " This object specifies if rbnInetIpPoolCtxLoFallingThrshMet and/or log
+          is generated.
+        
+         See the description of rbnInetIpPoolCtxLoFallingThrsh for conditions
+         which generate the notification. "
+    ::= { rbnInetIpPoolCtxEntry 8 }
+
+    
+--
+-- IP POOL notifications
+--
+
+--  IP Pool notifications per pool
+rbnInetIpPoolHiFallingThrshMet NOTIFICATION-TYPE
+    OBJECTS {
+        rbnInetIpPoolEndPrefixType,
+        rbnInetIpPoolEndPrefix,
+        rbnInetIpPoolEndPrefixLen,
+        rbnInetIpPoolInterfaceName,
+        rbnInetIpPoolName,
+        rbnInetIpPoolSize,
+        rbnInetIpPoolAvailable,
+        rbnInetIpPoolThrshType,
+        rbnInetIpPoolHiFallingThrsh
+    }
+    STATUS    current
+    DESCRIPTION
+        "A notification indicating that the falling threshold with the high 
+        water mark(rbnInetIpPoolHiFallingThrsh) per IP Pool has been reached."
+    ::= { rbnIpPoolMIBNotifications 4 }
+
+rbnInetIpPoolLoFallingThrshMet NOTIFICATION-TYPE
+    OBJECTS {
+        rbnInetIpPoolEndPrefixType,
+        rbnInetIpPoolEndPrefix,
+        rbnInetIpPoolEndPrefixLen,
+        rbnInetIpPoolInterfaceName,
+        rbnInetIpPoolName,
+        rbnInetIpPoolSize,
+        rbnInetIpPoolAvailable,
+        rbnInetIpPoolThrshType,
+        rbnInetIpPoolLoFallingThrsh
+    }
+    STATUS    current
+    DESCRIPTION
+        "A notification indicating that the falling threshold with the low
+        water mark(rbnInetIpPoolLoFallingThrsh) per IP Pool has been reached."
+    ::= { rbnIpPoolMIBNotifications 5 }
+
+--  IP Pool notifications per context pool summary 
+rbnInetIpPoolCtxHiFallingThrshMet NOTIFICATION-TYPE
+    OBJECTS {
+        rbnInetIpPoolCtxName,
+        rbnInetIpPoolCtxPoolSize,
+        rbnInetIpPoolCtxAvailable,
+        rbnInetIpPoolCtxThrshType,
+        rbnInetIpPoolCtxHiFallingThrsh
+    }
+    STATUS    current
+    DESCRIPTION
+        "A notification indicating that the falling threshold with the high 
+        water mark(rbnInetIpPoolCtxHiFallingThrsh) per IP Pool has been reached."
+    ::= { rbnIpPoolMIBNotifications 6 }
+
+rbnInetIpPoolCtxLoFallingThrshMet NOTIFICATION-TYPE
+    OBJECTS {
+        rbnInetIpPoolCtxName,
+        rbnInetIpPoolCtxPoolSize,
+        rbnInetIpPoolCtxAvailable,
+        rbnInetIpPoolCtxThrshType,
+        rbnInetIpPoolCtxLoFallingThrsh
+    }
+    STATUS    current
+    DESCRIPTION
+        "A notification indicating that the falling threshold with the low
+        water mark(rbnInetIpPoolCtxLoFallingThrsh) per IP Pool has been reached."
+    ::= { rbnIpPoolMIBNotifications 7 }
+    
+--
+-- Compliance statements
+--
+
+rbnIpPoolCompliances  OBJECT IDENTIFIER ::= { rbnIpPoolMIBConformance 1 }
+rbnIpPoolGroups       OBJECT IDENTIFIER ::= { rbnIpPoolMIBConformance 2 }
+
+rbnIpPoolGroup    OBJECT-GROUP
+    OBJECTS {
+        rbnIpPoolInterfaceName,
+        rbnIpPoolMask,
+        rbnIpPoolSize,
+        rbnIpPoolAvailable,
+        rbnIpPoolUnusable,
+        rbnIpPoolInuse,
+        rbnIpPoolThreshold,
+        rbnIpPoolSendTrap,
+        rbnIpPoolLogMessage,
+        rbnIpPoolContextName,
+        rbnIpPoolContextAvailable,
+        rbnIpPoolContextThreshold,
+        rbnIpPoolContextSendTrap,
+        rbnIpPoolContextLogMessage
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects providing interface IP Pool
+                 information."
+    ::= { rbnIpPoolGroups 1 }
+
+rbnIpPoolNotifyGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        rbnIpPoolThresholdMet,
+        rbnIpPoolContextThresholdMet
+    }
+    STATUS    current
+    DESCRIPTION
+            "The collection of notifications related to IP Pools."
+    ::= { rbnIpPoolGroups 2 }
+
+rbnIpPoolNameGroup    OBJECT-GROUP
+    OBJECTS {
+        rbnIpPoolName
+    }
+    STATUS    current
+    DESCRIPTION
+        "An object providing the IP pool name."
+    ::= { rbnIpPoolGroups 3 }
+
+rbnIpPoolGroupV2    OBJECT-GROUP
+    OBJECTS {
+        rbnIpPoolInterfaceName,
+        rbnIpPoolMask,
+        rbnIpPoolSize,
+        rbnIpPoolAvailable,
+        rbnIpPoolUnusable,
+        rbnIpPoolInuse,
+        rbnIpPoolThreshold,
+        rbnIpPoolSendTrap,
+        rbnIpPoolLogMessage,
+        rbnIpPoolType,
+        rbnIpPoolContextName,
+        rbnIpPoolContextAvailable,
+        rbnIpPoolContextThreshold,
+        rbnIpPoolContextSendTrap,
+        rbnIpPoolContextLogMessage
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects providing interface IP Pool
+                 information."
+    ::= { rbnIpPoolGroups 4 }
+
+rbnIpPoolRangeGroup    OBJECT-GROUP
+    OBJECTS {
+        rbnIpPoolEndAddr
+    }
+    STATUS    current
+    DESCRIPTION
+        "An object providing an IP pool range information."
+    ::= { rbnIpPoolGroups 5 }
+
+rbnIpPoolInterfaceGroup    OBJECT-GROUP
+    OBJECTS {
+        rbnIpPoolInterfaceName,
+        rbnIpPoolMask,
+        rbnIpPoolSize,
+        rbnIpPoolAvailable,
+        rbnIpPoolUnusable,
+        rbnIpPoolInuse,
+        rbnIpPoolThreshold,
+        rbnIpPoolSendTrap,
+        rbnIpPoolLogMessage,
+        rbnIpPoolName,
+        rbnIpPoolType,
+        rbnIpPoolEndAddr
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects providing interface IP Pool
+        information."
+    ::= { rbnIpPoolGroups 6 }
+
+rbnIpPoolContextGroup    OBJECT-GROUP
+    OBJECTS {
+        rbnIpPoolContextName,
+        rbnIpPoolContextAvailable,
+        rbnIpPoolContextThreshold,
+        rbnIpPoolContextSendTrap,
+        rbnIpPoolContextLogMessage,
+        rbnIpPoolContextTotalSize,
+        rbnIpPoolContextThresholdPercentage,
+        rbnIpPoolContextThresholdSendTrap,
+        rbnIpPoolContextThresholdLogMessage
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects providing context IP Pool
+        information."
+    ::= { rbnIpPoolGroups 7 }
+
+rbnIpPoolNotifyGroupV2 NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        rbnIpPoolThresholdMet,
+        rbnIpPoolContextThresholdMet,
+        rbnIpPoolContextThresholdPercentageMet
+    }
+    STATUS    current
+    DESCRIPTION
+            "The collection of notifications related to IP Pools."
+    ::= { rbnIpPoolGroups 8 }
+	
+rbnInetIpPoolGroup OBJECT-GROUP
+    OBJECTS {
+        -- IP Pool configuration,
+        rbnInetIpPoolEndPrefixType, 
+        rbnInetIpPoolEndPrefix,
+        rbnInetIpPoolEndPrefixLen,
+        rbnInetIpPoolInterfaceName,
+        rbnInetIpPoolName,
+        rbnInetIpPoolSize,
+        -- IP Pool statistics,
+        rbnInetIpPoolAvailable,
+        rbnInetIpPoolUnusable,
+        rbnInetIpPoolInuse,
+        -- IP Pool falling thresolds
+        rbnInetIpPoolThrshType,
+        rbnInetIpPoolHiFallingThrsh,
+        rbnInetIpPoolHiFallingNotify,
+        rbnInetIpPoolLoFallingThrsh,
+        rbnInetIpPoolLoFallingNotify,
+        -- context summary
+        rbnInetIpPoolCtxName,
+        rbnInetIpPoolCtxAvailable,
+        rbnInetIpPoolCtxPoolSize, 
+        rbnInetIpPoolCtxThrshType,
+        rbnInetIpPoolCtxHiFallingThrsh,
+        rbnInetIpPoolCtxHiFallingNotify,
+        rbnInetIpPoolCtxLoFallingThrsh,
+        rbnInetIpPoolCtxLoFallingNotify
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects providing context IP Pool
+        information."
+    ::= { rbnIpPoolGroups 9 }
+
+rbnInetIpPoolNotifyGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {        
+        rbnInetIpPoolHiFallingThrshMet,
+        rbnInetIpPoolLoFallingThrshMet,
+        rbnInetIpPoolCtxHiFallingThrshMet,
+        rbnInetIpPoolCtxLoFallingThrshMet
+   }
+    STATUS    current
+    DESCRIPTION
+        "The collection of notifications related to IP Pools."
+    ::= { rbnIpPoolGroups 10 }
+
+rbnIpPoolCompliance MODULE-COMPLIANCE
+    STATUS       current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         this IP Pool MIB."
+    MODULE      -- this module
+    MANDATORY-GROUPS {
+        rbnIpPoolGroup,
+        rbnIpPoolNotifyGroup
+    }
+    ::= { rbnIpPoolCompliances 1 }
+
+rbnIpPoolNameCompliance MODULE-COMPLIANCE
+    STATUS       current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         this IP Pool MIB, including support for named pools."
+    MODULE      -- this module
+    MANDATORY-GROUPS {
+        rbnIpPoolGroup,
+        rbnIpPoolNotifyGroup,
+        rbnIpPoolNameGroup
+    }
+    ::= { rbnIpPoolCompliances 2 }
+
+rbnIpPoolComplianceV2 MODULE-COMPLIANCE
+    STATUS       current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         this IP Pool MIB."
+    MODULE      -- this module
+    MANDATORY-GROUPS {
+        rbnIpPoolGroupV2,
+        rbnIpPoolNotifyGroup
+    }
+    ::= { rbnIpPoolCompliances 3 }
+
+rbnIpPoolNameComplianceV2 MODULE-COMPLIANCE
+    STATUS       current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         this IP Pool MIB, including support for named pools."
+    MODULE      -- this module
+    MANDATORY-GROUPS {
+        rbnIpPoolGroupV2,
+        rbnIpPoolNotifyGroup,
+        rbnIpPoolNameGroup
+    }
+    ::= { rbnIpPoolCompliances 4 }
+
+rbnIpPoolRangeCompliance MODULE-COMPLIANCE
+    STATUS       current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         thhis IP Pool MIB, including support for range ip pools."
+    MODULE      -- this module
+    MANDATORY-GROUPS {
+        rbnIpPoolGroupV2,
+        rbnIpPoolNotifyGroup,
+        rbnIpPoolRangeGroup
+    }
+    ::= { rbnIpPoolCompliances 5 }
+
+rbnIpPoolThresholdPercentCompliance MODULE-COMPLIANCE
+    STATUS       current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         this IP Pool MIB, including support for per-context
+         KIP Pool percentage thresholds."
+    MODULE      -- this module
+    MANDATORY-GROUPS {
+        rbnIpPoolInterfaceGroup,
+        rbnIpPoolContextGroup,
+        rbnIpPoolNotifyGroupV2
+    }
+    ::= { rbnIpPoolCompliances 6 }
+
+rbnInetIpPoolCompliance MODULE-COMPLIANCE
+    STATUS       current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         the IP Pool MIB, including support DHCP-PD & ND IPv6 Pool."
+    MODULE      -- this module
+    MANDATORY-GROUPS {
+        rbnInetIpPoolGroup,
+        rbnInetIpPoolNotifyGroup
+    }
+    ::= { rbnIpPoolCompliances 7 }    
+END
+ 

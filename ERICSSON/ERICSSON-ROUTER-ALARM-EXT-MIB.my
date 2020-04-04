@@ -1,0 +1,629 @@
+-- $Id: ERICSSON-ROUTER-ALARM-EXT-MIB.my,v 1.1.6.2 2011/02/22 17:26:16 thatcher Exp $
+-- $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/ERICSSON-ROUTER-ALARM-EXT-MIB.my,v $
+-- *****************************************************************
+-- ERICSSON-ROUTER-ALARM-EXT-MIB.my    
+--
+-- Copyright (c) 2009, 2011, 2015 Ericsson AB
+-- All rights reserved.
+--
+-- *****************************************************************
+ERICSSON-ROUTER-ALARM-EXT-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE,
+    Integer32, Unsigned32,
+    TimeTicks, Counter32, Counter64,
+    IpAddress
+        FROM SNMPv2-SMI                 -- [RFC2578]
+
+    MODULE-COMPLIANCE, OBJECT-GROUP
+        FROM SNMPv2-CONF                -- [RFC2580]
+
+    alarmModelEntry, alarmListName,
+    alarmClearDateAndTime, alarmClearIndex
+        FROM ALARM-MIB                  -- [RFC3877]
+        
+    eriRouterModules
+        FROM ERICSSON-ROUTER-SMI
+
+    EriAlarmType
+        FROM ERICSSON-ALARM-TC-MIB
+    EriMO
+        FROM ERICSSON-TC-MIB
+    eriAlarmActiveIndex
+        FROM ERICSSON-ALARM-MIB;
+
+ 
+eriRouterAlarmExtMib MODULE-IDENTITY
+    LAST-UPDATED "201501141800Z" -- Jan 14, 2015
+    ORGANIZATION "Ericsson, Inc."
+    CONTACT-INFO
+           "       Ericsson, Inc.
+                   100 Headquarters Drive
+                   San Jose, CA  95134
+                   USA
+
+            Phone: +1 408 750 5000
+              Fax: +1 408 750 5599
+
+           "
+    DESCRIPTION
+        "This MIB module defines extensions to the 
+        alarmModelTable and alarmClearTable
+        defined in ALARM-MIB (RFC 3877)."
+
+    REVISION     "201501141800Z" -- Jan 14, 2015
+    DESCRIPTION
+        "Updated RBN/rbn/Rbn as ERICSSON-ROUTER/eriRouter/EriRouter
+         to migrate RBN MIB to ERICSSON MIB."
+
+    REVISION     "200909181800Z" -- Sept 18, 2009
+    DESCRIPTION
+        "Initial version"
+    ::= {eriRouterModules 53}
+
+
+eriRouterAlarmObjects OBJECT IDENTIFIER ::= { eriRouterAlarmExtMib 1 }
+
+eriRouterAlarmModel   OBJECT IDENTIFIER ::= { eriRouterAlarmObjects 1 }
+
+eriRouterAlarmActive  OBJECT IDENTIFIER ::= { eriRouterAlarmObjects 2 }
+
+eriRouterAlarmClear   OBJECT IDENTIFIER ::= { eriRouterAlarmObjects 3 }
+
+eriRouterAlarmActiveVariable OBJECT IDENTIFIER ::= { eriRouterAlarmObjects 4 }
+
+eriRouterAlarmModelTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF EriRouterAlarmModelEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table defined to augment the alarmModelTable."
+    ::= { eriRouterAlarmModel 1 }
+
+eriRouterAlarmModelEntry OBJECT-TYPE
+    SYNTAX      EriRouterAlarmModelEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The set of objects which augment a conceptual row
+        in the alarmModelTable."
+    AUGMENTS { alarmModelEntry }
+    ::= { eriRouterAlarmModelTable 1 }
+
+EriRouterAlarmModelEntry ::= SEQUENCE {
+    eriRouterAlarmModelResourceIdx   Unsigned32
+}
+
+eriRouterAlarmModelResourceIdx OBJECT-TYPE
+    SYNTAX     Unsigned32 (0 | 3..512)
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "The index into the varbind list of the notification indicated
+        by alarmModelNotificationId for the object whose value
+        identifies the resource. This object may be used to identify a
+        resource which cannot be identified using
+        alarmModelVarbindSubtree and alarmModelResourcePrefix. 
+       
+        The value 0 indicates that eriRouterAlarmModelResourceIdx is not used.
+        When this object is set to a value other than 0, the value of
+        alarmActiveResourceId shall be set to the RowPointer for the
+        corresponding varbind in the alarmActiveVariableTable. "
+    DEFVAL { 0 }
+    ::= { eriRouterAlarmModelEntry 1 }
+
+--
+--
+--
+eriRouterAlarmClearResourceTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF EriRouterAlarmClearResourceEntry
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A table containing the resourceId for entries in the 
+        alarmClearTable. Each row in this table is associated
+        with the corresponding entry in the alarmClearTable. The
+        value of alarmClearResourceId is the RowPointer for
+        the row in this table."
+    ::= { eriRouterAlarmClear 1 }
+
+eriRouterAlarmClearResourceEntry OBJECT-TYPE
+    SYNTAX      EriRouterAlarmClearResourceEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The set of object which identifies the resource
+        for an entry in the alarmClearTable.  A conceptual row
+        in this table corresponds to the varbind in the varbindlist
+        from a notification"
+     INDEX   { alarmListName, alarmClearDateAndTime, alarmClearIndex }
+    ::= { eriRouterAlarmClearResourceTable 1 }
+
+EriRouterAlarmClearResourceEntry ::= SEQUENCE {
+   eriRouterAlarmClearResourceID                OBJECT IDENTIFIER,
+   eriRouterAlarmClearResourceValueType         INTEGER,
+   eriRouterAlarmClearResourceCounter32Val      Counter32,
+   eriRouterAlarmClearResourceUnsigned32Val     Unsigned32,
+   eriRouterAlarmClearResourceTimeTicksVal      TimeTicks,
+   eriRouterAlarmClearResourceInteger32Val      Integer32,
+   eriRouterAlarmClearResourceOctetStringVal    OCTET STRING,
+   eriRouterAlarmClearResourceIpAddressVal      IpAddress,
+   eriRouterAlarmClearResourceOidVal            OBJECT IDENTIFIER,
+   eriRouterAlarmClearResourceCounter64Val      Counter64
+}
+
+eriRouterAlarmClearResourceID OBJECT-TYPE
+    SYNTAX     OBJECT IDENTIFIER
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The alarm variable's object identifier."
+    ::= { eriRouterAlarmClearResourceEntry 1 }
+
+eriRouterAlarmClearResourceValueType OBJECT-TYPE
+    SYNTAX   INTEGER {
+          counter32(1),
+          unsigned32(2),
+          timeTicks(3),
+          integer32(4),
+          ipAddress(5),
+          octetString(6),
+          objectId(7),
+          counter64(8)
+     }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The type of the value.  One and only one of the value
+        objects that follow is used for a given row in this table,
+        based on this type."
+    ::= { eriRouterAlarmClearResourceEntry 3 }
+
+eriRouterAlarmClearResourceCounter32Val OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value when eriRouterAlarmClearResourceType is 'counter32'."
+    ::= { eriRouterAlarmClearResourceEntry 4 }
+
+eriRouterAlarmClearResourceUnsigned32Val OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value when eriRouterAlarmClearResourceType is 'unsigned32'."
+    ::= { eriRouterAlarmClearResourceEntry 5 }
+
+eriRouterAlarmClearResourceTimeTicksVal OBJECT-TYPE
+    SYNTAX      TimeTicks
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value when eriRouterAlarmClearResourceType is 'timeTicks'."
+    ::= { eriRouterAlarmClearResourceEntry 6 }
+
+eriRouterAlarmClearResourceInteger32Val OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value when eriRouterAlarmClearResourceType is 'integer32'."
+    ::= { eriRouterAlarmClearResourceEntry 7 }
+
+eriRouterAlarmClearResourceOctetStringVal OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(0..65535))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value when eriRouterAlarmClearResourceType is 'octetString'."
+    ::= { eriRouterAlarmClearResourceEntry 8 }
+
+eriRouterAlarmClearResourceIpAddressVal OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value when eriRouterAlarmClearResourceType is 'ipAddress'."
+    ::= { eriRouterAlarmClearResourceEntry 9 }
+
+eriRouterAlarmClearResourceOidVal OBJECT-TYPE
+    SYNTAX      OBJECT IDENTIFIER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value when eriRouterAlarmClearResourceType is 'objectId'."
+    ::= { eriRouterAlarmClearResourceEntry 10 }
+
+eriRouterAlarmClearResourceCounter64Val OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value when eriRouterAlarmClearResourceType is 'counter64'."
+    ::= { eriRouterAlarmClearResourceEntry 11 }
+
+eriRouterAlarmActiveLastChanged OBJECT-TYPE
+   SYNTAX      TimeTicks
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+      "The value of sysUpTime at the time of the last
+       creation or deletion of an entry in the eriRouterAlarmActiveTable.
+       If the number of entries has been unchanged since the
+       last re-initialization of the local network management
+       subsystem, then this object contains a zero value."
+   ::= { eriRouterAlarmActive 1 }
+
+eriRouterAlarmActiveTable OBJECT-TYPE
+   SYNTAX      SEQUENCE OF EriRouterAlarmActiveEntry
+   MAX-ACCESS  not-accessible
+   STATUS      current
+   DESCRIPTION
+       "A table of traps to go with active alarm entries."
+   ::= { eriRouterAlarmActive 2 }
+
+eriRouterAlarmActiveEntry OBJECT-TYPE
+   SYNTAX      EriRouterAlarmActiveEntry
+   MAX-ACCESS  not-accessible
+   STATUS      current
+   DESCRIPTION
+       "Entries appear in this table when there is trap of a corresponding alarm in
+       eriAlarmActiveAlarmTable."
+   INDEX   {eriAlarmActiveIndex}
+   ::= { eriRouterAlarmActiveTable 1 }
+
+EriRouterAlarmActiveEntry ::= SEQUENCE {
+   eriRouterAlarmActiveMajorType        EriAlarmType, -- Unique integer
+   eriRouterAlarmActiveMinorType        EriAlarmType, -- Unique integer
+   eriRouterAlarmActiveManagedObject    EriMO,
+   eriRouterAlarmActiveDateAndTime      DateAndTime,
+   eriRouterAlarmActiveVariables        Unsigned32,
+   eriRouterAlarmActiveNotificationID   OBJECT IDENTIFIER
+   }
+
+ eriRouterAlarmActiveMajorType OBJECT-TYPE
+        SYNTAX                EriAlarmType
+        MAX-ACCESS        read-only
+        STATUS                current
+        DESCRIPTION
+                "In combination with eriRouterAlarmActiveMinorType,
+                this provides a unique identification of the
+                fault type. Different managed object types and
+                instances can share alarm types, but if the same
+                managed object reports the same alarm type, it is
+                to be considered as the same alarm state. The
+                alarm type is a simplification of the different
+                X.733 and 3GPP alarm IRP alarm correlation
+                mechanisms based on EventType, ProbableCause,
+                SpecificProblem and NotificationId. For systems
+                where eriRouterAlarmActiveMajorType is not needed for
+                identification purposes, it is not used and MUST
+                be zero-valued."
+        ::= { eriRouterAlarmActiveEntry 2 }
+
+eriRouterAlarmActiveMinorType OBJECT-TYPE
+        SYNTAX                EriAlarmType
+        MAX-ACCESS        read-only
+        STATUS                current
+        DESCRIPTION
+                "In combination with with
+                eriRouterAlarmActiveMajorType, this provides a unique
+                identification of the fault type, not including
+                the managed object. Different managed object
+                types and instances can share alarm types, but if
+                the same managed object reports the same alarm
+                type it is to be considered as the same alarm
+                state. The alarm type is a simplification of the
+                different X.733 and 3GPP alarm IRP alarm
+                correlation mechanisms based on EventType,
+                ProbableCause, SpecificProblem and
+                NotificationId."
+        ::= { eriRouterAlarmActiveEntry 3 } 
+        
+eriRouterAlarmActiveManagedObject OBJECT-TYPE
+        SYNTAX                EriMO
+        MAX-ACCESS        read-only
+        STATUS                current
+        DESCRIPTION
+                "The 3GPP naming convention shall be used as
+                format for the managed object parameter. Note
+                that the granularity must be good enough to
+                guarantee unique alarm states and relevant
+                resource identification to the operator.
+                NOTE: The DN should be *relative* to the nodes
+                *own* root."
+        REFERENCE
+                "3GPP TS 32.106-8 V3.2, Name convention for
+                Managed Objects"
+        ::= { eriRouterAlarmActiveEntry 4 }
+
+eriRouterAlarmActiveDateAndTime OBJECT-TYPE
+   SYNTAX      DateAndTime
+   MAX-ACCESS  read-only 
+   STATUS      current
+   DESCRIPTION
+       "The local date and time when the error occurred.
+       This object facilitates retrieving all instances of
+       alarms that have been raised or have changed state
+       since a given point in time.
+       Implementations MUST include the offset from UTC,
+       if available.  Implementation in environments in which
+       the UTC offset is not available is NOT RECOMMENDED."
+       ::= { eriRouterAlarmActiveEntry 5 }
+       
+eriRouterAlarmActiveVariables OBJECT-TYPE
+   SYNTAX      Unsigned32
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The number of variables in alarmActiveVariableTable for this
+       alarm."
+   ::= { eriRouterAlarmActiveEntry 6 }
+   
+eriRouterAlarmActiveNotificationID OBJECT-TYPE
+   SYNTAX      OBJECT IDENTIFIER
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The NOTIFICATION-TYPE object identifier of the alarm
+       state transition that is occurring."
+   ::= { eriRouterAlarmActiveEntry 7 }   
+   
+eriRouterAlarmActiveOverflow  OBJECT-TYPE
+     SYNTAX      Counter32
+     UNITS       "active alarms"
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+        "The number of active alarms that have not been put into
+         the eriRouterAlarmActiveTable since system restart as a result
+         of extreme resource constraints."
+   ::= { eriRouterAlarmActive 3 }
+   
+eriRouterAlarmActiveVariableTable OBJECT-TYPE
+   SYNTAX      SEQUENCE OF EriRouterAlarmActiveVariableEntry
+   MAX-ACCESS  not-accessible
+   STATUS      current
+   DESCRIPTION
+       "A table of variables to go with active alarm entries."
+   ::= { eriRouterAlarmActiveVariable 1 }
+   
+eriRouterAlarmActiveVariableEntry OBJECT-TYPE
+   SYNTAX      EriRouterAlarmActiveVariableEntry
+   MAX-ACCESS  not-accessible
+   STATUS      current
+   DESCRIPTION
+       "Entries appear in this table when there are variables in
+       the varbind list of a corresponding alarm in
+       eriRouterAlarmActiveAlarmTable."
+   INDEX   { eriAlarmActiveIndex, eriRouterAlarmActiveVariableIndex}
+   ::= { eriRouterAlarmActiveVariableTable 1 }
+
+EriRouterAlarmActiveVariableEntry ::= SEQUENCE {
+   eriRouterAlarmActiveVariableIndex                 Unsigned32,
+   eriRouterAlarmActiveVariableID                    OBJECT IDENTIFIER,
+   eriRouterAlarmActiveVariableValueType             INTEGER,
+   eriRouterAlarmActiveVariableCounter32Val          Counter32,
+   eriRouterAlarmActiveVariableUnsigned32Val         Unsigned32,
+   eriRouterAlarmActiveVariableTimeTicksVal          TimeTicks,
+   eriRouterAlarmActiveVariableInteger32Val          Integer32,
+   eriRouterAlarmActiveVariableOctetStringVal        OCTET STRING,
+   eriRouterAlarmActiveVariableIpAddressVal          IpAddress,
+   eriRouterAlarmActiveVariableOidVal                OBJECT IDENTIFIER,
+   eriRouterAlarmActiveVariableCounter64Val          Counter64,
+   eriRouterAlarmActiveVariableOpaqueVal             OCTET STRING
+}
+
+ 
+eriRouterAlarmActiveVariableIndex OBJECT-TYPE
+   SYNTAX     Unsigned32 (1..4294967295)
+   MAX-ACCESS not-accessible
+   STATUS     current
+   DESCRIPTION
+       "A strictly monotonically increasing integer, starting at
+       1 for a given alarmActiveIndex, for indexing variables
+       within the active alarm variable list. "
+   ::= { eriRouterAlarmActiveVariableEntry 2 }
+
+
+   
+eriRouterAlarmActiveVariableID OBJECT-TYPE
+   SYNTAX     OBJECT IDENTIFIER
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+       "The alarm variable's object identifier."
+   ::= { eriRouterAlarmActiveVariableEntry 3 }
+
+eriRouterAlarmActiveVariableValueType OBJECT-TYPE
+   SYNTAX      INTEGER {
+         counter32(1),
+         unsigned32(2),
+         timeTicks(3),
+         integer32(4),
+         ipAddress(5),
+         octetString(6),
+         objectId(7),
+         counter64(8),
+         opaque(9)
+         }
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The type of the value.  One and only one of the value
+       objects that follow is used for a given row in this table,
+       based on this type."
+   ::= { eriRouterAlarmActiveVariableEntry 4 }
+
+eriRouterAlarmActiveVariableCounter32Val OBJECT-TYPE
+   SYNTAX      Counter32
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The value when alarmActiveVariableType is 'counter32'."
+   ::= { eriRouterAlarmActiveVariableEntry 5 }
+
+
+eriRouterAlarmActiveVariableUnsigned32Val OBJECT-TYPE
+   SYNTAX      Unsigned32
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The value when alarmActiveVariableType is 'unsigned32'."
+   ::= { eriRouterAlarmActiveVariableEntry 6 }
+
+eriRouterAlarmActiveVariableTimeTicksVal OBJECT-TYPE
+   SYNTAX      TimeTicks
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The value when alarmActiveVariableType is 'timeTicks'."
+   ::= { eriRouterAlarmActiveVariableEntry 7 }
+
+eriRouterAlarmActiveVariableInteger32Val OBJECT-TYPE
+   SYNTAX      Integer32
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The value when alarmActiveVariableType is 'integer32'."
+   ::= { eriRouterAlarmActiveVariableEntry 8 }
+
+eriRouterAlarmActiveVariableOctetStringVal OBJECT-TYPE
+   SYNTAX      OCTET STRING (SIZE(0..65535))
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The value when alarmActiveVariableType is 'octetString'."
+   ::= { eriRouterAlarmActiveVariableEntry 9 }
+
+eriRouterAlarmActiveVariableIpAddressVal OBJECT-TYPE
+   SYNTAX      IpAddress
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The value when alarmActiveVariableType is 'ipAddress'."
+   ::= { eriRouterAlarmActiveVariableEntry 10 }
+
+eriRouterAlarmActiveVariableOidVal OBJECT-TYPE
+   SYNTAX      OBJECT IDENTIFIER
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The value when alarmActiveVariableType is 'objectId'."
+   ::= { eriRouterAlarmActiveVariableEntry 11 }
+
+
+
+
+eriRouterAlarmActiveVariableCounter64Val OBJECT-TYPE
+   SYNTAX      Counter64
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The value when alarmActiveVariableType is 'counter64'."
+   ::= { eriRouterAlarmActiveVariableEntry 12 }
+
+eriRouterAlarmActiveVariableOpaqueVal OBJECT-TYPE
+   SYNTAX      OCTET STRING (SIZE(0..65535)) -- was Opaque
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The value when alarmActiveVariableType is 'opaque'.
+
+       Note that although RFC2578 [RFC2578] forbids the use
+       of Opaque in 'standard' MIB modules, this particular
+       usage is driven by the need to be able to accurately
+       represent any well-formed notification, and justified
+       by the need for backward compatibility."
+   ::= { eriRouterAlarmActiveVariableEntry 13 }
+        
+--
+-- Conformance
+--
+eriRouterAlarmExtConformance  OBJECT IDENTIFIER ::= { eriRouterAlarmExtMib 2 }
+eriRouterAlarmExtCompliances  OBJECT IDENTIFIER ::= { eriRouterAlarmExtConformance 1 }
+eriRouterAlarmExtGroups       OBJECT IDENTIFIER ::= { eriRouterAlarmExtConformance 2 }
+
+
+eriRouterAlarmExtCompliance MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for systems supporting
+        this mib."
+    MODULE -- this module
+        MANDATORY-GROUPS {
+          eriRouterAlarmModelGroup,
+          eriRouterAlarmClearGroup,
+          eriRouterAlarmActiveVariableGroup,
+          eriRouterAlarmActivesGroup
+        }
+    ::= { eriRouterAlarmExtCompliances 1 }
+
+--
+-- Groups
+--
+eriRouterAlarmModelGroup  OBJECT-GROUP
+    OBJECTS {
+        eriRouterAlarmModelResourceIdx
+    }
+    STATUS      current
+    DESCRIPTION
+        "Alarm model extension group"
+    ::= { eriRouterAlarmExtGroups 1 }
+    
+eriRouterAlarmClearGroup  OBJECT-GROUP
+    OBJECTS {
+       eriRouterAlarmClearResourceID,
+       eriRouterAlarmClearResourceValueType,
+       eriRouterAlarmClearResourceCounter32Val,
+       eriRouterAlarmClearResourceUnsigned32Val,
+       eriRouterAlarmClearResourceTimeTicksVal,
+       eriRouterAlarmClearResourceInteger32Val,
+       eriRouterAlarmClearResourceOctetStringVal,
+       eriRouterAlarmClearResourceIpAddressVal,
+       eriRouterAlarmClearResourceOidVal,
+       eriRouterAlarmClearResourceCounter64Val
+    }
+    STATUS      current
+    DESCRIPTION
+        "Alarm Clear  extension group"
+    ::= { eriRouterAlarmExtGroups 2 }
+    
+eriRouterAlarmActiveVariableGroup  OBJECT-GROUP
+    OBJECTS {
+          eriRouterAlarmActiveVariableID,
+          eriRouterAlarmActiveVariableValueType,
+          eriRouterAlarmActiveVariableCounter32Val,
+          eriRouterAlarmActiveVariableUnsigned32Val,
+          eriRouterAlarmActiveVariableTimeTicksVal,
+          eriRouterAlarmActiveVariableInteger32Val,
+          eriRouterAlarmActiveVariableOctetStringVal,
+          eriRouterAlarmActiveVariableIpAddressVal,
+          eriRouterAlarmActiveVariableOidVal,
+          eriRouterAlarmActiveVariableCounter64Val,
+          eriRouterAlarmActiveVariableOpaqueVal            
+    }
+    STATUS      current
+    DESCRIPTION
+        "Alarm Active Variables group"
+    ::= { eriRouterAlarmExtGroups 4 }
+                                           
+
+eriRouterAlarmActivesGroup   OBJECT-GROUP
+    OBJECTS {
+          eriRouterAlarmActiveMajorType,
+          eriRouterAlarmActiveMinorType,
+          eriRouterAlarmActiveManagedObject,
+          eriRouterAlarmActiveVariables,
+          eriRouterAlarmActiveNotificationID           
+    }
+    STATUS      current
+    DESCRIPTION
+        "Alarm Active Actives group"
+    ::= { eriRouterAlarmExtGroups 3 }                                           
+                                                
+END
+
+

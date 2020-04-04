@@ -1,0 +1,285 @@
+-- $Id: RBN-ALARM-EXT-MIB.my,v 1.1.6.2 2011/02/22 17:26:16 thatcher Exp $
+-- $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-ALARM-EXT-MIB.my,v $
+-- *****************************************************************
+-- RBN-ALARM-EXT-MIB.my    
+--
+-- Copyright (c) 2009, 2011 Ericsson AB
+-- All rights reserved.
+--
+-- *****************************************************************
+RBN-ALARM-EXT-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE,
+    Integer32, Unsigned32,
+    TimeTicks, Counter32, Counter64,
+    IpAddress
+        FROM SNMPv2-SMI                 -- [RFC2578]
+
+    MODULE-COMPLIANCE, OBJECT-GROUP
+        FROM SNMPv2-CONF                -- [RFC2580]
+
+    alarmModelEntry, alarmListName,
+    alarmClearDateAndTime, alarmClearIndex
+        FROM ALARM-MIB                  -- [RFC3877]
+        
+    rbnModules
+        FROM RBN-SMI;
+
+ 
+rbnAlarmExtMib MODULE-IDENTITY
+    LAST-UPDATED "200909181800Z" -- Sept 18, 2009
+    ORGANIZATION "Ericsson, Inc."
+    CONTACT-INFO
+           "       Ericsson, Inc.
+                   100 Headquarters Drive
+                   San Jose, CA  95134
+                   USA
+
+            Phone: +1 408 750 5000
+              Fax: +1 408 750 5599
+
+           "
+    DESCRIPTION
+        "This MIB module defines extensions to the 
+        alarmModelTable and alarmClearTable
+        defined in ALARM-MIB (RFC 3877)."
+
+    REVISION        "200909181800Z" -- Sept 18, 2009
+    DESCRIPTION
+            "Initial version"
+    ::= {rbnModules 53}
+
+
+rbnAlarmObjects OBJECT IDENTIFIER ::= { rbnAlarmExtMib 1 }
+
+rbnAlarmModel   OBJECT IDENTIFIER ::= { rbnAlarmObjects 1 }
+
+rbnAlarmActive  OBJECT IDENTIFIER ::= { rbnAlarmObjects 2 }
+
+rbnAlarmClear   OBJECT IDENTIFIER ::= { rbnAlarmObjects 3 }
+
+
+rbnAlarmModelTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnAlarmModelEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table defined to augment the alarmModelTable."
+    ::= { rbnAlarmModel 1 }
+
+rbnAlarmModelEntry OBJECT-TYPE
+    SYNTAX      RbnAlarmModelEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The set of objects which augment a conceptual row
+        in the alarmModelTable."
+    AUGMENTS { alarmModelEntry }
+    ::= { rbnAlarmModelTable 1 }
+
+RbnAlarmModelEntry ::= SEQUENCE {
+    rbnAlarmModelResourceIdx   Unsigned32
+}
+
+rbnAlarmModelResourceIdx OBJECT-TYPE
+    SYNTAX     Unsigned32 (0 | 3..512)
+    MAX-ACCESS read-create
+    STATUS     current
+    DESCRIPTION
+       "The index into the varbind list of the notification indicated
+        by alarmModelNotificationId for the object whose value
+        identifies the resource. This object may be used to identify a
+        resource which cannot be identified using
+        alarmModelVarbindSubtree and alarmModelResourcePrefix. 
+       
+        The value 0 indicates that rbnAlarmModelResourceIdx is not used.
+        When this object is set to a value other than 0, the value of
+        alarmActiveResourceId shall be set to the RowPointer for the
+        corresponding varbind in the alarmActiveVariableTable. "
+    DEFVAL { 0 }
+    ::= { rbnAlarmModelEntry 1 }
+
+--
+--
+--
+rbnAlarmClearResourceTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnAlarmClearResourceEntry
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A table containing the resourceId for entries in the 
+        alarmClearTable. Each row in this table is associated
+        with the corresponding entry in the alarmClearTable. The
+        value of alarmClearResourceId is the RowPointer for
+        the row in this table."
+    ::= { rbnAlarmClear 1 }
+
+rbnAlarmClearResourceEntry OBJECT-TYPE
+    SYNTAX      RbnAlarmClearResourceEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The set of object which identifies the resource
+        for an entry in the alarmClearTable.  A conceptual row
+        in this table corresponds to the varbind in the varbindlist
+        from a notification"
+     INDEX   { alarmListName, alarmClearDateAndTime, alarmClearIndex }
+    ::= { rbnAlarmClearResourceTable 1 }
+
+RbnAlarmClearResourceEntry ::= SEQUENCE {
+   rbnAlarmClearResourceID                OBJECT IDENTIFIER,
+   rbnAlarmClearResourceValueType         INTEGER,
+   rbnAlarmClearResourceCounter32Val      Counter32,
+   rbnAlarmClearResourceUnsigned32Val     Unsigned32,
+   rbnAlarmClearResourceTimeTicksVal      TimeTicks,
+   rbnAlarmClearResourceInteger32Val      Integer32,
+   rbnAlarmClearResourceOctetStringVal    OCTET STRING,
+   rbnAlarmClearResourceIpAddressVal      IpAddress,
+   rbnAlarmClearResourceOidVal            OBJECT IDENTIFIER,
+   rbnAlarmClearResourceCounter64Val      Counter64
+}
+
+rbnAlarmClearResourceID OBJECT-TYPE
+    SYNTAX     OBJECT IDENTIFIER
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The alarm variable's object identifier."
+    ::= { rbnAlarmClearResourceEntry 1 }
+
+rbnAlarmClearResourceValueType OBJECT-TYPE
+    SYNTAX   INTEGER {
+          counter32(1),
+          unsigned32(2),
+          timeTicks(3),
+          integer32(4),
+          ipAddress(5),
+          octetString(6),
+          objectId(7),
+          counter64(8)
+     }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The type of the value.  One and only one of the value
+        objects that follow is used for a given row in this table,
+        based on this type."
+    ::= { rbnAlarmClearResourceEntry 3 }
+
+rbnAlarmClearResourceCounter32Val OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value when rbnAlarmClearResourceType is 'counter32'."
+    ::= { rbnAlarmClearResourceEntry 4 }
+
+rbnAlarmClearResourceUnsigned32Val OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value when rbnAlarmClearResourceType is 'unsigned32'."
+    ::= { rbnAlarmClearResourceEntry 5 }
+
+rbnAlarmClearResourceTimeTicksVal OBJECT-TYPE
+    SYNTAX      TimeTicks
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value when rbnAlarmClearResourceType is 'timeTicks'."
+    ::= { rbnAlarmClearResourceEntry 6 }
+
+rbnAlarmClearResourceInteger32Val OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value when rbnAlarmClearResourceType is 'integer32'."
+    ::= { rbnAlarmClearResourceEntry 7 }
+
+rbnAlarmClearResourceOctetStringVal OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(0..65535))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value when rbnAlarmClearResourceType is 'octetString'."
+    ::= { rbnAlarmClearResourceEntry 8 }
+
+rbnAlarmClearResourceIpAddressVal OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value when rbnAlarmClearResourceType is 'ipAddress'."
+    ::= { rbnAlarmClearResourceEntry 9 }
+
+rbnAlarmClearResourceOidVal OBJECT-TYPE
+    SYNTAX      OBJECT IDENTIFIER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value when rbnAlarmClearResourceType is 'objectId'."
+    ::= { rbnAlarmClearResourceEntry 10 }
+
+rbnAlarmClearResourceCounter64Val OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value when rbnAlarmClearResourceType is 'counter64'."
+    ::= { rbnAlarmClearResourceEntry 11 }
+
+
+--
+-- Conformance
+--
+rbnAlarmExtConformance  OBJECT IDENTIFIER ::= { rbnAlarmExtMib 2 }
+rbnAlarmExtCompliances  OBJECT IDENTIFIER ::= { rbnAlarmExtConformance 1 }
+rbnAlarmExtGroups       OBJECT IDENTIFIER ::= { rbnAlarmExtConformance 2 }
+
+rbnAlarmExtCompliance MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for systems supporting
+        this mib."
+    MODULE -- this module
+        MANDATORY-GROUPS {
+          rbnAlarmModelGroup,
+          rbnAlarmClearGroup
+        }
+    ::= { rbnAlarmExtCompliances 1 }
+
+--
+-- Groups
+--
+rbnAlarmModelGroup  OBJECT-GROUP
+    OBJECTS {
+        rbnAlarmModelResourceIdx
+    }
+    STATUS      current
+    DESCRIPTION
+        "Alarm model extension group"
+    ::= { rbnAlarmExtGroups 1 }
+    
+rbnAlarmClearGroup  OBJECT-GROUP
+    OBJECTS {
+       rbnAlarmClearResourceID,
+       rbnAlarmClearResourceValueType,
+       rbnAlarmClearResourceCounter32Val,
+       rbnAlarmClearResourceUnsigned32Val,
+       rbnAlarmClearResourceTimeTicksVal,
+       rbnAlarmClearResourceInteger32Val,
+       rbnAlarmClearResourceOctetStringVal,
+       rbnAlarmClearResourceIpAddressVal,
+       rbnAlarmClearResourceOidVal,
+       rbnAlarmClearResourceCounter64Val
+    }
+    STATUS      current
+    DESCRIPTION
+        "Alarm Clear  extension group"
+    ::= { rbnAlarmExtGroups 2 }
+
+
+END

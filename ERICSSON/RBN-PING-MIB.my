@@ -1,0 +1,460 @@
+-- %DNP% $Id: RBN-PING-MIB.my,v 1.1.6.1.2.1 2011/02/22 17:26:17 thatcher Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-PING-MIB.my,v $
+-- *****************************************************************
+-- RBN-PING-MIB          Ping MIB Extension
+--
+-- Copyright (c) 2008, 2011 Ericsson AB.
+-- All rights reserved.
+--
+-- *****************************************************************
+
+RBN-PING-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, Gauge32,
+    Unsigned32                                   FROM SNMPv2-SMI
+    DateAndTime, TruthValue                      FROM SNMPv2-TC
+    MODULE-COMPLIANCE, OBJECT-GROUP              FROM SNMPv2-CONF
+    InetAddressType, InetAddress                 FROM INET-ADDRESS-MIB
+    pingCtlEntry, pingResultsEntry,
+    pingCtlOwnerIndex, pingCtlTestName           FROM DISMAN-PING-MIB
+    rbnMgmt                                      FROM RBN-SMI;
+
+rbnPingMib MODULE-IDENTITY
+    LAST-UPDATED    "201101191800Z" -- Jan 19, 2011
+    ORGANIZATION    "Ericsson AB."
+    CONTACT-INFO
+            "       Ericsson AB.
+
+            Postal: 100 Headquarters Dr
+                    San Jose, CA  95134
+                    USA
+
+             Phone: +1 408 750 5000
+               Fax: +1 408 750 5599
+            "
+    DESCRIPTION
+        "This MIB supplements the standard Ping MIB, namely:
+             DISMAN-PING-MIB (RFC 4560)
+
+         This module defines additional objects for creating and
+         monitoring ping tests.
+
+         All MIB objects defined in this module are viewed within the
+         context identified in the SNMP protocol (i.e. the community
+         string in v1/v2c or the contextName in v3)."
+
+    REVISION        "201101191800Z" -- Jan 19, 2011
+    DESCRIPTION
+            "Update CONTACT-INFO & ORGANIZATION. "
+
+    REVISION     "200807300000Z" -- Jul 30, 2008
+    DESCRIPTION
+        "Initial version."
+    ::= { rbnMgmt 46 }
+
+rbnPingObjects                   OBJECT IDENTIFIER ::= { rbnPingMib 1 }
+rbnPingConformance               OBJECT IDENTIFIER ::= { rbnPingMib 2 }
+rbnPingNotifications             OBJECT IDENTIFIER ::= { rbnPingMib 3 }
+
+--
+-- some structure for the mib objects
+--
+rbnPingGlobals       OBJECT IDENTIFIER ::= { rbnPingObjects 1 }
+rbnPingResults       OBJECT IDENTIFIER ::= { rbnPingObjects 2 }
+rbnPingControl       OBJECT IDENTIFIER ::= { rbnPingObjects 3 }
+rbnPingIp            OBJECT IDENTIFIER ::= { rbnPingObjects 4 }
+
+--
+-- Global objects
+--
+
+rbnPingNumTests OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of entries in the pingCtlTable."
+    ::= { rbnPingGlobals 1 }
+
+--
+-- Ping test results (common to all protocols)
+--
+
+rbnPingResultsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnPingResultsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table enhances the pingResultsTable, providing additional
+         statistics for completed ping tests."
+    ::= { rbnPingResults 1 }
+
+rbnPingResultsEntry OBJECT-TYPE
+    SYNTAX      RbnPingResultsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the rbnPingResultsTable."
+    AUGMENTS { pingResultsEntry }
+    ::= { rbnPingResultsTable 1 }
+
+RbnPingResultsEntry ::= SEQUENCE {
+    rbnPingResultsJitter                Gauge32
+}
+
+rbnPingResultsJitter OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "milliseconds"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The calculated ping jitter value, which is the delta between
+         the minimum round-trip-time (RTT) and the maximum RTT. If no
+         RTT has been received, this object will have a value of 0."
+    ::= { rbnPingResultsEntry 1 }
+
+rbnPingHistoryTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnPingHistoryEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Defines a table for storing the results of ping tests. This
+         is essentially a mirror of the pingResultsTable, with the
+         addition of an index object.
+
+         The number of entries in this table is limited per entry in
+         the pingCtlTable by the value of the corresponding
+         rbnPingCtlMaxHistoryRows object.
+
+         An entry in this table is created when a ping test completes.
+         The initial 2 instance identifier index values identify the
+         pingCtlEntry that these test results belong to. An entry is
+         removed from the table when its corresponding pingCtlEntry
+         is deleted.
+
+         The oldest entry in this table for a corresponding entry in
+         the pingCtlTable will be removed to allow the addition of a
+         new entry once the number of rows in this table reaches the
+         value specified by the rbnPingCtlMaxHistory for the
+         corresponding entry in the rbnPingCtlTable."
+    ::= { rbnPingResults 2 }
+
+rbnPingHistoryEntry OBJECT-TYPE
+    SYNTAX      RbnPingHistoryEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the rbnPingHistoryTable."
+    INDEX { pingCtlOwnerIndex, pingCtlTestName, rbnPingHistoryIndex }
+    ::= { rbnPingHistoryTable 1 }
+
+RbnPingHistoryEntry ::= SEQUENCE {
+    rbnPingHistoryIndex                 Unsigned32,
+    rbnPingHistoryIpTargetAddressType   InetAddressType,
+    rbnPingHistoryIpTargetAddress       InetAddress,
+    rbnPingHistoryMinRtt                Unsigned32,
+    rbnPingHistoryMaxRtt                Unsigned32,
+    rbnPingHistoryAverageRtt            Unsigned32,
+    rbnPingHistoryProbeResponses        Gauge32,
+    rbnPingHistorySentProbes            Gauge32,
+    rbnPingHistoryRttSumOfSquares       Unsigned32,
+    rbnPingHistoryLastGoodProbe         DateAndTime,
+    rbnPingHistoryJitter                Gauge32
+}
+
+rbnPingHistoryIndex OBJECT-TYPE
+   SYNTAX      Unsigned32 (1..'ffffffff'h)
+   MAX-ACCESS  not-accessible
+   STATUS      current
+   DESCRIPTION
+       "An entry in this table is created when a ping test
+       completes.  The initial 2 instance identifier index values
+       identify the pingCtlEntry that these results belongs to.
+
+       rbnPingHistoryIndex will be assigned values starting at 1 and
+       will wrap after exceeding the maximum possible value
+       ('ffffffff'h)."
+   ::= { rbnPingHistoryEntry 1 }
+
+rbnPingHistoryIpTargetAddressType OBJECT-TYPE
+   SYNTAX      InetAddressType
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "This object indicates the type of address stored
+       in the corresponding pingResultsIpTargetAddress
+       object."
+   DEFVAL { unknown }
+   ::= { rbnPingHistoryEntry 2 }
+
+rbnPingHistoryIpTargetAddress OBJECT-TYPE
+   SYNTAX      InetAddress
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "This object reports the IP address associated
+       with a pingCtlTargetAddress value when the destination
+       address is specified as a DNS name.  The value of
+       this object should be a zero-length octet string
+       when a DNS name is not specified or when a
+       specified DNS name fails to resolve.
+
+       The address type (InetAddressType) that relates to
+       this object is specified by the corresponding value
+       of pingResultsIpTargetAddressType."
+   DEFVAL { ''H }
+   ::= { rbnPingHistoryEntry 3 }
+
+rbnPingHistoryMinRtt OBJECT-TYPE
+   SYNTAX      Unsigned32
+   UNITS       "milliseconds"
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The minimum ping round-trip-time (RTT) received.  A value
+       of 0 for this object implies that no RTT has been received."
+   ::= { rbnPingHistoryEntry 4 }
+
+rbnPingHistoryMaxRtt OBJECT-TYPE
+   SYNTAX      Unsigned32
+   UNITS       "milliseconds"
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The maximum ping round-trip-time (RTT) received.  A value
+       of 0 for this object implies that no RTT has been received."
+   ::= { rbnPingHistoryEntry 5 }
+
+rbnPingHistoryAverageRtt OBJECT-TYPE
+   SYNTAX      Unsigned32
+   UNITS       "milliseconds"
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The current average ping round-trip-time (RTT)."
+   ::= { rbnPingHistoryEntry 6 }
+
+rbnPingHistoryProbeResponses OBJECT-TYPE
+   SYNTAX      Gauge32
+   UNITS       "responses"
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "Number of responses received for the corresponding
+       pingCtlEntry and pingResultsEntry.  The value of this object
+       MUST be reported as 0 when no probe responses have been
+       received."
+   ::= { rbnPingHistoryEntry 7 }
+
+rbnPingHistorySentProbes OBJECT-TYPE
+   SYNTAX      Gauge32
+   UNITS       "probes"
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The value of this object reflects the number of probes sent
+       for the corresponding pingCtlEntry and pingResultsEntry.
+       The value of this object MUST be reported as 0 when no probes
+       have been sent."
+   ::= { rbnPingHistoryEntry 8 }
+
+rbnPingHistoryRttSumOfSquares OBJECT-TYPE
+   SYNTAX      Unsigned32
+   UNITS       "milliseconds"
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "This object contains the sum of the squares for all ping
+       responses received.  Its purpose is to enable standard
+       deviation calculation.  The value of this object MUST
+       be reported as 0 when no ping responses have been
+       received."
+   ::= { rbnPingHistoryEntry 9 }
+
+rbnPingHistoryLastGoodProbe OBJECT-TYPE
+   SYNTAX      DateAndTime
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "Date and time when the last response was received for
+       a probe."
+   ::= { rbnPingHistoryEntry 10 }
+
+rbnPingHistoryJitter OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "milliseconds"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The calculated ping jitter value, which is the delta between
+         the minimum round-trip-time (RTT) and the maximum RTT. If no
+         RTT has been received, this object will have a value of 0."
+    ::= { rbnPingHistoryEntry 11 }
+
+--
+-- Ping test attributes (common to all protocols)
+--
+
+rbnPingCtlTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnPingCtlEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table enhances the pingCtlTable, providing additional
+         options for ping tests."
+    ::= { rbnPingControl 1 }
+
+rbnPingCtlEntry OBJECT-TYPE
+    SYNTAX      RbnPingCtlEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the rbnPingCtlTable."
+    AUGMENTS { pingCtlEntry }
+    ::= { rbnPingCtlTable 1 }
+
+RbnPingCtlEntry ::= SEQUENCE {
+    rbnPingCtlMaxHistoryRows            Unsigned32
+}
+
+rbnPingCtlMaxHistoryRows OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The maximum number of corresponding entries allowed in
+         the rbnPingHistoryTable. The oldest corresponding entry in
+         the rbnPingHistoryTable will be removed to allow the addition
+         of a new entry once the number of corresponding rows in the
+         rbnPingHistoryTable reaches this value.
+
+         When a pingCtlTable entry is removed, all corresponding
+         entries in the rbnPingHistoryTable will also be removed.
+
+         A value of 0 for this object disables creation of
+         rbnPingHistoryTable entries."
+    DEFVAL { 12 }
+    ::= { rbnPingCtlEntry 1 }
+
+--
+-- Ping tests using IPv4
+--
+
+rbnPingCtlIpTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnPingCtlIpEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table enhances the pingCtlTable, providing additional
+         options for IPv4 ping tests.
+
+         These objects are ignored in conceptual rows where the
+         pingCtlType instance does not equal pingIcmpEcho."
+    ::= { rbnPingIp 1 }
+
+rbnPingCtlIpEntry OBJECT-TYPE
+    SYNTAX      RbnPingCtlIpEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A conceptual row in the rbnPingCtlIpTable."
+    AUGMENTS { pingCtlEntry }
+    ::= { rbnPingCtlIpTable 1 }
+
+RbnPingCtlIpEntry ::= SEQUENCE {
+    rbnPingCtlIpDontFragment            TruthValue,
+    rbnPingCtlIpTtl                     Unsigned32
+}
+
+rbnPingCtlIpDontFragment OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Indicates whether the dont-fragment (DF) flag should be set
+         in the probe packet's IP header."
+    DEFVAL { false }
+    ::= { rbnPingCtlIpEntry 1 }
+
+rbnPingCtlIpTtl OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..255)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Specifies a time-to-live (TTL) value to use in the probe
+         packet's IP header."
+    DEFVAL { 255 }
+    ::= { rbnPingCtlIpEntry 2 }
+
+--
+-- compliance statements
+--
+rbnPingCompliances OBJECT IDENTIFIER ::= { rbnPingConformance 1 }
+rbnPingGroups      OBJECT IDENTIFIER ::= { rbnPingConformance 2 }
+
+rbnPingIpCompliance MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         this MIB for IPv4."
+    MODULE  -- this module
+        MANDATORY-GROUPS {
+            rbnPingGlobalsGroup,
+            rbnPingResultsGroup,
+            rbnPingCtlGroup,
+            rbnPingIpGroup
+        }
+    ::= { rbnPingCompliances 1 }
+
+--
+-- object groups
+--
+rbnPingGlobalsGroup OBJECT-GROUP
+    OBJECTS {
+        rbnPingNumTests
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of global objects for ping tests."
+    ::= { rbnPingGroups 1 }
+
+rbnPingResultsGroup OBJECT-GROUP
+    OBJECTS {
+        rbnPingResultsJitter,
+        rbnPingHistoryIpTargetAddressType,
+        rbnPingHistoryIpTargetAddress,
+        rbnPingHistoryMinRtt,
+        rbnPingHistoryMaxRtt,
+        rbnPingHistoryAverageRtt,
+        rbnPingHistoryProbeResponses,
+        rbnPingHistorySentProbes,
+        rbnPingHistoryRttSumOfSquares,
+        rbnPingHistoryLastGoodProbe,
+        rbnPingHistoryJitter
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects for ping test results."
+    ::= { rbnPingGroups 2 }
+
+rbnPingCtlGroup OBJECT-GROUP
+    OBJECTS {
+        rbnPingCtlMaxHistoryRows
+    }
+    STATUS    current
+    DESCRIPTION
+        "The maximum number of corresponding entries allowed in
+         the rbnPingHistoryTable."
+    ::= { rbnPingGroups 3 }
+ 
+rbnPingIpGroup OBJECT-GROUP
+    OBJECTS {
+        rbnPingCtlIpDontFragment,
+        rbnPingCtlIpTtl
+    }
+    STATUS    current
+    DESCRIPTION
+        "The collection of objects for executing a ping test over IPv4."
+    ::= { rbnPingGroups 4 }
+END

@@ -1,0 +1,146 @@
+-- %DNP% $Id: RBN-FAST-VRRP-MIB.my,v 1.1.18.2 2011/02/22 17:26:16 thatcher Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-FAST-VRRP-MIB.my,v $
+-- *****************************************************************
+-- RBN-FAST-VRRP-MIB    Fast VRRP MIB
+--
+-- Copyright (c) 2008, 2011 Ericsson AB.
+-- All rights reserved.
+--
+-- *****************************************************************
+
+RBN-FAST-VRRP-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY,
+    OBJECT-TYPE,
+    Integer32
+            FROM SNMPv2-SMI
+
+    MODULE-COMPLIANCE,
+    OBJECT-GROUP
+            FROM SNMPv2-CONF
+
+    ifIndex
+            FROM IF-MIB
+
+    VrId
+            FROM VRRP-MIB
+
+    rbnMgmt
+            FROM RBN-SMI;
+
+rbnFastVrrpMIB MODULE-IDENTITY
+    LAST-UPDATED    "201101191800Z" -- Jan 19, 2011
+    ORGANIZATION    "Ericsson AB."
+    CONTACT-INFO
+            "       Ericsson AB.
+
+            Postal: 100 Headquarters Dr
+                    San Jose, CA  95134
+                    USA
+
+             Phone: +1 408 750 5000
+               Fax: +1 408 750 5599
+            "
+    DESCRIPTION
+        "This MIB describes objects used for managing Fast Virtual
+         Router Redundancy Protocol (FVRRP) routers."
+
+    REVISION        "201609081800Z" -- Sep 08, 2016
+    DESCRIPTION
+        "Updated rbnFastVrrpOperAdvertisementInterval to extend
+         the range from (100..999) to (3..999)."
+
+    REVISION        "201101191800Z" -- Jan 19, 2011
+    DESCRIPTION
+            "Update CONTACT-INFO & ORGANIZATION. "
+
+    REVISION "200805210000Z"    -- May 21, 2008
+    DESCRIPTION
+        " Initial Version."
+    ::= { rbnMgmt 45 }
+
+rbnFastVrrpMIBObjects    OBJECT IDENTIFIER ::= { rbnFastVrrpMIB 1 }
+rbnFastVrrpConformance   OBJECT IDENTIFIER ::= { rbnFastVrrpMIB 2 }
+
+--
+-- Fast VRRP objects
+--
+rbnFastVrrpOperTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbnFastVrrpOperEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table contains rbnFastVrrpOperEntry entries"
+    ::= { rbnFastVrrpMIBObjects 1 }
+
+rbnFastVrrpOperEntry OBJECT-TYPE
+    SYNTAX      RbnFastVrrpOperEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Fast VRRP operational characteristics entries"
+    INDEX { ifIndex, rbnFastVrrpOperVrId }
+    ::= { rbnFastVrrpOperTable 1 }
+
+RbnFastVrrpOperEntry ::=
+    SEQUENCE {
+        rbnFastVrrpOperVrId                     VrId,
+        rbnFastVrrpOperAdvertisementInterval    Integer32
+    }
+
+rbnFastVrrpOperVrId OBJECT-TYPE
+     SYNTAX      VrId
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+         "This object contains the Virtual Router Identifier (VRID) of
+          Fast VRRP routers."
+     ::= { rbnFastVrrpOperEntry 1 }
+
+rbnFastVrrpOperAdvertisementInterval OBJECT-TYPE
+    SYNTAX      Integer32 (3..999)
+    UNITS       "milliseconds"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The Fast VRRP advertisement messages time interval. This MIB object
+         is used to replace the standard vrrpOperAdvertisementInterval(seconds)
+         when Fast VRRP is enabled. Either vrrpOperAdvertisementInterval or
+         rbnFastVrrpOperAdvertisementInterval is valid based on the VRRP
+         configurations"
+    ::= { rbnFastVrrpOperEntry 2 }
+
+--
+-- compliance statements
+--
+
+rbnFastVrrpMIBCompliances OBJECT IDENTIFIER ::= { rbnFastVrrpConformance 1 }
+rbnFastVrrpMIBGroups      OBJECT IDENTIFIER ::= { rbnFastVrrpConformance 2 }
+
+rbnFastVrrpCompliance MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for SNMP entities which implement
+         this Fast VRRP MIB."
+
+    MODULE  -- this module
+        MANDATORY-GROUPS {
+            rbnFastVrrpObjectGroup
+        }
+    ::= { rbnFastVrrpMIBCompliances 1 }
+
+--
+-- groupings
+--
+
+rbnFastVrrpObjectGroup OBJECT-GROUP
+    OBJECTS {
+         rbnFastVrrpOperAdvertisementInterval
+    }
+    STATUS current
+    DESCRIPTION
+        "The collection of objects related to Fast VRRP objects."
+    ::= { rbnFastVrrpMIBGroups 1 }
+
+END

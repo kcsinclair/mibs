@@ -1,0 +1,264 @@
+-- %DNP% $Id: RBN-SFP-MIB.my,v 1.1.12.4 2011/02/22 17:26:17 thatcher Exp $
+-- %DNP% $Source: /cvsroot/pkt/sw/se/xc/bsd/config/snmp/mibs/Attic/RBN-SFP-MIB.my,v $
+-- *****************************************************************
+-- RBN-SFP-MIB              Small Form-factor Pluggable MIB
+--
+-- Copyright (c) 2008,  2010-2011 Ericsson AB
+-- All rights reserved.
+--
+-- *****************************************************************
+
+RBN-SFP-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+        MODULE-IDENTITY,
+        OBJECT-TYPE,
+        NOTIFICATION-TYPE,
+        Unsigned32
+                FROM SNMPv2-SMI
+        MODULE-COMPLIANCE,
+        OBJECT-GROUP,
+        NOTIFICATION-GROUP
+                FROM SNMPv2-CONF
+        SnmpAdminString
+                FROM SNMP-FRAMEWORK-MIB
+        DateAndTime
+                FROM SNMPv2-TC
+        RbnSlot,
+        RbnPort
+                FROM RBN-TC
+        RbnAlarmId,
+        RbnAlarmServiceAffecting
+                FROM RBN-ALARM-TC
+        IANAItuProbableCause,
+        IANAItuEventType
+                FROM IANA-ITU-ALARM-TC-MIB
+        ItuPerceivedSeverity
+                FROM ITU-ALARM-TC-MIB
+        rbnMgmt
+                FROM RBN-SMI;
+
+rbnSfpMonMIB MODULE-IDENTITY
+        LAST-UPDATED    "201003020000Z" -- March 2, 2010
+        ORGANIZATION    "Ericsson AB"
+        CONTACT-INFO
+                "       Ericsson AB.
+
+                Postal: 100 Headquarters Dr
+                        San Jose, CA  95134
+                        USA
+
+                 Phone: +1 408 750 5000
+                   Fax: +1 408 750 5599
+
+                "
+        DESCRIPTION
+                "The MIB used to manage the SFP (Small Form Factor Pluggable) 
+                 devices."
+
+        REVISION        "201003020000Z" -- March 2, 2010 
+        DESCRIPTION
+                "Update CONTACT-INFO, add Unsigned32 to IMPORTS clause."
+
+        REVISION        "200808200000Z" -- August 20, 2008 
+        DESCRIPTION
+                "Initial version."
+        ::= { rbnMgmt 49 }
+
+rbnSfpMonMIBNotifications OBJECT IDENTIFIER
+        ::= { rbnSfpMonMIB 0 }
+
+rbnSfpMonMIBObjects OBJECT IDENTIFIER
+        ::= { rbnSfpMonMIB 1 }
+
+rbnSfpMonMIBConformance OBJECT IDENTIFIER
+        ::= { rbnSfpMonMIB 2 }
+
+
+-- MIB Objects
+
+rbnSfpAlarmActiveTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RbnSfpAlarmActiveEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+                "This table contains the SFP alarms currently
+                 active on the SFP."
+        ::= { rbnSfpMonMIBObjects 1 }
+
+rbnSfpAlarmActiveEntry OBJECT-TYPE
+        SYNTAX      RbnSfpAlarmActiveEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+                "Entries appear in this table when alarms are
+                raised. They are removed when the alarms are cleared."
+        INDEX   {rbnSfpActiveAlarmIndex }
+        ::= { rbnSfpAlarmActiveTable 1 }
+
+RbnSfpAlarmActiveEntry ::= SEQUENCE {
+        rbnSfpActiveAlarmIndex         Unsigned32,
+        rbnSfpAlarmCardSlot            RbnSlot,
+        rbnSfpAlarmPort                RbnPort,
+        rbnSfpAlarmId                  RbnAlarmId,
+        rbnSfpAlarmSeverity            ItuPerceivedSeverity,
+        rbnSfpAlarmType                IANAItuEventType,
+        rbnSfpAlarmDateAndTime         DateAndTime,
+        rbnSfpAlarmDescription         SnmpAdminString,
+        rbnSfpAlarmProbableCause       IANAItuProbableCause,
+        rbnSfpAlarmServiceAffecting    RbnAlarmServiceAffecting
+}
+
+rbnSfpActiveAlarmIndex OBJECT-TYPE
+        SYNTAX      Unsigned32 (1..4294967295)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+                "A monotonically increasing integer index. It wraps
+                back to 1 after it reaches its maximum value."
+        ::= { rbnSfpAlarmActiveEntry 1 }
+
+rbnSfpAlarmCardSlot OBJECT-TYPE
+        SYNTAX      RbnSlot
+        MAX-ACCESS   read-only 
+        STATUS      current
+        DESCRIPTION
+                "The chassis slot number in which the card is present where the SFP plugged in."
+        ::= { rbnSfpAlarmActiveEntry 2 }
+
+rbnSfpAlarmPort OBJECT-TYPE
+        SYNTAX      RbnPort
+        MAX-ACCESS   read-only
+        STATUS      current
+        DESCRIPTION
+                "The port number where the SFP plugged in."
+        ::= { rbnSfpAlarmActiveEntry 3 }
+
+rbnSfpAlarmId OBJECT-TYPE 
+        SYNTAX      RbnAlarmId
+        MAX-ACCESS   read-only
+        STATUS      current
+        DESCRIPTION
+                "An identifier for the alarm."
+        ::= { rbnSfpAlarmActiveEntry 4 }
+
+rbnSfpAlarmSeverity OBJECT-TYPE 
+        SYNTAX      ItuPerceivedSeverity
+        MAX-ACCESS   read-only
+        STATUS      current
+        DESCRIPTION
+                "The perceived severity of the alarm."
+        ::= { rbnSfpAlarmActiveEntry 5 }
+
+rbnSfpAlarmType OBJECT-TYPE 
+        SYNTAX      IANAItuEventType
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The type of the alarm."
+        ::= { rbnSfpAlarmActiveEntry 6 }
+
+rbnSfpAlarmDateAndTime OBJECT-TYPE 
+        SYNTAX      DateAndTime
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The local date and time when the alarm was raised"
+        ::= { rbnSfpAlarmActiveEntry 7 }
+
+rbnSfpAlarmDescription OBJECT-TYPE 
+        SYNTAX      SnmpAdminString (SIZE(0..64))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "A text string which conveys additional information
+                about the alarm."
+        ::= { rbnSfpAlarmActiveEntry 8 }
+
+rbnSfpAlarmProbableCause OBJECT-TYPE 
+        SYNTAX      IANAItuProbableCause
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "The probable cause for this alarm."
+        ::= { rbnSfpAlarmActiveEntry 9 }
+
+rbnSfpAlarmServiceAffecting OBJECT-TYPE
+        SYNTAX      RbnAlarmServiceAffecting
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "Indicates whether the alarm is perceived to be
+                service impacting."
+        ::= { rbnSfpAlarmActiveEntry 10 }
+
+-- Notifications
+
+rbnSfpAlarm NOTIFICATION-TYPE
+        OBJECTS     {
+                      rbnSfpAlarmCardSlot,
+                      rbnSfpAlarmPort,
+                      rbnSfpAlarmId,
+                      rbnSfpAlarmSeverity,
+                      rbnSfpAlarmType,
+                      rbnSfpAlarmDateAndTime,
+                      rbnSfpAlarmDescription,
+                      rbnSfpAlarmProbableCause
+                    }
+        STATUS      current
+        DESCRIPTION
+                "An rbnSfpAlarm notification signifies that an
+                alarm has been raised or cleared on a SFP"
+        ::= { rbnSfpMonMIBNotifications 1 }
+
+
+-- Conformance Statements
+
+rbnSfpMonMIBGroups OBJECT IDENTIFIER
+        ::= { rbnSfpMonMIBConformance 1 }
+
+rbnSfpMonMIBCompliances OBJECT IDENTIFIER
+        ::= { rbnSfpMonMIBConformance 2 }
+
+rbnSfpMonMIBObjectGroup OBJECT-GROUP
+      OBJECTS     {  	rbnSfpAlarmCardSlot,
+        		rbnSfpAlarmPort,
+		        rbnSfpAlarmId,
+		        rbnSfpAlarmType,
+		        rbnSfpAlarmDateAndTime,
+		        rbnSfpAlarmDescription,
+		        rbnSfpAlarmProbableCause,
+		        rbnSfpAlarmSeverity,
+		        rbnSfpAlarmServiceAffecting  
+                  }
+      STATUS      current
+      DESCRIPTION
+              "A collection of objects providing active SFP Alarm information"
+      ::= { rbnSfpMonMIBGroups 1 }
+
+rbnSfpMonMIBNotificationGroup NOTIFICATION-GROUP
+      NOTIFICATIONS   {   rbnSfpAlarm
+                      }
+      STATUS      current
+      DESCRIPTION
+              "A collection of notifications providing  SFP fault condition"
+      ::= {rbnSfpMonMIBGroups 2 }
+
+rbnSfpMonMIBCompliance MODULE-COMPLIANCE
+      STATUS      current
+      DESCRIPTION
+              "The compliance statement for the Sfp active alarm MIB"
+      MODULE      -- this module
+      GROUP       rbnSfpMonMIBObjectGroup
+      DESCRIPTION
+              "This group is mandatory for devices which contain Ericsson Approved SFP/XFP" -- Sept 28, 2008 
+      GROUP      rbnSfpMonMIBNotificationGroup
+      DESCRIPTION
+              "This group is mandatory for devices which contain SFP/XFP Alarmmonitoring capabilities"
+
+      ::= { rbnSfpMonMIBCompliances 1 }
+
+
+
+
+END
