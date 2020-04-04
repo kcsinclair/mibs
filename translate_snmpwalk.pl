@@ -22,6 +22,9 @@ my $oidfile = "/usr/local/mibs/mibs.oid";
 my $enterprisePrefix = "1.3.6.1.4.1";
 my $stardardPrefix = "1.3.6.1.2";
 my $snmpV2Prefix = "1.3.6.1.6";
+my $iso8802 = "1.0.8802";
+my $iso840 = "1.2.840";
+
 my $needsTranslate = qr/(SNMPv2-SMI::enterprises.\d+|DPS-MIB-V38::dpsAlarmControl.\d+|SNMPv2-SMI::mib-2.\d+|SNMPv2-SMI::snmpModules.\d+)/;
 
 &main;
@@ -69,9 +72,35 @@ sub main {
 			++$lines;
 			chomp;
 
+			# fix up iso.3.6.1.4.1
+			if ( $_ =~ /^iso.3.6.1.4.1/ ) {
+				$_ =~ s/iso.3.6.1.4.1/1.3.6.1.4.1/g;
+			}
+
+			# fix up iso.3.6.1.2 
+			if ( $_ =~ /^iso.3.6.1.6.3/ ) {
+				$_ =~ s/iso.3.6.1.6.3/1.3.6.1.6.3/g;
+			}
+
+			# fix up iso.3.6.1.2 
+			if ( $_ =~ /^iso.3.6.1.2/ ) {
+				$_ =~ s/iso.3.6.1.2/1.3.6.1.2/g;
+			}
+
+			# fix up iso.0.8802
+			if ( $_ =~ /^iso.0.8802/ ) {
+				$_ =~ s/iso.0.8802/1.0.8802/g;
+			}
+
+			# fix up iso.0.8802
+			if ( $_ =~ /^iso.2.840/ ) {
+				$_ =~ s/iso.2.840/1.2.840/g;
+			}
+
 			#get the OID into a variable
 			my ($oid,$rest) = split(" = ",$_);
 			my $rawoid = $oid;
+
 
 	        if ( $oid =~ /$needsTranslate/ ) {
 				my $oidTranslated = 0;
@@ -122,7 +151,7 @@ sub main {
 					print "NEEDS TRANSLATE: $_\n";
 				}
 			}
-	        elsif ( $oid =~ /$stardardPrefix|$snmpV2Prefix|$enterprisePrefix/ ) {
+	        elsif ( $oid =~ /$stardardPrefix|$snmpV2Prefix|$enterprisePrefix|$iso8802|$iso840/ ) {
 	        	# remove the leading . from the oid
 	        	$oid =~ s/^\.//;
 				my $oidTranslated = 0;
