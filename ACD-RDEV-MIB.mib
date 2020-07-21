@@ -1,0 +1,588 @@
+--
+-- Accedian Enterprise Specific MIB
+--
+-- Copyright (c) 2005-2016, Accedian Networks, Inc.
+-- All rights reserved.
+--
+-- The contents of this document are subject to change without notice.
+--
+
+
+ACD-RDEV-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE,
+    IpAddress, Unsigned32   
+        FROM SNMPv2-SMI
+    DisplayString, TruthValue, MacAddress, TEXTUAL-CONVENTION, RowStatus
+        FROM SNMPv2-TC
+    MODULE-COMPLIANCE, OBJECT-GROUP
+        FROM SNMPv2-CONF
+    acdMibs
+        FROM ACCEDIAN-SMI;
+
+acdRDev MODULE-IDENTITY
+
+    LAST-UPDATED "201609230100Z"
+    ORGANIZATION "Accedian Networks, Inc."
+    CONTACT-INFO
+            "Accedian Technical Assistance Center
+             Accedian Networks, Inc.
+             2351 Alfred-Nobel blvd., Suite N-410
+             Saint-Laurent, Quebec Canada H4S 2A9
+             E-mail: support@accedian.com"
+    DESCRIPTION
+            "The Remote device management for this Accedian Networks device."
+
+    REVISION "201609230100Z"        -- 23 September 2016
+    DESCRIPTION
+            "Remove NOTIFICATION-TYPE out of MIB file.
+             Add acdRDevConfigRowStatus to acdRDevConfigGroup.
+             Add acdRDevDiscoveryCfgRowStatus to acdRDevDiscoveryCfgGroup."
+
+    REVISION "201605060100Z"        -- 6 May 2016
+    DESCRIPTION
+            "Added tunnel TCP port and DSCP to the configuration."
+
+    REVISION "201601270100Z"        -- 27 Jan 2016
+    DESCRIPTION
+            "Added the static entry L2 interface and L3 Destination IP to the configuration."
+
+    REVISION "201511110100Z"        -- 11 Nov 2015
+    DESCRIPTION
+            "Added the device type to the configuration."
+
+    REVISION "201503230100Z"        -- 23 Mar 2015
+    DESCRIPTION
+            "Added Admin State to the configuration, renamed feature fields."
+
+    REVISION "201412120100Z"        -- 12 Dec 2014
+    DESCRIPTION
+            "Initial version of MIB module ACD-RDEV-MIB."
+
+    ::= { acdMibs 22 }
+
+acdRDevNotifications    OBJECT IDENTIFIER ::= { acdRDev 0 }
+acdRDevMIBObjects       OBJECT IDENTIFIER ::= { acdRDev 1 }
+acdRDevConformance      OBJECT IDENTIFIER ::= { acdRDev 2 }
+                        
+acdRDevConfig                OBJECT IDENTIFIER ::= { acdRDevMIBObjects 1 }
+acdRDevSecurityKeyMgmt       OBJECT IDENTIFIER ::= { acdRDevMIBObjects 2 }
+acdRDevDiscoveryCfg          OBJECT IDENTIFIER ::= { acdRDevMIBObjects 3 }
+
+---------------------------------------------------------------------------
+-- Textual conventions
+---------------------------------------------------------------------------
+
+AcdRDevDiscoveryMethod ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+       "The method used to discover remote devices on the network:
+            Layer-2:    Layer-2 discovery of remote devices.
+            iPAD:       IP Agnostic Discovery (IPAD) performs a layer-3 discovery of remote devices."
+    SYNTAX      INTEGER {
+                    layer2(1),
+                    iPad(2)
+    }
+
+AcdRDevDiscoveryRate ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+       "Select the rate at which the discovery is trigered."
+    SYNTAX INTEGER {
+                   rateOneShot(0),
+                   rate3sec(1),
+                   rate60sec(2),
+                   rate5min(3),
+                   rate10min(4),
+                   rate60min(5)
+                   }
+
+AcdRDevDiscoveryIPType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+       "The the type of IP message used for sicovery:
+            unicast:    Simple discovery targetting any devices on the specified IP path..
+            unicast directed: Discovery targetting one device designating by is serial unmber on the specified IP path.
+            subnet:     Simple discovery targetting any devices on the specified subnet."
+    SYNTAX   INTEGER {
+                     unicast(1),
+                     unicast-directed(2),
+                     subnet(3)
+                     }
+
+AcdRDevConfigAdminStateType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+       "The administration state of the remote device:
+            OOS:    Out of service
+            IS :    In service"
+    SYNTAX   INTEGER {
+                     oos(0),
+                     is(1)
+                     }
+                     
+AcdRDevDeviceTypeType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+       "The type of the remote device."
+    SYNTAX   INTEGER {
+                     ant-Nano(0),
+                     nano2Copper(1),
+                     nano2Optical(2),
+                     ant2Combo(3),
+                     ant2Copper(4)
+                     }
+
+---------------------------------------------------------------------------
+ -- The remote devices configuration table
+ -- This table contains all remote devices configurations for connections.
+---------------------------------------------------------------------------
+
+acdRDevConfigTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF AcdRDevConfigEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The Remote device configuration."
+    ::= { acdRDevConfig 1 }
+
+acdRDevConfigEntry OBJECT-TYPE
+    SYNTAX      AcdRDevConfigEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "An entry consisting of all settings to add a remote device."
+    INDEX   { acdRDevConfigIndex }
+    ::=  { acdRDevConfigTable 1 }
+
+AcdRDevConfigEntry ::= SEQUENCE {
+    acdRDevConfigIndex                      Unsigned32,
+    acdRDevConfigRowStatus                  RowStatus,
+    acdRDevConfigName                       DisplayString,
+    acdRDevConfigMacAddr                    MacAddress,
+    acdRDevConfigSecurityKey                DisplayString,
+    acdRDevConfigAuthorized                 TruthValue,
+    acdRDevConfigLinked                     TruthValue,
+    acdRDevConfigActiveFeature              DisplayString,
+    acdRDevConfigCurrentFeatureSuite        DisplayString,
+    acdRDevConfigAdminState                 AcdRDevConfigAdminStateType,
+    acdRDevConfigType                       AcdRDevDeviceTypeType,
+    acdRDevConfigL2Interface                Unsigned32,
+    acdRDevConfigDestinationIP              DisplayString,
+    acdRDevConfigTunnelTCPPort              Unsigned32,
+    acdRDevConfigTunnelTCPDSCP              Unsigned32,
+    acdRDevConfigFlexMonitor                TruthValue
+}
+
+acdRDevConfigIndex OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Unique value for each remote device config instance."
+    ::= { acdRDevConfigEntry 1 }
+
+acdRDevConfigRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+       "All columns must have a valid value before a row can be activated. To 
+        create a new Remote Device you shall provide at least a unique name for an
+        empty row with the RowStatus set to Create and Go."
+    ::= { acdRDevConfigEntry 2 }
+
+acdRDevConfigName  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (1..31))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This is a string to uniquely identify the device."
+    DEFVAL      { "" }
+    ::= { acdRDevConfigEntry 3 }
+
+acdRDevConfigMacAddr OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The device MAC address."
+    DEFVAL { '000000000000'H }
+    ::= { acdRDevConfigEntry 4 }
+
+acdRDevConfigSecurityKey  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (1..127))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This is the security key used to connect to the device."
+    DEFVAL      { "" }
+    ::= { acdRDevConfigEntry 5 }
+
+acdRDevConfigAuthorized OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Authorize or De-authorize a device to be linked."
+    DEFVAL      { true }
+    ::= { acdRDevConfigEntry 6 }
+
+acdRDevConfigLinked OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Device is linked or unlinked to the VCX."
+    DEFVAL      { false }
+    ::= { acdRDevConfigEntry 7 }
+
+acdRDevConfigActiveFeature  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (1..32))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The feature set supported by the device."
+    DEFVAL      { "" }
+    ::= { acdRDevConfigEntry 8 }
+
+acdRDevConfigCurrentFeatureSuite  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (1..32))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This is the version of the software running the device."
+    DEFVAL      { "" }
+    ::= { acdRDevConfigEntry 9 }
+
+acdRDevConfigAdminState OBJECT-TYPE
+    SYNTAX      AcdRDevConfigAdminStateType
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Administration state."
+    DEFVAL      { 0 }
+    ::= { acdRDevConfigEntry 10 }
+    
+acdRDevConfigType  OBJECT-TYPE
+    SYNTAX      AcdRDevDeviceTypeType
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The type of the device."
+    DEFVAL      { 0 }
+    ::= { acdRDevConfigEntry 11 }    
+
+acdRDevConfigL2Interface  OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Static entry Layer-2 VCX interface."
+    DEFVAL      { 0 }
+    ::= { acdRDevConfigEntry 12 } 
+
+acdRDevConfigDestinationIP  OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Static entry Layer-3 destination IP."
+    DEFVAL      { "" }
+    ::= { acdRDevConfigEntry 13 } 
+
+acdRDevConfigTunnelTCPPort  OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "TCP port to use for the tunnel with the device."
+    DEFVAL      { 44240 }
+    ::= { acdRDevConfigEntry 14 }
+
+acdRDevConfigTunnelTCPDSCP  OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The DSCP value used by the tunnel with the device. Its value ranges
+         from 0 to 63."
+    DEFVAL      { 0 }
+    ::= { acdRDevConfigEntry 15 }
+
+acdRDevConfigFlexMonitor OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Device is in flex monitor operational mode."
+    DEFVAL      { false }
+    ::= { acdRDevConfigEntry 16 }
+    
+---------------------------------------------------------------------------
+ -- The remote devices security key management.
+ -- This table contains the configuration for the backup of the remote
+ -- devices security key.
+---------------------------------------------------------------------------
+
+acdRDevSecurityKeyMgmtBackupPeriod  OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The period of time, expressed in minutes, between each backup of the remote devices security information."
+    DEFVAL { 1440 }
+    ::= { acdRDevSecurityKeyMgmt 1 }
+
+acdRDevSecurityKeyMgmtServerURL OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (1..255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The address of the server where the security key information file generated by the Controller is saved."
+    DEFVAL { "" }
+    ::= { acdRDevSecurityKeyMgmt 2 }
+
+acdRDevSecurityKeyMgmtSCPPassword  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (1..32))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The password for the Secure Copy Protocol (SCP) used when transferring the security key information file to the remote file server."
+    DEFVAL      { "" }
+    ::= { acdRDevSecurityKeyMgmt 3 }
+
+---------------------------------------------------------------------------
+ -- The remote devices discovery table
+ -- This table contains all remote devices discovered by the system.
+---------------------------------------------------------------------------
+
+acdRDevDiscoveryCfgTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF AcdRDevDiscoveryCfgEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The Remote device discovery configuration."
+    ::= { acdRDevDiscoveryCfg 1 }
+
+acdRDevDiscoveryCfgEntry OBJECT-TYPE
+    SYNTAX      AcdRDevDiscoveryCfgEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "An entry consisting of the discovery configuration of remote devices."
+    INDEX   { acdRDevDiscoveryCfgIndex }
+    ::=  { acdRDevDiscoveryCfgTable 1 }
+
+AcdRDevDiscoveryCfgEntry ::= SEQUENCE {
+    acdRDevDiscoveryCfgIndex                      Unsigned32,
+    acdRDevDiscoveryCfgRowStatus                  RowStatus,
+    acdRDevDiscoveryCfgName                       DisplayString,
+    acdRDevDiscoveryCfgEnable                     TruthValue,
+    acdRDevDiscoveryCfgMethod                     AcdRDevDiscoveryMethod,
+    acdRDevDiscoveryCfgRate                       AcdRDevDiscoveryRate,
+    acdRDevDiscoveryCfgInterface                  DisplayString,
+    acdRDevDiscoveryCfgHopLimit                   Unsigned32,
+    acdRDevDiscoveryCfgTimeout                    Unsigned32,
+    acdRDevDiscoveryCfgDestinationIP              DisplayString,
+    acdRDevDiscoveryCfgIPType                     AcdRDevDiscoveryIPType,
+    acdRDevDiscoveryCfgSerialNumber               DisplayString,
+    acdRDevDiscoveryCfgSubnet                     IpAddress
+}
+
+acdRDevDiscoveryCfgIndex OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Unique value for each remote device config instance."
+    ::= { acdRDevDiscoveryCfgEntry 1 }
+
+acdRDevDiscoveryCfgRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+       "All columns must have a valid value before a row can be activated. To 
+        create a new Remote Device you shall provide at least a unique name for an
+        empty row with the RowStatus set to Create and Go."
+    ::= { acdRDevDiscoveryCfgEntry 2 }
+
+acdRDevDiscoveryCfgName  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (1..32))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This is a string to uniquely identify the discovery instance."
+    ::= { acdRDevDiscoveryCfgEntry 3 }
+
+acdRDevDiscoveryCfgEnable OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Enable or disable the discovery instance."
+    DEFVAL { false }
+    ::= { acdRDevDiscoveryCfgEntry 4 }
+
+acdRDevDiscoveryCfgMethod  OBJECT-TYPE
+    SYNTAX      AcdRDevDiscoveryMethod
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The method used for discovery."
+    DEFVAL      { 1 }
+    ::= { acdRDevDiscoveryCfgEntry 5 }
+
+acdRDevDiscoveryCfgRate OBJECT-TYPE
+    SYNTAX      AcdRDevDiscoveryRate
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Rate at which discovery messages will be sent."
+    DEFVAL      { 2 }
+    ::= { acdRDevDiscoveryCfgEntry 6 }
+
+acdRDevDiscoveryCfgInterface OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (1..127))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Interface name."
+    DEFVAL      { "Management" }
+    ::= { acdRDevDiscoveryCfgEntry 7 }
+
+acdRDevDiscoveryCfgHopLimit OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Number of hop limit for discovery (Ipad)."
+    DEFVAL      { 255 }
+    ::= { acdRDevDiscoveryCfgEntry 8 }
+
+acdRDevDiscoveryCfgTimeout OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Timeout awaiting answer (Ipad)."
+    DEFVAL      { 10 }
+    ::= { acdRDevDiscoveryCfgEntry 9 }
+
+acdRDevDiscoveryCfgDestinationIP OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (1..45))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "IP address of the remote destination (Ipad)."
+    DEFVAL { '00000000'H }      -- 0.0.0.0        
+    ::= { acdRDevDiscoveryCfgEntry 10 }
+
+acdRDevDiscoveryCfgIPType OBJECT-TYPE
+    SYNTAX      AcdRDevDiscoveryIPType
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Discovery IP type (Ipad)."
+    DEFVAL      { 1 }
+    ::= { acdRDevDiscoveryCfgEntry 11 }
+
+acdRDevDiscoveryCfgSerialNumber OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (1..32))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Device serial number."
+    DEFVAL      { "" }
+    ::= { acdRDevDiscoveryCfgEntry 12 }
+
+acdRDevDiscoveryCfgSubnet OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Subnet address to discover. (Ipad)"
+    ::= { acdRDevDiscoveryCfgEntry 13 }
+    
+
+---------------------------------------------------------------------------
+ -- ACD-RDEV-MIB Module - Conformance Information
+---------------------------------------------------------------------------
+
+acdRDevCompliances  OBJECT IDENTIFIER ::= { acdRDevConformance 1 }
+acdRDevGroups       OBJECT IDENTIFIER ::= { acdRDevConformance 2 }
+
+---------------------------------------------------------------------------
+ -- Units of conformance
+---------------------------------------------------------------------------
+
+acdRDevConfigGroup OBJECT-GROUP
+    OBJECTS {
+       acdRDevConfigRowStatus,
+       acdRDevConfigName,
+       acdRDevConfigMacAddr,
+       acdRDevConfigSecurityKey,
+       acdRDevConfigAuthorized,
+       acdRDevConfigLinked,
+       acdRDevConfigActiveFeature,
+       acdRDevConfigCurrentFeatureSuite,
+       acdRDevConfigAdminState,
+       acdRDevConfigType,
+       acdRDevConfigL2Interface,
+       acdRDevConfigDestinationIP,
+       acdRDevConfigTunnelTCPPort,
+       acdRDevConfigTunnelTCPDSCP,
+       acdRDevConfigFlexMonitor
+    }
+    STATUS      current
+    DESCRIPTION
+       "."
+    ::= { acdRDevGroups 1 }
+
+acdRDevSecurityKeyMgmtGroup OBJECT-GROUP
+    OBJECTS {
+      acdRDevSecurityKeyMgmtBackupPeriod,
+      acdRDevSecurityKeyMgmtServerURL,
+      acdRDevSecurityKeyMgmtSCPPassword
+    }
+    STATUS      current
+    DESCRIPTION
+       "."
+    ::= { acdRDevGroups 2 }
+
+acdRDevDiscoveryCfgGroup OBJECT-GROUP
+    OBJECTS {
+       acdRDevDiscoveryCfgRowStatus,
+       acdRDevDiscoveryCfgName,
+       acdRDevDiscoveryCfgEnable,
+       acdRDevDiscoveryCfgMethod,
+       acdRDevDiscoveryCfgRate,
+       acdRDevDiscoveryCfgInterface,
+       acdRDevDiscoveryCfgHopLimit,
+       acdRDevDiscoveryCfgTimeout,
+       acdRDevDiscoveryCfgDestinationIP,
+       acdRDevDiscoveryCfgIPType,
+       acdRDevDiscoveryCfgSerialNumber,
+       acdRDevDiscoveryCfgSubnet
+    }
+    STATUS      current
+    DESCRIPTION
+       "."
+    ::= { acdRDevGroups 3 }
+
+acdRDevCompliance MODULE-COMPLIANCE
+    STATUS      current
+    DESCRIPTION
+       "The compliance statement for support of the ACD-PORT-MIB module."
+    MODULE
+        MANDATORY-GROUPS {
+            acdRDevConfigGroup,
+            acdRDevSecurityKeyMgmtGroup,
+            acdRDevDiscoveryCfgGroup
+         }
+
+    ::= { acdRDevCompliances 1 }
+
+END

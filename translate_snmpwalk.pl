@@ -16,6 +16,8 @@
 #
 
 use strict;
+# flush stdout as you print.
+$| = 1;
 
 # change this if you don't store the file here.
 my $oidfile = "/usr/local/mibs/mibs.oid";
@@ -25,7 +27,7 @@ my $snmpV2Prefix = "1.3.6.1.6";
 my $iso8802 = "1.0.8802";
 my $iso840 = "1.2.840";
 
-my $needsTranslate = qr/(SNMPv2-SMI::enterprises.\d+|DPS-MIB-V38::dpsAlarmControl.\d+|SNMPv2-SMI::mib-2.\d+|SNMPv2-SMI::snmpModules.\d+)/;
+my $needsTranslate = qr/(SNMPv2-SMI::enterprises.\d+|DPS-MIB-V38::dpsAlarmControl.\d+|SNMPv2-SMI::mib-2.\d+|SNMPv2-SMI::snmpModules.\d+|RMON-MIB::history.\d+|SNMPv2-SMI::org.\d+)/;
 
 &main;
 
@@ -119,12 +121,21 @@ sub main {
 				$_ =~ s/SNMPv2-SMI::snmpModules/1.3.6.1.6.3/g;
 				$oid =~ s/SNMPv2-SMI::snmpModules/1.3.6.1.6.3/g;
 
+				$_ =~ s/RMON-MIB::history/1.3.6.1.2.1.16.2/g;
+				$oid =~ s/RMON-MIB::history/1.3.6.1.2.1.16.2/g;
+
+				$_ =~ s/SNMPv2-SMI::org/1.3/g;
+				$oid =~ s/SNMPv2-SMI::org/1.3/g;
+
+				
+				
+
 				# the oid finishes in something other than 0, probably a simple table index.
-				if ( $oid =~ /\.\d+$/ ) {
-					$oid =~ s/\.\d+$//;
-					if ( defined $mibs->{$oid} and $mibs->{$oid} ne "" ) {
-					}
-				}
+				#if ( $oid =~ /\.\d+$/ ) {
+				#	$oid =~ s/\.\d+$//;
+				#	if ( defined $mibs->{$oid} and $mibs->{$oid} ne "" ) {
+				#	}
+				#}
 
 				# so the oid must end in a complicated index, e.g. 
 				# 1.3.6.1.4.1.3375.2.2.14.6.3.1.30.16.47.67.111.109.109.111.110.47.76.83.78.95.80.111.111.108
