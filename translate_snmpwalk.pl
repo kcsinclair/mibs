@@ -26,6 +26,7 @@ my $stardardPrefix = "1.3.6.1.2";
 my $snmpV2Prefix = "1.3.6.1.6";
 my $iso8802 = "1.0.8802";
 my $iso840 = "1.2.840";
+my $iso111 = "1.3.111";
 
 my $needsTranslate = qr/(SNMPv2-SMI::enterprises.\d+|DPS-MIB-V38::dpsAlarmControl.\d+|SNMPv2-SMI::mib-2.\d+|SNMPv2-SMI::snmpModules.\d+|RMON-MIB::history.\d+|SNMPv2-SMI::org.\d+)/;
 
@@ -162,7 +163,7 @@ sub main {
 					print "NEEDS TRANSLATE: $_\n";
 				}
 			}
-	        elsif ( $oid =~ /$stardardPrefix|$snmpV2Prefix|$enterprisePrefix|$iso8802|$iso840/ ) {
+	        elsif ( $oid =~ /$stardardPrefix|$snmpV2Prefix|$enterprisePrefix|$iso8802|$iso840|$iso111/ ) {
 	        	# remove the leading . from the oid
 	        	$oid =~ s/^\.//;
 				my $oidTranslated = 0;
