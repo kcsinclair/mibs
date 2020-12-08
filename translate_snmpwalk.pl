@@ -148,7 +148,23 @@ sub main {
 						$oid = shortenOid($oid);
 						if ( defined $mibs->{$oid} and $mibs->{$oid} ne "" ) {
 							$oidTranslated = 1;
-							$_ =~ s/$oid/$mibs->{$oid} \($rawoid\)/;
+
+							# remove the oid from the index.
+							my $index = $rawoid;
+							$index =~ s/$oid//;
+
+							# remove the index from the oid.
+							my $noindex = $rawoid;
+							$noindex =~ s/$index$//;
+
+							$_ =~ s/$oid/$mibs->{$oid} \($noindex\) $index/;
+
+							$noindex =~ s/^\.//;
+							$noindex =~ s/\.$//;
+							$index =~ s/^\.//;
+							$_ = "$mibs->{$oid} ($noindex)$index = $rest";
+							# remove the leading . from the line.
+							$_ =~ s/^\.//;
 							last;
 						}
 					}
@@ -171,7 +187,21 @@ sub main {
 					$oid = shortenOid($oid);
 					if ( defined $mibs->{$oid} and $mibs->{$oid} ne "" ) {
 						$oidTranslated = 1;
-						$_ =~ s/$oid/$mibs->{$oid} $rawoid/;
+
+						# remove the oid from the index.
+						my $index = $rawoid;
+						$index =~ s/$oid//;
+
+						# remove the index from the oid.
+						my $noindex = $rawoid;
+						$noindex =~ s/$index$//;
+
+						$_ =~ s/$oid/$mibs->{$oid} \($noindex\) $index/;
+
+						$noindex =~ s/^\.//;
+						$noindex =~ s/\.$//;
+						$index =~ s/^\.//;
+						$_ = "$mibs->{$oid} ($noindex)$index = $rest";
 						# remove the leading . from the line.
 						$_ =~ s/^\.//;
 						last;
