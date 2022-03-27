@@ -1,0 +1,1919 @@
+-- orig IMA_MIB
+
+IMA-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+  	ifIndex 
+    	  FROM IF-MIB
+   	enterprises 
+    	  FROM RFC1155-SMI
+   	OBJECT-TYPE
+    	  FROM RFC-1212
+   	DateAndTime, RowStatus
+    	  FROM SNMPv2-TC;
+
+   atmForum OBJECT IDENTIFIER ::= { enterprises 353 }
+   atmFNM OBJECT IDENTIFIER ::= { atmForum 12 }
+
+   atmfImaMib OBJECT IDENTIFIER ::= { atmFNM 1 }
+
+   atmfImaMibObjects OBJECT IDENTIFIER ::= { atmfImaMib 1}
+
+IfIndex ::= INTEGER (-2147483648..2147483647)
+
+MilliSeconds ::= INTEGER (0..2147483647)
+
+ImaGroupState ::= INTEGER {
+        notConfigured(1), 
+        startUp(2), 
+        startUpAck(3), 
+        configAbortUnsupportedM(4), 
+        configAbortIncompatibleSymmetry(5),
+        configAbortOther(6),
+        insufficientLinks(7), 
+        blocked(8), 
+        operational(9)}
+
+ImaGroupFailureStatus ::= INTEGER { 
+        noFailure(1), 
+        startUpNe(2),
+        startUpFe(3), 
+        invalidMValueNe(4),
+        invalidMValueFe(5),
+        failedAssymetricNe(6),
+        failedAssymetricFe(7),
+        insufficientLinksNe(8),
+        insufficientLinksFe(9),
+        blockedNe(10),
+        blockedFe(11),
+        otherFailure(12)} 
+
+ImaAlarmStatus ::= INTEGER { 
+        cleared(1),
+        declared(2)}
+
+ImaAlarmType ::= INTEGER { 
+        imaAlarmLinkLif(1),
+        imaAlarmLinkLods(2),
+        imaAlarmLinkTxMisConnect(3),
+        imaAlarmLinkRfi(4),
+        imaAlarmLinkFault(5),
+        imaAlarmLinkTxUnusableFe(6),
+        imaAlarmLinkRxUnusableFe(7),
+        imaAlarmGroupStartupFe(8),
+        imaAlarmGroupCfgAbort(9),
+        imaAlarmGroupCfgAbortFe(10),
+        imaAlarmGroupInsuffLinks(11),
+        imaAlarmGroupInsuffLinksFe(12),
+        imaAlarmGroupBlockedFe(13),
+        imaAlarmGroupTimingSynch(14)} 
+
+ImaGroupTxClkMode  ::= INTEGER {
+        ctc(1),
+        itc(2)}
+
+ImaGroupSymmetry ::= INTEGER { 
+        symmetricOperation(1),
+        asymmetricOperation(2),
+        asymmetricConfiguration(3)}
+
+ImaFrameLength ::= INTEGER {
+        m32(32),
+        m64(64),
+        m128(128),
+        m256(256)}
+
+ImaLinkState ::= INTEGER {
+        notInGroup(1), 
+        unusableNoGivenReason(2), 
+        unusableFault(3), 
+        unusableMisconnected(4), 
+        unusableBlocked(5), 
+        unusableFailed(6), 
+        usable(7), 
+        active(8)}
+
+ImaLinkFailureStatus ::= INTEGER {
+        noFailure(1), 
+        imaLinkFailure(2), 
+        lifFailure(3),
+        lodsFailure(4),
+        misConnected(5),
+        blocked(6),
+        fault(7),
+        farEndTxLinkUnusable(8),
+        farEndRxLinkUnusable(9)}
+
+ImaTestProcStatus ::= INTEGER {
+        disabled(1),
+        operating(2),
+        linkFail(3)}
+
+imaGroupNumber    OBJECT-TYPE   
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The number of IMA groups configured on this system. 
+ALCATEL NOTE: This is the number of 'provisioned' IMA Groups,
+        i.e. those with row-status of 'active'."
+      ::= { atmfImaMibObjects 1}
+
+imaGroupTable     OBJECT-TYPE
+      SYNTAX      SEQUENCE OF ImaGroupEntry
+      ACCESS      not-accessible
+      STATUS      mandatory
+      DESCRIPTION
+        "The IMA Group Configuration table."
+      ::= { atmfImaMibObjects 2 }
+
+imaGroupEntry     OBJECT-TYPE
+      SYNTAX      ImaGroupEntry
+      ACCESS      not-accessible
+      STATUS      mandatory
+      DESCRIPTION
+        "An entry in the IMA Group table.
+ALCATEL NOTE: In ASAM, entries are 
+automatically created by the agent for all possible IMA
+Groups in the system.  The 'imaGroupRowStatus' is set
+to 'notInService'.  In order to provision a specific
+IMA Group, the manager must set the 'imaGroupRowStatus'
+to 'active'."
+      INDEX       { imaGroupIndex }
+      ::= { imaGroupTable 1 }
+
+ImaGroupEntry ::= SEQUENCE {
+      imaGroupIndex               INTEGER,
+      imaGroupRowStatus           RowStatus,
+      imaGroupIfIndex             IfIndex,
+      imaGroupNeState             ImaGroupState,
+      imaGroupFeState             ImaGroupState,
+      imaGroupFailureStatus       ImaGroupFailureStatus,
+      imaGroupSymmetry            ImaGroupSymmetry,
+      imaGroupMinNumTxLinks       INTEGER (1..32),
+      imaGroupMinNumRxLinks       INTEGER (1..32),
+      imaGroupNeTxClkMode         ImaGroupTxClkMode,
+      imaGroupFeTxClkMode         ImaGroupTxClkMode,
+      imaGroupTxTimingRefLink     IfIndex,
+      imaGroupRxTimingRefLink     IfIndex,
+      imaGroupLastChange          DateAndTime,
+      imaGroupTxImaId             INTEGER (0..255),
+      imaGroupRxImaId             INTEGER (0..255),
+      imaGroupTxFrameLength       ImaFrameLength,
+      imaGroupRxFrameLength       ImaFrameLength,
+      imaGroupDiffDelayMax        MilliSeconds,
+      imaGroupLeastDelayLink      IfIndex,
+      imaGroupDiffDelayMaxObs     MilliSeconds,
+      imaGroupAlphaValue          INTEGER (1..2),
+      imaGroupBetaValue           INTEGER (1..5),
+      imaGroupGammaValue          INTEGER (1..5),
+      imaGroupRunningSecs         INTEGER,
+      imaGroupUnavailSecs         INTEGER,
+      imaGroupNeNumFailures       INTEGER,
+      imaGroupFeNumFailures       INTEGER,
+      imaGroupTxAvailCellRate     INTEGER,
+      imaGroupRxAvailCellRate     INTEGER,
+      imaGroupNumTxCfgLnks        INTEGER,
+      imaGroupNumRxCfgLnks        INTEGER,
+      imaGroupNumTxActLnks        INTEGER,
+      imaGroupNumRxActLnks        INTEGER,
+      imaGroupTestLinkIfIndex     IfIndex,
+      imaGroupTestPattern         INTEGER,
+      imaGroupTestProcStatus      ImaTestProcStatus }
+
+imaGroupIndex     OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "A unique value for the IMA Group. 
+ALCATEL NOTE: The value is same as 'imaGroupIfIndex'."
+      ::= { imaGroupEntry 1 }
+      
+imaGroupRowStatus OBJECT-TYPE
+      SYNTAX      RowStatus
+      ACCESS      read-write
+      STATUS      mandatory
+      DESCRIPTION
+        "The imaGroupRowStatus object allows create and delete operations 
+on imaGroupTable entries.
+To create a new conceptual row (or instance) of the
+imaGroupTable, imaGroupRowStatus must be set to'createAndWait' or
+        'createAndGo.'  A successful set of the following objects must be
+performed before the row can transition to 'Active' state:
+          imaGroupTxImaId
+          imaGroupTxFrameLength
+          imaGroupMinNumTxLinks and
+          imaGroupMinNumRxLinks 
+
+        	To change (modify) an imaGroupTable entry, the imaGroupRowStatus 
+object must be set to 'notInService'. Only then can the
+conceptual row be changed. 
+
+        	To remove (delete) an imaGroupTable entry from this table, set
+        	imaGroupRowStatus to 'destroy.'
+
+        	Setting the imaGroupRowStatus to 'Active' has the effect of
+activating the Group Startup Procedure.  The Group Startup Procedure
+        	uses provisioned links that have imaLinkRowStatus set to
+'Active' an imaLinkGroupIndex set the imaGroupIndex in this conceptual row.
+
+        	When the imaGroupRowStatus is not in 'Active' state, the Group State
+        	machine is in its 'Not Configured' state.
+
+        	ALCATEL NOTE: In ASAM, entries are automatically created 
+        	by the agent for all possible IMA Groups in the system.  The 
+        'imaGroupRowStatus' is set to 'notInService'.  In order to provision a 
+        specific IMA Group, the manager must set the 'imaGroupRowStatus'
+        to 'active'.  Entries may not be created or deleted.  Entries may be 
+        un-provisioned by setting the 'imaGroupRowStatus' to 'notInService'.
+        Configuration changes made to an un-provisioned entry are not saved
+        persistently (ie: restart will reset data to default values) until the 
+        row is 'activated'.  Un-provisioning an 'active' entry will also reset 
+        all configuration to its default values. An IMA Group with existing
+        ATM connections (VPL/VCL) or existing Links may not be un-provisioned."
+      ::= { imaGroupEntry 2 }
+
+imaGroupIfIndex   OBJECT-TYPE
+      SYNTAX      IfIndex
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "This object identifies the logical interface number
+        ('ifIndex') assigned to this IMA group, and is used to identify
+        corresponding rows in the Interfaces MIB.
+
+        Note that re-initialization of the management agent may cause
+        a client's 'imaGroupIfIndex' to change."
+      ::= { imaGroupEntry 3 }
+
+imaGroupNeState     OBJECT-TYPE
+      SYNTAX      ImaGroupState
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The mandatory operational state of the near-end IMA 
+        Group State Machine."
+      ::= { imaGroupEntry 4 }
+
+imaGroupFeState     OBJECT-TYPE
+      SYNTAX      ImaGroupState
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The mandatory operational state of the far-end IMA 
+        Group State Machine."
+      ::= { imaGroupEntry 5 }
+
+imaGroupFailureStatus       OBJECT-TYPE
+      SYNTAX      ImaGroupFailureStatus
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+       "The mandatory failure status of the IMA group (the reason why
+        the GTSM is in the down state."
+      ::= { imaGroupEntry 6 }   
+
+imaGroupSymmetry  OBJECT-TYPE
+      SYNTAX      ImaGroupSymmetry
+      ACCESS      read-write
+      STATUS      mandatory
+      DESCRIPTION
+        "Symmetry of the IMA group.
+
+        ALCATEL NOTE: Only 'symmetricOperation' option is supported."
+      DEFVAL { symmetricOperation }
+      ::= { imaGroupEntry 7 }
+
+imaGroupMinNumTxLinks       OBJECT-TYPE
+      SYNTAX      INTEGER (1..32)
+      ACCESS      read-write
+      STATUS      mandatory
+      DESCRIPTION
+       "Minimum number of transmit links required to be Active for 
+        the IMA group to be in the Up state."
+      ::= { imaGroupEntry 8 }
+
+imaGroupMinNumRxLinks       OBJECT-TYPE
+      SYNTAX      INTEGER (1..32)
+      ACCESS      read-write
+      STATUS      mandatory
+      DESCRIPTION
+        "Minimum number of receive links required to be Active for 
+        the IMA group to be in the Up state."
+      ::= { imaGroupEntry 9 }
+
+imaGroupNeTxClkMode         OBJECT-TYPE
+      SYNTAX      ImaGroupTxClkMode
+      ACCESS      read-write
+      STATUS      mandatory
+      DESCRIPTION
+        "Transmit clocking mode used by the near-end IMA group.
+
+        ALCATEL NOTE: Only 'ctc' mode is supported."
+      DEFVAL { ctc }
+      ::= { imaGroupEntry 10 }
+
+imaGroupFeTxClkMode         OBJECT-TYPE
+      SYNTAX      ImaGroupTxClkMode 
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "Transmit clocking mode used by the far-end IMA group."
+      ::= { imaGroupEntry 11 }
+
+imaGroupTxTimingRefLink     OBJECT-TYPE
+      SYNTAX      IfIndex
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The ifIndex of the transmit timing reference link to 
+        be used by the near-end for IMA data cell clock recovery from
+        the ATM layer.
+
+        ALCATEL NOTE: If no links are provisioned, this object is not
+        valid."
+      ::= { imaGroupEntry 12 }
+
+imaGroupRxTimingRefLink    OBJECT-TYPE
+      SYNTAX      IfIndex
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+         "The ifIndex of the receive timing reference link to be
+         used by near-end for IMA data cell clock recovery toward 
+         the ATM layer.
+
+         ALCATEL NOTE: If no links are provisioned, this object is not
+         valid."
+      ::= { imaGroupEntry 13 }   
+
+imaGroupLastChange OBJECT-TYPE
+      SYNTAX      DateAndTime
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The time-of-day the IMA group last changed operational 
+        state (i.e., value of imaNeGroupState changed)."
+      ::= { imaGroupEntry 14 }
+
+imaGroupTxImaId OBJECT-TYPE
+      SYNTAX      INTEGER (0..255)
+      ACCESS      read-write
+      STATUS      mandatory
+      DESCRIPTION
+        "The IMA ID mandatoryly in use by the near-end IMA function."
+      ::= { imaGroupEntry 15 }
+
+imaGroupRxImaId OBJECT-TYPE
+      SYNTAX      INTEGER (0..255)
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The IMA ID mandatoryly in use by the far-end IMA function."
+      ::= { imaGroupEntry 16 }
+
+imaGroupTxFrameLength    OBJECT-TYPE
+      SYNTAX      ImaFrameLength
+      ACCESS      read-write
+      STATUS      mandatory
+      DESCRIPTION
+        "The frame length to be used by the IMA group in the transmit
+        direction. Can only be set when the IMA group is startup.
+
+        ALCATEL NOTE: IMA Groups in ASAM only support the
+        default m128 option."
+      DEFVAL { m128 }
+      ::= { imaGroupEntry 17 }
+
+imaGroupRxFrameLength OBJECT-TYPE
+      SYNTAX      ImaFrameLength
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "Value of IMA frame length as received from remote IMA function."
+      ::= { imaGroupEntry 18 }
+
+imaGroupDiffDelayMax OBJECT-TYPE
+      SYNTAX      MilliSeconds
+      ACCESS      read-write
+      STATUS      mandatory
+      DESCRIPTION
+        "The maximum number of milliseconds of delay differential among
+        the links that will be tolerated on this interface.
+
+        ALCATEL NOTE: IMA Groups in ASAM only support the
+        default 25 ms option."
+      DEFVAL { 25 }
+      ::= { imaGroupEntry 19 }
+
+imaGroupLeastDelayLink OBJECT-TYPE
+      SYNTAX      IfIndex
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The ifIndex of the link configured in the IMA 
+        group which has the smallest link propagation delay. This 
+        value has meaning only if at least 1 link has been configured
+        in the IMA group.
+
+         ALCATEL NOTE: If no links are provisioned, this object is not
+         valid."
+      ::= { imaGroupEntry 20 }
+      
+imaGroupDiffDelayMaxObs OBJECT-TYPE
+      SYNTAX      MilliSeconds
+      ACCESS      read-only 
+      STATUS      mandatory
+      DESCRIPTION
+        "The latest maximum differential delay observed (in 
+        milliseconds), i.e. between the links having the least and 
+        most link propagation delay, among the receive links that 
+        are mandatoryly configured in the IMA group."
+      ::= { imaGroupEntry 21 }
+
+imaGroupAlphaValue OBJECT-TYPE
+      SYNTAX      INTEGER (1..2)
+      ACCESS      read-write
+      STATUS      mandatory
+      DESCRIPTION
+        "This indicates the 'alpha' value used to specify the 
+        number of consecutive invalid ICP cells to be detected 
+        before moving to the IMA HUNT state.
+
+        ALCATEL NOTE: IMA Groups in ASAM only support the
+        default value of 2."
+      DEFVAL { 2 }
+      ::= { imaGroupEntry 22 }
+
+imaGroupBetaValue OBJECT-TYPE
+      SYNTAX      INTEGER (1..5)
+      ACCESS      read-write
+      STATUS      mandatory
+      DESCRIPTION
+        "This indicates the 'beta' value used to specify the 
+        number of consecutive errored ICP cells to be detected 
+        before moving to the IMA HUNT state.
+
+        ALCATEL NOTE: IMA Groups in ASAM only support the
+        default value of 2."
+      DEFVAL { 2 }
+      ::= { imaGroupEntry 23 }
+
+imaGroupGammaValue OBJECT-TYPE
+      SYNTAX      INTEGER (1..5)
+      ACCESS      read-write
+      STATUS      mandatory
+      DESCRIPTION
+        "This indicates the 'gamma' value used to specify the 
+        number of consecutive valid ICP cells to be detected before 
+        moving to the IMA SYNC state from the PRESYNC state.
+
+        ALCATEL NOTE: IMA Groups in ASAM only support the
+        default value of 1."
+      DEFVAL { 1 }
+      ::= { imaGroupEntry 24 }
+
+imaGroupRunningSecs OBJECT-TYPE
+      SYNTAX      INTEGER 
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The amount of time (in seconds) since this IMA group has 
+        been in operation (up or down)."
+      ::= { imaGroupEntry 25 }
+      
+imaGroupUnavailSecs OBJECT-TYPE
+      SYNTAX      INTEGER 
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "Count of one second intervals where the IMA Group Traffic 
+        State Machine is Down."
+      ::= { imaGroupEntry 26 }
+
+imaGroupNeNumFailures OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The number of times a near-end group failure (Config-Abort, 
+        Insufficient-Links) has been reported since power-up or reboot."
+      ::= { imaGroupEntry 27 }
+
+imaGroupFeNumFailures OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The number of times a far-end group failure(Config-Abort-FE, 
+        Insufficient-Links-FE, Blocked-FE) has been reported since 
+        power-up or reboot. This is an optional attribute."
+      ::= { imaGroupEntry 28 }
+
+imaGroupTxAvailCellRate OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The mandatory cell rate (truncated value in cells per second)
+        provided by this IMA group in the transmit direction, 
+        considering all the transmit links in the Active state."
+      ::= { imaGroupEntry 29 }
+
+imaGroupRxAvailCellRate OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The mandatory cell rate (truncated value in cells per second) 
+        provided by this IMA group in the receive direction, 
+        considering all the receive links in the Active state."
+      ::= { imaGroupEntry 30 }
+
+imaGroupNumTxCfgLnks  OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The number of links that are configured to transmit in this IMA
+        group."
+      ::= { imaGroupEntry 31 }
+
+imaGroupNumRxCfgLnks  OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The number of links that are configured to receive in this IMA
+        group."
+      ::= { imaGroupEntry 32 }
+
+imaGroupNumTxActLnks  OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The number of links which are configured to transmit and are
+        mandatoryly Active in this IMA group."
+      ::= { imaGroupEntry 33 }
+ 
+imaGroupNumRxActLnks  OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The number of links which are configured to receive and are
+        mandatoryly Active in this IMA group."
+      ::= { imaGroupEntry 34 }
+
+imaGroupTestLinkIfIndex  OBJECT-TYPE
+      SYNTAX      IfIndex
+      ACCESS      read-write
+      STATUS      mandatory
+      DESCRIPTION
+        "This object is used to designate an interface as the Test Link.
+        A default value of -1 specifies that the implementation may choose the
+        Test Link. In this case, the implementation may also choose the
+        value of 'imaGroupTestPattern'."
+     
+      ::= { imaGroupEntry 35 }
+ 
+imaGroupTestPattern  OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-write
+      STATUS      mandatory
+      DESCRIPTION
+        "The value of this object is used to specify the test pattern
+        in an IMA group loopback operation. A value in the range 0 to
+        255 designates a specific pattern. A value of -1 specifies
+        that the implementation may choose the value. In this case,
+        the implementation may also choose the value of
+        'imaGroupTestLinkIfIndex'."
+      DEFVAL { -1 }
+      ::= { imaGroupEntry 36 }
+
+imaGroupTestProcStatus OBJECT-TYPE
+      SYNTAX      ImaTestProcStatus
+      ACCESS      read-write
+      STATUS      mandatory
+      DESCRIPTION
+        "This object is used to enable or disable the
+        Test Pattern Procedure, and to note whether at least one
+        link failed the test.
+
+        The test is started by setting operating(2) status. If any
+        link should fail the test, the IMA will set the status to
+        linkfail(3). The linkfail(3) state will persist until
+        either the disabled(1) state is set or until no instance
+        of imaLinkTestProcStatus has the value linkfail(3).
+
+        Only the values disabled(1) and operating(2) may be written.
+        Writing the operating(2) value will not cause clearing of
+        the linkfail(3) state."
+      DEFVAL { disabled }
+      ::= { imaGroupEntry 37 }
+ 
+imaGroupMappingTable OBJECT-TYPE
+      SYNTAX      SEQUENCE OF ImaGroupMappingEntry
+      ACCESS      not-accessible
+      STATUS      mandatory   
+      DESCRIPTION
+        "A table mapping the 'ifIndex' values of 'imaGroupIfIndex'
+        to the 'imaGroupIndex' values of the corresponding
+        IMA group."
+      ::= { atmfImaMibObjects 3 } 
+
+imaGroupMappingEntry OBJECT-TYPE
+      SYNTAX      ImaGroupMappingEntry
+      ACCESS      not-accessible
+      STATUS      mandatory   
+      DESCRIPTION
+        "Each row describes one ifIndex --> imaGroupIndex mapping."
+      INDEX { ifIndex }
+      ::= { imaGroupMappingTable 1 }
+ 
+ImaGroupMappingEntry ::=
+      SEQUENCE {
+         imaGroupMappingIndex    INTEGER
+      }
+
+imaGroupMappingIndex OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The imaGroupIndex of the IMA Group which implements the
+        specified interface."
+      ::= { imaGroupMappingEntry 1 }
+
+imaLinkTable      OBJECT-TYPE
+      SYNTAX      SEQUENCE OF ImaLinkEntry
+      ACCESS      not-accessible
+      STATUS      mandatory
+      DESCRIPTION
+        "The IMA group Link Status and Configuration table."
+      ::= { atmfImaMibObjects 4 }
+
+imaLinkEntry      OBJECT-TYPE
+      SYNTAX      ImaLinkEntry
+      ACCESS      not-accessible
+      STATUS      mandatory
+      DESCRIPTION
+        "An entry in the IMA Group Link table.
+
+        ALCATEL NOTE: In the A1000 ADSL system, only DS1/E1
+        interfaces that have 'asamDsx1E1LineMode' set to 
+        'imaLink(2)' and activated may be added as links."
+      INDEX   { imaLinkIfIndex }
+      ::= { imaLinkTable 1 }
+
+ImaLinkEntry ::=       SEQUENCE {
+      imaLinkIfIndex              INTEGER,
+      imaLinkRowStatus            RowStatus,
+      imaLinkGroupIndex           INTEGER,
+      imaLinkNeTxState            ImaLinkState,
+      imaLinkNeRxState            ImaLinkState,
+      imaLinkFeTxState            ImaLinkState,
+      imaLinkFeRxState            ImaLinkState,
+      imaLinkNeRxFailureStatus    ImaLinkFailureStatus,
+      imaLinkFeRxFailureStatus    ImaLinkFailureStatus,
+      imaLinkTxLid                INTEGER (0..31),
+      imaLinkRxLid                INTEGER (0..31),
+      imaLinkRelDelay             MilliSeconds,
+      imaLinkImaViolations        INTEGER,
+      imaLinkOifAnomalies         INTEGER,
+      imaLinkNeSevErroredSec      INTEGER,
+      imaLinkFeSevErroredSec      INTEGER,
+      imaLinkNeUnavailSec         INTEGER,
+      imaLinkFeUnavailSec         INTEGER,
+      imaLinkNeTxUnusableSec      INTEGER,
+      imaLinkNeRxUnusableSec      INTEGER,
+      imaLinkFeTxUnusableSec      INTEGER,
+      imaLinkFeRxUnusableSec      INTEGER,
+      imaLinkNeTxNumFailures      INTEGER,
+      imaLinkNeRxNumFailures      INTEGER,
+      imaLinkFeTxNumFailures      INTEGER,
+      imaLinkFeRxNumFailures      INTEGER,
+      imaLinkTxStuffs             INTEGER,
+      imaLinkRxStuffs             INTEGER,
+      imaLinkRxTestPattern        INTEGER (0..255),
+      imaLinkTestProcStatus       ImaTestProcStatus }
+
+imaLinkIfIndex    OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "This corresponds to the 'ifIndex' of the MIB-II interface 
+        on which this link is established. This object also
+        corresponds to the logical number ('ifIndex') assigned to 
+        this IMA link."
+      ::= { imaLinkEntry 1 }
+
+imaLinkRowStatus OBJECT-TYPE
+      SYNTAX      RowStatus
+      ACCESS      read-write 
+      STATUS      mandatory
+      DESCRIPTION
+        "The imaLinkRowStatus object allows create, change and delete
+        operations on imaLinkTable entries.  
+       
+        To create a new conceptual row (or instance) of the imaLinkTable,
+        imaLinkRowStatus must be set to 'createAndWait' or 'createAndGo.'
+        A successful set of the object imaLinkGroupIndex must be 
+        performed before the RowStatus of this new row can transition
+        to the 'Active' state. The imaLinkGroupIndex provides the 
+        association between a physical IMA link to an IMA group.
+
+        To change (modify) an imaLinkTable entry, the imaLinkRowStatus 
+        object must be set to 'notInService'. Only then can the
+        conceptual row be changed. Setting object imaLinkGroupIndex to 
+        a different value has the effect of changing the association 
+        between a physical IMA link and an IMA group. To place the 
+        link 'in group', the imaLinkRowStatus object is set to 'Active'. 
+        While the row is not in 'Active' state, both the Transmit and
+        Receive IMA state machines are in the 'Not In Group' state.
+
+        To remove (delete) an imaLinkTable entry from this table, set
+        this object to 'destroy.'
+
+        A network manager may elect to perform a delete operation 
+        followed immediately by a create operation instead of a 
+        modify operation. The net effect of the delete/create is to 
+        re-instantiate (reset) agent counters defined in this table.
+
+        ALCATEL NOTE: The ASAM only supports 'createAndGo' 
+        and 'destroy' operations on this object."
+      ::= { imaLinkEntry 2 }
+
+imaLinkGroupIndex OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-write 
+      STATUS      mandatory
+      DESCRIPTION
+        "The value which identifies the IMA group (imaGroupIndex) 
+        of which this link is a member.
+
+        ALCATEL NOTE: This object may only be set during row-creation."
+      ::= { imaLinkEntry 3 }
+
+imaLinkNeTxState  OBJECT-TYPE
+      SYNTAX      ImaLinkState 
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The mandatory state of the near-end transmit link."
+      ::= { imaLinkEntry 4 }
+
+imaLinkNeRxState  OBJECT-TYPE
+      SYNTAX      ImaLinkState 
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The mandatory state of the near-end receive link."
+      ::= { imaLinkEntry 5 }
+
+imaLinkFeTxState  OBJECT-TYPE
+      SYNTAX      ImaLinkState 
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The mandatory state of the far-end transmit link as reported
+        via ICP cells."
+      ::= { imaLinkEntry 6 }
+
+imaLinkFeRxState  OBJECT-TYPE
+      SYNTAX      ImaLinkState 
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The mandatory state of the far-end receive link as reported
+        via ICP cells."
+      ::= { imaLinkEntry 7 }
+
+imaLinkNeRxFailureStatus       OBJECT-TYPE
+      SYNTAX      ImaLinkFailureStatus
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The mandatory link failure status of the near-end receive link."
+      ::= { imaLinkEntry 8 }
+
+imaLinkFeRxFailureStatus       OBJECT-TYPE
+      SYNTAX      ImaLinkFailureStatus
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The mandatory link failure status of the far-end receive link 
+        as reported via ICP cells."
+      ::= { imaLinkEntry 9 }
+
+imaLinkTxLid      OBJECT-TYPE
+      SYNTAX      INTEGER (0..31)
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The outgoing LID used mandatoryly on the link by the local end.
+        This value has meaning only if the link belongs to an IMA group."
+      ::= { imaLinkEntry 10 }
+
+imaLinkRxLid      OBJECT-TYPE
+      SYNTAX      INTEGER (0..31)
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The incoming LID used mandatoryly on the link by the remote 
+        end as reported via ICP cells. This value has meaning only 
+        if the link belongs to an IMA group."
+      ::= { imaLinkEntry 11 }
+
+imaLinkRelDelay   OBJECT-TYPE
+      SYNTAX      MilliSeconds
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The latest measured delay on this link relative to the link, in 
+        the same IMA group, with the least delay."
+      ::= { imaLinkEntry 12 }
+
+imaLinkImaViolations       OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "ICP violations: count of errored, invalid or missing ICP 
+        cells during non-SES-IMA condition."
+      ::= { imaLinkEntry 13 }
+
+imaLinkOifAnomalies        OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The number of OIF anomalies during non-SES-IMA condition at the 
+        near-end. This is an optional attribute."
+      ::= { imaLinkEntry 14 }
+ 
+imaLinkNeSevErroredSec       OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "Count of one second intervals containing several IV-IMA, or 
+        one or more link defects (e.g., LOS, OOF/LOF, AIS, LCD), LIF, LODS 
+        defects during non-UAS-IMA condition."
+      ::= { imaLinkEntry 15 }
+
+imaLinkFeSevErroredSec       OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "Count of one second intervals containing one or more 
+        RDI-IMA defects."
+      ::= { imaLinkEntry 16 }
+
+imaLinkNeUnavailSec       OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "Count of unavailable seconds at near-end: unavailability begins 
+        at the onset of 10 contiguous SES-IMA and ends at the onset 
+        of 10 contiguous seconds with no SES-IMA."
+      ::= { imaLinkEntry 17 }
+
+imaLinkFeUnavailSec       OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "Count of unavailable seconds at far-end: unavailability begins 
+        at the onset of 10 contiguous SES-IMA-FE and ends at the onset of 
+        10 contiguous seconds with no SES-IMA-FE."
+      ::= { imaLinkEntry 18 }
+
+imaLinkNeTxUnusableSec     OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "Tx Unusable seconds: count of Unusable seconds at the near 
+        end Tx LSM."
+      ::= { imaLinkEntry 19 }
+
+imaLinkNeRxUnusableSec     OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "Rx Unusable seconds: count of Unusable seconds at the near 
+        end Rx LSM."
+      ::= { imaLinkEntry 20 }
+
+imaLinkFeTxUnusableSec     OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "Tx Unusable seconds at far-end: count of seconds with Unusable 
+        indications from the far-end Tx LSM."
+      ::= { imaLinkEntry 21 }
+
+imaLinkFeRxUnusableSec     OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "Rx Unusable seconds at far-end: count of seconds with Unusable 
+        indications from the far-end Rx LSM."
+      ::= { imaLinkEntry 22 }
+
+imaLinkNeTxNumFailures       OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The number of times a near-end transmit failure alarm condition 
+        has been entered on this link."
+      ::= { imaLinkEntry 23 }
+
+imaLinkNeRxNumFailures       OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The number of times a near-end receive failure alarm condition 
+        has been entered on this link (i.e., LIF, LODS, Mis-Connected, 
+        RDI-IMA)."
+      ::= { imaLinkEntry 24 }
+
+imaLinkFeTxNumFailures       OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The number of times a far-end transmit failure alarm condition 
+        has been entered on this link. This is an optional attribute."
+      ::= { imaLinkEntry 25 }
+
+imaLinkFeRxNumFailures       OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "The number of times a far-end receive failure alarm condition 
+        has been entered on this link (i.e., LIF, LODS, Mis-Connected, RDI-IMA).
+        This is an optional attribute."
+      ::= { imaLinkEntry 26 }
+
+imaLinkTxStuffs  OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+       "Counts of stuff events inserted in the transmit direction.
+       This is an optional attribute."
+      ::= { imaLinkEntry 27 }
+
+imaLinkRxStuffs  OBJECT-TYPE
+      SYNTAX      INTEGER
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "Counts of stuff events detected in the receive direction.
+        This is an optional attribute."
+      ::= { imaLinkEntry 28 }
+
+imaLinkRxTestPattern  OBJECT-TYPE
+      SYNTAX      INTEGER (0..255)
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "This object identifies the test pattern received in the
+        ICP Cell (octet 17) on the link during the IMA Test Pattern
+        Procedure. This value may then be compared to the transmitted
+        test pattern."
+      ::= { imaLinkEntry 29 }
+ 
+imaLinkTestProcStatus OBJECT-TYPE
+      SYNTAX      ImaTestProcStatus
+      ACCESS      read-only
+      STATUS      mandatory
+      DESCRIPTION
+        "This value indicates the mandatory state of the Test Pattern
+        Procedure. If the value is disabled(1), the test is not
+        running. A value of operating(2) means the test is running
+        and no error has been found on this interface. A value of
+        linkfail(3) means an error has been detected on this link
+        during the test.
+
+        Once an error occurs, the linkfail(3) value is latched until
+        either this object is read or until the imaGroupTestProcStatus
+        is moved to disabled(1). Once read, if the error no longer
+        persists, a subsequent read will report the value operating(2)."
+      ::= { imaLinkEntry 30 }
+
+END
+
+
+-- orig ASAM_IMA_MIB
+
+ASAM-IMA-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    OBJECT-TYPE
+        FROM RFC-1212
+    asam
+        FROM SYSTEM-MIB
+    TruthValue
+        FROM SNMPv2-TC
+    Gauge
+        FROM RFC1155-SMI
+    imaGroupIndex, imaLinkIfIndex
+        FROM IMA-MIB;
+
+asamImaMIB OBJECT IDENTIFIER ::= { asam 17 }
+
+ImaCacBehaviourType ::=  INTEGER {
+                                 standard(1),
+                                 non-standard(2)
+                                 }
+
+imaGroupCurrentTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF ImaGroupCurrentEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "The IMA Group Current table."
+    ::= { asamImaMIB 1 }
+
+imaGroupCurrentEntry OBJECT-TYPE
+    SYNTAX  ImaGroupCurrentEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "An entry in the IMA Group Current table."
+    INDEX   { imaGroupCurrentIndex }
+    ::= { imaGroupCurrentTable 1 }
+
+ImaGroupCurrentEntry ::=
+    SEQUENCE {
+        imaGroupCurrentIndex           INTEGER,
+        imaGroupCurrentTimeElapsed     INTEGER,
+        imaGroupCurrentValidIntervals  INTEGER,
+        imaGroupCurrentUASs            Gauge,
+        imaGroupCurrentFCs             Gauge
+    }
+
+imaGroupCurrentIndex OBJECT-TYPE
+    SYNTAX  INTEGER (1..2147483647)
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The index value which uniquely identifies  the
+         IMA Group   to which this entry is applica-
+         ble.  The interface identified by a  particular
+         value  of  this  index is the same interface as
+         identified by the same value as a imaGroupIndex
+         object instance."
+    ::= { imaGroupCurrentEntry 1 }
+
+imaGroupCurrentTimeElapsed OBJECT-TYPE
+    SYNTAX  INTEGER (0..899)
+    ACCESS  read-only 
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of seconds that have elapsed  since
+         the  beginning of the current error-measurement
+         period."
+    ::= { imaGroupCurrentEntry 2 }
+
+imaGroupCurrentValidIntervals OBJECT-TYPE
+    SYNTAX  INTEGER (0..32)
+    ACCESS  read-only 
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of  previous  intervals  for  which
+         valid data was collected.  The value will be 32
+         unless the interface was brought on-line within
+         the last  8 hours, in which case the value will
+         be the number of complete 15  minute  intervals
+         the since interface has been online."
+    ::= { imaGroupCurrentEntry 3 }
+
+imaGroupCurrentUASs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Unavailable Seconds, encountered  by
+         this IMA Group in the current 15 minute interval."
+    ::= { imaGroupCurrentEntry 4 }
+
+imaGroupCurrentFCs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of failures encountered by the near-end
+         interface of this IMA Group in the current 15 minute 
+         interval."
+    ::= { imaGroupCurrentEntry 5 }
+
+imaGroupIntervalTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF ImaGroupIntervalEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "The IMA Group Interval table."
+    ::= { asamImaMIB 2 }
+
+imaGroupIntervalEntry OBJECT-TYPE
+    SYNTAX  ImaGroupIntervalEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "An entry in the IMA Group Interval table."
+    INDEX   { imaGroupIntervalIndex, imaGroupIntervalNumber }
+    ::= { imaGroupIntervalTable 1 }
+
+ImaGroupIntervalEntry ::=
+    SEQUENCE {
+        imaGroupIntervalIndex  INTEGER,
+        imaGroupIntervalNumber INTEGER,
+        imaGroupIntervalUASs   Gauge,
+        imaGroupIntervalFCs    Gauge
+    }
+
+imaGroupIntervalIndex OBJECT-TYPE
+    SYNTAX  INTEGER (1..2147483647)
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The index value which uniquely identifies  the
+         IMA Group   to which this entry is applica-
+         ble.  The interface identified by a  particular
+         value  of  this  index is the same interface as
+         identified by the same value as a imaGroupIndex
+         object instance."
+    ::= { imaGroupIntervalEntry 1 }
+
+imaGroupIntervalNumber OBJECT-TYPE
+    SYNTAX  INTEGER (1..32)
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "A number between 1 and 32, where 1 is the most
+         recently completed 15 minute interval and 32 is
+         the least recently completed 15 minutes  inter-
+         val   (assuming   that  all  32  intervals  are
+         valid)."
+    ::= { imaGroupIntervalEntry 2 }
+
+imaGroupIntervalUASs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Unavailable Seconds encountered by 
+         this IMA Group in one of the previous 32, indi-
+         vidual 15 minute, intervals."
+    ::= { imaGroupIntervalEntry 3 }
+
+imaGroupIntervalFCs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of failures encountered by this IMA 
+         Group in one of the previous 32, individual 15 
+         minute, intervals."
+    ::= { imaGroupIntervalEntry 4 }
+
+imaGroupFarEndCurrentTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF ImaGroupFarEndCurrentEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "The IMA Group Far End Current table."
+    ::= { asamImaMIB 3 }
+
+imaGroupFarEndCurrentEntry OBJECT-TYPE
+    SYNTAX  ImaGroupFarEndCurrentEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "An entry in the IMA Group Far End Current table."
+    INDEX   { imaGroupFarEndCurrentIndex }
+    ::= { imaGroupFarEndCurrentTable 1 }
+
+ImaGroupFarEndCurrentEntry ::=
+    SEQUENCE {
+        imaGroupFarEndCurrentIndex   INTEGER,
+        imaGroupFarEndTimeElapsed    INTEGER,
+        imaGroupFarEndValidIntervals INTEGER,
+        imaGroupFarEndCurrentFCs     Gauge
+    }
+
+imaGroupFarEndCurrentIndex OBJECT-TYPE
+    SYNTAX  INTEGER (1..2147483647)
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The index value which uniquely identifies  the
+         IMA Group  to which this entry is applicable.  
+         The interface identified by a  particular
+         value  of  this  index is the same interface as
+         identified by the same value  an  imaGroupIndex
+         object instance."
+    ::= { imaGroupFarEndCurrentEntry 1 }
+
+imaGroupFarEndTimeElapsed OBJECT-TYPE
+    SYNTAX  INTEGER (0..899)
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of seconds that  have  elapsed
+         since the beginning of the far end current
+         error-measurement period."
+    ::= { imaGroupFarEndCurrentEntry 2 }
+
+imaGroupFarEndValidIntervals OBJECT-TYPE
+    SYNTAX  INTEGER (0..32)
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of previous far end  intervals
+         for  which  valid data was collected.  The
+         value will be 32 unless the interface  was
+         brought  online  within the last  8 hours,
+         in which case the value will be the number
+         of  complete  15  minute far end intervals
+         since the interface has been online."
+    ::= { imaGroupFarEndCurrentEntry 3 }
+
+imaGroupFarEndCurrentFCs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of far-end failure events encountered  
+         by this IMA Group interface in the current 15
+         minute interval."
+            ::= { imaGroupFarEndCurrentEntry 4 }
+
+imaGroupFarEndIntervalTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF ImaGroupFarEndIntervalEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "The IMA Group Far End Interval table."
+    ::= { asamImaMIB 4 }
+
+imaGroupFarEndIntervalEntry OBJECT-TYPE
+    SYNTAX  ImaGroupFarEndIntervalEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "An entry in the IMA Group Far End Interval table."
+    INDEX   { imaGroupFarEndIntervalIndex,
+              imaGroupFarEndIntervalNumber }
+    ::= { imaGroupFarEndIntervalTable 1 }
+
+ImaGroupFarEndIntervalEntry ::=
+    SEQUENCE {
+        imaGroupFarEndIntervalIndex  INTEGER,
+        imaGroupFarEndIntervalNumber INTEGER,
+        imaGroupFarEndIntervalFCs    Gauge
+    }
+
+imaGroupFarEndIntervalIndex OBJECT-TYPE
+    SYNTAX  INTEGER (1..2147483647)
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The index value which uniquely identifies  the
+         IMA Group  interface  to which this entry is applica-
+         ble.  The interface identified by a  particular
+         value  of  this  index is the same interface as
+         identified by the same value as a imaGroupIndex
+         object instance."
+    ::= { imaGroupFarEndIntervalEntry 1 }
+
+imaGroupFarEndIntervalNumber OBJECT-TYPE
+    SYNTAX  INTEGER (1..32)
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "A number between 1 and 32, where 1 is the most
+         recently completed 15 minute interval and 32 is
+         the least recently completed 15 minutes  inter-
+         val   (assuming   that  all  32  intervals  are
+         valid)."
+    ::= { imaGroupFarEndIntervalEntry 2 }
+
+imaGroupFarEndIntervalFCs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of far-end failure events encountered 
+         by this IMA Group in one of the previous 32, 
+         individual 15 minute, intervals."
+    ::= { imaGroupFarEndIntervalEntry 3 }
+
+imaLinkCurrentTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF ImaLinkCurrentEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "The IMA Link Current table."
+    ::= { asamImaMIB 5 }
+
+imaLinkCurrentEntry OBJECT-TYPE
+    SYNTAX  ImaLinkCurrentEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "An entry in the IMA Link Current table."
+    INDEX   { imaLinkCurrentIndex }
+    ::= { imaLinkCurrentTable 1 }
+
+ImaLinkCurrentEntry ::=
+    SEQUENCE {
+        imaLinkCurrentIndex          INTEGER,
+        imaLinkCurrentTimeElapsed    INTEGER,
+        imaLinkCurrentValidIntervals INTEGER,
+        imaLinkCurrentIVs            Gauge,
+        imaLinkCurrentOIFs           Gauge,
+        imaLinkCurrentSESs           Gauge,
+        imaLinkCurrentUASs           Gauge,
+        imaLinkCurrentTxUUSs         Gauge,
+        imaLinkCurrentRxUUSs         Gauge,
+        imaLinkCurrentTxFCs          Gauge,
+        imaLinkCurrentRxFCs          Gauge,
+        imaLinkCurrentTxStuffs       Gauge,
+        imaLinkCurrentRxStuffs       Gauge
+    }
+
+imaLinkCurrentIndex OBJECT-TYPE
+    SYNTAX  INTEGER (1..2147483647)
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The index value which uniquely identifies  the
+         IMA Link   to which this entry is applica-
+         ble.  The interface identified by a  particular
+         value  of  this  index is the same interface as
+         identified by the same value as a imaLinkIfIndex
+         object instance."
+    ::= { imaLinkCurrentEntry 1 }
+
+imaLinkCurrentTimeElapsed OBJECT-TYPE
+    SYNTAX  INTEGER (0..899)
+    ACCESS  read-only 
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of seconds that have elapsed  since
+         the  beginning of the current error-measurement
+         period."
+    ::= { imaLinkCurrentEntry 2 }
+
+imaLinkCurrentValidIntervals OBJECT-TYPE
+    SYNTAX  INTEGER (0..32)
+    ACCESS  read-only 
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of  previous  intervals  for  which
+         valid data was collected.  The value will be 32
+         unless the interface was brought on-line within
+         the last  8 hours, in which case the value will
+         be the number of complete 15  minute  intervals
+         the since interface has been online."
+    ::= { imaLinkCurrentEntry 3 }
+
+imaLinkCurrentIVs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of IMA Violation events, encountered
+         by this IMA Link in the current 15 minute 
+         interval."
+    ::= { imaLinkCurrentEntry 4 }
+
+imaLinkCurrentOIFs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Out of IMA Frame events, encountered
+         by this IMA Link in the current 15 minute interval."
+    ::= { imaLinkCurrentEntry 5 }
+
+imaLinkCurrentSESs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Severely Errored Seconds, encountered
+         by this IMA Link in the current 15 minute interval."
+    ::= { imaLinkCurrentEntry 6 }
+
+imaLinkCurrentUASs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Unavailable Seconds, encountered  by
+         this IMA Link in the current 15 minute interval."
+    ::= { imaLinkCurrentEntry 7 }
+
+imaLinkCurrentTxUUSs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Unusable Seconds, encountered  by
+         the transmit side of this IMA Link in the current 
+         15 minute interval."
+    ::= { imaLinkCurrentEntry 8 }
+
+imaLinkCurrentRxUUSs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Unusable Seconds, encountered  on
+         the receive side of this IMA Link in the current 
+         15 minute interval."
+    ::= { imaLinkCurrentEntry 9 }
+
+imaLinkCurrentTxFCs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of failure events encountered on the 
+         transmit side of the near-end interface of this 
+         IMA Link in the current 15 minute interval."
+    ::= { imaLinkCurrentEntry 10 }
+
+imaLinkCurrentRxFCs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of failure events encountered on the 
+         receive side of the near-end interface of this 
+         IMA Link in the current 15 minute interval."
+    ::= { imaLinkCurrentEntry 11 }
+
+imaLinkCurrentTxStuffs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of IMA stuff events encountered on the
+         transmit side of the near-end interface of this
+         IMA Link in the current 15 minute interval."
+    ::= { imaLinkCurrentEntry 12 }
+
+imaLinkCurrentRxStuffs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of IMA stuff events encountered on the
+         receive side of the near-end interface of this
+         IMA Link in the current 15 minute interval."
+    ::= { imaLinkCurrentEntry 13 }
+
+imaLinkIntervalTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF ImaLinkIntervalEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "The IMA Link Interval table."
+    ::= { asamImaMIB 6 }
+
+imaLinkIntervalEntry OBJECT-TYPE
+    SYNTAX  ImaLinkIntervalEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "An entry in the IMA Link Interval table."
+    INDEX   { imaLinkIntervalIndex, imaLinkIntervalNumber }
+    ::= { imaLinkIntervalTable 1 }
+
+ImaLinkIntervalEntry ::=
+    SEQUENCE {
+        imaLinkIntervalIndex    INTEGER,
+        imaLinkIntervalNumber   INTEGER,
+        imaLinkIntervalIVs      Gauge,
+        imaLinkIntervalOIFs     Gauge,
+        imaLinkIntervalSESs     Gauge,
+        imaLinkIntervalUASs     Gauge,
+        imaLinkIntervalTxUUSs   Gauge,
+        imaLinkIntervalRxUUSs   Gauge,
+        imaLinkIntervalTxFCs    Gauge,
+        imaLinkIntervalRxFCs    Gauge,
+        imaLinkIntervalTxStuffs Gauge,
+        imaLinkIntervalRxStuffs Gauge
+    }
+
+imaLinkIntervalIndex OBJECT-TYPE
+    SYNTAX  INTEGER (1..2147483647)
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The index value which uniquely identifies  the
+         IMA Link   to which this entry is applica-
+         ble.  The interface identified by a  particular
+         value  of  this  index is the same interface as
+         identified by the same value as a imaLinkIfIndex
+         object instance."
+    ::= { imaLinkIntervalEntry 1 }
+
+imaLinkIntervalNumber OBJECT-TYPE
+    SYNTAX  INTEGER (1..32)
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "A number between 1 and 32, where 1 is the most
+         recently completed 15 minute interval and 32 is
+         the least recently completed 15 minutes  inter-
+         val   (assuming   that  all  32  intervals  are
+         valid)."
+    ::= { imaLinkIntervalEntry 2 }
+
+imaLinkIntervalIVs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of IMA Violation events, encountered
+         by this IMA Link during this 15 minute 
+         interval."
+    ::= { imaLinkIntervalEntry 3 }
+
+imaLinkIntervalOIFs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Out of IMA Frame events, encountered
+         by this IMA Link during this 15 minute interval."
+    ::= { imaLinkIntervalEntry 4 }
+
+imaLinkIntervalSESs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Severely Errored Seconds, encountered
+         by this IMA Link during this 15 minute interval."
+    ::= { imaLinkIntervalEntry 5 }
+
+imaLinkIntervalUASs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Unavailable Seconds, encountered  by
+         this IMA Link during this 15 minute interval."
+    ::= { imaLinkIntervalEntry 6 }
+
+imaLinkIntervalTxUUSs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Unusable Seconds, encountered  by
+         the transmit side of this IMA Link in the current 
+         15 minute interval."
+    ::= { imaLinkIntervalEntry 7 }
+
+imaLinkIntervalRxUUSs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Unusable Seconds, encountered  on
+         the receive side of this IMA Link in the current 
+         15 minute interval."
+    ::= { imaLinkIntervalEntry 8 }
+
+imaLinkIntervalTxFCs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of failure events encountered on the 
+         transmit side of the near-end interface of this 
+         IMA Link during this 15 minute interval."
+    ::= { imaLinkIntervalEntry 9 }
+
+imaLinkIntervalRxFCs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of failure events encountered on the 
+         receive side of the near-end interface of this 
+         IMA Link during this 15 minute interval."
+    ::= { imaLinkIntervalEntry 10 }
+
+imaLinkIntervalTxStuffs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of IMA stuff events encountered on the
+         transmit side of the near-end interface of this
+         IMA Link during this 15 minute interval."
+    ::= { imaLinkIntervalEntry 11 }
+
+imaLinkIntervalRxStuffs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of IMA stuff events encountered on the
+         receive side of the near-end interface of this
+         IMA Link during this 15 minute interval."
+    ::= { imaLinkIntervalEntry 12 }
+
+imaLinkFarEndCurrentTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF ImaLinkFarEndCurrentEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "The IMA Link Far End Current table."
+    ::= { asamImaMIB 7 }
+
+imaLinkFarEndCurrentEntry OBJECT-TYPE
+    SYNTAX  ImaLinkFarEndCurrentEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "An entry in the IMA Link Far End Current table."
+    INDEX   { imaLinkFarEndCurrentIndex }
+    ::= { imaLinkFarEndCurrentTable 1 }
+
+ImaLinkFarEndCurrentEntry ::=
+    SEQUENCE {
+        imaLinkFarEndCurrentIndex   INTEGER,
+        imaLinkFarEndTimeElapsed    INTEGER,
+        imaLinkFarEndValidIntervals INTEGER,
+        imaLinkFarEndCurrentSESs    Gauge,
+        imaLinkFarEndCurrentUASs    Gauge,
+        imaLinkFarEndCurrentTxUUSs  Gauge,
+        imaLinkFarEndCurrentRxUUSs  Gauge,
+        imaLinkFarEndCurrentTxFCs   Gauge,
+        imaLinkFarEndCurrentRxFCs   Gauge
+    }
+
+imaLinkFarEndCurrentIndex OBJECT-TYPE
+    SYNTAX  INTEGER (1..2147483647)
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The index value which uniquely identifies  the
+         IMA Link  to which this entry is applicable.  
+         The interface identified by a  particular
+         value  of  this  index is the same interface as
+         identified by the same value  an  imaLinkIfIndex
+         object instance."
+    ::= { imaLinkFarEndCurrentEntry 1 }
+
+imaLinkFarEndTimeElapsed OBJECT-TYPE
+    SYNTAX  INTEGER (0..899)
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of seconds that  have  elapsed
+         since the beginning of the far end current
+         error-measurement period."
+    ::= { imaLinkFarEndCurrentEntry 2 }
+
+imaLinkFarEndValidIntervals OBJECT-TYPE
+    SYNTAX  INTEGER (0..32)
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of previous far end  intervals
+         for  which  valid data was collected.  The
+         value will be 32 unless the interface  was
+         brought  online  within the last  8 hours,
+         in which case the value will be the number
+         of  complete  15  minute far end intervals
+         since the interface has been online."
+    ::= { imaLinkFarEndCurrentEntry 3 }
+
+imaLinkFarEndCurrentSESs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Severely Errored Seconds, encountered
+         by this IMA Link in the current 15 minute interval."
+    ::= { imaLinkFarEndCurrentEntry 4 }
+
+imaLinkFarEndCurrentUASs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Unavailable Seconds, encountered  by
+         this IMA Link in the current 15 minute interval."
+    ::= { imaLinkFarEndCurrentEntry 5 }
+
+imaLinkFarEndCurrentTxUUSs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Unusable Seconds, encountered  by
+         the transmit side of this IMA Link in the current 
+         15 minute interval."
+    ::= { imaLinkFarEndCurrentEntry 6 }
+
+imaLinkFarEndCurrentRxUUSs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Unusable Seconds, encountered  on
+         the receive side of this IMA Link in the current 
+         15 minute interval."
+    ::= { imaLinkFarEndCurrentEntry 7 }
+
+imaLinkFarEndCurrentTxFCs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of failure events encountered on the 
+         transmit side of the far-end interface of this 
+         IMA Link in the current 15 minute interval."
+    ::= { imaLinkFarEndCurrentEntry 8 }
+
+imaLinkFarEndCurrentRxFCs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of failure events encountered on the 
+         receive side of the far-end interface of this 
+         IMA Link in the current 15 minute interval."
+    ::= { imaLinkFarEndCurrentEntry 9 }
+
+imaLinkFarEndIntervalTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF ImaLinkFarEndIntervalEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "The IMA Link Far End Interval table."
+    ::= { asamImaMIB 8 }
+
+imaLinkFarEndIntervalEntry OBJECT-TYPE
+    SYNTAX  ImaLinkFarEndIntervalEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "An entry in the IMA Link Far End Interval table."
+    INDEX   { imaLinkFarEndIntervalIndex,
+              imaLinkFarEndIntervalNumber }
+    ::= { imaLinkFarEndIntervalTable 1 }
+
+ImaLinkFarEndIntervalEntry ::=
+    SEQUENCE {
+        imaLinkFarEndIntervalIndex   INTEGER,
+        imaLinkFarEndIntervalNumber  INTEGER,
+        imaLinkFarEndIntervalSESs    Gauge,
+        imaLinkFarEndIntervalUASs    Gauge,
+        imaLinkFarEndIntervalTxUUSs  Gauge,
+        imaLinkFarEndIntervalRxUUSs  Gauge,
+        imaLinkFarEndIntervalTxFCs   Gauge,
+        imaLinkFarEndIntervalRxFCs   Gauge
+    }
+
+imaLinkFarEndIntervalIndex OBJECT-TYPE
+    SYNTAX  INTEGER (1..2147483647)
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The index value which uniquely identifies  the
+         IMA Link  interface  to which this entry is applica-
+         ble.  The interface identified by a  particular
+         value  of  this  index is the same interface as
+         identified by the same value as a imaLinkIfIndex
+         object instance."
+    ::= { imaLinkFarEndIntervalEntry 1 }
+
+imaLinkFarEndIntervalNumber OBJECT-TYPE
+    SYNTAX  INTEGER (1..32)
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "A number between 1 and 32, where 1 is the most
+         recently completed 15 minute interval and 32 is
+         the least recently completed 15 minutes  inter-
+         val   (assuming   that  all  32  intervals  are
+         valid)."
+    ::= { imaLinkFarEndIntervalEntry 2 }
+
+imaLinkFarEndIntervalSESs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Severely Errored Seconds, encountered
+         by this IMA Link during this 15 minute interval."
+    ::= { imaLinkFarEndIntervalEntry 3 }
+
+imaLinkFarEndIntervalUASs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Unavailable Seconds, encountered  by
+         this IMA Link during this 15 minute interval."
+    ::= { imaLinkFarEndIntervalEntry 4 }
+
+imaLinkFarEndIntervalTxUUSs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Unusable Seconds, encountered  by
+         the transmit side of this IMA Link during this 
+         15 minute interval."
+    ::= { imaLinkFarEndIntervalEntry 5 }
+
+imaLinkFarEndIntervalRxUUSs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of Unusable Seconds, encountered  on
+         the receive side of this IMA Link during this 
+         15 minute interval."
+    ::= { imaLinkFarEndIntervalEntry 6 }
+
+imaLinkFarEndIntervalTxFCs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of failure events encountered on the 
+         transmit side of the far-end interface of this 
+         IMA Link during this 15 minute interval."
+    ::= { imaLinkFarEndIntervalEntry 7 }
+
+imaLinkFarEndIntervalRxFCs OBJECT-TYPE
+    SYNTAX  Gauge
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "The number of failure events encountered on the 
+         receive side of the far-end interface of this 
+         IMA Link during this 15 minute interval."
+    ::= { imaLinkFarEndIntervalEntry 8 }
+
+imaGroupExtensionTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF ImaGroupExtensionEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "The IMA Group Extension table."
+    ::= { asamImaMIB 9 }
+
+imaGroupExtensionEntry OBJECT-TYPE
+    SYNTAX  ImaGroupExtensionEntry
+    ACCESS  not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+        "An entry in the IMA Group Extension table."
+    INDEX   { imaGroupIndex }
+    ::= { imaGroupExtensionTable 1 }
+
+ImaGroupExtensionEntry ::=
+    SEQUENCE {
+        imaCacBehaviour   ImaCacBehaviourType
+    }
+
+imaCacBehaviour OBJECT-TYPE
+    SYNTAX  ImaCacBehaviourType
+    ACCESS  read-write
+    STATUS  mandatory
+    DESCRIPTION
+        "This parameter defines the IMA CAC behaviour, i.e.
+non-standard or standard CAC behaviour."
+DEFVAL { standard }
+    ::= { imaGroupExtensionEntry 1 }
+
+END
