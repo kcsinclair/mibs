@@ -64,6 +64,7 @@ sub main {
 		# great, load the mibs into memory
 		my $mibs = loadOidIndex();
 		my $translated = 0;
+		my $needsTrans = 0;
 		my $lines = 0;
 
 		#SNMPv2-SMI::enterprises.14706.1.1.4.1.5.1 = INTEGER: 1
@@ -185,22 +186,26 @@ sub main {
 				my $oidTranslated = 0;
 				while ( $oid ne $stardardPrefix and $oid ne $snmpV2Prefix and $oid ne $enterprisePrefix ) {
 					$oid = shortenOid($oid);
+					#print "DEBUG oid=$oid\n";
 					if ( defined $mibs->{$oid} and $mibs->{$oid} ne "" ) {
 						$oidTranslated = 1;
 
 						# remove the oid from the index.
 						my $index = $rawoid;
 						$index =~ s/$oid//;
+						$index =~ s/\.\./\./;
 
 						# remove the index from the oid.
 						my $noindex = $rawoid;
 						$noindex =~ s/$index$//;
 
+						#print "DEBUG matched oid=$oid $mibs->{$oid} noindex=$noindex index=$index\n";
+
 						$_ =~ s/$oid/$mibs->{$oid} \($noindex\) $index/;
 
 						$noindex =~ s/^\.//;
 						$noindex =~ s/\.$//;
-						$index =~ s/^\.//;
+
 						$_ = "$mibs->{$oid} ($noindex)$index = $rest";
 						# remove the leading . from the line.
 						$_ =~ s/^\.//;
@@ -214,6 +219,7 @@ sub main {
 				else {
 					# this means missing a MIB or not handling the index yet.
 					print "NEEDS TRANSLATE: $_\n";
+					++$needsTrans;
 				}
 
 			}
@@ -221,7 +227,7 @@ sub main {
 				print "$_\n";
 			}
 		}   
-		print "$lines lines processed, $translated lines translated\n";     
+		print "$lines lines processed, $translated lines translated, $needsTrans lines need translating logic.\n";     
 	}
 	else {
 		print "ERROR, problem with $file, can not read it.\n";
