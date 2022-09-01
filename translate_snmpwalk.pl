@@ -21,8 +21,10 @@ $| = 1;
 
 # change this if you don't store the file here.
 my $oidfile = "/usr/local/mibs/mibs.oid";
+my $basePrefix = "1.3.6.1";
 my $enterprisePrefix = "1.3.6.1.4.1";
-my $stardardPrefix = "1.3.6.1.2";
+my $standardPrefix = "1.3.6.1.2";
+my $experimentalPrefix = "1.3.6.1.3";
 my $snmpV2Prefix = "1.3.6.1.6";
 my $iso8802 = "1.0.8802";
 my $iso840 = "1.2.840";
@@ -180,11 +182,13 @@ sub main {
 					print "NEEDS TRANSLATE: $_\n";
 				}
 			}
-	        elsif ( $oid =~ /$stardardPrefix|$snmpV2Prefix|$enterprisePrefix|$iso8802|$iso840|$iso111/ ) {
+	        elsif ( $oid =~ /$standardPrefix|$experimentalPrefix|$snmpV2Prefix|$enterprisePrefix|$iso8802|$iso840|$iso111/ ) {
 	        	# remove the leading . from the oid
 	        	$oid =~ s/^\.//;
 				my $oidTranslated = 0;
-				while ( $oid ne $stardardPrefix and $oid ne $snmpV2Prefix and $oid ne $enterprisePrefix ) {
+				
+				#while ( $oid ne $standardPrefix and $oid ne $snmpV2Prefix and $oid ne $enterprisePrefix) {
+				while ( $oid ne $basePrefix ) {
 					$oid = shortenOid($oid);
 					#print "DEBUG oid=$oid\n";
 					if ( defined $mibs->{$oid} and $mibs->{$oid} ne "" ) {
