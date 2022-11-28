@@ -107,8 +107,13 @@ sub main {
 			my ($oid,$rest) = split(" = ",$_);
 			my $rawoid = $oid;
 
+			if ( $oid !~ /^\d+\.\d+/ ) {
+				print "ERROR: bad line\n";
+				next;
+			}
 
-	        if ( $oid =~ /$needsTranslate/ ) {
+
+			if ( $oid =~ /$needsTranslate/ ) {
 				my $oidTranslated = 0;
 
 				# get partial translated back to full OID
@@ -182,7 +187,7 @@ sub main {
 					print "NEEDS TRANSLATE: $_\n";
 				}
 			}
-	        elsif ( $oid =~ /$standardPrefix|$experimentalPrefix|$snmpV2Prefix|$enterprisePrefix|$iso8802|$iso840|$iso111/ ) {
+			elsif ( $oid =~ /$standardPrefix|$experimentalPrefix|$snmpV2Prefix|$enterprisePrefix|$iso8802|$iso840|$iso111/ ) {
 	        	# remove the leading . from the oid
 	        	$oid =~ s/^\.//;
 				my $oidTranslated = 0;
