@@ -1,0 +1,483 @@
+-- *****************************************************************
+-- OSA MIB
+-- *****************************************************************
+
+SL-OSA-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+	MODULE-IDENTITY, OBJECT-TYPE, Integer32,
+	NOTIFICATION-TYPE, Gauge32, 
+	Counter64     	                    FROM SNMPv2-SMI
+	DisplayString, TruthValue,
+	DateAndTime							FROM SNMPv2-TC
+	MODULE-COMPLIANCE, OBJECT-GROUP,
+	NOTIFICATION-GROUP                  FROM SNMPv2-CONF
+	InterfaceIndex		               	FROM IF-MIB
+	slService				      		FROM SL-NE-MIB;
+
+slOSA MODULE-IDENTITY
+	LAST-UPDATED "201902041200Z"   -- 17 Jan. 2005  12:00:00 EST
+	ORGANIZATION "PacketLight Networks Ltd."
+	CONTACT-INFO
+		"Omri_Viner@PacketLight.com"
+	DESCRIPTION
+		"This MIB module describes the OSA"
+	::= { slService 18 }
+
+-- The OSA MIB consists of the following groups:
+--    Configuration
+--    Traps
+
+slOSAConfig		OBJECT IDENTIFIER ::= { slOSA 1 }
+slOSAPm	 		OBJECT IDENTIFIER ::= { slOSA 2 }
+slOSATraps 		OBJECT IDENTIFIER ::= { slOSA 3 }
+
+
+-- Textual Conventions
+
+
+--
+-- The OCM Configuration Table
+--
+
+slOCMConfigTable OBJECT-TYPE
+	SYNTAX  SEQUENCE OF SlOCMConfigEntry
+	MAX-ACCESS  		not-accessible
+	STATUS  			current
+	DESCRIPTION
+		"The OCM Configuration table."
+	::= { slOSAConfig 1 }
+
+slOCMConfigEntry OBJECT-TYPE
+	SYNTAX  SlOCMConfigEntry
+	MAX-ACCESS  not-accessible
+	STATUS  current
+	DESCRIPTION
+		"An entry in the OCM Configuration table."
+	INDEX   { slOCMConfigLineIndex }
+	::= { slOCMConfigTable 1 }
+
+SlOCMConfigEntry ::=
+	SEQUENCE {
+		slOCMConfigLineIndex        		InterfaceIndex,
+        -- Status
+		slOCMConfigOperStatus				INTEGER,
+		slOCMConfigTemp						INTEGER,		-- Module temperature      		
+		slOCMConfigSNO						DisplayString,	-- Serial Nomber      		
+		slOCMConfigMFD						DisplayString,	-- Manufacturing Date      		
+		slOCMConfigHWR						DisplayString,	-- Hardware revision      		
+		slOCMConfigFWR						DisplayString,	-- Firmware revision      		
+        -- Config
+		slOCMConfigPortLock					INTEGER,
+		slOCMConfigCycles					INTEGER,
+		slOCMConfigPN						DisplayString	-- Part Number      		
+	}
+
+slOCMConfigLineIndex OBJECT-TYPE
+	SYNTAX  	InterfaceIndex
+	MAX-ACCESS  read-only
+	STATUS  	current
+	DESCRIPTION
+		"Only one entry in the table.
+		 Thus this is a dummy ifIndex that equals to 1."
+	::= { slOCMConfigEntry 1 }
+
+-- Status
+
+slOCMConfigOperStatus OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The OCM operational status. 
+    	0 - DOWN, 1 - UP."
+    ::= { slOCMConfigEntry 2 }
+
+slOCMConfigTemp OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The OCM temperature in 0.1 celsius"
+    ::= { slOCMConfigEntry 3 }
+
+slOCMConfigSNO OBJECT-TYPE
+	SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The OCM module derial number.
+    	Format: 8 character long string"
+    ::= { slOCMConfigEntry 4 }
+
+slOCMConfigMFD OBJECT-TYPE
+	SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The OCM module manufacturing date.
+    	Format: <DD> <MMM> <YYYY>.
+    	Example: 01 Jan 2019"
+    ::= { slOCMConfigEntry 5 }
+
+slOCMConfigHWR OBJECT-TYPE
+	SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The OCM module hardware revision.
+    	Format: <Major>.<Minor>.<Implementation>.<Candidate>
+    	Example: 2.3.1.1"
+    ::= { slOCMConfigEntry 6 }
+
+slOCMConfigFWR OBJECT-TYPE
+	SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The OCM module firware revision.
+    	Format: <Major>.<Minor>.<Implementation>.<Candidate>
+    	Example: 2.3.1.1"
+    ::= { slOCMConfigEntry 7 }
+
+-- Configuration
+
+slOCMConfigPortLock OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"The port number to lock.
+    	If 0 -> no lock, otherwise lock to 1-8 port number.
+    	Default: 0"
+    ::= { slOCMConfigEntry 8 }
+
+slOCMConfigCycles OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"Counts the number of measurement cycles.
+    	Initial value: 0"
+    ::= { slOCMConfigEntry 9 }
+
+slOCMConfigPN OBJECT-TYPE
+	SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"Part Number"
+    ::= { slOCMConfigEntry 10 }
+
+--
+-- The OSA Port Configuration Table
+--
+
+slOSPRConfigTable OBJECT-TYPE
+	SYNTAX  SEQUENCE OF SlOSPRConfigEntry
+	MAX-ACCESS  		not-accessible
+	STATUS  			current
+	DESCRIPTION
+		"The OSA port configuration table."
+	::= { slOSAConfig 2 }
+
+slOSPRConfigEntry OBJECT-TYPE
+	SYNTAX  SlOSPRConfigEntry
+	MAX-ACCESS  not-accessible
+	STATUS  current
+	DESCRIPTION
+		"An entry in the OSA port configuration table."
+	INDEX   { slOSPRConfigLineIndex }
+	::= { slOSPRConfigTable 1 }
+
+SlOSPRConfigEntry ::=
+	SEQUENCE {
+		slOSPRConfigLineIndex        		InterfaceIndex,
+        -- OSA Port Configuration
+		slOSPRConfigAdmin					INTEGER,
+		slOSPRConfigOper					INTEGER,
+        slOSPRConfigAlias					DisplayString,
+		slOSPRConfigGrid					INTEGER,
+        slOSPRConfigLossDetectThresh		INTEGER,
+        slOSPRConfigRefreshTime				INTEGER,    
+		slOSPRConfigRestoreDefaults			INTEGER,
+		slOSPRConfigTR						INTEGER,	-- VC Mode:   power threshold
+        -- OSA Port Measurement Parameters
+		slOSPRConfigDL						INTEGER,	-- OSNR Mode: left offset to noise location
+		slOSPRConfigDU						INTEGER,	-- OSNR Mode: right offset to noise location
+		slOSPRConfigNL						INTEGER,	-- OSNR Mode: left range to find <NTL>
+		slOSPRConfigNU						INTEGER,	-- OSNR Mode: right range to find <NTU>
+		slOSPRConfigBWX						INTEGER,	-- OSNR Mode: offset power down from <CS>
+		slOSPRConfigNTR						INTEGER,	-- OSNR Mode: noise tag range
+		slOSPRConfigRBW						INTEGER,	-- OSNR Mode: Resolution Band Width 
+		slOSPRConfigBWT						INTEGER     -- CP Mode:   offset power down from <CS>
+	}
+
+slOSPRConfigLineIndex OBJECT-TYPE
+	SYNTAX  	InterfaceIndex
+	MAX-ACCESS  read-only
+	STATUS  	current
+	DESCRIPTION
+		"The ifIndex of the OSA port 1-8."
+	::= { slOSPRConfigEntry 1 }
+
+-- Configuration
+
+slOSPRConfigAdmin OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"The port admin status. 
+    	0 - DOWN, 1 - UP."
+    ::= { slOSPRConfigEntry 2 }
+
+slOSPRConfigOper OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The port operational status. 
+    	0 - DOWN, 1 - UP."
+    ::= { slOSPRConfigEntry 3 }
+
+slOSPRConfigAlias OBJECT-TYPE
+	SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"The port alias."
+    ::= { slOSPRConfigEntry 4 }
+
+slOSPRConfigGrid OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"ITU-T G.694.1 drid type.
+    	1 - 100 GHz
+    	2 - 50 GHz
+    	3 - 25 GHz
+    	4 - Flex Grid."
+    ::= { slOSPRConfigEntry 5 }
+
+slOSPRConfigLossDetectThresh OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"The threshold for channel LOS detection .
+    	Units: 0.1 dBm.
+    	Default: -40 dBm"
+    ::= { slOSPRConfigEntry 6 }
+
+slOSPRConfigRefreshTime OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"The minimal refresh time for the port.
+    	Specified in 0.1 seconds.
+    	0 - never refresh."
+    ::= { slOSPRConfigEntry 7 }
+
+slOSPRConfigRestoreDefaults OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"Writing this object restores the port parameters to thier defauls"
+    ::= { slOSPRConfigEntry 8 }
+
+slOSPRConfigTR OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"VC Mode: The threshold for channel valid channel (VC) detection.
+    	Units: 0.1 dBm.
+    	Default: -35 dBm"
+    ::= { slOSPRConfigEntry 9 }
+
+
+-- OSA Port Measurement Parameters
+
+slOSPRConfigDL OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"OSNR Mode: left offset to noise location.
+    	Units: 0.1 Ghz.
+    	Default: 20GHz - 100GHz spacing 
+    	         10GHz - 50GHz spacing"
+    ::= { slOSPRConfigEntry 10 }
+
+slOSPRConfigDU OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"OSNR Mode: right offset to noise location.
+    	Units: 0.1 Ghz.
+    	Default: 20GHz - 100GHz spacing 
+    	         10GHz - 50GHz spacing"
+    ::= { slOSPRConfigEntry 11 }
+
+slOSPRConfigNL OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"OSNR Mode: noise lower.
+    	Units: 0.1 Ghz.
+    	Default: 20GHz - 100GHz spacing 
+    	         10GHz - 50GHz spacing"
+    ::= { slOSPRConfigEntry 12 }
+
+slOSPRConfigNU OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"OSNR Mode: noise upper.
+    	Units: 0.1 Ghz.
+    	Default: 20GHz - 100GHz grid 
+    	         10GHz - 50GHz grid"
+    ::= { slOSPRConfigEntry 13 }
+
+slOSPRConfigBWX OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"OSNR Mode: The offset in tenths of a dB down from <CS>.
+    	Used as a threshold to determine the bandwidth over which to integrate the signal power.
+    	Units: 0.1 dB.
+    	Default: 3 dB"
+    ::= { slOSPRConfigEntry 14 }
+
+slOSPRConfigNTR OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"OSNR Mode: noise tag range.
+    	Units: 0.1 GHz.
+    	Default: 20GHz - 100GHz grid 
+    	         10GHz - 50GHz grid"
+    ::= { slOSPRConfigEntry 15 }
+
+slOSPRConfigRBW OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"OSNR Mode: resolution band width (tenths of GHz).
+    	Units: 0.1 GHz.
+    	Default: 12.5 GHz"
+    ::= { slOSPRConfigEntry 16 }
+
+slOSPRConfigBWT OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"CP Mode: offset in tenths of a dB down from <CS>.
+    	Used as a threshold to determine the bandwidth over which to integrate the signal power.
+    	Units: 0.1 dB.
+    	Default: 3 dB"
+    ::= { slOSPRConfigEntry 17 }
+
+
+--
+-- The OSA Channel Table
+--
+
+slOSChannelTable OBJECT-TYPE
+	SYNTAX  SEQUENCE OF SlOSChannelEntry
+	MAX-ACCESS  		not-accessible
+	STATUS  			current
+	DESCRIPTION
+		"The OSA channels table."
+	::= { slOSAConfig 3 }
+
+slOSChannelEntry OBJECT-TYPE
+	SYNTAX  SlOSChannelEntry
+	MAX-ACCESS  not-accessible
+	STATUS  current
+	DESCRIPTION
+		"An entry in the OSA channels table."
+	INDEX   { slOSChannelLineIndex,
+			  slOSChannelIndex }
+	::= { slOSChannelTable 1 }
+
+SlOSChannelEntry ::=
+	SEQUENCE {
+		slOSChannelLineIndex        		InterfaceIndex,
+		slOSChannelIndex					INTEGER,
+        -- OSA Channel Parameters
+		slOSChannelFR						INTEGER,	-- Channel Frequency
+		slOSChannelPO						INTEGER,	-- Channel Power
+		slOSChannelBW						INTEGER,	-- Channel Bandwidth
+		slOSChannelOSNR						INTEGER		-- Channel OSNR
+	}
+
+slOSChannelLineIndex OBJECT-TYPE
+	SYNTAX  	InterfaceIndex
+	MAX-ACCESS  read-only
+	STATUS  	current
+	DESCRIPTION
+		"The ifIndex of the OSA port 1-8."
+	::= { slOSChannelEntry 1 }
+
+slOSChannelIndex OBJECT-TYPE
+	SYNTAX  	INTEGER
+	MAX-ACCESS  read-only
+	STATUS  	current
+	DESCRIPTION
+		"The index of the channel 0..99."
+	::= { slOSChannelEntry 2 }
+
+-- OSA Channel Parameters
+
+slOSChannelFR OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"Channel frequency in 10MHz units. 
+    	E.g. 19125000 stands for 191.25000THz"
+    ::= { slOSChannelEntry 3 }
+
+slOSChannelPO OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"Signed power in tenths of a dBm"
+    ::= { slOSChannelEntry 4 }
+
+slOSChannelBW OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The channel bandwidth in 10MHz units units."
+    ::= { slOSChannelEntry 5 }
+
+slOSChannelOSNR OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"OSNR in tenths of a dB units."
+    ::= { slOSChannelEntry 6 }
+
+
+-- 
+-- OSA Traps
+-- 
+
+
+END

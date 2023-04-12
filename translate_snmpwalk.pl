@@ -78,6 +78,11 @@ sub main {
 			++$lines;
 			chomp;
 
+			# fix up leading full stop e.g. .1.3.6.1.2.1.1.1.0
+			if ( $_ =~ /^\./ ) {
+				$_ =~ s/^\.//g;
+			}
+
 			# fix up iso.3.6.1.4.1
 			if ( $_ =~ /^iso.3.6.1.4.1/ ) {
 				$_ =~ s/iso.3.6.1.4.1/1.3.6.1.4.1/g;

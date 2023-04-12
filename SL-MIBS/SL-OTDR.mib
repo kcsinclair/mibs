@@ -1,0 +1,473 @@
+-- *****************************************************************
+-- OTDR MIB
+-- *****************************************************************
+
+SL-OTDR-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+	MODULE-IDENTITY, OBJECT-TYPE, Integer32,
+	NOTIFICATION-TYPE, Gauge32, 
+	Counter64     	                    FROM SNMPv2-SMI
+	DisplayString, TruthValue,
+	DateAndTime							FROM SNMPv2-TC
+	MODULE-COMPLIANCE, OBJECT-GROUP,
+	NOTIFICATION-GROUP                  FROM SNMPv2-CONF
+	InterfaceIndex		               	FROM IF-MIB
+	slService				      		FROM SL-NE-MIB;
+
+slOTDR MODULE-IDENTITY
+	LAST-UPDATED "201902041200Z"   -- 17 Jan. 2005  12:00:00 EST
+	ORGANIZATION "PacketLight Networks Ltd."
+	CONTACT-INFO
+		"Omri_Viner@PacketLight.com"
+	DESCRIPTION
+		"This MIB module describes the OTDR"
+	::= { slService 19 }
+
+-- The OTDR MIB consists of the following groups:
+--    Configuration
+--    Traps
+
+slOTDRConfig		OBJECT IDENTIFIER ::= { slOTDR 1 }
+slOTDRPm	 		OBJECT IDENTIFIER ::= { slOTDR 2 }
+slOTDRTraps 		OBJECT IDENTIFIER ::= { slOTDR 3 }
+
+
+-- Textual Conventions
+
+--
+-- The OTDR Module Configuration Table
+--
+
+slOTDRMDConfigTable OBJECT-TYPE
+	SYNTAX  SEQUENCE OF SlOTDRMDConfigEntry
+	MAX-ACCESS  		not-accessible
+	STATUS  			current
+	DESCRIPTION
+		"The OTDR Module Configuration table."
+	::= { slOTDRConfig 1 }
+
+slOTDRMDConfigEntry OBJECT-TYPE
+	SYNTAX  SlOTDRMDConfigEntry
+	MAX-ACCESS  not-accessible
+	STATUS  current
+	DESCRIPTION
+		"An entry in the OTDR Module Configuration table."
+	INDEX   { slOTDRMDConfigLineIndex }
+	::= { slOTDRMDConfigTable 1 }
+
+SlOTDRMDConfigEntry ::=
+	SEQUENCE {
+		slOTDRMDConfigLineIndex        		InterfaceIndex,
+        -- Status
+		slOTDRMDConfigAdminStatus				INTEGER,
+		slOTDRMDConfigOperStatus				INTEGER,
+		slOTDRMDConfigPN						DisplayString,	-- Part Number      		
+		slOTDRMDConfigSNO						DisplayString,	-- Serial Nomber      		
+		slOTDRMDConfigMF						DisplayString,	-- Manufacturer      		
+		slOTDRMDConfigHWR						DisplayString,	-- Hardware revision      		
+		slOTDRMDConfigFWR						DisplayString,	-- Firmware revision      		
+        -- Config
+		slOTDRMDConfigPortLock					INTEGER,
+		slOTDRMDConfigCycles					INTEGER,
+		slOTDRMDConfigDynamicRange				INTEGER
+	}
+
+slOTDRMDConfigLineIndex OBJECT-TYPE
+	SYNTAX  	InterfaceIndex
+	MAX-ACCESS  read-only
+	STATUS  	current
+	DESCRIPTION
+		"Only one entry in the table.
+		 Thus this is a dummy ifIndex that equals to 1."
+	::= { slOTDRMDConfigEntry 1 }
+
+-- Status
+
+slOTDRMDConfigAdminStatus OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"The OTDR module admin status. 
+    	0 - DOWN, 1 - UP."
+    ::= { slOTDRMDConfigEntry 2 }
+
+slOTDRMDConfigOperStatus OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The OTDR module operational status. 
+    	0 - DOWN, 1 - UP."
+    ::= { slOTDRMDConfigEntry 3 }
+
+slOTDRMDConfigPN OBJECT-TYPE
+	SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The OTDR module part number."
+    ::= { slOTDRMDConfigEntry 4 }
+
+slOTDRMDConfigSNO OBJECT-TYPE
+	SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The OTDR module serial number."
+    ::= { slOTDRMDConfigEntry 5 }
+
+slOTDRMDConfigMF OBJECT-TYPE
+	SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The OTDR module manufacturer"
+    ::= { slOTDRMDConfigEntry 6 }
+
+slOTDRMDConfigHWR OBJECT-TYPE
+	SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The OTDR module hardware revision.
+    	Format: <Major>.<Minor>
+    	Example: 2.3"
+    ::= { slOTDRMDConfigEntry 7 }
+
+slOTDRMDConfigFWR OBJECT-TYPE
+	SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The OTDR module firware revision.
+    	Format: <Major>.<Minor>.<Implementation>
+    	Example: 2.3.1"
+    ::= { slOTDRMDConfigEntry 8 }
+
+-- Configuration
+
+slOTDRMDConfigPortLock OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"The port number to lock.
+    	If 0 -> no lock, otherwise lock to 1-8 port number.
+    	Default: 0"
+    ::= { slOTDRMDConfigEntry 9 }
+
+slOTDRMDConfigCycles OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"Count the number of the measurements cycles.
+    	Initial value: 0"
+    ::= { slOTDRMDConfigEntry 10 }
+
+slOTDRMDConfigDynamicRange OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The dynamic range of the OTDR in dB units. E.g. 30dB or 40dB"
+    ::= { slOTDRMDConfigEntry 11 }
+
+
+--
+-- The OTDR Port Configuration Table
+--
+
+slOTDRPRConfigTable OBJECT-TYPE
+	SYNTAX  SEQUENCE OF SlOTDRPRConfigEntry
+	MAX-ACCESS  		not-accessible
+	STATUS  			current
+	DESCRIPTION
+		"The OTDR port configuration table."
+	::= { slOTDRConfig 2 }
+
+slOTDRPRConfigEntry OBJECT-TYPE
+	SYNTAX  SlOTDRPRConfigEntry
+	MAX-ACCESS  not-accessible
+	STATUS  current
+	DESCRIPTION
+		"An entry in the OTDR port configuration table."
+	INDEX   { slOTDRPRConfigLineIndex }
+	::= { slOTDRPRConfigTable 1 }
+
+SlOTDRPRConfigEntry ::=
+	SEQUENCE {
+		slOTDRPRConfigLineIndex        		InterfaceIndex,
+        -- OTDR Port Configuration
+		slOTDRPRConfigAdmin					INTEGER,
+		slOTDRPRConfigOper					INTEGER,
+        slOTDRPRConfigAlias					DisplayString,
+		slOTDRPRConfigUIOR					INTEGER,
+        slOTDRPRConfigTLOS					INTEGER,
+        slOTDRPRConfigTREF					INTEGER,    
+		slOTDRPRConfigMTIM					INTEGER,
+		slOTDRPRConfigDIST					INTEGER,	
+		slOTDRPRConfigPWIDTH				INTEGER,
+		slOTDRPRConfigRESOL					INTEGER,	
+        slOTDRPRConfigTEOF					INTEGER,    
+        slOTDRPRConfigRefSavRmv				INTEGER    
+	}
+
+slOTDRPRConfigLineIndex OBJECT-TYPE
+	SYNTAX  	InterfaceIndex
+	MAX-ACCESS  read-only
+	STATUS  	current
+	DESCRIPTION
+		"The ifIndex of the OTDR port 1-8."
+	::= { slOTDRPRConfigEntry 1 }
+
+-- Configuration
+
+slOTDRPRConfigAdmin OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"The port admin status. 
+    	0 - DOWN, 1 - UP."
+    ::= { slOTDRPRConfigEntry 2 }
+
+slOTDRPRConfigOper OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The port operational status. 
+    	0 - DOWN, 1 - UP."
+    ::= { slOTDRPRConfigEntry 3 }
+
+slOTDRPRConfigAlias OBJECT-TYPE
+	SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"The port alias."
+    ::= { slOTDRPRConfigEntry 4 }
+
+slOTDRPRConfigUIOR OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"User Index of Refraction, multilplied by 10^6.
+    	E.g. the value 1400000 is equivalent to IOR 1.4.
+    	Range: Value should be between 1400000 to 1700000
+    	Default: 1468000"
+    ::= { slOTDRPRConfigEntry 5 }
+
+slOTDRPRConfigTLOS OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"The threshold for Splice LOS detection in units of 0.01 dB.
+    	E.g. the value 145 is equivalent to 1.45 dB. 
+    	Range: 0 to 999
+    	Default: 30 (0.3 dB)"
+    ::= { slOTDRPRConfigEntry 6 }
+
+slOTDRPRConfigTREF OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"The threshold for Reflectance in units of -0.01 dB.
+    	E.g. the value 3000 is equivalent to -30 dB. 
+    	Range: 1400 to 8000
+    	Default: 3000 (-30 dB)"
+    ::= { slOTDRPRConfigEntry 7 }
+
+
+-- OTDR Port Measurement Parameters
+
+
+slOTDRPRConfigMTIM OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"Measurement time in seconds.
+    	Range: 5 to 300.
+    	Default: 60"
+    ::= { slOTDRPRConfigEntry 8 }
+
+slOTDRPRConfigDIST OBJECT-TYPE
+	SYNTAX      INTEGER 
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"The expected fiber distance in km units.
+    	Legal values: 5, 25, 50, 125.
+    	Default: 125 km"
+    ::= { slOTDRPRConfigEntry 9 }
+
+slOTDRPRConfigPWIDTH OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"Pulse Width in ns units.
+    	Legal values: 10, 30, 100, 300, 1000, 3000, 10000, 20000.
+    	Default: 3000 ns"
+    ::= { slOTDRPRConfigEntry 10 }
+
+slOTDRPRConfigRESOL OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"Measurement resulution in units of cm.
+    	Legal values: 32, 64, 120, 250, 500, 1000, 2000, 4000.
+    	Default: 1000 equivalent to 10 m"
+    ::= { slOTDRPRConfigEntry 11 }
+
+slOTDRPRConfigTEOF OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"The threshold for End Of Fiber detection in units of 0.1 dB.
+    	E.g. the value -145 is equivalent to -14.5 dB. 
+    	Range: 0 to 999
+    	Default: -30 (-3 dB)"
+    ::= { slOTDRPRConfigEntry 12 }
+
+slOTDRPRConfigRefSavRmv OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+    	"A toggle value.
+    	Writing this object Save or Remove the reference events for that port.
+    	Reading the value of this object returns:
+    	 0 - if the reference events are removed, 
+    	 1 - if the reference events are saved"
+    ::= { slOTDRPRConfigEntry 13 }
+
+
+--
+-- The OTDR Event  Table
+--
+
+slOTDREventTable OBJECT-TYPE
+	SYNTAX  SEQUENCE OF SlOTDREventEntry
+	MAX-ACCESS  		not-accessible
+	STATUS  			current
+	DESCRIPTION
+		"The OTDR events table."
+	::= { slOTDRConfig 3 }
+
+slOTDREventEntry OBJECT-TYPE
+	SYNTAX  SlOTDREventEntry
+	MAX-ACCESS  not-accessible
+	STATUS  current
+	DESCRIPTION
+		"An entry in the OTDR events table."
+	INDEX   { slOTDREventLineIndex,
+			  slOTDREventTableIndex,
+			  slOTDREventIndex }
+	::= { slOTDREventTable 1 }
+
+SlOTDREventEntry ::=
+	SEQUENCE {
+		slOTDREventLineIndex        	InterfaceIndex,
+		slOTDREventTableIndex			INTEGER,
+		slOTDREventIndex				INTEGER,
+        -- OTDR Event Parameters
+		slOTDREventType					INTEGER,
+		slOTDREventDistance				INTEGER,
+		slOTDREventReflectance			INTEGER,
+        slOTDREventLoss					INTEGER,
+        slOTDREventTLoss				INTEGER   
+	}
+
+slOTDREventLineIndex OBJECT-TYPE
+	SYNTAX  	InterfaceIndex
+	MAX-ACCESS  read-only
+	STATUS  	current
+	DESCRIPTION
+		"The ifIndex of the OTDR port 1-8."
+	::= { slOTDREventEntry 1 }
+
+slOTDREventTableIndex OBJECT-TYPE
+	SYNTAX  	INTEGER
+	MAX-ACCESS  read-only
+	STATUS  	current
+	DESCRIPTION
+		"The index of the event table.
+		Two tables may exist:
+		  1 - the current table
+		  2 - the reference table.
+		The current event table holds the result events of the last measurement. 
+		The reference table is optional and available only after saving the currect event table"
+	::= { slOTDREventEntry 2 }
+
+slOTDREventIndex OBJECT-TYPE
+	SYNTAX  	INTEGER
+	MAX-ACCESS  read-only
+	STATUS  	current
+	DESCRIPTION
+		"The index of the event 0..99."
+	::= { slOTDREventEntry 3 }
+
+
+-- OTDR Event Parameters
+
+slOTDREventType OBJECT-TYPE
+	SYNTAX      INTEGER	
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The event type: 
+    	0 - Non-reflective, 
+    	1 - Reflective.
+    	3 - End of Fiber"
+    ::= { slOTDREventEntry 4 }
+
+slOTDREventDistance OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The distance from start to the event in Meters" 
+    ::= { slOTDREventEntry 5 }
+
+slOTDREventReflectance OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The event reflectance in dB*1000"
+    ::= { slOTDREventEntry 6 }
+
+slOTDREventLoss OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The event loss in dB*1000"
+    ::= { slOTDREventEntry 7 }
+
+slOTDREventTLoss OBJECT-TYPE
+	SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION 
+    	"The total loss to the event in dB*1000"
+    ::= { slOTDREventEntry 8 }
+
+
+
+-- 
+-- OTDR Traps
+-- 
+
+
+END
