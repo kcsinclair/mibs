@@ -46,7 +46,7 @@ EO_TEXT
 
 sub main {
 
-	if ( $ARGV[0] =~ /\/help|\-help|\-h/ ) { 
+	if ( $ARGV[0] =~ /\/help|\-help/ ) { 
         help;
         exit 1;
 	}
